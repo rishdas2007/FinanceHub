@@ -7,6 +7,7 @@ import {
   economicEvents,
   marketBreadth,
   vixData,
+  sectorData,
   type User, 
   type InsertUser,
   type StockData,
@@ -22,7 +23,9 @@ import {
   type MarketBreadth,
   type InsertMarketBreadth,
   type VixData,
-  type InsertVixData
+  type InsertVixData,
+  type SectorData,
+  type InsertSectorData
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, gte, and } from "drizzle-orm";
@@ -60,6 +63,10 @@ export interface IStorage {
   // VIX data operations
   getLatestVixData(): Promise<VixData | undefined>;
   createVixData(vix: InsertVixData): Promise<VixData>;
+  
+  // Sector data operations
+  getLatestSectorData(): Promise<SectorData[]>;
+  createSectorData(sector: InsertSectorData): Promise<SectorData>;
 }
 
 export class MemStorage implements IStorage {
@@ -71,6 +78,7 @@ export class MemStorage implements IStorage {
   private economicEvents: EconomicEvent[];
   private marketBreadth: MarketBreadth[];
   private vixData: VixData[];
+  private sectorData: SectorData[];
   private currentId: number;
 
   constructor() {
@@ -82,6 +90,7 @@ export class MemStorage implements IStorage {
     this.economicEvents = [];
     this.marketBreadth = [];
     this.vixData = [];
+    this.sectorData = [];
     this.currentId = 1;
   }
 
@@ -267,6 +276,26 @@ export class MemStorage implements IStorage {
     };
     this.vixData.push(newVix);
     return newVix;
+  }
+
+  async getLatestSectorData(): Promise<SectorData[]> {
+    // Return most recent sector data, or empty array if none
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+    return this.sectorData.filter(sector => sector.timestamp > twoMinutesAgo);
+  }
+
+  async createSectorData(sector: InsertSectorData): Promise<SectorData> {
+    const newSector: SectorData = {
+      ...sector,
+      id: this.currentId++,
+      timestamp: new Date(),
+    };
+    
+    // Remove old data for the same symbol
+    this.sectorData = this.sectorData.filter(s => s.symbol !== sector.symbol);
+    this.sectorData.push(newSector);
+    
+    return newSector;
   }
 }
 

@@ -100,6 +100,16 @@ export const vixData = pgTable("vix_data", {
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 });
 
+export const sectorData = pgTable("sector_data", {
+  id: serial("id").primaryKey(),
+  symbol: text("symbol").notNull(),
+  name: text("name").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  changePercent: decimal("change_percent", { precision: 5, scale: 2 }).notNull(),
+  volume: integer("volume").notNull(),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -140,6 +150,11 @@ export const insertVixDataSchema = createInsertSchema(vixData).omit({
   timestamp: true,
 });
 
+export const insertSectorDataSchema = createInsertSchema(sectorData).omit({
+  id: true,
+  timestamp: true,
+});
+
 export const insertHistoricalStockDataSchema = createInsertSchema(historicalStockData).omit({
   id: true,
   createdAt: true,
@@ -163,3 +178,5 @@ export type InsertAiAnalysis = z.infer<typeof insertAiAnalysisSchema>;
 export type InsertEconomicEvent = z.infer<typeof insertEconomicEventsSchema>;
 export type InsertMarketBreadth = z.infer<typeof insertMarketBreadthSchema>;
 export type InsertVixData = z.infer<typeof insertVixDataSchema>;
+export type SectorData = typeof sectorData.$inferSelect;
+export type InsertSectorData = z.infer<typeof insertSectorDataSchema>;

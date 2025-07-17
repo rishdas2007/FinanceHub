@@ -4,8 +4,16 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { financialDataService } from "./services/financial-data";
 import { aiAnalysisService } from "./services/ai-analysis";
+import { apiLogger, getApiStats } from "./middleware/apiLogger";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Add API logging middleware
+  app.use('/api', apiLogger);
+
+  // API stats endpoint
+  app.get("/api/stats", (req, res) => {
+    res.json(getApiStats());
+  });
   // Stock data endpoints
   app.get("/api/stocks/:symbol", async (req, res) => {
     try {
@@ -114,7 +122,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Sector performance
   app.get("/api/sectors", async (req, res) => {
     try {
-      const sectors = await financialDataService.getSectorETFs();
+      // Add caching to improve performance
+      let sectors = await storage.getLatestSectorData();
+      
+      // Only fetch fresh data if cache is empty or older than 2 minutes
+      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+      if (!sectors || sectors.length === 0 || (sectors[0] && sectors[0].timestamp && sectors[0].timestamp < twoMinutesAgo)) {
+        console.log('Fetching fresh sector data...');
+        const freshSectors = await financialDataService.getSectorETFs();
+        
+        // Cache the fresh data
+        for (const sector of freshSectors) {
+          try {
+            await storage.createSectorData({
+              symbol: sector.symbol,
+              name: sector.name,
+              price: sector.price.toString(),
+              changePercent: sector.changePercent.toString(),
+              volume: sector.volume || 0,
+            });
+          } catch (error) {
+            // Sector might already exist, continue
+          }
+        }
+        
+        sectors = freshSectors;
+      }
       
       res.json(sectors);
     } catch (error) {

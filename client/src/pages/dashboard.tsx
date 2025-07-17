@@ -7,10 +7,13 @@ import { AAIISentiment } from "@/components/aaii-sentiment";
 import { MarketHeatMap } from "@/components/market-heatmap";
 import { EconomicCalendar } from "@/components/economic-calendar";
 
-import { TrendingUp, Settings, Bell } from "lucide-react";
+import { TrendingUp } from "lucide-react";
+import { useApiTracker } from "@/hooks/useApiTracker";
 import { Button } from "@/components/ui/button";
 
 export default function Dashboard() {
+  const apiTracker = useApiTracker();
+  
   return (
     <div className="min-h-screen bg-financial-dark text-gray-100">
       {/* Header */}
@@ -19,7 +22,7 @@ export default function Dashboard() {
           <div className="flex items-center space-x-4">
             <h1 className="text-2xl font-bold text-white flex items-center">
               <TrendingUp className="text-gain-green mr-2" />
-              FinanceHub Pro
+              Rishabh's Market Dashboard
             </h1>
             <div className="hidden md:flex items-center space-x-2 text-sm text-gray-400">
               <span className="w-2 h-2 bg-gain-green rounded-full animate-pulse"></span>
@@ -27,14 +30,15 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <Button variant="outline" size="sm" className="bg-financial-card hover:bg-financial-border text-white border-financial-border">
-              <Bell className="w-4 h-4 mr-2" />
-              Alerts
-            </Button>
-            <Button size="sm" className="bg-gain-green hover:bg-green-600 text-white">
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
-            </Button>
+            <div className="bg-financial-card rounded-lg px-3 py-2 text-sm">
+              <div className="flex items-center space-x-2">
+                <span className="w-2 h-2 bg-gain-green rounded-full animate-pulse"></span>
+                <span className="text-gray-300">API Status: Active</span>
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                <span id="api-calls-counter">Loading...</span> calls/min
+              </div>
+            </div>
           </div>
         </div>
       </header>
@@ -64,10 +68,11 @@ export default function Dashboard() {
             <div>
               <h3 className="text-white font-semibold mb-3">Data Sources</h3>
               <div className="space-y-2 text-sm text-gray-400">
-                <div>Alpha Vantage API</div>
-                <div>AAII Sentiment Survey</div>
-                <div>CBOE VIX</div>
-                <div>Real-time WebSocket</div>
+                <div><a href="https://www.twelvedata.com/" target="_blank" rel="noopener noreferrer" className="hover:text-gain-green">Twelve Data API</a></div>
+                <div><a href="https://openai.com/" target="_blank" rel="noopener noreferrer" className="hover:text-gain-green">OpenAI GPT-4o</a></div>
+                <div><a href="https://www.aaii.com/sentimentsurvey" target="_blank" rel="noopener noreferrer" className="hover:text-gain-green">AAII Sentiment Survey</a></div>
+                <div><a href="https://www.cboe.com/tradable_products/vix/" target="_blank" rel="noopener noreferrer" className="hover:text-gain-green">CBOE VIX Index</a></div>
+                <div><a href="https://www.marketwatch.com/economy-politics/calendar" target="_blank" rel="noopener noreferrer" className="hover:text-gain-green">MarketWatch Economic Calendar</a></div>
               </div>
             </div>
             <div>

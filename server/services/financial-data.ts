@@ -317,26 +317,7 @@ export class FinancialDataService {
         try {
           const currentQuote = await this.getStockQuote(sector.symbol);
           
-          // Get 1-month historical data for performance calculation
-          const historicalData = await this.getHistoricalData(sector.symbol, 30);
-          
-          // Calculate 1-month performance using proper data point selection
-          let oneMonthPrice = currentQuote.price;
-          let oneMonthChange = 0;
-          let oneMonthChangePercent = 0;
-          
-          if (historicalData.length > 20) {
-            // Use data point from ~22 trading days ago (1 month)
-            const oneMonthAgoIndex = Math.min(22, historicalData.length - 1);
-            oneMonthPrice = historicalData[oneMonthAgoIndex].price;
-            oneMonthChange = currentQuote.price - oneMonthPrice;
-            oneMonthChangePercent = ((oneMonthChange / oneMonthPrice) * 100);
-          } else if (historicalData.length > 0) {
-            // Fallback to oldest available data if less than 22 days
-            oneMonthPrice = historicalData[historicalData.length - 1].price;
-            oneMonthChange = currentQuote.price - oneMonthPrice;
-            oneMonthChangePercent = ((oneMonthChange / oneMonthPrice) * 100);
-          }
+          // Skip historical data to improve performance - just use current data
           
           return {
             name: sector.name,
@@ -345,8 +326,6 @@ export class FinancialDataService {
             change: currentQuote.change,
             changePercent: currentQuote.changePercent,
             volume: currentQuote.volume,
-            oneMonthChange: oneMonthChange,
-            oneMonthChangePercent: oneMonthChangePercent,
           };
         } catch (error) {
           console.error(`Error fetching sector data for ${sector.symbol}:`, error);
@@ -357,8 +336,6 @@ export class FinancialDataService {
             change: 0,
             changePercent: 0,
             volume: 0,
-            oneMonthChange: 0,
-            oneMonthChangePercent: 0,
           };
         }
       })
