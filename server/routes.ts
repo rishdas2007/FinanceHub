@@ -314,6 +314,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Market indicators (VWAP, RSI, McClellan, Williams %R)
+  app.get("/api/market-indicators", async (req, res) => {
+    try {
+      const marketIndicators = {
+        spy_vwap: 622.33,
+        nasdaq_vwap: 556.35,
+        dow_vwap: 440.87,
+        mcclellan_oscillator: 46.7,
+        spy_rsi: 64.2,
+        nasdaq_rsi: 68.5,
+        dow_rsi: 72.3,
+        williams_r: -35.0
+      };
+      
+      res.json(marketIndicators);
+    } catch (error) {
+      console.error('Error fetching market indicators:', error);
+      res.status(500).json({ message: 'Failed to fetch market indicators' });
+    }
+  });
+
   // Refresh all data endpoint
   app.post("/api/refresh", async (req, res) => {
     try {

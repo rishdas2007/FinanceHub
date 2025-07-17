@@ -28,7 +28,7 @@ export function PriceChart() {
   const currentTimeframe = timeframes.find(t => t.value === selectedTimeframe) || timeframes[1];
 
   const { data: stockHistory } = useQuery<StockData[]>({
-    queryKey: [`/api/stocks/${selectedETF.symbol}/history`, { limit: currentTimeframe.limit }],
+    queryKey: [`/api/stocks/${selectedETF.symbol}/history?limit=${currentTimeframe.limit}`],
     refetchInterval: 30000,
   });
 
@@ -63,6 +63,15 @@ export function PriceChart() {
       formattedDate: new Date(item.timestamp).toLocaleDateString(),
     };
   }) || [];
+
+  // Debug log to see what data we have
+  console.log('Price Chart Debug:', {
+    stockHistory: stockHistory?.length || 0,
+    technical: !!technical,
+    chartData: chartData.length,
+    selectedETF: selectedETF.symbol,
+    timeframe: selectedTimeframe
+  });
 
   return (
     <Card className="bg-financial-gray border-financial-border">
