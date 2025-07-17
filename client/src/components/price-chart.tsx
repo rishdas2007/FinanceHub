@@ -28,12 +28,12 @@ export function PriceChart() {
   const currentTimeframe = timeframes.find(t => t.value === selectedTimeframe) || timeframes[1];
 
   const { data: stockHistory } = useQuery<StockData[]>({
-    queryKey: ['/api/stocks', selectedETF.symbol, 'history', { limit: currentTimeframe.limit }],
+    queryKey: [`/api/stocks/${selectedETF.symbol}/history`, { limit: currentTimeframe.limit }],
     refetchInterval: 30000,
   });
 
   const { data: technical } = useQuery<TechnicalIndicators>({
-    queryKey: ['/api/technical', selectedETF.symbol],
+    queryKey: [`/api/technical/${selectedETF.symbol}`],
     refetchInterval: 60000,
   });
 

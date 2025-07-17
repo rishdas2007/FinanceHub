@@ -23,7 +23,7 @@ export function MarketBreadth() {
 
   // Get technical data for the selected ETF  
   const { data: technical } = useQuery({
-    queryKey: ['/api/technical', selectedETF.symbol],
+    queryKey: [`/api/technical/${selectedETF.symbol}`],
     refetchInterval: 60000,
   });
 
