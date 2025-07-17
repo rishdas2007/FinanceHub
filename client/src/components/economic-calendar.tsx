@@ -62,39 +62,77 @@ export function EconomicCalendar() {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {events?.slice(0, 3).map((event) => (
-            <div key={event.id} className="bg-financial-card rounded-lg p-4 flex items-center justify-between">
-              <div className="flex-1">
-                <div className={`text-white font-medium ${getImportanceColor(event.importance)}`}>
-                  {event.title}
+          {events?.slice(0, 5).map((event) => (
+            <div key={event.id} className="bg-financial-card rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${
+                    event.importance === 'high' ? 'bg-loss-red' : 
+                    event.importance === 'medium' ? 'bg-warning-yellow' : 'bg-gray-400'
+                  }`}></div>
+                  <div className="text-white font-medium text-sm">
+                    {event.title}
+                  </div>
                 </div>
-                <div className="text-xs text-gray-400">{event.description}</div>
+                <div className="text-xs text-gray-400">
+                  {event.time || new Date(event.date).toLocaleDateString()}
+                </div>
+              </div>
+              
+              <div className="text-xs text-gray-400 mb-2">{event.description}</div>
+              
+              <div className="grid grid-cols-3 gap-2 text-xs">
                 {event.forecast && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    Forecast: {event.forecast}
+                  <div className="text-center">
+                    <div className="text-gray-500">Forecast</div>
+                    <div className="text-white font-medium">{event.forecast}</div>
+                  </div>
+                )}
+                {event.previous && (
+                  <div className="text-center">
+                    <div className="text-gray-500">Previous</div>
+                    <div className="text-gray-300">{event.previous}</div>
+                  </div>
+                )}
+                {event.actual && (
+                  <div className="text-center">
+                    <div className="text-gray-500">Actual</div>
+                    <div className={`font-medium ${
+                      event.impact === 'positive' || event.impact === 'very_positive' ? 'text-gain-green' :
+                      event.impact === 'negative' ? 'text-loss-red' :
+                      event.impact === 'slightly_negative' ? 'text-warning-yellow' :
+                      'text-white'
+                    }`}>
+                      {event.actual}
+                    </div>
                   </div>
                 )}
               </div>
-              <div className="text-right ml-4">
-                <div className={`text-sm font-medium ${getImportanceColor(event.importance)}`}>
-                  {getRelativeTime(event.eventDate)}
+              
+              {/* Show impact if available */}
+              {event.actual && event.impact && (
+                <div className="mt-2 text-xs">
+                  <span className="text-gray-500">Impact: </span>
+                  <span className={`font-medium ${
+                    event.impact === 'positive' || event.impact === 'very_positive' ? 'text-gain-green' :
+                    event.impact === 'negative' ? 'text-loss-red' :
+                    event.impact === 'slightly_negative' ? 'text-warning-yellow' :
+                    'text-gray-300'
+                  }`}>
+                    {event.impact === 'very_positive' ? 'Very Positive' :
+                     event.impact === 'positive' ? 'Positive' :
+                     event.impact === 'slightly_negative' ? 'Slightly Negative' :
+                     event.impact === 'negative' ? 'Negative' : 'Neutral'}
+                  </span>
                 </div>
-                <div className="text-xs text-gray-400 flex items-center">
-                  <Clock className="w-3 h-3 mr-1" />
-                  {new Date(event.eventDate).toLocaleTimeString([], { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
-                </div>
-              </div>
+              )}
             </div>
           ))}
         </div>
-        <div className="mt-4 text-xs text-gray-400">
-          <p>
-            Economic calendar shows upcoming high-impact events that may affect market volatility. 
-            Red indicates high importance, yellow medium, and gray low importance events.
-          </p>
+        
+        <div className="mt-4 text-xs text-gray-400 text-center">
+          <Clock className="w-3 h-3 inline mr-1" />
+          Economic data from real MarketWatch events • Results vs forecasts
         </div>
       </CardContent>
     </Card>

@@ -191,7 +191,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log('Market data for AI analysis:', marketData);
         
-        const aiResult = await aiAnalysisService.generateMarketAnalysis(marketData);
+        // Get macro economic context for enhanced analysis
+        let macroContext = "";
+        try {
+          const { EconomicDataService } = await import('./services/economic-data');
+          const economicService = EconomicDataService.getInstance();
+          const economicEvents = await economicService.getEconomicEvents();
+          macroContext = economicService.generateMacroAnalysis(economicEvents);
+        } catch (error) {
+          console.log('Could not fetch macro context:', error);
+          macroContext = "Recent economic data shows mixed signals with inflation moderating but employment remaining robust.";
+        }
+        
+        const enhancedMarketData = {
+          ...marketData,
+          macroContext: macroContext
+        };
+        
+        const aiResult = await aiAnalysisService.generateMarketAnalysis(enhancedMarketData);
         console.log('AI analysis result:', aiResult);
         
         analysis = await storage.createAiAnalysis({
@@ -215,12 +232,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let events = await storage.getUpcomingEconomicEvents();
       
       if (events.length === 0) {
-        // Generate sample events if none exist
-        const eventData = financialDataService.generateEconomicEvents();
-        for (const event of eventData) {
-          await storage.createEconomicEvent(event);
+        // Get real economic events from the economic data service
+        const { EconomicDataService } = await import('./services/economic-data');
+        const economicService = EconomicDataService.getInstance();
+        const realEvents = await economicService.getEconomicEvents();
+        
+        // Store events in database for caching
+        for (const event of realEvents.slice(0, 10)) {
+          try {
+            await storage.createEconomicEvent({
+              id: event.id,
+              title: event.title,
+              description: event.description || '',
+              date: event.date,
+              importance: event.importance,
+              forecast: event.forecast || null,
+              impact: event.impact || null,
+            });
+          } catch (error) {
+            // Event might already exist, continue
+          }
         }
-        events = await storage.getUpcomingEconomicEvents();
+        events = realEvents;
       }
       
       res.json(events);

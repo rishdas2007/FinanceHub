@@ -320,14 +320,20 @@ export class FinancialDataService {
           // Get 1-month historical data for performance calculation
           const historicalData = await this.getHistoricalData(sector.symbol, 30);
           
-          // Calculate 1-month performance using oldest available data point
+          // Calculate 1-month performance using proper data point selection
           let oneMonthPrice = currentQuote.price;
           let oneMonthChange = 0;
           let oneMonthChangePercent = 0;
           
-          if (historicalData.length > 0) {
-            // Use the oldest data point as 1-month ago reference
-            oneMonthPrice = historicalData[0].price;
+          if (historicalData.length > 20) {
+            // Use data point from ~22 trading days ago (1 month)
+            const oneMonthAgoIndex = Math.min(22, historicalData.length - 1);
+            oneMonthPrice = historicalData[oneMonthAgoIndex].price;
+            oneMonthChange = currentQuote.price - oneMonthPrice;
+            oneMonthChangePercent = ((oneMonthChange / oneMonthPrice) * 100);
+          } else if (historicalData.length > 0) {
+            // Fallback to oldest available data if less than 22 days
+            oneMonthPrice = historicalData[historicalData.length - 1].price;
             oneMonthChange = currentQuote.price - oneMonthPrice;
             oneMonthChangePercent = ((oneMonthChange / oneMonthPrice) * 100);
           }
