@@ -89,9 +89,9 @@ export function SectorTracker() {
                     {sector.changePercent >= 0 ? '+' : ''}{sector.changePercent.toFixed(2)}%
                   </td>
                   <td className={`py-3 px-2 text-right font-medium ${
-                    (sector as any).monthlyPerformance >= 0 ? 'text-gain-green' : 'text-loss-red'
+                    (sector.oneMonthChangePercent || 0) >= 0 ? 'text-gain-green' : 'text-loss-red'
                   }`}>
-                    {(sector as any).monthlyPerformance >= 0 ? '+' : ''}{((sector as any).monthlyPerformance || 0).toFixed(2)}%
+                    {(sector.oneMonthChangePercent || 0) >= 0 ? '+' : ''}{(sector.oneMonthChangePercent || 0).toFixed(2)}%
                   </td>
                   <td className="py-3 px-2 text-right text-gray-300">
                     {(sector.volume / 1000000).toFixed(1)}M

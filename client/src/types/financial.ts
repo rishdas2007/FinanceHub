@@ -58,6 +58,8 @@ export interface SectorData {
   change: number;
   changePercent: number;
   volume: number;
+  oneMonthChange?: number;
+  oneMonthChangePercent?: number;
 }
 
 export interface WebSocketMessage {

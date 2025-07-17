@@ -18,6 +18,19 @@ export const stockData = pgTable("stock_data", {
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 });
 
+export const historicalStockData = pgTable("historical_stock_data", {
+  id: serial("id").primaryKey(),
+  symbol: text("symbol").notNull(),
+  open: decimal("open", { precision: 10, scale: 2 }).notNull(),
+  high: decimal("high", { precision: 10, scale: 2 }).notNull(),
+  low: decimal("low", { precision: 10, scale: 2 }).notNull(),
+  close: decimal("close", { precision: 10, scale: 2 }).notNull(),
+  volume: integer("volume").notNull(),
+  date: timestamp("date").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  dataSource: text("data_source").notNull().default("twelve_data"), // Track data source
+});
+
 export const marketSentiment = pgTable("market_sentiment", {
   id: serial("id").primaryKey(),
   vix: decimal("vix", { precision: 5, scale: 2 }).notNull(),
@@ -26,6 +39,7 @@ export const marketSentiment = pgTable("market_sentiment", {
   aaiiBearish: decimal("aaii_bearish", { precision: 5, scale: 2 }).notNull(),
   aaiiNeutral: decimal("aaii_neutral", { precision: 5, scale: 2 }).notNull(),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
+  dataSource: text("data_source").notNull().default("twelve_data"), // Track data source
 });
 
 export const technicalIndicators = pgTable("technical_indicators", {
@@ -122,9 +136,15 @@ export const insertVixDataSchema = createInsertSchema(vixData).omit({
   timestamp: true,
 });
 
+export const insertHistoricalStockDataSchema = createInsertSchema(historicalStockData).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type StockData = typeof stockData.$inferSelect;
+export type HistoricalStockData = typeof historicalStockData.$inferSelect;
 export type MarketSentiment = typeof marketSentiment.$inferSelect;
 export type TechnicalIndicators = typeof technicalIndicators.$inferSelect;
 export type AiAnalysis = typeof aiAnalysis.$inferSelect;
@@ -132,6 +152,7 @@ export type EconomicEvent = typeof economicEvents.$inferSelect;
 export type MarketBreadth = typeof marketBreadth.$inferSelect;
 export type VixData = typeof vixData.$inferSelect;
 export type InsertStockData = z.infer<typeof insertStockDataSchema>;
+export type InsertHistoricalStockData = z.infer<typeof insertHistoricalStockDataSchema>;
 export type InsertMarketSentiment = z.infer<typeof insertMarketSentimentSchema>;
 export type InsertTechnicalIndicators = z.infer<typeof insertTechnicalIndicatorsSchema>;
 export type InsertAiAnalysis = z.infer<typeof insertAiAnalysisSchema>;

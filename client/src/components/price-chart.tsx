@@ -74,21 +74,30 @@ export function PriceChart() {
       console.warn(`Unexpected SPY price: ${price} on ${item.timestamp}`);
     }
     
+    // Create proper date from timestamp - ensure we get the actual date, not just "Jul 16"
+    const dateObj = new Date(item.timestamp);
+    const dateStr = dateObj.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric'
+    });
+    
     return {
-      date: new Date(item.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      date: dateStr,
       price: price,
       rsi: rsiValues[index] || 66.73, // Use realistic RSI from your screenshot
       timestamp: item.timestamp.toString(),
-      formattedDate: new Date(item.timestamp).toLocaleDateString(),
+      formattedDate: dateObj.toLocaleDateString(),
     };
   }) || [];
 
-  // Debug: Log the actual price range for chart display
+  // Debug: Log the actual price range and date range for chart display
   if (chartData.length > 0) {
     const prices = chartData.map(d => d.price);
+    const dates = chartData.map(d => d.formattedDate);
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
     console.log(`SPY Price Range: $${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`);
+    console.log(`Date Range: ${dates[0]} to ${dates[dates.length - 1]}`);
   }
 
 

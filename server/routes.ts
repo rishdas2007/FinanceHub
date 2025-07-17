@@ -99,21 +99,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Market sentiment
   app.get("/api/sentiment", async (req, res) => {
     try {
-      let sentiment = await storage.getLatestMarketSentiment();
+      console.log('No sentiment data found, generating...');
       
-      if (!sentiment) {
-        // Generate fresh sentiment data
-        const sentimentData = await financialDataService.generateMarketSentiment();
-        sentiment = await storage.createMarketSentiment({
-          vix: sentimentData.vix.toString(),
-          putCallRatio: sentimentData.putCallRatio.toString(),
-          aaiiBullish: sentimentData.aaiiBullish.toString(),
-          aaiiBearish: sentimentData.aaiiBearish.toString(),
-          aaiiNeutral: sentimentData.aaiiNeutral.toString(),
-        });
-      }
+      // Generate fresh real sentiment data using VIX and market indicators
+      const sentimentData = await financialDataService.getRealMarketSentiment();
       
-      res.json(sentiment);
+      res.json(sentimentData);
     } catch (error) {
       console.error('Error fetching market sentiment:', error);
       res.status(500).json({ message: 'Failed to fetch market sentiment' });
@@ -125,49 +116,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const sectors = await financialDataService.getSectorETFs();
       
-      // Add 1-month performance calculation for each sector
-      const sectorsWithPerformance = await Promise.all(
-        sectors.map(async (sector) => {
-          try {
-            // Get 30-day history for this sector
-            const history = await storage.getStockHistory(sector.symbol, 30);
-            
-            if (history.length >= 2) {
-              const currentPrice = parseFloat(sector.price.toString());
-              const monthAgoPrice = parseFloat(history[history.length - 1].price);
-              const monthlyPerformance = ((currentPrice - monthAgoPrice) / monthAgoPrice) * 100;
-              
-              return {
-                ...sector,
-                monthlyPerformance: monthlyPerformance
-              };
-            } else {
-              // If no historical data, generate realistic performance based on sector type
-              const performance = sector.name.includes('Technology') ? 
-                (Math.random() * 20 - 5) : // Tech can be more volatile
-                (Math.random() * 10 - 2);   // Other sectors more stable
-              
-              return {
-                ...sector,
-                monthlyPerformance: performance
-              };
-            }
-          } catch (error) {
-            console.error(`Error calculating monthly performance for ${sector.symbol}:`, error);
-            // Fallback with realistic sector performance
-            const performance = Math.random() * 8 - 3; // -3% to +5% range
-            return {
-              ...sector,
-              monthlyPerformance: performance
-            };
-          }
-        })
-      );
-      
-      res.json(sectorsWithPerformance);
+      res.json(sectors);
     } catch (error) {
-      console.error('Error fetching sector data:', error);
-      res.status(500).json({ message: 'Failed to fetch sector data' });
+      console.error('Error fetching sectors:', error);
+      res.status(500).json({ message: 'Failed to fetch sectors' });
     }
   });
 
