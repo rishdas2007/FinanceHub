@@ -61,8 +61,8 @@ export function EconomicCalendar() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          {events?.slice(0, 5).map((event) => (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {events?.slice(0, 8).map((event) => (
             <div key={event.id} className="bg-financial-card rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
@@ -74,30 +74,41 @@ export function EconomicCalendar() {
                     {event.title}
                   </div>
                 </div>
-                <div className="text-xs text-gray-400">
-                  {event.time || new Date(event.date).toLocaleDateString()}
+                {/* Enhanced date/time display */}
+                <div className="text-right">
+                  <div className="text-xs text-gray-400">
+                    {new Date(event.date).toLocaleDateString('en-US', { 
+                      weekday: 'short', 
+                      month: 'short', 
+                      day: 'numeric' 
+                    }).toUpperCase()}
+                  </div>
+                  <div className="text-xs text-warning-yellow">
+                    {event.time}
+                  </div>
                 </div>
               </div>
               
-              <div className="text-xs text-gray-400 mb-2">{event.description}</div>
+              <div className="text-xs text-gray-400 mb-3">{event.description}</div>
               
-              <div className="grid grid-cols-3 gap-2 text-xs">
+              {/* Enhanced metrics display */}
+              <div className="grid grid-cols-3 gap-3 text-xs mb-3">
                 {event.forecast && (
-                  <div className="text-center">
-                    <div className="text-gray-500">Forecast</div>
+                  <div className="text-center bg-financial-dark rounded-lg p-2">
+                    <div className="text-gray-500 mb-1">Forecast</div>
                     <div className="text-white font-medium">{event.forecast}</div>
                   </div>
                 )}
                 {event.previous && (
-                  <div className="text-center">
-                    <div className="text-gray-500">Previous</div>
-                    <div className="text-gray-300">{event.previous}</div>
+                  <div className="text-center bg-financial-dark rounded-lg p-2">
+                    <div className="text-gray-500 mb-1">Previous</div>
+                    <div className="text-gray-300 font-medium">{event.previous}</div>
                   </div>
                 )}
                 {event.actual && (
-                  <div className="text-center">
-                    <div className="text-gray-500">Actual</div>
-                    <div className={`font-medium ${
+                  <div className="text-center bg-financial-dark rounded-lg p-2">
+                    <div className="text-gray-500 mb-1">Actual</div>
+                    <div className={`font-bold ${
                       event.impact === 'positive' || event.impact === 'very_positive' ? 'text-gain-green' :
                       event.impact === 'negative' ? 'text-loss-red' :
                       event.impact === 'slightly_negative' ? 'text-warning-yellow' :
@@ -130,9 +141,14 @@ export function EconomicCalendar() {
           ))}
         </div>
         
-        <div className="mt-4 text-xs text-gray-400 text-center">
-          <Clock className="w-3 h-3 inline mr-1" />
-          Economic data from real MarketWatch events • Results vs forecasts
+        <div className="mt-6 pt-4 border-t border-financial-border">
+          <div className="text-xs text-gray-400 text-center">
+            <Clock className="w-3 h-3 inline mr-1" />
+            Economic data from real MarketWatch sources • All times Eastern • Updated continuously
+          </div>
+          <div className="text-xs text-gray-500 text-center mt-1">
+            Red: High Impact • Yellow: Medium Impact • Gray: Low Impact
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -198,8 +198,8 @@ export function AIAnalysisComponent() {
                 </div>
               </div>
 
-              {/* Bottom Line Assessment */}
-              <div className="border-l-4 border-purple-500 pl-4">
+              {/* Bottom Line Assessment - Full Width */}
+              <div className="lg:col-span-3 border-l-4 border-purple-500 pl-4">
                 <div className="flex items-center gap-2 mb-3">
                   <RefreshCw className="w-4 h-4 text-purple-500" />
                   <h4 className="font-semibold text-white text-base">Bottom Line Assessment</h4>

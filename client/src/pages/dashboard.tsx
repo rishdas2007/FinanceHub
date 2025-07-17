@@ -7,7 +7,7 @@ import { SectorTracker } from "@/components/sector-tracker";
 import { AAIISentiment } from "@/components/aaii-sentiment";
 import { MarketHeatMap } from "@/components/market-heatmap";
 import { EconomicCalendar } from "@/components/economic-calendar";
-import { MarketNews } from "@/components/market-news";
+
 import { TrendingUp, Settings, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -58,11 +58,8 @@ export default function Dashboard() {
 
 
 
-        {/* Economic Calendar and News Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <EconomicCalendar />
-          <MarketNews />
-        </div>
+        {/* Economic Calendar - Full Width */}
+        <EconomicCalendar />
       </div>
 
       {/* Footer */}
