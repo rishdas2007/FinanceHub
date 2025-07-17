@@ -81,17 +81,18 @@ KEY ECONOMIC THEMES: Persistent core inflation above Fed's 2% target, resilient 
 
 Provide a comprehensive market analysis in JSON format that INTEGRATES technical indicators with specific economic calendar data points:
 {
-  "marketConditions": "Analysis incorporating current price action with specific economic data points from the calendar (quote actual figures like CPI, Retail Sales, etc.). Use 1 decimal place for all prices and percentages.",
+  "marketConditions": "TECHNICAL AND SENTIMENT ONLY: Analyze RSI at 65.9 (neutral), MACD bearish crossover (8.3 vs 8.7), VIX at 17.2 (moderate volatility), AAII sentiment (41.4% bullish vs 35.6% bearish), Put/Call ratio 0.8. Focus ONLY on these technical and sentiment indicators. NO economic data here.",
   "technicalOutlook": "Technical analysis including MACD crossover status, RSI levels, and sentiment backdrop. Use 1 decimal place for all technical values.", 
-  "riskAssessment": "Risk factors incorporating inflation persistence, Fed policy implications based on economic calendar data, growth trajectory, AND sector rotation analysis. BOLD all economic readings (e.g., **Core CPI at 2.9%**, **Retail Sales at 1.0%**) in this section. Include sector performance insights and rotation patterns from the sector data.",
+  "riskAssessment": "ECONOMIC ANALYSIS: Risk factors incorporating inflation persistence, Fed policy implications based on economic calendar data, and growth trajectory. BOLD all economic readings (e.g., **Core CPI at 2.9%**, **Retail Sales at 1.0%**) in this section. Follow with SECTOR ROTATION ANALYSIS: Include sector performance insights and rotation patterns from the sector data as a separate paragraph.",
   "confidence": 0.85
 }
 
 IMPORTANT FORMATTING RULES:
 1. Use exactly 1 decimal place for ALL prices and percentages (e.g., $624.2, 0.3%, 65.9)
 2. BOLD all economic data readings in the riskAssessment section using **text** format
-3. Include sector rotation analysis in the riskAssessment section
-4. Focus on how the specific economic data points from the calendar influence market outlook and Fed policy expectations.`;
+3. marketConditions should focus ONLY on technical indicators and sentiment - NO economic data repetition
+4. riskAssessment should have two distinct paragraphs: Economic analysis first, then sector rotation analysis
+5. Focus on how the specific economic data points from the calendar influence market outlook and Fed policy expectations.`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o",

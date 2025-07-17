@@ -21,10 +21,20 @@ export default function Dashboard() {
       <header className="bg-financial-gray border-b border-financial-border p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold text-white flex items-center">
-              <TrendingUp className="text-gain-green mr-2" />
-              Rishabh's Market Dashboard
-            </h1>
+            <div>
+              <h1 className="text-2xl font-bold text-white flex items-center">
+                <TrendingUp className="text-gain-green mr-2" />
+                Rishabh's Market Dashboard
+              </h1>
+              <a 
+                href="https://rishabhdas.substack.com/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 underline transition-colors text-sm mt-1 block"
+              >
+                Follow my market insights on Substack
+              </a>
+            </div>
             <div className="hidden md:flex items-center space-x-2 text-sm text-gray-400">
               <span className="w-2 h-2 bg-gain-green rounded-full animate-pulse"></span>
               <span>Connected - Live Market Data</span>
