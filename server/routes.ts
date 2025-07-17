@@ -79,20 +79,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { symbol } = req.params;
       let indicators = await storage.getLatestTechnicalIndicators(symbol.toUpperCase());
       
-      if (!indicators) {
-        // Fetch fresh technical data
-        const techData = await financialDataService.getTechnicalIndicators(symbol.toUpperCase());
-        indicators = await storage.createTechnicalIndicators({
-          symbol: techData.symbol,
-          rsi: techData.rsi !== null ? String(techData.rsi) : null,
-          macd: techData.macd !== null ? String(techData.macd) : null,
-          macdSignal: techData.macdSignal !== null ? String(techData.macdSignal) : null,
-          bb_upper: techData.bb_upper !== null ? String(techData.bb_upper) : null,
-          bb_lower: techData.bb_lower !== null ? String(techData.bb_lower) : null,
-          sma_20: techData.sma_20 !== null ? String(techData.sma_20) : null,
-          sma_50: techData.sma_50 !== null ? String(techData.sma_50) : null,
-        });
-      }
+      // Always fetch fresh technical data to ensure real-time accuracy
+      console.log(`Fetching fresh technical indicators for ${symbol}...`);
+      const techData = await financialDataService.getTechnicalIndicators(symbol.toUpperCase());
+      indicators = await storage.createTechnicalIndicators({
+        symbol: techData.symbol,
+        rsi: techData.rsi !== null ? String(techData.rsi) : null,
+        macd: techData.macd !== null ? String(techData.macd) : null,
+        macdSignal: techData.macdSignal !== null ? String(techData.macdSignal) : null,
+        bb_upper: techData.bb_upper !== null ? String(techData.bb_upper) : null,
+        bb_lower: techData.bb_lower !== null ? String(techData.bb_lower) : null,
+        sma_20: techData.sma_20 !== null ? String(techData.sma_20) : null,
+        sma_50: techData.sma_50 !== null ? String(techData.sma_50) : null,
+      });
       
       res.json(indicators);
     } catch (error) {

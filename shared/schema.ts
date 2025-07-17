@@ -80,6 +80,18 @@ export const economicEvents = pgTable("economic_events", {
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 });
 
+export const historicalEconomicData = pgTable("historical_economic_data", {
+  id: serial("id").primaryKey(),
+  indicator: text("indicator").notNull(), // CPI, PPI, Retail Sales, etc.
+  value: text("value").notNull(), // Actual reading
+  previousValue: text("previous_value"), // Previous period value
+  forecast: text("forecast"), // Forecasted value
+  unit: text("unit"), // %, millions, etc.
+  period: text("period").notNull(), // Jul 2025, Q2 2025, etc.
+  releaseDate: text("release_date").notNull(), // YYYY-MM-DD
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+});
+
 export const marketBreadth = pgTable("market_breadth", {
   id: serial("id").primaryKey(),
   advancingIssues: integer("advancing_issues").notNull(),

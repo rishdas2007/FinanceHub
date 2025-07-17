@@ -111,7 +111,7 @@ export function AIAnalysisComponent() {
               <div className="border-l-4 border-warning-yellow pl-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Target className="w-4 h-4 text-warning-yellow" />
-                  <h4 className="font-semibold text-white text-base">Technical Indicators Show Caution</h4>
+                  <h4 className="font-semibold text-white text-base">Technical Indicators</h4>
                 </div>
                 <div className="space-y-3">
                   <div>
@@ -129,11 +129,13 @@ export function AIAnalysisComponent() {
                   
                   <div>
                     <p className="text-gray-300 mb-2">
-                      <span className="font-semibold text-white">MACD at {parseFloat(technical.macd).toFixed(3)}</span> - 
-                      {parseFloat(technical.macd) > 0 ? (
-                        <span className="text-gain-green"> Bullish momentum signal, upward trend confirmed.</span>
+                      <span className="font-semibold text-white">MACD at {parseFloat(technical.macd).toFixed(3)}</span> vs Signal {technical.macdSignal ? parseFloat(technical.macdSignal).toFixed(3) : 'N/A'} - 
+                      {(technical.macdSignal && parseFloat(technical.macd) < parseFloat(technical.macdSignal)) ? (
+                        <span className="text-loss-red"> Bearish crossover signal, MACD below signal line indicates potential downward momentum.</span>
+                      ) : (technical.macdSignal && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? (
+                        <span className="text-gain-green"> Bullish crossover signal, MACD above signal line indicates upward momentum.</span>
                       ) : (
-                        <span className="text-loss-red"> Bearish momentum, potential trend weakness.</span>
+                        <span className="text-gray-300"> MACD signal data unavailable for crossover analysis.</span>
                       )}
                     </p>
                   </div>
@@ -148,8 +150,8 @@ export function AIAnalysisComponent() {
                       </div>
                       <div className="text-center">
                         <span className="text-gray-400">MACD Signal</span>
-                        <div className={`font-medium ${parseFloat(technical.macd) > 0 ? 'text-gain-green' : 'text-loss-red'}`}>
-                          {parseFloat(technical.macd) > 0 ? 'Bullish' : 'Bearish'}
+                        <div className={`font-medium ${(technical.macdSignal && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'text-gain-green' : 'text-loss-red'}`}>
+                          {(technical.macdSignal && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'Bullish' : 'Bearish'}
                         </div>
                       </div>
                     </div>
@@ -290,8 +292,8 @@ export function AIAnalysisComponent() {
                       </div>
                       <div className="text-center">
                         <span className="text-gray-400">Trend Status</span>
-                        <div className={`font-medium ${parseFloat(technical.macd) > 0 ? 'text-gain-green' : 'text-loss-red'}`}>
-                          {parseFloat(technical.macd) > 0 ? 'Bullish' : 'Bearish'}
+                        <div className={`font-medium ${(technical.macdSignal && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'text-gain-green' : 'text-loss-red'}`}>
+                          {(technical.macdSignal && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'Bullish' : 'Bearish'}
                         </div>
                       </div>
                     </div>
