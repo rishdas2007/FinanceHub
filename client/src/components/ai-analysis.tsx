@@ -274,9 +274,14 @@ export function AIAnalysisComponent() {
                     {analysis.marketConditions}
                   </p>
                   
-                  <p className="text-gray-300 leading-relaxed">
-                    {analysis.riskAssessment}
-                  </p>
+                  <div 
+                    className="text-gray-300 leading-relaxed"
+                    dangerouslySetInnerHTML={{ 
+                      __html: analysis.riskAssessment
+                        .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
+                        .replace(/\n/g, '<br />') 
+                    }} 
+                  />
 
                   <div className="bg-financial-gray bg-opacity-30 rounded-lg p-3">
                     <div className="grid grid-cols-3 gap-2 text-xs">

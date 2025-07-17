@@ -28,21 +28,47 @@ interface AnalysisResult {
 }
 
 export class AIAnalysisService {
-  async generateMarketAnalysis(marketData: MarketData): Promise<AnalysisResult> {
+  async generateMarketAnalysis(marketData: MarketData, sectorData?: any[]): Promise<AnalysisResult> {
     try {
       const macroContext = marketData.macroContext || "Recent economic data shows mixed signals.";
+      
+      // Format numbers to 1 decimal place
+      const formatPrice = (num: number) => num.toFixed(1);
+      const formatPercent = (num: number) => num.toFixed(1);
+      
+      // Analyze sector performance if data is available
+      let sectorAnalysis = "";
+      if (sectorData && sectorData.length > 0) {
+        const topPerformer1D = sectorData.reduce((max, sector) => 
+          sector.changePercent > max.changePercent ? sector : max);
+        const bottomPerformer1D = sectorData.reduce((min, sector) => 
+          sector.changePercent < min.changePercent ? sector : min);
+        
+        const topPerformer5D = sectorData.reduce((max, sector) => 
+          (sector.fiveDayChange || 0) > (max.fiveDayChange || 0) ? sector : max);
+        const bottomPerformer5D = sectorData.reduce((min, sector) => 
+          (sector.fiveDayChange || 0) < (min.fiveDayChange || 0) ? sector : min);
+        
+        sectorAnalysis = `
+SECTOR PERFORMANCE ANALYSIS:
+1-Day Leaders: ${topPerformer1D.name} (+${formatPercent(topPerformer1D.changePercent)}%), Laggards: ${bottomPerformer1D.name} (${formatPercent(bottomPerformer1D.changePercent)}%)
+5-Day Leaders: ${topPerformer5D.name} (+${formatPercent(topPerformer5D.fiveDayChange || 0)}%), Laggards: ${bottomPerformer5D.name} (${formatPercent(bottomPerformer5D.fiveDayChange || 0)}%)
+Energy sector showing weakness: 1D: ${formatPercent(sectorData.find(s => s.symbol === 'XLE')?.changePercent || 0)}%, 5D: ${formatPercent(sectorData.find(s => s.symbol === 'XLE')?.fiveDayChange || 0)}%
+Technology resilience: 1D: +${formatPercent(sectorData.find(s => s.symbol === 'XLK')?.changePercent || 0)}%, 5D: +${formatPercent(sectorData.find(s => s.symbol === 'XLK')?.fiveDayChange || 0)}%`;
+      }
       
       const prompt = `Analyze the current market conditions based on the following data:
 
 MARKET DATA:
 Stock: ${marketData.symbol}
-Price: $${marketData.price}
-Change: ${marketData.change} (${marketData.changePercent}%)
-RSI: ${marketData.rsi || 'N/A'} ${marketData.rsi && marketData.rsi > 70 ? '(Overbought)' : marketData.rsi && marketData.rsi < 30 ? '(Oversold)' : '(Neutral)'}
-MACD: ${marketData.macd || 'N/A'} vs Signal: ${marketData.macdSignal || 'N/A'} ${marketData.macd && marketData.macdSignal && marketData.macd < marketData.macdSignal ? '(Bearish Crossover)' : '(Bullish Territory)'}
-VIX: ${marketData.vix || 'N/A'} (Volatility measure)
-Put/Call Ratio: ${marketData.putCallRatio || 'N/A'}
-AAII Bullish: ${marketData.aaiiBullish || 'N/A'}% vs Bearish: ${marketData.aaiiBearish || 'N/A'}%
+Price: $${formatPrice(marketData.price)}
+Change: ${formatPrice(marketData.change)} (${formatPercent(marketData.changePercent)}%)
+RSI: ${marketData.rsi ? formatPrice(marketData.rsi) : 'N/A'} ${marketData.rsi && marketData.rsi > 70 ? '(Overbought)' : marketData.rsi && marketData.rsi < 30 ? '(Oversold)' : '(Neutral)'}
+MACD: ${marketData.macd ? formatPrice(marketData.macd) : 'N/A'} vs Signal: ${marketData.macdSignal ? formatPrice(marketData.macdSignal) : 'N/A'} ${marketData.macd && marketData.macdSignal && marketData.macd < marketData.macdSignal ? '(Bearish Crossover)' : '(Bullish Territory)'}
+VIX: ${marketData.vix ? formatPrice(marketData.vix) : 'N/A'} (Volatility measure)
+Put/Call Ratio: ${marketData.putCallRatio ? formatPrice(marketData.putCallRatio) : 'N/A'}
+AAII Bullish: ${marketData.aaiiBullish ? formatPrice(marketData.aaiiBullish) : 'N/A'}% vs Bearish: ${marketData.aaiiBearish ? formatPrice(marketData.aaiiBearish) : 'N/A'}%
+${sectorAnalysis}
 
 CURRENT ECONOMIC CALENDAR DATA:
 Inflation Trends: Core CPI 2.9% (vs 2.8% forecast, accelerating from 2.4%), Headline CPI 2.7% (vs 2.6% estimate). PPI 2.1% (down from 2.4%, beating 2.2% forecast - wholesale prices cooling).
@@ -55,13 +81,17 @@ KEY ECONOMIC THEMES: Persistent core inflation above Fed's 2% target, resilient 
 
 Provide a comprehensive market analysis in JSON format that INTEGRATES technical indicators with specific economic calendar data points:
 {
-  "marketConditions": "Analysis incorporating current price action with specific economic data points from the calendar (quote actual figures like CPI, Retail Sales, etc.)",
-  "technicalOutlook": "Technical analysis including MACD crossover status, RSI levels, and sentiment backdrop", 
-  "riskAssessment": "Risk factors incorporating inflation persistence, Fed policy implications based on economic calendar data, and growth trajectory",
+  "marketConditions": "Analysis incorporating current price action with specific economic data points from the calendar (quote actual figures like CPI, Retail Sales, etc.). Use 1 decimal place for all prices and percentages.",
+  "technicalOutlook": "Technical analysis including MACD crossover status, RSI levels, and sentiment backdrop. Use 1 decimal place for all technical values.", 
+  "riskAssessment": "Risk factors incorporating inflation persistence, Fed policy implications based on economic calendar data, growth trajectory, AND sector rotation analysis. BOLD all economic readings (e.g., **Core CPI at 2.9%**, **Retail Sales at 1.0%**) in this section. Include sector performance insights and rotation patterns from the sector data.",
   "confidence": 0.85
 }
 
-Focus on how the specific economic data points from the calendar influence market outlook and Fed policy expectations.`;
+IMPORTANT FORMATTING RULES:
+1. Use exactly 1 decimal place for ALL prices and percentages (e.g., $624.2, 0.3%, 65.9)
+2. BOLD all economic data readings in the riskAssessment section using **text** format
+3. Include sector rotation analysis in the riskAssessment section
+4. Focus on how the specific economic data points from the calendar influence market outlook and Fed policy expectations.`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o",

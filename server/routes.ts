@@ -231,7 +231,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           macroContext: macroContext
         };
         
-        const aiResult = await aiAnalysisService.generateMarketAnalysis(enhancedMarketData);
+        // Get sector data for analysis
+        const freshSectors = await financialDataService.getSectorETFs();
+        
+        const aiResult = await aiAnalysisService.generateMarketAnalysis(enhancedMarketData, freshSectors);
         console.log('AI analysis result:', aiResult);
         
         analysis = await storage.createAiAnalysis({
@@ -393,8 +396,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sma_50: spyTech.sma_50 !== null ? String(spyTech.sma_50) : null,
       });
 
-      // Refresh sentiment
-      const sentimentData = await financialDataService.generateMarketSentiment();
+      // Refresh sentiment data (including fresh AAII data)
+      const sentimentData = await financialDataService.getRealMarketSentiment();
       await storage.createMarketSentiment({
         vix: sentimentData.vix.toString(),
         putCallRatio: sentimentData.putCallRatio.toString(),
@@ -402,6 +405,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         aaiiBearish: sentimentData.aaiiBearish.toString(),
         aaiiNeutral: sentimentData.aaiiNeutral.toString(),
       });
+
+      // Refresh sector data
+      const sectors = await financialDataService.getSectorETFs();
+      for (const sector of sectors) {
+        await storage.createSectorData({
+          symbol: sector.symbol,
+          name: sector.name,
+          price: sector.price.toString(),
+          changePercent: sector.changePercent.toString(),
+          fiveDayChange: (sector.fiveDayChange || 0).toString(),
+          oneMonthChange: (sector.oneMonthChange || 0).toString(),
+          volume: sector.volume,
+        });
+      }
 
       res.json({ message: 'Data refreshed successfully' });
     } catch (error) {
