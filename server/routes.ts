@@ -55,13 +55,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const techData = await financialDataService.getTechnicalIndicators(symbol.toUpperCase());
         indicators = await storage.createTechnicalIndicators({
           symbol: techData.symbol,
-          rsi: typeof techData.rsi === 'number' ? techData.rsi.toString() : null,
-          macd: typeof techData.macd === 'number' ? techData.macd.toString() : null,
-          macdSignal: typeof techData.macdSignal === 'number' ? techData.macdSignal.toString() : null,
-          bb_upper: typeof techData.bb_upper === 'number' ? techData.bb_upper.toString() : null,
-          bb_lower: typeof techData.bb_lower === 'number' ? techData.bb_lower.toString() : null,
-          sma_20: typeof techData.sma_20 === 'number' ? techData.sma_20.toString() : null,
-          sma_50: typeof techData.sma_50 === 'number' ? techData.sma_50.toString() : null,
+          rsi: techData.rsi !== null ? techData.rsi.toString() : null,
+          macd: techData.macd !== null ? techData.macd.toString() : null,
+          macdSignal: techData.macdSignal !== null ? techData.macdSignal.toString() : null,
+          bb_upper: techData.bb_upper !== null ? techData.bb_upper.toString() : null,
+          bb_lower: techData.bb_lower !== null ? techData.bb_lower.toString() : null,
+          sma_20: techData.sma_20 !== null ? techData.sma_20.toString() : null,
+          sma_50: techData.sma_50 !== null ? techData.sma_50.toString() : null,
         });
       }
       
@@ -115,33 +115,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate fresh analysis if none exists or if it's older than 5 minutes
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
       if (!analysis || analysis.timestamp < fiveMinutesAgo) {
-        // Get current market data for analysis
-        const stockData = await storage.getLatestStockData('SPY');
-        const sentiment = await storage.getLatestMarketSentiment();
-        const technical = await storage.getLatestTechnicalIndicators('SPY');
+        console.log('Generating new AI analysis...');
         
-        if (stockData) {
-          const marketData = {
-            symbol: stockData.symbol,
-            price: parseFloat(stockData.price),
-            change: parseFloat(stockData.change),
-            changePercent: parseFloat(stockData.changePercent),
-            rsi: technical?.rsi ? parseFloat(technical.rsi) : undefined,
-            macd: technical?.macd ? parseFloat(technical.macd) : undefined,
-            vix: sentiment?.vix ? parseFloat(sentiment.vix) : undefined,
-            putCallRatio: sentiment?.putCallRatio ? parseFloat(sentiment.putCallRatio) : undefined,
-            aaiiBullish: sentiment?.aaiiBullish ? parseFloat(sentiment.aaiiBullish) : undefined,
-            aaiiBearish: sentiment?.aaiiBearish ? parseFloat(sentiment.aaiiBearish) : undefined,
-          };
-          
-          const aiResult = await aiAnalysisService.generateMarketAnalysis(marketData);
-          analysis = await storage.createAiAnalysis({
-            marketConditions: aiResult.marketConditions,
-            technicalOutlook: aiResult.technicalOutlook,
-            riskAssessment: aiResult.riskAssessment,
-            confidence: aiResult.confidence.toString(),
+        // Get current market data for analysis - fetch fresh if needed
+        let stockData = await storage.getLatestStockData('SPY');
+        if (!stockData) {
+          console.log('No SPY data found, fetching fresh...');
+          const spyQuote = await financialDataService.getStockQuote('SPY');
+          stockData = await storage.createStockData({
+            symbol: spyQuote.symbol,
+            price: spyQuote.price.toString(),
+            change: spyQuote.change.toString(),
+            changePercent: spyQuote.changePercent.toString(),
+            volume: spyQuote.volume,
           });
         }
+        
+        let sentiment = await storage.getLatestMarketSentiment();
+        if (!sentiment) {
+          console.log('No sentiment data found, generating...');
+          const sentimentData = financialDataService.generateMarketSentiment();
+          sentiment = await storage.createMarketSentiment({
+            vix: sentimentData.vix.toString(),
+            putCallRatio: sentimentData.putCallRatio.toString(),
+            aaiiBullish: sentimentData.aaiiBullish.toString(),
+            aaiiBearish: sentimentData.aaiiBearish.toString(),
+            aaiiNeutral: sentimentData.aaiiNeutral.toString(),
+          });
+        }
+        
+        let technical = await storage.getLatestTechnicalIndicators('SPY');
+        if (!technical) {
+          console.log('No technical data found, fetching fresh...');
+          const techData = await financialDataService.getTechnicalIndicators('SPY');
+          technical = await storage.createTechnicalIndicators({
+            symbol: techData.symbol,
+            rsi: techData.rsi !== null ? techData.rsi.toString() : null,
+            macd: techData.macd !== null ? techData.macd.toString() : null,
+            macdSignal: techData.macdSignal !== null ? techData.macdSignal.toString() : null,
+            bb_upper: techData.bb_upper !== null ? techData.bb_upper.toString() : null,
+            bb_lower: techData.bb_lower !== null ? techData.bb_lower.toString() : null,
+            sma_20: techData.sma_20 !== null ? techData.sma_20.toString() : null,
+            sma_50: techData.sma_50 !== null ? techData.sma_50.toString() : null,
+          });
+        }
+        
+        const marketData = {
+          symbol: stockData.symbol,
+          price: parseFloat(stockData.price),
+          change: parseFloat(stockData.change),
+          changePercent: parseFloat(stockData.changePercent),
+          rsi: technical?.rsi ? parseFloat(technical.rsi) : undefined,
+          macd: technical?.macd ? parseFloat(technical.macd) : undefined,
+          vix: sentiment?.vix ? parseFloat(sentiment.vix) : undefined,
+          putCallRatio: sentiment?.putCallRatio ? parseFloat(sentiment.putCallRatio) : undefined,
+          aaiiBullish: sentiment?.aaiiBullish ? parseFloat(sentiment.aaiiBullish) : undefined,
+          aaiiBearish: sentiment?.aaiiBearish ? parseFloat(sentiment.aaiiBearish) : undefined,
+        };
+        
+        console.log('Market data for AI analysis:', marketData);
+        
+        const aiResult = await aiAnalysisService.generateMarketAnalysis(marketData);
+        console.log('AI analysis result:', aiResult);
+        
+        analysis = await storage.createAiAnalysis({
+          marketConditions: aiResult.marketConditions,
+          technicalOutlook: aiResult.technicalOutlook,
+          riskAssessment: aiResult.riskAssessment,
+          confidence: aiResult.confidence.toString(),
+        });
       }
       
       res.json(analysis);
@@ -189,13 +231,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const spyTech = await financialDataService.getTechnicalIndicators('SPY');
       await storage.createTechnicalIndicators({
         symbol: spyTech.symbol,
-        rsi: typeof spyTech.rsi === 'number' ? spyTech.rsi.toString() : null,
-        macd: typeof spyTech.macd === 'number' ? spyTech.macd.toString() : null,
-        macdSignal: typeof spyTech.macdSignal === 'number' ? spyTech.macdSignal.toString() : null,
-        bb_upper: typeof spyTech.bb_upper === 'number' ? spyTech.bb_upper.toString() : null,
-        bb_lower: typeof spyTech.bb_lower === 'number' ? spyTech.bb_lower.toString() : null,
-        sma_20: typeof spyTech.sma_20 === 'number' ? spyTech.sma_20.toString() : null,
-        sma_50: typeof spyTech.sma_50 === 'number' ? spyTech.sma_50.toString() : null,
+        rsi: spyTech.rsi !== null ? spyTech.rsi.toString() : null,
+        macd: spyTech.macd !== null ? spyTech.macd.toString() : null,
+        macdSignal: spyTech.macdSignal !== null ? spyTech.macdSignal.toString() : null,
+        bb_upper: spyTech.bb_upper !== null ? spyTech.bb_upper.toString() : null,
+        bb_lower: spyTech.bb_lower !== null ? spyTech.bb_lower.toString() : null,
+        sma_20: spyTech.sma_20 !== null ? spyTech.sma_20.toString() : null,
+        sma_50: spyTech.sma_50 !== null ? spyTech.sma_50.toString() : null,
       });
 
       // Refresh sentiment
