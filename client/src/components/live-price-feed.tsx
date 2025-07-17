@@ -1,31 +1,35 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useWebSocket } from "@/hooks/use-websocket";
+import { useETF } from "@/context/etf-context";
 import { useEffect, useState } from "react";
 import type { StockData } from "@/types/financial";
 
 export function LivePriceFeed() {
+  const { selectedETF, setSelectedETF, etfOptions } = useETF();
   const [currentData, setCurrentData] = useState<StockData | null>(null);
   const { lastMessage, connectionStatus } = useWebSocket();
 
   const { data: initialData } = useQuery<StockData>({
-    queryKey: ['/api/stocks/SPY'],
+    queryKey: ['/api/stocks', selectedETF.symbol],
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   useEffect(() => {
-    if (initialData && !currentData) {
+    if (initialData && (!currentData || currentData.symbol !== selectedETF.symbol)) {
       setCurrentData(initialData);
     }
-  }, [initialData, currentData]);
+  }, [initialData, currentData, selectedETF.symbol]);
 
   useEffect(() => {
     if (lastMessage?.type === 'price_update' || lastMessage?.type === 'initial_data') {
       const stockData = lastMessage.data.stock;
-      if (stockData) {
+      if (stockData && stockData.symbol === selectedETF.symbol) {
         setCurrentData(stockData);
       }
     }
-  }, [lastMessage]);
+  }, [lastMessage, selectedETF.symbol]);
 
   const isPositive = currentData ? parseFloat(currentData.changePercent) >= 0 : false;
   const connectionColor = connectionStatus === 'connected' ? 'bg-gain-green' : 
@@ -40,10 +44,41 @@ export function LivePriceFeed() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="mb-4">
+          <Select 
+            value={selectedETF.symbol} 
+            onValueChange={(value) => {
+              const etf = etfOptions.find(option => option.symbol === value);
+              if (etf) {
+                setSelectedETF(etf);
+                setCurrentData(null); // Reset current data when changing ETF
+              }
+            }}
+          >
+            <SelectTrigger className="bg-financial-card border-financial-border text-white">
+              <SelectValue placeholder="Select ETF" />
+            </SelectTrigger>
+            <SelectContent className="bg-financial-card border-financial-border">
+              {etfOptions.map((etf) => (
+                <SelectItem 
+                  key={etf.symbol} 
+                  value={etf.symbol}
+                  className="text-white hover:bg-financial-border focus:bg-financial-border"
+                >
+                  <div className="flex flex-col">
+                    <span className="font-medium">{etf.symbol}</span>
+                    <span className="text-xs text-gray-400">{etf.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
         <div className="bg-financial-card p-4 rounded-lg">
           <div className="flex justify-between items-center">
             <span className="text-xl font-bold text-white">
-              {currentData?.symbol || 'SPY'}
+              {currentData?.symbol || selectedETF.symbol}
             </span>
             <span className={`text-sm font-medium ${isPositive ? 'text-gain-green' : 'text-loss-red'}`}>
               {currentData ? `${isPositive ? '+' : ''}${parseFloat(currentData.changePercent).toFixed(2)}%` : '--'}

@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from '@tanstack/react-query';
+import { useETF } from "@/context/etf-context";
 
 interface MarketBreadthData {
   id: number;
@@ -14,16 +15,23 @@ interface MarketBreadthData {
 }
 
 export function MarketBreadth() {
+  const { selectedETF } = useETF();
   const { data: breadthData, isLoading } = useQuery<MarketBreadthData>({
     queryKey: ['/api/market-breadth'],
     refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  // Get technical data for the selected ETF  
+  const { data: technical } = useQuery({
+    queryKey: ['/api/technical', selectedETF.symbol],
+    refetchInterval: 60000,
   });
 
   if (isLoading || !breadthData) {
     return (
       <Card className="bg-financial-gray border-financial-border">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold text-white">Market Breadth Indicators</CardTitle>
+          <CardTitle className="text-lg font-semibold text-white">{selectedETF.symbol} Market Breadth</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center text-gray-400 py-8">Loading market breadth data...</div>
@@ -96,7 +104,7 @@ export function MarketBreadth() {
   return (
     <Card className="bg-financial-gray border-financial-border">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-lg font-semibold text-white">Market Breadth Indicators</CardTitle>
+        <CardTitle className="text-lg font-semibold text-white">{selectedETF.symbol} Market Breadth</CardTitle>
         <span className="text-xs text-gray-400">
           Updated: {formatTimestamp(breadthData.timestamp)}
         </span>

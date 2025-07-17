@@ -214,6 +214,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/market-news", async (req, res) => {
+    try {
+      const news = await financialDataService.getMarketNews();
+      res.json(news);
+    } catch (error) {
+      console.error('Error fetching market news:', error);
+      res.status(500).json({ message: 'Failed to fetch market news' });
+    }
+  });
+
   // Market breadth
   app.get("/api/market-breadth", async (req, res) => {
     try {

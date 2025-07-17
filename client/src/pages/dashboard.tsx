@@ -59,11 +59,7 @@ export default function Dashboard() {
         {/* Sector Performance Section */}
         <SectorTracker />
 
-        {/* AAII Sentiment and Heat Map Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <AAIISentiment />
-          <MarketHeatMap />
-        </div>
+
 
         {/* Economic Calendar and News Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
