@@ -58,6 +58,7 @@ export interface SectorData {
   change: number;
   changePercent: number;
   volume: number;
+  fiveDayChange?: number;
   oneMonthChange?: number;
   oneMonthChangePercent?: number;
 }

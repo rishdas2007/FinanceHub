@@ -79,7 +79,7 @@ export function AIAnalysisComponent() {
                   <h4 className="font-semibold text-white text-lg">Current Market Position</h4>
                 </div>
                 <p className="text-gray-300 leading-relaxed mb-4">
-                  The S&P 500 (SPY) closed at ${parseFloat(currentStock.price).toFixed(2)}, gaining {currentStock.changePercent >= 0 ? '+' : ''}{parseFloat(currentStock.changePercent).toFixed(2)}% today. 
+                  The S&P 500 (SPY) closed at ${parseFloat(currentStock.price).toFixed(2)}, gaining {parseFloat(currentStock.changePercent) >= 0 ? '+' : ''}{parseFloat(currentStock.changePercent).toFixed(2)}% today. 
                   {parseFloat(currentStock.price) > 620 && (
                     <span className="text-warning-yellow"> This puts the market near historical highs, trading at elevated valuations that warrant careful monitoring.</span>
                   )}
@@ -116,10 +116,10 @@ export function AIAnalysisComponent() {
                 <div className="space-y-3">
                   <div>
                     <p className="text-gray-300 mb-2">
-                      <span className="font-semibold text-white">RSI at {parseFloat(technical.rsi).toFixed(1)}</span> - 
-                      {parseFloat(technical.rsi) > 65 ? (
+                      <span className="font-semibold text-white">RSI at {technical.rsi ? parseFloat(technical.rsi).toFixed(1) : 'N/A'}</span> - 
+                      {technical.rsi && parseFloat(technical.rsi) > 65 ? (
                         <span className="text-warning-yellow"> Approaching overbought territory (70+). Recent rally may be due for a pause.</span>
-                      ) : parseFloat(technical.rsi) < 35 ? (
+                      ) : technical.rsi && parseFloat(technical.rsi) < 35 ? (
                         <span className="text-gain-green"> In oversold territory, potential buying opportunity.</span>
                       ) : (
                         <span className="text-gray-300"> In neutral range, momentum balanced.</span>
@@ -129,10 +129,10 @@ export function AIAnalysisComponent() {
                   
                   <div>
                     <p className="text-gray-300 mb-2">
-                      <span className="font-semibold text-white">MACD at {parseFloat(technical.macd).toFixed(3)}</span> vs Signal {technical.macdSignal ? parseFloat(technical.macdSignal).toFixed(3) : 'N/A'} - 
-                      {(technical.macdSignal && parseFloat(technical.macd) < parseFloat(technical.macdSignal)) ? (
+                      <span className="font-semibold text-white">MACD at {technical.macd ? parseFloat(technical.macd).toFixed(3) : 'N/A'}</span> vs Signal {technical.macdSignal ? parseFloat(technical.macdSignal).toFixed(3) : 'N/A'} - 
+                      {(technical.macdSignal && technical.macd && parseFloat(technical.macd) < parseFloat(technical.macdSignal)) ? (
                         <span className="text-loss-red"> Bearish crossover signal, MACD below signal line indicates potential downward momentum.</span>
-                      ) : (technical.macdSignal && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? (
+                      ) : (technical.macdSignal && technical.macd && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? (
                         <span className="text-gain-green"> Bullish crossover signal, MACD above signal line indicates upward momentum.</span>
                       ) : (
                         <span className="text-gray-300"> MACD signal data unavailable for crossover analysis.</span>
@@ -144,14 +144,14 @@ export function AIAnalysisComponent() {
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div className="text-center">
                         <span className="text-gray-400">RSI Status</span>
-                        <div className={`font-medium ${parseFloat(technical.rsi) > 65 ? 'text-warning-yellow' : parseFloat(technical.rsi) < 35 ? 'text-gain-green' : 'text-white'}`}>
-                          {parseFloat(technical.rsi) > 65 ? 'Overbought' : parseFloat(technical.rsi) < 35 ? 'Oversold' : 'Neutral'}
+                        <div className={`font-medium ${technical.rsi && parseFloat(technical.rsi) > 65 ? 'text-warning-yellow' : technical.rsi && parseFloat(technical.rsi) < 35 ? 'text-gain-green' : 'text-white'}`}>
+                          {technical.rsi && parseFloat(technical.rsi) > 65 ? 'Overbought' : technical.rsi && parseFloat(technical.rsi) < 35 ? 'Oversold' : 'Neutral'}
                         </div>
                       </div>
                       <div className="text-center">
                         <span className="text-gray-400">MACD Signal</span>
-                        <div className={`font-medium ${(technical.macdSignal && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'text-gain-green' : 'text-loss-red'}`}>
-                          {(technical.macdSignal && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'Bullish' : 'Bearish'}
+                        <div className={`font-medium ${(technical.macdSignal && technical.macd && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'text-gain-green' : 'text-loss-red'}`}>
+                          {(technical.macdSignal && technical.macd && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'Bullish' : 'Bearish'}
                         </div>
                       </div>
                     </div>
@@ -170,11 +170,11 @@ export function AIAnalysisComponent() {
                     // Calculate sector performance metrics
                     const sectorPerformance = sectors
                       .filter(s => s.symbol !== 'SPY')
-                      .sort((a, b) => parseFloat(b.changePercent) - parseFloat(a.changePercent));
+                      .sort((a, b) => b.changePercent - a.changePercent);
                     
                     const topSector = sectorPerformance[0];
                     const bottomSector = sectorPerformance[sectorPerformance.length - 1];
-                    const upSectors = sectorPerformance.filter(s => parseFloat(s.changePercent) > 0).length;
+                    const upSectors = sectorPerformance.filter(s => s.changePercent > 0).length;
                     const totalSectors = sectorPerformance.length;
                     const advanceRatio = Math.round((upSectors / totalSectors) * 100);
 
@@ -185,12 +185,12 @@ export function AIAnalysisComponent() {
                         </p>
                         <p className="text-gray-300">
                           <span className="font-semibold text-gain-green">{topSector?.name}</span> led the charge with 
-                          <span className="font-semibold text-gain-green"> {topSector?.changePercent >= 0 ? '+' : ''}{parseFloat(topSector?.changePercent || '0').toFixed(2)}%</span> gain, 
-                          showing {parseFloat(topSector?.changePercent || '0') > 1 ? 'strong momentum in growth sectors' : 'modest strength in defensive positioning'}.
+                          <span className="font-semibold text-gain-green"> {topSector?.changePercent >= 0 ? '+' : ''}{(topSector?.changePercent || 0).toFixed(2)}%</span> gain, 
+                          showing {(topSector?.changePercent || 0) > 1 ? 'strong momentum in growth sectors' : 'modest strength in defensive positioning'}.
                         </p>
                         <p className="text-gray-300">
                           <span className="font-semibold text-loss-red">{bottomSector?.name}</span> was today's laggard at 
-                          <span className="font-semibold text-loss-red"> {parseFloat(bottomSector?.changePercent || '0').toFixed(2)}%</span>, 
+                          <span className="font-semibold text-loss-red"> {(bottomSector?.changePercent || 0).toFixed(2)}%</span>, 
                           though sector rotation remains healthy overall.
                         </p>
                         <p className="text-gray-300">
@@ -199,13 +199,26 @@ export function AIAnalysisComponent() {
                         </p>
                         
                         <div className="bg-financial-gray bg-opacity-30 rounded-lg p-3">
-                          <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div className="grid grid-cols-3 gap-3 text-xs">
                             <div className="text-center">
                               <span className="text-gray-400">Top Performer</span>
-                              <div className="text-gain-green font-medium">{topSector?.name?.split(' ')[0] || 'N/A'}</div>
+                              <div className="text-gain-green font-medium">{topSector?.name === 'Health Care Select Sector SPDR Fund' ? 'Health Care' : topSector?.name?.split(' ')[0] || 'N/A'}</div>
                             </div>
                             <div className="text-center">
-                              <span className="text-gray-400">Advance Ratio</span>
+                              <span className="text-gray-400">5 Day Advance Ratio</span>
+                              <div className={`font-medium ${(() => {
+                                const fiveDayUp = sectorPerformance.filter(s => (s.fiveDayChange || 0) > 0).length;
+                                const fiveDayRatio = Math.round((fiveDayUp / totalSectors) * 100);
+                                return fiveDayRatio > 70 ? 'text-gain-green' : fiveDayRatio > 50 ? 'text-warning-yellow' : 'text-loss-red';
+                              })()}`}>
+                                {(() => {
+                                  const fiveDayUp = sectorPerformance.filter(s => (s.fiveDayChange || 0) > 0).length;
+                                  return Math.round((fiveDayUp / totalSectors) * 100);
+                                })()}%
+                              </div>
+                            </div>
+                            <div className="text-center">
+                              <span className="text-gray-400">Advance Ratio (1 Day)</span>
                               <div className={`font-medium ${advanceRatio > 70 ? 'text-gain-green' : advanceRatio > 50 ? 'text-warning-yellow' : 'text-loss-red'}`}>
                                 {advanceRatio}%
                               </div>
@@ -269,16 +282,22 @@ export function AIAnalysisComponent() {
                   <RefreshCw className="w-4 h-4 text-purple-500" />
                   <h4 className="font-semibold text-white text-base">Bottom Line Assessment</h4>
                 </div>
-                <div className="space-y-3">
-                  <p className="text-gray-300 leading-relaxed">
-                    {analysis.marketConditions}
-                  </p>
+                <div className="space-y-4">
+                  <div>
+                    <h5 className="font-bold text-blue-400 underline mb-2">TECHNICAL ANALYSIS:</h5>
+                    <p className="text-gray-300 leading-relaxed">
+                      {analysis.marketConditions}
+                    </p>
+                  </div>
                   
                   <div 
-                    className="text-gray-300 leading-relaxed"
+                    className="text-gray-300 leading-relaxed space-y-3"
                     dangerouslySetInnerHTML={{ 
                       __html: analysis.riskAssessment
+                        .replace(/ECONOMIC ANALYSIS:/g, '<h5 class="font-bold text-blue-400 underline mb-2">ECONOMIC ANALYSIS:</h5>')
+                        .replace(/SECTOR ROTATION ANALYSIS:/g, '<h5 class="font-bold text-blue-400 underline mb-2 mt-4">SECTOR ROTATION ANALYSIS:</h5>')
                         .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
+                        .replace(/\n\n/g, '</div><div class="mt-3">')
                         .replace(/\n/g, '<br />') 
                     }} 
                   />
@@ -291,14 +310,14 @@ export function AIAnalysisComponent() {
                       </div>
                       <div className="text-center">
                         <span className="text-gray-400">Risk Level</span>
-                        <div className={`font-medium ${parseFloat(technical.rsi) > 65 ? 'text-warning-yellow' : 'text-gain-green'}`}>
-                          {parseFloat(technical.rsi) > 65 ? 'Elevated' : 'Moderate'}
+                        <div className={`font-medium ${technical.rsi && parseFloat(technical.rsi) > 65 ? 'text-warning-yellow' : 'text-gain-green'}`}>
+                          {technical.rsi && parseFloat(technical.rsi) > 65 ? 'Elevated' : 'Moderate'}
                         </div>
                       </div>
                       <div className="text-center">
                         <span className="text-gray-400">Trend Status</span>
-                        <div className={`font-medium ${(technical.macdSignal && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'text-gain-green' : 'text-loss-red'}`}>
-                          {(technical.macdSignal && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'Bullish' : 'Bearish'}
+                        <div className={`font-medium ${(technical.macdSignal && technical.macd && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'text-gain-green' : 'text-loss-red'}`}>
+                          {(technical.macdSignal && technical.macd && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'Bullish' : 'Bearish'}
                         </div>
                       </div>
                     </div>

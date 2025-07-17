@@ -83,7 +83,7 @@ Provide a comprehensive market analysis in JSON format that INTEGRATES technical
 {
   "marketConditions": "Provide technical and sentiment analysis commentary based on current indicators. Discuss RSI levels, MACD signals, volatility environment (VIX), and investor sentiment readings. Use 1 decimal place formatting. Do NOT include any economic data in this section.",
   "technicalOutlook": "Technical analysis including MACD crossover status, RSI levels, and sentiment backdrop. Use 1 decimal place for all technical values.", 
-  "riskAssessment": "ECONOMIC ANALYSIS: Risk factors incorporating inflation persistence, Fed policy implications based on economic calendar data, and growth trajectory. BOLD all economic readings (e.g., **Core CPI at 2.9%**, **Retail Sales at 1.0%**) in this section. Follow with SECTOR ROTATION ANALYSIS: Include sector performance insights and rotation patterns from the sector data as a separate paragraph.",
+  "riskAssessment": "ECONOMIC ANALYSIS: Risk factors incorporating inflation persistence, Fed policy implications based on economic calendar data, and growth trajectory. BOLD all economic readings (e.g., **Core CPI at 2.9%**, **Retail Sales at 1.0%**) in this section.\n\nSECTOR ROTATION ANALYSIS: Include sector performance insights and rotation patterns from the sector data as a separate paragraph.",
   "confidence": 0.85
 }
 

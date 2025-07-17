@@ -15,6 +15,10 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 - Enhanced number formatting: all prices/percentages display to exactly 1 decimal place
 - Bold formatting implemented for economic readings (**Core CPI at 2.9%**, **Retail Sales at 1.0%**)
 - RESOLVED: Fixed AI prompt issue where instruction text was appearing instead of actual analysis
+- Added bold blue underlined labels: "TECHNICAL ANALYSIS:", "ECONOMIC ANALYSIS:", "SECTOR ROTATION ANALYSIS:"
+- Fixed "Top Performer" display to show "Health Care" instead of "Health"
+- Added 5-Day Advance Ratio calculation alongside 1-Day Advance Ratio (based on sector 5-day performance data)
+- Enhanced sector performance metrics with proper timeframe labeling
 
 ### Market Hours Awareness Implementation
 - Added market hours detection (9:30 AM - 4:00 PM ET) across all data display components
