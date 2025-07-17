@@ -34,12 +34,16 @@ export const historicalStockData = pgTable("historical_stock_data", {
 export const marketSentiment = pgTable("market_sentiment", {
   id: serial("id").primaryKey(),
   vix: decimal("vix", { precision: 5, scale: 2 }).notNull(),
+  vixChange: decimal("vix_change", { precision: 5, scale: 2 }),
   putCallRatio: decimal("put_call_ratio", { precision: 5, scale: 2 }).notNull(),
+  putCallChange: decimal("put_call_change", { precision: 5, scale: 2 }),
   aaiiBullish: decimal("aaii_bullish", { precision: 5, scale: 2 }).notNull(),
+  aaiiBullishChange: decimal("aaii_bullish_change", { precision: 5, scale: 2 }),
   aaiiBearish: decimal("aaii_bearish", { precision: 5, scale: 2 }).notNull(),
+  aaiiBearishChange: decimal("aaii_bearish_change", { precision: 5, scale: 2 }),
   aaiiNeutral: decimal("aaii_neutral", { precision: 5, scale: 2 }).notNull(),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
-  dataSource: text("data_source").notNull().default("twelve_data"), // Track data source
+  dataSource: text("data_source").notNull().default("aaii_survey"), // Track data source
 });
 
 export const technicalIndicators = pgTable("technical_indicators", {

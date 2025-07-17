@@ -1,6 +1,6 @@
 import { LivePriceFeed } from "@/components/live-price-feed";
 import { MarketSentimentComponent } from "@/components/market-sentiment";
-import { PriceChart } from "@/components/price-chart";
+
 import { AIAnalysisComponent } from "@/components/ai-analysis";
 import { MarketBreadth } from "@/components/market-breadth";
 import { SectorTracker } from "@/components/sector-tracker";
@@ -47,14 +47,11 @@ export default function Dashboard() {
           <MarketSentimentComponent />
         </div>
 
-        {/* Charts and Analysis Section */}
+        {/* Analysis and Technical Indicators Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <PriceChart />
           <AIAnalysisComponent />
+          <MarketBreadth />
         </div>
-
-        {/* Technical Indicators Section */}
-        <MarketBreadth />
 
         {/* Sector Performance Section */}
         <SectorTracker />

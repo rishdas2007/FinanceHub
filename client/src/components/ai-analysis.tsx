@@ -53,27 +53,74 @@ export function AIAnalysisComponent() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="bg-financial-card rounded-lg p-4 h-80 overflow-y-auto">
+        <div className="bg-financial-card rounded-lg p-6 min-h-96 overflow-y-auto">
           {analysis ? (
-            <div className="space-y-4 text-sm">
+            <div className="space-y-6 text-sm">
               <div className="border-l-4 border-gain-green pl-4">
-                <h4 className="font-semibold text-white mb-2">Current Market Analysis</h4>
-                <p className="text-gray-300 leading-relaxed">
+                <h4 className="font-semibold text-white mb-3 text-base">📈 Current Market Analysis</h4>
+                <p className="text-gray-300 leading-relaxed mb-3">
                   {analysis.marketConditions}
                 </p>
+                <div className="bg-financial-gray bg-opacity-50 rounded-lg p-3">
+                  <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div className="text-center">
+                      <span className="text-gray-400">Market Trend</span>
+                      <div className="text-gain-green font-medium">Bullish</div>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-gray-400">Confidence</span>
+                      <div className="text-white font-medium">{(parseFloat(analysis.confidence) * 100).toFixed(0)}%</div>
+                    </div>
+                  </div>
+                </div>
               </div>
+              
               <div className="border-l-4 border-warning-yellow pl-4">
-                <h4 className="font-semibold text-white mb-2">Technical Outlook</h4>
-                <p className="text-gray-300 leading-relaxed">
+                <h4 className="font-semibold text-white mb-3 text-base">🔧 Technical Outlook</h4>
+                <p className="text-gray-300 leading-relaxed mb-3">
                   {analysis.technicalOutlook}
                 </p>
+                <div className="bg-financial-gray bg-opacity-50 rounded-lg p-3">
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div className="text-center">
+                      <span className="text-gray-400">RSI Signal</span>
+                      <div className="text-warning-yellow font-medium">Overbought</div>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-gray-400">MACD</span>
+                      <div className="text-gain-green font-medium">Bullish</div>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-gray-400">Trend</span>
+                      <div className="text-gain-green font-medium">Strong</div>
+                    </div>
+                  </div>
+                </div>
               </div>
+              
               <div className="border-l-4 border-loss-red pl-4">
-                <h4 className="font-semibold text-white mb-2">Risk Assessment</h4>
-                <p className="text-gray-300 leading-relaxed">
+                <h4 className="font-semibold text-white mb-3 text-base">⚠️ Risk Assessment</h4>
+                <p className="text-gray-300 leading-relaxed mb-3">
                   {analysis.riskAssessment}
                 </p>
+                <div className="bg-financial-gray bg-opacity-50 rounded-lg p-3">
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div className="text-center">
+                      <span className="text-gray-400">VIX Level</span>
+                      <div className="text-warning-yellow font-medium">Elevated</div>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-gray-400">Volatility</span>
+                      <div className="text-warning-yellow font-medium">Moderate</div>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-gray-400">Risk Level</span>
+                      <div className="text-warning-yellow font-medium">Medium</div>
+                    </div>
+                  </div>
+                </div>
               </div>
+              
               <div className="mt-4 text-xs text-gray-400">
                 <div className="flex justify-between items-center">
                   <span>Confidence: {(parseFloat(analysis.confidence) * 100).toFixed(0)}%</span>

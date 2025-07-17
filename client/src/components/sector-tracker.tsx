@@ -65,7 +65,6 @@ export function SectorTracker() {
                 <th className="text-right py-3 px-2 text-gray-400 font-medium">PRICE</th>
                 <th className="text-right py-3 px-2 text-gray-400 font-medium">1 DAY</th>
                 <th className="text-right py-3 px-2 text-gray-400 font-medium">1 MONTH</th>
-                <th className="text-right py-3 px-2 text-gray-400 font-medium">VOLUME</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-financial-border">
@@ -92,9 +91,6 @@ export function SectorTracker() {
                     (sector.oneMonthChangePercent || 0) >= 0 ? 'text-gain-green' : 'text-loss-red'
                   }`}>
                     {(sector.oneMonthChangePercent || 0) >= 0 ? '+' : ''}{(sector.oneMonthChangePercent || 0).toFixed(2)}%
-                  </td>
-                  <td className="py-3 px-2 text-right text-gray-300">
-                    {(sector.volume / 1000000).toFixed(1)}M
                   </td>
                 </tr>
               ))}
