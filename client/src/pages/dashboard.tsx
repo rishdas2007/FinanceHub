@@ -47,11 +47,11 @@ export default function Dashboard() {
           <MarketSentimentComponent />
         </div>
 
-        {/* Analysis and Technical Indicators Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <AIAnalysisComponent />
-          <MarketBreadth />
-        </div>
+        {/* AI Market Commentary - Full Width */}
+        <AIAnalysisComponent />
+
+        {/* Market Breadth Indicators */}
+        <MarketBreadth />
 
         {/* Sector Performance Section */}
         <SectorTracker />
