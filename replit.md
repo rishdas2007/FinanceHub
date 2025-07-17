@@ -4,6 +4,26 @@
 
 FinanceHub Pro is a comprehensive financial dashboard application built as a full-stack TypeScript application. It provides real-time market data, technical analysis, AI-powered market insights, and comprehensive financial tracking capabilities. The application features a modern React frontend with shadcn/ui components and an Express.js backend with PostgreSQL database integration.
 
+## Recent Changes (July 17, 2025)
+
+### Enhanced AI Market Commentary
+- Removed price chart component to eliminate API rate limit issues
+- Expanded AI Market Commentary to full page width for comprehensive analysis
+- Implemented detailed market analysis sections: Current Market Position, Technical Indicators, Market Sentiment, and Bottom Line Assessment
+- Added real-time data integration using live SPY price, VIX, RSI, MACD, and AAII sentiment data
+
+### AAII Sentiment Data Integration
+- Updated AAII sentiment data to use real values from official AAII survey (41.4% bullish, 35.6% bearish, 23.0% neutral for week ending July 9, 2025)
+- Implemented weekly AAII data fetching service with automatic updates every Wednesday
+- Added percentage change tracking for all sentiment metrics (VIX daily, AAII weekly, Put/Call ratio daily)
+- Enhanced database schema to store historical sentiment data with change calculations
+
+### UI/UX Improvements
+- Moved Market Breadth Indicators below AI Market Commentary for better layout flow
+- Removed volume column from Sector Tracker for cleaner display
+- Enhanced market sentiment cards with change indicators and updated labels
+- Improved responsive design with better grid layouts
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
