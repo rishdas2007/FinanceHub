@@ -213,6 +213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           changePercent: parseFloat(stockData.changePercent),
           rsi: technical?.rsi ? parseFloat(technical.rsi) : undefined,
           macd: technical?.macd ? parseFloat(technical.macd) : undefined,
+          macdSignal: technical?.macdSignal ? parseFloat(technical.macdSignal) : undefined,
           vix: sentiment?.vix ? parseFloat(sentiment.vix) : undefined,
           putCallRatio: sentiment?.putCallRatio ? parseFloat(sentiment.putCallRatio) : undefined,
           aaiiBullish: sentiment?.aaiiBullish ? parseFloat(sentiment.aaiiBullish) : undefined,

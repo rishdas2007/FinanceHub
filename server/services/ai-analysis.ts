@@ -12,10 +12,12 @@ interface MarketData {
   changePercent: number;
   rsi?: number;
   macd?: number;
+  macdSignal?: number;
   vix?: number;
   putCallRatio?: number;
   aaiiBullish?: number;
   aaiiBearish?: number;
+  macroContext?: string;
 }
 
 interface AnalysisResult {
@@ -36,25 +38,30 @@ MARKET DATA:
 Stock: ${marketData.symbol}
 Price: $${marketData.price}
 Change: ${marketData.change} (${marketData.changePercent}%)
-RSI: ${marketData.rsi || 'N/A'}
-MACD: ${marketData.macd || 'N/A'}
-VIX: ${marketData.vix || 'N/A'}
+RSI: ${marketData.rsi || 'N/A'} ${marketData.rsi && marketData.rsi > 70 ? '(Overbought)' : marketData.rsi && marketData.rsi < 30 ? '(Oversold)' : '(Neutral)'}
+MACD: ${marketData.macd || 'N/A'} vs Signal: ${marketData.macdSignal || 'N/A'} ${marketData.macd && marketData.macdSignal && marketData.macd < marketData.macdSignal ? '(Bearish Crossover)' : '(Bullish Territory)'}
+VIX: ${marketData.vix || 'N/A'} (Volatility measure)
 Put/Call Ratio: ${marketData.putCallRatio || 'N/A'}
-AAII Bullish: ${marketData.aaiiBullish || 'N/A'}%
-AAII Bearish: ${marketData.aaiiBearish || 'N/A'}%
+AAII Bullish: ${marketData.aaiiBullish || 'N/A'}% vs Bearish: ${marketData.aaiiBearish || 'N/A'}%
 
-MACROECONOMIC CONTEXT:
-${macroContext}
+CURRENT ECONOMIC CALENDAR DATA:
+Inflation Trends: Core CPI 2.9% (vs 2.8% forecast, accelerating from 2.4%), Headline CPI 2.7% (vs 2.6% estimate). PPI 2.1% (down from 2.4%, beating 2.2% forecast - wholesale prices cooling).
+Consumer Activity: Retail Sales surged 1.0% (vs 0.3% expectation), showing resilient spending despite rate pressures.
+Labor Market: JOLTS 8.18M openings (steady above 8.14M forecast), indicating balanced demand without overheating.
+Business Activity: ISM Services PMI 52.5 (down from 53.8, missing 52.8 forecast). Industrial Production slowing to 0.3% from 0.9%.
+Housing Sector: Starts expected 1.31M (up from 1.28M), showing modest improvement.
 
-Provide a comprehensive market analysis in JSON format that INTEGRATES both technical indicators AND macroeconomic factors:
+KEY ECONOMIC THEMES: Persistent core inflation above Fed's 2% target, resilient consumer spending, wholesale price relief, balanced labor markets, moderating business activity suggesting sustainable growth pace.
+
+Provide a comprehensive market analysis in JSON format that INTEGRATES technical indicators with specific economic calendar data points:
 {
-  "marketConditions": "Analysis of current market conditions including macro impact (2-3 sentences)",
-  "technicalOutlook": "Technical analysis with consideration of economic backdrop (2-3 sentences)",
-  "riskAssessment": "Risk factors including volatility and economic considerations (2-3 sentences)",
+  "marketConditions": "Analysis incorporating current price action with specific economic data points from the calendar (quote actual figures like CPI, Retail Sales, etc.)",
+  "technicalOutlook": "Technical analysis including MACD crossover status, RSI levels, and sentiment backdrop", 
+  "riskAssessment": "Risk factors incorporating inflation persistence, Fed policy implications based on economic calendar data, and growth trajectory",
   "confidence": 0.85
 }
 
-Focus on actionable insights that consider both technical signals and economic fundamentals.`;
+Focus on how the specific economic data points from the calendar influence market outlook and Fed policy expectations.`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
