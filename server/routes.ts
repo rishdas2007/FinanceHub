@@ -152,7 +152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Generate fresh analysis if none exists or if it's older than 5 minutes
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-      if (!analysis || analysis.timestamp < fiveMinutesAgo) {
+      if (!analysis || analysis.timestamp < fiveMinutesAgo || analysis.marketConditions.includes('TECHNICAL AND SENTIMENT ONLY:')) {
         console.log('Generating new AI analysis...');
         
         // Get current market data for analysis - fetch fresh if needed

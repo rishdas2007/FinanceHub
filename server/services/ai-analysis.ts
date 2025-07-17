@@ -81,7 +81,7 @@ KEY ECONOMIC THEMES: Persistent core inflation above Fed's 2% target, resilient 
 
 Provide a comprehensive market analysis in JSON format that INTEGRATES technical indicators with specific economic calendar data points:
 {
-  "marketConditions": "TECHNICAL AND SENTIMENT ONLY: Analyze RSI at 65.9 (neutral), MACD bearish crossover (8.3 vs 8.7), VIX at 17.2 (moderate volatility), AAII sentiment (41.4% bullish vs 35.6% bearish), Put/Call ratio 0.8. Focus ONLY on these technical and sentiment indicators. NO economic data here.",
+  "marketConditions": "Provide technical and sentiment analysis commentary based on current indicators. Discuss RSI levels, MACD signals, volatility environment (VIX), and investor sentiment readings. Use 1 decimal place formatting. Do NOT include any economic data in this section.",
   "technicalOutlook": "Technical analysis including MACD crossover status, RSI levels, and sentiment backdrop. Use 1 decimal place for all technical values.", 
   "riskAssessment": "ECONOMIC ANALYSIS: Risk factors incorporating inflation persistence, Fed policy implications based on economic calendar data, and growth trajectory. BOLD all economic readings (e.g., **Core CPI at 2.9%**, **Retail Sales at 1.0%**) in this section. Follow with SECTOR ROTATION ANALYSIS: Include sector performance insights and rotation patterns from the sector data as a separate paragraph.",
   "confidence": 0.85

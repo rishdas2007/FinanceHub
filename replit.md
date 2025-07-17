@@ -8,12 +8,13 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 
 ### AI Market Commentary Enhancement (Latest Update)
 - Added Substack link under main dashboard title for Rishabh's market insights
-- Restructured AI analysis format to eliminate repetitive content in Bottom Line Assessment
-- First paragraph now focuses solely on technical indicators and sentiment analysis (RSI, MACD, VIX, AAII)
+- FIXED: Restructured AI analysis format to eliminate repetitive content in Bottom Line Assessment
+- First paragraph now generates proper technical and sentiment commentary (RSI, MACD, VIX, AAII insights)
 - Second paragraph contains economic analysis with bold formatting for key metrics
 - Third paragraph separated for sector performance and rotation analysis
 - Enhanced number formatting: all prices/percentages display to exactly 1 decimal place
 - Bold formatting implemented for economic readings (**Core CPI at 2.9%**, **Retail Sales at 1.0%**)
+- RESOLVED: Fixed AI prompt issue where instruction text was appearing instead of actual analysis
 
 ### Market Hours Awareness Implementation
 - Added market hours detection (9:30 AM - 4:00 PM ET) across all data display components
