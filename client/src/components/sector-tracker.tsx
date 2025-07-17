@@ -41,7 +41,19 @@ export function SectorTracker() {
           <CardTitle className="text-lg font-semibold text-white">Sector Tracker</CardTitle>
           <div className="flex items-center space-x-4">
             <span className="text-xs text-gray-400">
-              {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
+              {(() => {
+                const now = new Date();
+                const utcHour = now.getUTCHours();
+                const utcMinutes = now.getUTCMinutes();
+                const timeInMinutes = utcHour * 60 + utcMinutes;
+                const marketOpen = 13 * 60 + 30; // 13:30 UTC (9:30 AM ET)
+                const marketClose = 21 * 60; // 21:00 UTC (4:00 PM ET)
+                const dayOfWeek = now.getUTCDay();
+                const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+                const isMarketOpen = isWeekday && timeInMinutes >= marketOpen && timeInMinutes <= marketClose;
+                
+                return isMarketOpen ? "Live Market Data" : "As of 4:00 PM ET (Market Closed)";
+              })()}
             </span>
             <Button
               variant="outline"
@@ -64,6 +76,7 @@ export function SectorTracker() {
                 <th className="text-left py-3 px-2 text-gray-400 font-medium">TICKER</th>
                 <th className="text-right py-3 px-2 text-gray-400 font-medium">PRICE</th>
                 <th className="text-right py-3 px-2 text-gray-400 font-medium">1 DAY</th>
+                <th className="text-right py-3 px-2 text-gray-400 font-medium">5 DAY</th>
                 <th className="text-right py-3 px-2 text-gray-400 font-medium">1 MONTH</th>
               </tr>
             </thead>
@@ -88,9 +101,14 @@ export function SectorTracker() {
                     {parseFloat(sector.changePercent) >= 0 ? '+' : ''}{parseFloat(sector.changePercent).toFixed(2)}%
                   </td>
                   <td className={`py-3 px-2 text-right font-medium ${
-                    (sector.oneMonthChangePercent || 0) >= 0 ? 'text-gain-green' : 'text-loss-red'
+                    (sector.fiveDayChange || 0) >= 0 ? 'text-gain-green' : 'text-loss-red'
                   }`}>
-                    {(sector.oneMonthChangePercent || 0) >= 0 ? '+' : ''}{(sector.oneMonthChangePercent || 0).toFixed(2)}%
+                    {(sector.fiveDayChange || 0) >= 0 ? '+' : ''}{(sector.fiveDayChange || 0).toFixed(2)}%
+                  </td>
+                  <td className={`py-3 px-2 text-right font-medium ${
+                    (sector.oneMonthChange || 0) >= 0 ? 'text-gain-green' : 'text-loss-red'
+                  }`}>
+                    {(sector.oneMonthChange || 0) >= 0 ? '+' : ''}{(sector.oneMonthChange || 0).toFixed(2)}%
                   </td>
                 </tr>
               ))}

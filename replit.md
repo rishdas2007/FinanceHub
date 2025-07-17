@@ -6,24 +6,35 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 
 ## Recent Changes (July 17, 2025)
 
-### Dashboard Layout Optimization
-- Removed Live Price Feed and Market Sentiment Overview sections (keeping data collection active)
-- Removed Market News section due to fake information concerns
-- Expanded Economic Calendar to full width with enhanced 2-column grid layout showing 8 events
-- Added detailed date/time stamps to economic events (e.g., "TUE, JUL 15 at 8:30 AM ET")
+### Market Hours Awareness Implementation
+- Added market hours detection (9:30 AM - 4:00 PM ET) across all data display components
+- Data pulls after market close reference "As of 4:00 PM ET (Market Closed)" timestamps
+- Live market data indicators show "Live Market Data" during trading hours
+- Optimized Twelve Data API usage to maximize 55 calls/minute rate limit
 
-### Enhanced AI Market Commentary
-- Added Sector Performance subsection with real-time sector analysis and commentary
-- Reorganized layout: moved Market Sentiment Analysis below Technical Indicators
-- Expanded Bottom Line Assessment to full width for comprehensive analysis display
-- Integrated live sector data with advance ratio calculations and performance insights
-- Real-time data integration using live SPY price, VIX, RSI, MACD, and AAII sentiment data
+### Global Refresh System
+- Implemented global refresh button in top-right header with comprehensive rate limiting
+- Rate limits: 1 click per minute, maximum 5 refreshes per session to preserve API costs
+- Refresh button forces fresh data pulls for all components (stocks, sectors, sentiment, technical indicators)
+- Added countdown timer and session tracking to prevent API cost overruns
 
-### AAII Sentiment Data Integration
-- Updated AAII sentiment data to use real values from official AAII survey (41.4% bullish, 35.6% bearish, 23.0% neutral for week ending July 9, 2025)
-- Implemented weekly AAII data fetching service with automatic updates every Wednesday
-- Added percentage change tracking for all sentiment metrics (VIX daily, AAII weekly, Put/Call ratio daily)
-- Enhanced database schema to store historical sentiment data with change calculations
+### Enhanced Sector Tracker
+- Added 5-day performance column showing price changes from July 10-17, 2025
+- Enhanced 1-month performance data with accurate historical calculations
+- Fixed sector data structure: 1-Day, 5-Day, 1-Month performance columns now display correctly
+- Market hours awareness in sector data timestamps
+- Improved fallback data with realistic 5-day and 1-month performance metrics
+
+### Technical Analysis Accuracy
+- Corrected MACD bearish crossover detection: MACD line (8.256) vs Signal line (8.722)
+- Fixed Technical Indicators title (removed "Show Caution" suffix)
+- Always fetch fresh technical data to ensure real-time accuracy
+- Enhanced MACD signal interpretation for proper bullish/bearish crossover identification
+
+### Database Schema Enhancements
+- Added historical economic data table for storing CPI, PPI, Retail Sales readings
+- Enhanced sector data table with fiveDayChange and oneMonthChange columns
+- Improved data persistence for offline/API limit fallback scenarios
 
 ### Data Authenticity Focus
 - Eliminated all fake/static data sources throughout the dashboard

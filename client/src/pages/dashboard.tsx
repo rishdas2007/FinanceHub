@@ -6,6 +6,7 @@ import { SectorTracker } from "@/components/sector-tracker";
 import { AAIISentiment } from "@/components/aaii-sentiment";
 import { MarketHeatMap } from "@/components/market-heatmap";
 import { EconomicCalendar } from "@/components/economic-calendar";
+import { GlobalRefreshButton } from "@/components/global-refresh-button";
 
 import { TrendingUp } from "lucide-react";
 import { useApiTracker } from "@/hooks/useApiTracker";
@@ -30,6 +31,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center space-x-4">
+            <GlobalRefreshButton />
             <div className="bg-financial-card rounded-lg px-3 py-2 text-sm">
               <div className="flex items-center space-x-2">
                 <span className="w-2 h-2 bg-gain-green rounded-full animate-pulse"></span>

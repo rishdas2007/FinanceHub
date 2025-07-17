@@ -118,6 +118,8 @@ export const sectorData = pgTable("sector_data", {
   name: text("name").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   changePercent: decimal("change_percent", { precision: 5, scale: 2 }).notNull(),
+  fiveDayChange: decimal("five_day_change", { precision: 5, scale: 2 }),
+  oneMonthChange: decimal("one_month_change", { precision: 5, scale: 2 }),
   volume: integer("volume").notNull(),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 });
