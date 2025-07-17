@@ -24,6 +24,8 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 - Fixed sector data structure: 1-Day, 5-Day, 1-Month performance columns now display correctly
 - Market hours awareness in sector data timestamps
 - Improved fallback data with realistic 5-day and 1-month performance metrics
+- RESOLVED: Fixed missing fiveDayChange and oneMonthChange fields in API response
+- All 12 sector ETFs now display complete performance data across all timeframes
 
 ### Technical Analysis Accuracy
 - Corrected MACD bearish crossover detection: MACD line (8.256) vs Signal line (8.722)

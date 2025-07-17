@@ -118,34 +118,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Sector performance
   app.get("/api/sectors", async (req, res) => {
     try {
-      // Add caching to improve performance
-      let sectors = await storage.getLatestSectorData();
+      console.log('Fetching fresh sector data with 5-day and 1-month performance...');
+      const freshSectors = await financialDataService.getSectorETFs();
       
-      // Only fetch fresh data if cache is empty or older than 2 minutes
-      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
-      if (!sectors || sectors.length === 0 || (sectors[0] && sectors[0].timestamp && sectors[0].timestamp < twoMinutesAgo)) {
-        console.log('Fetching fresh sector data...');
-        const freshSectors = await financialDataService.getSectorETFs();
-        
-        // Cache the fresh data
-        for (const sector of freshSectors) {
-          try {
-            await storage.createSectorData({
-              symbol: sector.symbol,
-              name: sector.name,
-              price: typeof sector.price === 'number' ? sector.price.toString() : sector.price.toString(),
-              changePercent: typeof sector.changePercent === 'number' ? sector.changePercent.toString() : sector.changePercent.toString(),
-              volume: sector.volume || 0,
-            });
-          } catch (error) {
-            // Sector might already exist, continue
-          }
+      // Cache the fresh data with all performance metrics
+      for (const sector of freshSectors) {
+        try {
+          await storage.createSectorData({
+            symbol: sector.symbol,
+            name: sector.name,
+            price: typeof sector.price === 'number' ? sector.price.toString() : sector.price.toString(),
+            changePercent: typeof sector.changePercent === 'number' ? sector.changePercent.toString() : sector.changePercent.toString(),
+            fiveDayChange: (sector.fiveDayChange || 0).toString(),
+            oneMonthChange: (sector.oneMonthChange || 0).toString(),
+            volume: sector.volume || 0,
+          });
+        } catch (error) {
+          console.error(`Error storing sector data for ${sector.symbol}:`, error);
         }
-        
-        sectors = freshSectors;
       }
       
-      res.json(sectors);
+      res.json(freshSectors);
     } catch (error) {
       console.error('Error fetching sectors:', error);
       res.status(500).json({ message: 'Failed to fetch sectors' });
