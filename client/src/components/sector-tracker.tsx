@@ -80,12 +80,12 @@ export function SectorTracker() {
                   </td>
                   <td className="py-3 px-2 text-gray-300">{sector.symbol}</td>
                   <td className="py-3 px-2 text-right text-white font-medium">
-                    ${sector.price.toFixed(2)}
+                    ${parseFloat(sector.price).toFixed(2)}
                   </td>
                   <td className={`py-3 px-2 text-right font-medium ${
-                    sector.changePercent >= 0 ? 'text-gain-green' : 'text-loss-red'
+                    parseFloat(sector.changePercent) >= 0 ? 'text-gain-green' : 'text-loss-red'
                   }`}>
-                    {sector.changePercent >= 0 ? '+' : ''}{sector.changePercent.toFixed(2)}%
+                    {parseFloat(sector.changePercent) >= 0 ? '+' : ''}{parseFloat(sector.changePercent).toFixed(2)}%
                   </td>
                   <td className={`py-3 px-2 text-right font-medium ${
                     (sector.oneMonthChangePercent || 0) >= 0 ? 'text-gain-green' : 'text-loss-red'

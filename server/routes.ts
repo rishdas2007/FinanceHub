@@ -18,22 +18,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/stocks/:symbol", async (req, res) => {
     try {
       const { symbol } = req.params;
-      const stockData = await storage.getLatestStockData(symbol.toUpperCase());
       
-      if (!stockData) {
-        // Fetch fresh data if not in storage
-        const quote = await financialDataService.getStockQuote(symbol.toUpperCase());
-        const newStockData = await storage.createStockData({
-          symbol: quote.symbol,
-          price: quote.price.toString(),
-          change: quote.change.toString(),
-          changePercent: quote.changePercent.toString(),
-          volume: quote.volume,
-        });
-        return res.json(newStockData);
-      }
+      // Always fetch fresh data to avoid stale cache issues
+      console.log(`Fetching fresh data for ${symbol}...`);
+      const quote = await financialDataService.getStockQuote(symbol.toUpperCase());
+      const newStockData = await storage.createStockData({
+        symbol: quote.symbol,
+        price: quote.price.toString(),
+        change: quote.change.toString(),
+        changePercent: quote.changePercent.toString(),
+        volume: quote.volume,
+      });
       
-      res.json(stockData);
+      res.json(newStockData);
     } catch (error) {
       console.error('Error fetching stock data:', error);
       res.status(500).json({ message: 'Failed to fetch stock data' });
@@ -137,8 +134,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await storage.createSectorData({
               symbol: sector.symbol,
               name: sector.name,
-              price: sector.price.toString(),
-              changePercent: sector.changePercent.toString(),
+              price: typeof sector.price === 'number' ? sector.price.toString() : sector.price.toString(),
+              changePercent: typeof sector.changePercent === 'number' ? sector.changePercent.toString() : sector.changePercent.toString(),
               volume: sector.volume || 0,
             });
           } catch (error) {
