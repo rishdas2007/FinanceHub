@@ -36,8 +36,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { symbol } = req.params;
       const limit = parseInt(req.query.limit as string) || 30;
-      const history = await storage.getStockHistory(symbol.toUpperCase(), limit);
-      res.json(history);
+      
+      // First check if we have recent historical data in storage
+      let history = await storage.getStockHistory(symbol.toUpperCase(), limit);
+      
+      // If we don't have enough data or data is old, fetch from API
+      if (!history || history.length < Math.min(limit, 5)) {
+        console.log(`Fetching fresh historical data for ${symbol}...`);
+        const freshData = await financialDataService.getHistoricalData(symbol.toUpperCase(), limit);
+        
+        // Store the fresh data
+        for (const item of freshData) {
+          await storage.createStockData({
+            symbol: item.symbol,
+            price: item.price.toString(),
+            change: item.change.toString(),
+            changePercent: item.changePercent.toString(),
+            volume: item.volume,
+            timestamp: item.timestamp,
+          });
+        }
+        
+        // Get the updated history from storage
+        history = await storage.getStockHistory(symbol.toUpperCase(), limit);
+      }
+      
+      res.json(history || []);
     } catch (error) {
       console.error('Error fetching stock history:', error);
       res.status(500).json({ message: 'Failed to fetch stock history' });

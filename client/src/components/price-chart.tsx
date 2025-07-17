@@ -17,19 +17,17 @@ interface ChartData {
 const timeframes = [
   { label: '1W', value: '1W', limit: 7 },
   { label: '1M', value: '1M', limit: 30 },
-  { label: '3M', value: '3M', limit: 90 },
-  { label: '1Y', value: '1Y', limit: 365 },
 ];
 
 export function PriceChart() {
   const { selectedETF } = useETF();
-  const [selectedTimeframe, setSelectedTimeframe] = useState('1M');
+  const [selectedTimeframe, setSelectedTimeframe] = useState('1W');
   
   const currentTimeframe = timeframes.find(t => t.value === selectedTimeframe) || timeframes[1];
 
-  const { data: stockHistory } = useQuery<StockData[]>({
+  const { data: stockHistory, isLoading: historyLoading } = useQuery<StockData[]>({
     queryKey: [`/api/stocks/${selectedETF.symbol}/history?limit=${currentTimeframe.limit}`],
-    refetchInterval: 30000,
+    refetchInterval: 60000, // Reduced frequency for real API data
   });
 
   const { data: technical } = useQuery<TechnicalIndicators>({
@@ -64,14 +62,7 @@ export function PriceChart() {
     };
   }) || [];
 
-  // Debug log to see what data we have
-  console.log('Price Chart Debug:', {
-    stockHistory: stockHistory?.length || 0,
-    technical: !!technical,
-    chartData: chartData.length,
-    selectedETF: selectedETF.symbol,
-    timeframe: selectedTimeframe
-  });
+
 
   return (
     <Card className="bg-financial-gray border-financial-border">
@@ -118,7 +109,11 @@ export function PriceChart() {
         </div>
         
         <div className="bg-financial-card rounded-lg p-4 h-80">
-          {chartData.length > 0 ? (
+          {historyLoading ? (
+            <div className="flex items-center justify-center h-full text-gray-400">
+              Loading real market data...
+            </div>
+          ) : chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#404040" />
@@ -198,7 +193,7 @@ export function PriceChart() {
             </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400">
-              Loading chart data...
+              No historical data available. Please check API connection.
             </div>
           )}
         </div>

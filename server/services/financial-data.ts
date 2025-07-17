@@ -103,6 +103,39 @@ export class FinancialDataService {
     this.requestCount++;
   }
 
+  async getHistoricalData(symbol: string, outputsize: number = 30) {
+    try {
+      await this.rateLimitCheck();
+      
+      const response = await fetch(
+        `${this.baseUrl}/time_series?symbol=${symbol}&interval=1day&outputsize=${outputsize}&apikey=${this.apiKey}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.values || !Array.isArray(data.values)) {
+        throw new Error('Invalid historical data response from Twelve Data API');
+      }
+      
+      return data.values.map((item: any) => ({
+        symbol,
+        price: parseFloat(item.close),
+        change: 0, // Historical data doesn't include change
+        changePercent: 0, // Historical data doesn't include change percent
+        volume: parseInt(item.volume) || 0,
+        timestamp: new Date(item.datetime).toISOString(),
+      })).reverse(); // Reverse to get chronological order (oldest first)
+    } catch (error) {
+      console.error(`Error fetching historical data for ${symbol}:`, error);
+      // Return empty array instead of fallback data to prevent fake data display
+      return [];
+    }
+  }
+
   async getStockQuote(symbol: string) {
     try {
       await this.rateLimitCheck();
