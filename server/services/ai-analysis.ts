@@ -28,8 +28,11 @@ interface AnalysisResult {
 export class AIAnalysisService {
   async generateMarketAnalysis(marketData: MarketData): Promise<AnalysisResult> {
     try {
+      const macroContext = marketData.macroContext || "Recent economic data shows mixed signals.";
+      
       const prompt = `Analyze the current market conditions based on the following data:
 
+MARKET DATA:
 Stock: ${marketData.symbol}
 Price: $${marketData.price}
 Change: ${marketData.change} (${marketData.changePercent}%)
@@ -40,22 +43,25 @@ Put/Call Ratio: ${marketData.putCallRatio || 'N/A'}
 AAII Bullish: ${marketData.aaiiBullish || 'N/A'}%
 AAII Bearish: ${marketData.aaiiBearish || 'N/A'}%
 
-Provide a comprehensive market analysis in JSON format with the following structure:
+MACROECONOMIC CONTEXT:
+${macroContext}
+
+Provide a comprehensive market analysis in JSON format that INTEGRATES both technical indicators AND macroeconomic factors:
 {
-  "marketConditions": "Brief analysis of current market conditions (2-3 sentences)",
-  "technicalOutlook": "Technical analysis and momentum assessment (2-3 sentences)",
-  "riskAssessment": "Risk factors and market sentiment evaluation (2-3 sentences)",
+  "marketConditions": "Analysis of current market conditions including macro impact (2-3 sentences)",
+  "technicalOutlook": "Technical analysis with consideration of economic backdrop (2-3 sentences)",
+  "riskAssessment": "Risk factors including volatility and economic considerations (2-3 sentences)",
   "confidence": 0.85
 }
 
-Focus on actionable insights for traders and investors. Keep each section concise but informative.`;
+Focus on actionable insights that consider both technical signals and economic fundamentals.`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
           {
             role: "system",
-            content: "You are a senior financial analyst with expertise in market analysis and technical indicators. Provide clear, professional market commentary based on the data provided."
+            content: "You are a senior financial analyst with expertise in market analysis, technical indicators, and macroeconomic factors. Integrate technical analysis with economic fundamentals to provide comprehensive market commentary."
           },
           {
             role: "user",

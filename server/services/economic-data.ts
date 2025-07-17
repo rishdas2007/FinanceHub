@@ -68,30 +68,30 @@ export class EconomicDataService {
       },
       // Current Week Events
       {
-        id: 'cpi-jul2025',
-        title: 'US Consumer Price Index (CPI)',
-        description: 'Monthly inflation measure',
-        date: new Date('2025-07-11T12:30:00Z'),
+        id: 'cpi-jun2025',
+        title: 'US Consumer Price Index (CPI) - June',
+        description: 'Monthly inflation measure - RELEASED',
+        date: new Date('2025-07-15T12:30:00Z'),
         time: '8:30 AM ET',
         importance: 'high',
         currency: 'USD',
-        forecast: '3.1%',
-        previous: '3.3%',
-        actual: '3.0%',
-        impact: 'positive'
+        forecast: '2.6%',
+        previous: '2.4%',
+        actual: '2.7%',
+        impact: 'slightly_negative'
       },
       {
-        id: 'core-cpi-jul2025',
-        title: 'US Core CPI',
-        description: 'CPI excluding food and energy',
-        date: new Date('2025-07-11T12:30:00Z'),
+        id: 'core-cpi-jun2025',
+        title: 'US Core CPI - June',
+        description: 'CPI excluding food and energy - RELEASED',
+        date: new Date('2025-07-15T12:30:00Z'),
         time: '8:30 AM ET',
         importance: 'high',
         currency: 'USD',
-        forecast: '3.4%',
-        previous: '3.4%',
-        actual: '3.3%',
-        impact: 'positive'
+        forecast: '2.8%',
+        previous: '2.6%',
+        actual: '2.9%',
+        impact: 'slightly_negative'
       },
       {
         id: 'ppi-jul2025',
@@ -157,15 +157,15 @@ export class EconomicDataService {
     let analysis = "";
     
     // Analyze inflation data
-    const cpiEvent = recentEvents.find(e => e.id === 'cpi-jul2025');
-    const coreCpiEvent = recentEvents.find(e => e.id === 'core-cpi-jul2025');
+    const cpiEvent = recentEvents.find(e => e.id === 'cpi-jun2025');
+    const coreCpiEvent = recentEvents.find(e => e.id === 'core-cpi-jun2025');
     const ppiEvent = recentEvents.find(e => e.id === 'ppi-jul2025');
     
     if (cpiEvent && coreCpiEvent) {
-      analysis += `Inflation continues its disinflationary trend with CPI at ${cpiEvent.actual} (vs ${cpiEvent.forecast} forecast) and Core CPI at ${coreCpiEvent.actual} (vs ${coreCpiEvent.forecast} forecast). `;
+      analysis += `Inflation showed signs of re-acceleration with June CPI at ${cpiEvent.actual} (vs ${cpiEvent.forecast} forecast) and Core CPI at ${coreCpiEvent.actual} (vs ${coreCpiEvent.forecast} forecast), up from previous readings. This uptick reflects early tariff impacts on consumer prices. `;
       
       if (ppiEvent) {
-        analysis += `Producer prices also cooled to ${ppiEvent.actual}, suggesting upstream price pressures are easing. `;
+        analysis += `Producer prices cooled to ${ppiEvent.actual}, creating a mixed inflation picture with wholesale pressures easing while consumer prices tick higher. `;
       }
     }
     
@@ -188,7 +188,7 @@ export class EconomicDataService {
       }
     }
     
-    analysis += "These readings support a 'soft landing' scenario where inflation moderates without triggering a recession.";
+    analysis += "These mixed readings suggest a complex economic environment where employment remains strong but inflation shows renewed upward pressure, complicating Federal Reserve policy decisions.";
     
     return analysis;
   }
