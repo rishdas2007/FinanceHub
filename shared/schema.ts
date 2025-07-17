@@ -59,6 +59,27 @@ export const economicEvents = pgTable("economic_events", {
   actual: text("actual"),
   forecast: text("forecast"),
   previous: text("previous"),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+});
+
+export const marketBreadth = pgTable("market_breadth", {
+  id: serial("id").primaryKey(),
+  advancingIssues: integer("advancing_issues").notNull(),
+  decliningIssues: integer("declining_issues").notNull(),
+  advancingVolume: decimal("advancing_volume", { precision: 15, scale: 0 }).notNull(),
+  decliningVolume: decimal("declining_volume", { precision: 15, scale: 0 }).notNull(),
+  newHighs: integer("new_highs").notNull(),
+  newLows: integer("new_lows").notNull(),
+  mcclellanOscillator: decimal("mcclellan_oscillator", { precision: 10, scale: 4 }),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+});
+
+export const vixData = pgTable("vix_data", {
+  id: serial("id").primaryKey(),
+  vixValue: decimal("vix_value", { precision: 5, scale: 2 }).notNull(),
+  vixChange: decimal("vix_change", { precision: 5, scale: 2 }).notNull(),
+  vixChangePercent: decimal("vix_change_percent", { precision: 5, scale: 2 }).notNull(),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -88,6 +109,17 @@ export const insertAiAnalysisSchema = createInsertSchema(aiAnalysis).omit({
 
 export const insertEconomicEventsSchema = createInsertSchema(economicEvents).omit({
   id: true,
+  timestamp: true,
+});
+
+export const insertMarketBreadthSchema = createInsertSchema(marketBreadth).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const insertVixDataSchema = createInsertSchema(vixData).omit({
+  id: true,
+  timestamp: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -97,8 +129,12 @@ export type MarketSentiment = typeof marketSentiment.$inferSelect;
 export type TechnicalIndicators = typeof technicalIndicators.$inferSelect;
 export type AiAnalysis = typeof aiAnalysis.$inferSelect;
 export type EconomicEvent = typeof economicEvents.$inferSelect;
+export type MarketBreadth = typeof marketBreadth.$inferSelect;
+export type VixData = typeof vixData.$inferSelect;
 export type InsertStockData = z.infer<typeof insertStockDataSchema>;
 export type InsertMarketSentiment = z.infer<typeof insertMarketSentimentSchema>;
 export type InsertTechnicalIndicators = z.infer<typeof insertTechnicalIndicatorsSchema>;
 export type InsertAiAnalysis = z.infer<typeof insertAiAnalysisSchema>;
 export type InsertEconomicEvent = z.infer<typeof insertEconomicEventsSchema>;
+export type InsertMarketBreadth = z.infer<typeof insertMarketBreadthSchema>;
+export type InsertVixData = z.infer<typeof insertVixDataSchema>;

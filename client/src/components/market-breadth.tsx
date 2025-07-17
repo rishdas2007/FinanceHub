@@ -1,20 +1,105 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery } from '@tanstack/react-query';
 
-const marketBreadthData = [
-  { label: 'S&P 500 VWAP', value: '$622.33', description: 'Volume Weighted' },
-  { label: 'S&P 500 RSI', value: '64.2', description: '14-day RSI', isWarning: true },
-  { label: 'NASDAQ VWAP', value: '$556.35', description: 'Volume Weighted' },
-  { label: 'NASDAQ RSI', value: '68.5', description: '14-day RSI', isWarning: true },
-  { label: 'DOW VWAP', value: '$440.87', description: 'Volume Weighted' },
-  { label: 'DOW RSI', value: '72.3', description: '14-day RSI', isDanger: true },
-  { label: 'McClellan', value: '46.7', description: 'Momentum', isPositive: true },
-];
+interface MarketBreadthData {
+  id: number;
+  advancingIssues: number;
+  decliningIssues: number;
+  advancingVolume: string;
+  decliningVolume: string;
+  newHighs: number;
+  newLows: number;
+  mcclellanOscillator: string | null;
+  timestamp: string;
+}
 
 export function MarketBreadth() {
+  const { data: breadthData, isLoading } = useQuery<MarketBreadthData>({
+    queryKey: ['/api/market-breadth'],
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  if (isLoading || !breadthData) {
+    return (
+      <Card className="bg-financial-gray border-financial-border">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold text-white">Market Breadth Indicators</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center text-gray-400 py-8">Loading market breadth data...</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const advDeclineRatio = (breadthData.advancingIssues / breadthData.decliningIssues).toFixed(2);
+  const newHighLowRatio = breadthData.newLows > 0 ? (breadthData.newHighs / breadthData.newLows).toFixed(2) : 'N/A';
+  const mcclellan = breadthData.mcclellanOscillator ? parseFloat(breadthData.mcclellanOscillator) : 0;
+  
+  const marketBreadthData = [
+    { 
+      label: 'Advancing', 
+      value: breadthData.advancingIssues.toLocaleString(), 
+      description: 'NYSE Up',
+      isPositive: breadthData.advancingIssues > breadthData.decliningIssues
+    },
+    { 
+      label: 'Declining', 
+      value: breadthData.decliningIssues.toLocaleString(), 
+      description: 'NYSE Down',
+      isDanger: breadthData.decliningIssues > breadthData.advancingIssues
+    },
+    { 
+      label: 'A/D Ratio', 
+      value: advDeclineRatio, 
+      description: 'Market Breadth',
+      isPositive: parseFloat(advDeclineRatio) > 1.5,
+      isWarning: parseFloat(advDeclineRatio) < 1 && parseFloat(advDeclineRatio) > 0.7
+    },
+    { 
+      label: 'New Highs', 
+      value: breadthData.newHighs.toString(), 
+      description: '52-week highs',
+      isPositive: breadthData.newHighs > 100
+    },
+    { 
+      label: 'New Lows', 
+      value: breadthData.newLows.toString(), 
+      description: '52-week lows',
+      isDanger: breadthData.newLows > 100
+    },
+    { 
+      label: 'Hi/Lo Ratio', 
+      value: newHighLowRatio, 
+      description: 'Strength',
+      isPositive: parseFloat(newHighLowRatio) > 2,
+      isWarning: parseFloat(newHighLowRatio) < 1 && newHighLowRatio !== 'N/A'
+    },
+    { 
+      label: 'McClellan', 
+      value: mcclellan.toFixed(1), 
+      description: 'Momentum',
+      isPositive: mcclellan > 50,
+      isDanger: mcclellan < -50,
+      isWarning: mcclellan >= -50 && mcclellan <= 50
+    },
+  ];
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit'
+    });
+  };
+
   return (
     <Card className="bg-financial-gray border-financial-border">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg font-semibold text-white">Market Breadth Indicators</CardTitle>
+        <span className="text-xs text-gray-400">
+          Updated: {formatTimestamp(breadthData.timestamp)}
+        </span>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
@@ -34,10 +119,9 @@ export function MarketBreadth() {
         </div>
         <div className="mt-4 text-xs text-gray-400">
           <p>
-            Market breadth indicators reveal the underlying health and momentum of major indices. 
-            RSI readings above 70 indicate overbought conditions, below 30 suggest oversold levels, 
-            with 50 being neutral. These technical indicators help identify potential momentum shifts 
-            and market turning points.
+            Real-time market breadth data shows advancing vs declining issues on the NYSE, 
+            new highs/lows ratios, and McClellan Oscillator momentum. Values above 1.5 for A/D ratio 
+            indicate strong breadth; McClellan above 50 suggests bullish momentum.
           </p>
         </div>
       </CardContent>

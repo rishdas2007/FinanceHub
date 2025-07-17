@@ -5,6 +5,8 @@ import {
   technicalIndicators, 
   aiAnalysis, 
   economicEvents,
+  marketBreadth,
+  vixData,
   type User, 
   type InsertUser,
   type StockData,
@@ -16,8 +18,14 @@ import {
   type AiAnalysis,
   type InsertAiAnalysis,
   type EconomicEvent,
-  type InsertEconomicEvent
+  type InsertEconomicEvent,
+  type MarketBreadth,
+  type InsertMarketBreadth,
+  type VixData,
+  type InsertVixData
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc, gte, and } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -44,6 +52,14 @@ export interface IStorage {
   // Economic events
   getUpcomingEconomicEvents(): Promise<EconomicEvent[]>;
   createEconomicEvent(event: InsertEconomicEvent): Promise<EconomicEvent>;
+  
+  // Market breadth operations
+  getLatestMarketBreadth(): Promise<MarketBreadth | undefined>;
+  createMarketBreadth(breadth: InsertMarketBreadth): Promise<MarketBreadth>;
+  
+  // VIX data operations
+  getLatestVixData(): Promise<VixData | undefined>;
+  createVixData(vix: InsertVixData): Promise<VixData>;
 }
 
 export class MemStorage implements IStorage {
@@ -53,6 +69,8 @@ export class MemStorage implements IStorage {
   private technicalIndicators: Map<string, TechnicalIndicators[]>;
   private aiAnalysis: AiAnalysis[];
   private economicEvents: EconomicEvent[];
+  private marketBreadth: MarketBreadth[];
+  private vixData: VixData[];
   private currentId: number;
 
   constructor() {
@@ -62,6 +80,8 @@ export class MemStorage implements IStorage {
     this.technicalIndicators = new Map();
     this.aiAnalysis = [];
     this.economicEvents = [];
+    this.marketBreadth = [];
+    this.vixData = [];
     this.currentId = 1;
   }
 
@@ -213,10 +233,40 @@ export class MemStorage implements IStorage {
       forecast: event.forecast ?? null,
       previous: event.previous ?? null,
       id,
+      timestamp: new Date(),
     };
     
     this.economicEvents.push(eventEntry);
     return eventEntry;
+  }
+
+  async getLatestMarketBreadth(): Promise<MarketBreadth | undefined> {
+    return this.marketBreadth.length > 0 ? this.marketBreadth[this.marketBreadth.length - 1] : undefined;
+  }
+
+  async createMarketBreadth(breadth: InsertMarketBreadth): Promise<MarketBreadth> {
+    const newBreadth: MarketBreadth = {
+      ...breadth,
+      mcclellanOscillator: breadth.mcclellanOscillator ?? null,
+      id: this.currentId++,
+      timestamp: new Date(),
+    };
+    this.marketBreadth.push(newBreadth);
+    return newBreadth;
+  }
+
+  async getLatestVixData(): Promise<VixData | undefined> {
+    return this.vixData.length > 0 ? this.vixData[this.vixData.length - 1] : undefined;
+  }
+
+  async createVixData(vix: InsertVixData): Promise<VixData> {
+    const newVix = {
+      ...vix,
+      id: this.currentId++,
+      timestamp: new Date(),
+    };
+    this.vixData.push(newVix);
+    return newVix;
   }
 }
 

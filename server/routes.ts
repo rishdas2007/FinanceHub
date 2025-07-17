@@ -55,13 +55,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const techData = await financialDataService.getTechnicalIndicators(symbol.toUpperCase());
         indicators = await storage.createTechnicalIndicators({
           symbol: techData.symbol,
-          rsi: techData.rsi !== null ? techData.rsi.toString() : null,
-          macd: techData.macd !== null ? techData.macd.toString() : null,
-          macdSignal: techData.macdSignal !== null ? techData.macdSignal.toString() : null,
-          bb_upper: techData.bb_upper !== null ? techData.bb_upper.toString() : null,
-          bb_lower: techData.bb_lower !== null ? techData.bb_lower.toString() : null,
-          sma_20: techData.sma_20 !== null ? techData.sma_20.toString() : null,
-          sma_50: techData.sma_50 !== null ? techData.sma_50.toString() : null,
+          rsi: techData.rsi !== null ? String(techData.rsi) : null,
+          macd: techData.macd !== null ? String(techData.macd) : null,
+          macdSignal: techData.macdSignal !== null ? String(techData.macdSignal) : null,
+          bb_upper: techData.bb_upper !== null ? String(techData.bb_upper) : null,
+          bb_lower: techData.bb_lower !== null ? String(techData.bb_lower) : null,
+          sma_20: techData.sma_20 !== null ? String(techData.sma_20) : null,
+          sma_50: techData.sma_50 !== null ? String(techData.sma_50) : null,
         });
       }
       
@@ -79,7 +79,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!sentiment) {
         // Generate fresh sentiment data
-        const sentimentData = financialDataService.generateMarketSentiment();
+        const sentimentData = await financialDataService.generateMarketSentiment();
         sentiment = await storage.createMarketSentiment({
           vix: sentimentData.vix.toString(),
           putCallRatio: sentimentData.putCallRatio.toString(),
@@ -134,7 +134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let sentiment = await storage.getLatestMarketSentiment();
         if (!sentiment) {
           console.log('No sentiment data found, generating...');
-          const sentimentData = financialDataService.generateMarketSentiment();
+          const sentimentData = await financialDataService.generateMarketSentiment();
           sentiment = await storage.createMarketSentiment({
             vix: sentimentData.vix.toString(),
             putCallRatio: sentimentData.putCallRatio.toString(),
@@ -150,13 +150,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const techData = await financialDataService.getTechnicalIndicators('SPY');
           technical = await storage.createTechnicalIndicators({
             symbol: techData.symbol,
-            rsi: techData.rsi !== null ? techData.rsi.toString() : null,
-            macd: techData.macd !== null ? techData.macd.toString() : null,
-            macdSignal: techData.macdSignal !== null ? techData.macdSignal.toString() : null,
-            bb_upper: techData.bb_upper !== null ? techData.bb_upper.toString() : null,
-            bb_lower: techData.bb_lower !== null ? techData.bb_lower.toString() : null,
-            sma_20: techData.sma_20 !== null ? techData.sma_20.toString() : null,
-            sma_50: techData.sma_50 !== null ? techData.sma_50.toString() : null,
+            rsi: techData.rsi !== null ? String(techData.rsi) : null,
+            macd: techData.macd !== null ? String(techData.macd) : null,
+            macdSignal: techData.macdSignal !== null ? String(techData.macdSignal) : null,
+            bb_upper: techData.bb_upper !== null ? String(techData.bb_upper) : null,
+            bb_lower: techData.bb_lower !== null ? String(techData.bb_lower) : null,
+            sma_20: techData.sma_20 !== null ? String(techData.sma_20) : null,
+            sma_50: techData.sma_50 !== null ? String(techData.sma_50) : null,
           });
         }
         
@@ -214,6 +214,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Market breadth
+  app.get("/api/market-breadth", async (req, res) => {
+    try {
+      let breadth = await storage.getLatestMarketBreadth();
+      
+      // Generate fresh breadth data if none exists or if older than 5 minutes
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      if (!breadth || breadth.timestamp < fiveMinutesAgo) {
+        const breadthData = await financialDataService.getMarketBreadth();
+        breadth = await storage.createMarketBreadth({
+          advancingIssues: breadthData.advancingIssues,
+          decliningIssues: breadthData.decliningIssues,
+          advancingVolume: breadthData.advancingVolume.toString(),
+          decliningVolume: breadthData.decliningVolume.toString(),
+          newHighs: breadthData.newHighs,
+          newLows: breadthData.newLows,
+          mcclellanOscillator: breadthData.mcclellanOscillator,
+        });
+      }
+      
+      res.json(breadth);
+    } catch (error) {
+      console.error('Error fetching market breadth:', error);
+      res.status(500).json({ message: 'Failed to fetch market breadth' });
+    }
+  });
+
+  // VIX data
+  app.get("/api/vix", async (req, res) => {
+    try {
+      let vix = await storage.getLatestVixData();
+      
+      // Generate fresh VIX data if none exists or if older than 5 minutes
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      if (!vix || vix.timestamp < fiveMinutesAgo) {
+        const vixData = await financialDataService.getRealVixData();
+        vix = await storage.createVixData({
+          vixValue: vixData.vixValue.toString(),
+          vixChange: vixData.vixChange.toString(),
+          vixChangePercent: vixData.vixChangePercent.toString(),
+        });
+      }
+      
+      res.json(vix);
+    } catch (error) {
+      console.error('Error fetching VIX data:', error);
+      res.status(500).json({ message: 'Failed to fetch VIX data' });
+    }
+  });
+
   // Refresh all data endpoint
   app.post("/api/refresh", async (req, res) => {
     try {
@@ -231,17 +281,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const spyTech = await financialDataService.getTechnicalIndicators('SPY');
       await storage.createTechnicalIndicators({
         symbol: spyTech.symbol,
-        rsi: spyTech.rsi !== null ? spyTech.rsi.toString() : null,
-        macd: spyTech.macd !== null ? spyTech.macd.toString() : null,
-        macdSignal: spyTech.macdSignal !== null ? spyTech.macdSignal.toString() : null,
-        bb_upper: spyTech.bb_upper !== null ? spyTech.bb_upper.toString() : null,
-        bb_lower: spyTech.bb_lower !== null ? spyTech.bb_lower.toString() : null,
-        sma_20: spyTech.sma_20 !== null ? spyTech.sma_20.toString() : null,
-        sma_50: spyTech.sma_50 !== null ? spyTech.sma_50.toString() : null,
+        rsi: spyTech.rsi !== null ? String(spyTech.rsi) : null,
+        macd: spyTech.macd !== null ? String(spyTech.macd) : null,
+        macdSignal: spyTech.macdSignal !== null ? String(spyTech.macdSignal) : null,
+        bb_upper: spyTech.bb_upper !== null ? String(spyTech.bb_upper) : null,
+        bb_lower: spyTech.bb_lower !== null ? String(spyTech.bb_lower) : null,
+        sma_20: spyTech.sma_20 !== null ? String(spyTech.sma_20) : null,
+        sma_50: spyTech.sma_50 !== null ? String(spyTech.sma_50) : null,
       });
 
       // Refresh sentiment
-      const sentimentData = financialDataService.generateMarketSentiment();
+      const sentimentData = await financialDataService.generateMarketSentiment();
       await storage.createMarketSentiment({
         vix: sentimentData.vix.toString(),
         putCallRatio: sentimentData.putCallRatio.toString(),
