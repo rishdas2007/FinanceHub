@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, TrendingUp, AlertTriangle, Target } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import type { AiAnalysis, StockData, MarketSentiment, TechnicalIndicators } from "@/types/financial";
+import type { AiAnalysis, StockData, MarketSentiment, TechnicalIndicators, SectorData } from "@/types/financial";
 
 export function AIAnalysisComponent() {
   const queryClient = useQueryClient();
@@ -23,6 +23,10 @@ export function AIAnalysisComponent() {
 
   const { data: technical } = useQuery<TechnicalIndicators>({
     queryKey: ['/api/technical/SPY'],
+  });
+
+  const { data: sectors } = useQuery<SectorData[]>({
+    queryKey: ['/api/sectors'],
   });
 
   const refreshMutation = useMutation({
@@ -66,7 +70,7 @@ export function AIAnalysisComponent() {
       </CardHeader>
       <CardContent>
         <div className="bg-financial-card rounded-lg p-6 overflow-y-auto">
-          {analysis && currentStock && sentiment && technical ? (
+          {analysis && currentStock && sentiment && technical && sectors ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-sm">
               {/* Current Market Position */}
               <div className="lg:col-span-3 border-l-4 border-gain-green pl-4 mb-4">
@@ -150,6 +154,65 @@ export function AIAnalysisComponent() {
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Sector Performance Analysis */}
+              <div className="border-l-4 border-green-500 pl-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <TrendingUp className="w-4 h-4 text-green-500" />
+                  <h4 className="font-semibold text-white text-base">Sector Performance</h4>
+                </div>
+                <div className="space-y-3">
+                  {(() => {
+                    // Calculate sector performance metrics
+                    const sectorPerformance = sectors
+                      .filter(s => s.symbol !== 'SPY')
+                      .sort((a, b) => parseFloat(b.changePercent) - parseFloat(a.changePercent));
+                    
+                    const topSector = sectorPerformance[0];
+                    const bottomSector = sectorPerformance[sectorPerformance.length - 1];
+                    const upSectors = sectorPerformance.filter(s => parseFloat(s.changePercent) > 0).length;
+                    const totalSectors = sectorPerformance.length;
+                    const advanceRatio = Math.round((upSectors / totalSectors) * 100);
+
+                    return (
+                      <>
+                        <p className="text-gray-300 leading-relaxed">
+                          Today's sector performance reveals interesting underlying trends:
+                        </p>
+                        <p className="text-gray-300">
+                          <span className="font-semibold text-gain-green">{topSector?.name}</span> led the charge with 
+                          <span className="font-semibold text-gain-green"> {topSector?.changePercent >= 0 ? '+' : ''}{parseFloat(topSector?.changePercent || '0').toFixed(2)}%</span> gain, 
+                          showing {parseFloat(topSector?.changePercent || '0') > 1 ? 'strong momentum in growth sectors' : 'modest strength in defensive positioning'}.
+                        </p>
+                        <p className="text-gray-300">
+                          <span className="font-semibold text-loss-red">{bottomSector?.name}</span> was today's laggard at 
+                          <span className="font-semibold text-loss-red"> {parseFloat(bottomSector?.changePercent || '0').toFixed(2)}%</span>, 
+                          though sector rotation remains healthy overall.
+                        </p>
+                        <p className="text-gray-300">
+                          The <span className="font-semibold text-white">{advanceRatio}% advance ratio</span> ({upSectors} sectors up, {totalSectors - upSectors} down) 
+                          shows {advanceRatio > 70 ? 'broad market participation, a positive sign for market health' : 'mixed sector performance with selective strength'}.
+                        </p>
+                        
+                        <div className="bg-financial-gray bg-opacity-30 rounded-lg p-3">
+                          <div className="grid grid-cols-2 gap-3 text-xs">
+                            <div className="text-center">
+                              <span className="text-gray-400">Top Performer</span>
+                              <div className="text-gain-green font-medium">{topSector?.name?.split(' ')[0] || 'N/A'}</div>
+                            </div>
+                            <div className="text-center">
+                              <span className="text-gray-400">Advance Ratio</span>
+                              <div className={`font-medium ${advanceRatio > 70 ? 'text-gain-green' : advanceRatio > 50 ? 'text-warning-yellow' : 'text-loss-red'}`}>
+                                {advanceRatio}%
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 

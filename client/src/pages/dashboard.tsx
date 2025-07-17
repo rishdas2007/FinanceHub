@@ -1,5 +1,4 @@
-import { LivePriceFeed } from "@/components/live-price-feed";
-import { MarketSentimentComponent } from "@/components/market-sentiment";
+
 
 import { AIAnalysisComponent } from "@/components/ai-analysis";
 import { MarketBreadth } from "@/components/market-breadth";
@@ -41,11 +40,7 @@ export default function Dashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
-        {/* Market Overview Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <LivePriceFeed />
-          <MarketSentimentComponent />
-        </div>
+
 
         {/* AI Market Commentary - Full Width */}
         <AIAnalysisComponent />
