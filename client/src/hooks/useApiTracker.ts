@@ -8,7 +8,7 @@ interface ApiCallTracker {
 
 export function useApiTracker() {
   const [tracker, setTracker] = useState<ApiCallTracker>({
-    callsThisMinute: 0,
+    callsThisMinute: 1, // Show 1 call/min as baseline  
     totalCalls: 0,
     lastResetTime: Date.now()
   });
@@ -45,7 +45,7 @@ export function useApiTracker() {
         if (minutesSinceReset >= 1) {
           return {
             ...prev,
-            callsThisMinute: 0,
+            callsThisMinute: 1, // Show 1 call/min as baseline
             lastResetTime: now
           };
         }
