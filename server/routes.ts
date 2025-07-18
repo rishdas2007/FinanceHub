@@ -689,15 +689,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const finalSentiment = { vix: '17.16', putCallRatio: '0.85', aaiiBullish: '41.4', aaiiBearish: '35.6' };
       const finalTechnical = { rsi: '68.95', macd: '8.244', macdSignal: '8.627' };
       
-      // Get current sector data
+      // Get current sector data with real API values
       let finalSectors;
       try {
         finalSectors = await financialDataService.getSectorETFs();
+        console.log('Real sector data for email:', JSON.stringify(finalSectors.slice(0, 3), null, 2));
       } catch (error) {
+        console.error('Error fetching sector data for email:', error);
         finalSectors = [
-          { name: 'Financials', symbol: 'XLF', oneDayChange: '0.96', fiveDayChange: '2.1' },
-          { name: 'Technology', symbol: 'XLK', oneDayChange: '0.91', fiveDayChange: '2.8' },
-          { name: 'Health Care', symbol: 'XLV', oneDayChange: '-1.14', fiveDayChange: '0.3' }
+          { name: 'Financials', symbol: 'XLF', changePercent: 0.96, fiveDayChange: 2.1 },
+          { name: 'Technology', symbol: 'XLK', changePercent: 0.91, fiveDayChange: 2.8 },
+          { name: 'Health Care', symbol: 'XLV', changePercent: -1.14, fiveDayChange: 0.3 }
         ];
       }
       

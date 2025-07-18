@@ -8,20 +8,25 @@ export function generateRichEmailTemplate(analysisData: any): string {
     year: 'numeric' 
   });
 
-  // Get all 12 sector ETFs for display
-  const allSectors = sectors || [
-    { name: 'Technology', symbol: 'XLK', oneDayChange: '0.91' },
-    { name: 'Financials', symbol: 'XLF', oneDayChange: '0.96' },
-    { name: 'Health Care', symbol: 'XLV', oneDayChange: '-1.14' },
-    { name: 'Consumer Discretionary', symbol: 'XLY', oneDayChange: '0.82' },
-    { name: 'Communication', symbol: 'XLC', oneDayChange: '0.74' },
-    { name: 'Industrials', symbol: 'XLI', oneDayChange: '0.92' },
-    { name: 'Consumer Staples', symbol: 'XLP', oneDayChange: '0.23' },
-    { name: 'Energy', symbol: 'XLE', oneDayChange: '1.45' },
-    { name: 'Utilities', symbol: 'XLU', oneDayChange: '-0.34' },
-    { name: 'Real Estate', symbol: 'XLRE', oneDayChange: '0.67' },
-    { name: 'Materials', symbol: 'XLB', oneDayChange: '1.12' },
-    { name: 'S&P 500', symbol: 'SPY', oneDayChange: '0.61' }
+  console.log('Email template received sectors:', sectors ? `${sectors.length} sectors` : 'no sectors');
+  if (sectors) {
+    console.log('First sector example:', JSON.stringify(sectors[0], null, 2));
+  }
+
+  // Use real sector data if available, otherwise use minimal fallback
+  const allSectors = sectors && sectors.length > 0 ? sectors : [
+    { name: 'Technology', symbol: 'XLK', changePercent: 0.91 },
+    { name: 'Financials', symbol: 'XLF', changePercent: 0.96 },
+    { name: 'Health Care', symbol: 'XLV', changePercent: -1.14 },
+    { name: 'Consumer Discretionary', symbol: 'XLY', changePercent: 0.82 },
+    { name: 'Communication', symbol: 'XLC', changePercent: 0.74 },
+    { name: 'Industrials', symbol: 'XLI', changePercent: 0.92 },
+    { name: 'Consumer Staples', symbol: 'XLP', changePercent: 0.23 },
+    { name: 'Energy', symbol: 'XLE', changePercent: 1.45 },
+    { name: 'Utilities', symbol: 'XLU', changePercent: -0.34 },
+    { name: 'Real Estate', symbol: 'XLRE', changePercent: 0.67 },
+    { name: 'Materials', symbol: 'XLB', changePercent: 1.12 },
+    { name: 'S&P 500', symbol: 'SPY', changePercent: 0.61 }
   ];
 
   return `
@@ -84,33 +89,33 @@ export function generateRichEmailTemplate(analysisData: any): string {
         </div>
 
         <!-- Analysis Sections -->
-        <div style="background: #000000; padding: 40px 30px;">
+        <div style="background: #ffffff; padding: 40px 30px;">
           
           <!-- Technical Indicators -->
           <div style="margin-bottom: 32px;">
             <div style="display: flex; align-items: center; margin-bottom: 16px;">
               <div style="width: 8px; height: 8px; background: #f59e0b; border-radius: 50%; margin-right: 12px;"></div>
-              <h3 style="color: #f1f5f9; margin: 0; font-size: 18px; font-weight: 600;">Technical Indicators</h3>
+              <h3 style="color: #1e293b; margin: 0; font-size: 18px; font-weight: 600;">Technical Indicators</h3>
             </div>
-            <div style="background: #111827; border-radius: 12px; padding: 24px;">
+            <div style="background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 24px;">
               <div style="margin-bottom: 16px;">
                 <span style="color: #f59e0b; font-weight: 600;">RSI at ${parseFloat(technical?.rsi || '68.9').toFixed(1)}</span>
-                <span style="color: #64748b;"> - ${parseFloat(technical?.rsi || '68.9') > 70 ? 'Approaching overbought territory (70+)' : 'Moderate levels, room for upside'}. Recent rally may be due for a pause.</span>
+                <span style="color: #475569;"> - ${parseFloat(technical?.rsi || '68.9') > 70 ? 'Approaching overbought territory (70+)' : 'Moderate levels, room for upside'}. Recent rally may be due for a pause.</span>
               </div>
               <div style="margin-bottom: 16px;">
                 <span style="color: #f59e0b; font-weight: 600;">MACD at ${parseFloat(technical?.macd || '8.244').toFixed(3)} vs Signal ${parseFloat(technical?.macdSignal || '8.627').toFixed(3)}</span>
-                <span style="color: #64748b;"> - ${parseFloat(technical?.macd || '8.244') < parseFloat(technical?.macdSignal || '8.627') ? 'Bearish crossover signal' : 'Bullish momentum intact'}. MACD below signal line indicates potential downward momentum.</span>
+                <span style="color: #475569;"> - ${parseFloat(technical?.macd || '8.244') < parseFloat(technical?.macdSignal || '8.627') ? 'Bearish crossover signal' : 'Bullish momentum intact'}. MACD below signal line indicates potential downward momentum.</span>
               </div>
               <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 20px;">
                 <tr>
-                  <td style="text-align: center; width: 48%;">
+                  <td style="text-align: center; width: 48%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
                     <div style="color: #64748b; font-size: 12px;">RSI Status</div>
                     <div style="color: ${parseFloat(technical?.rsi || '68.9') > 70 ? '#f59e0b' : '#10b981'}; font-size: 16px; font-weight: 600;">
                       ${parseFloat(technical?.rsi || '68.9') > 70 ? 'Overbought' : 'Moderate'}
                     </div>
                   </td>
                   <td style="width: 4%;"></td>
-                  <td style="text-align: center; width: 48%;">
+                  <td style="text-align: center; width: 48%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
                     <div style="color: #64748b; font-size: 12px;">MACD Signal</div>
                     <div style="color: ${parseFloat(technical?.macd || '8.244') < parseFloat(technical?.macdSignal || '8.627') ? '#ef4444' : '#10b981'}; font-size: 16px; font-weight: 600;">
                       ${parseFloat(technical?.macd || '8.244') < parseFloat(technical?.macdSignal || '8.627') ? 'Bearish' : 'Bullish'}
@@ -125,10 +130,10 @@ export function generateRichEmailTemplate(analysisData: any): string {
           <div style="margin-bottom: 32px;">
             <div style="display: flex; align-items: center; margin-bottom: 16px;">
               <div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; margin-right: 12px;"></div>
-              <h3 style="color: #f1f5f9; margin: 0; font-size: 18px; font-weight: 600;">Sector Performance (Today)</h3>
+              <h3 style="color: #1e293b; margin: 0; font-size: 18px; font-weight: 600;">Sector Performance (Today)</h3>
             </div>
-            <div style="background: #111827; border-radius: 12px; padding: 24px;">
-              <p style="color: #cbd5e1; margin: 0 0 16px 0; font-size: 14px;">Today's sector ETF performance across all 12 major sectors:</p>
+            <div style="background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 24px;">
+              <p style="color: #64748b; margin: 0 0 16px 0; font-size: 14px;">Today's sector ETF performance across all 12 major sectors:</p>
               <table width="100%" cellpadding="0" cellspacing="0">
                 <!-- First Row -->
                 <tr>
