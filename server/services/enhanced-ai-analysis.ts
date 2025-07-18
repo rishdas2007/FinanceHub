@@ -166,30 +166,30 @@ export class EnhancedAIAnalysisService {
               if (event.title.toLowerCase().includes('jobless claims')) {
                 if (event.forecast) {
                   const direction = variance && variance < 0 ? 'improved to' : 'rose to';
-                  specificInsights += `Initial jobless claims ${direction} **${event.actual}** versus ${event.forecast} expected, indicating ${variance && variance < 0 ? 'continued labor market strength' : 'some softening but within healthy ranges'}. `;
+                  specificInsights += `Initial jobless claims ${direction} ${event.actual} versus ${event.forecast} expected, indicating ${variance && variance < 0 ? 'continued labor market strength' : 'some softening but within healthy ranges'}. `;
                 } else {
-                  specificInsights += `Initial jobless claims registered **${event.actual}**, reflecting ${event.impact === 'negative' ? 'ongoing labor market resilience with jobless claims remaining at historically low levels' : 'some softening in labor demand but within healthy ranges'}. `;
+                  specificInsights += `Initial jobless claims registered ${event.actual}, reflecting ${event.impact === 'negative' ? 'ongoing labor market resilience with jobless claims remaining at historically low levels' : 'some softening in labor demand but within healthy ranges'}. `;
                 }
               } else if (event.title.toLowerCase().includes('retail sales')) {
                 if (event.forecast) {
                   const direction = variance && variance > 0 ? 'exceeded forecasts at' : 'came in below expectations at';
-                  specificInsights += `Retail sales ${direction} **${event.actual}** versus ${event.forecast}% consensus, ${variance && variance > 0 ? 'signaling robust consumer demand' : 'suggesting some consumer caution'}. `;
+                  specificInsights += `Retail sales ${direction} ${event.actual} versus ${event.forecast}% consensus, ${variance && variance > 0 ? 'signaling robust consumer demand' : 'suggesting some consumer caution'}. `;
                 } else {
-                  specificInsights += `Retail sales came in at **${event.actual}**, ${event.impact === 'positive' ? 'demonstrating consumer resilience' : 'showing some consumer caution'}. `;
+                  specificInsights += `Retail sales came in at ${event.actual}, ${event.impact === 'positive' ? 'demonstrating consumer resilience' : 'showing some consumer caution'}. `;
                 }
               } else if (event.title.toLowerCase().includes('ppi') || event.title.toLowerCase().includes('producer price')) {
                 if (event.forecast) {
                   const direction = variance && variance > 0 ? 'exceeded expectations' : 'came in softer than anticipated';
-                  specificInsights += `Producer prices ${direction} at **${event.actual}** versus ${event.forecast}, ${variance && variance < 0 ? 'alleviating inflationary pressures' : 'maintaining price pressure concerns'}. `;
+                  specificInsights += `Producer prices ${direction} at ${event.actual} versus ${event.forecast}, ${variance && variance < 0 ? 'alleviating inflationary pressures' : 'maintaining price pressure concerns'}. `;
                 } else {
-                  specificInsights += `Producer prices registered **${event.actual}**, ${event.impact === 'negative' ? 'indicating easing inflationary pressures' : 'showing persistent price pressures'}. `;
+                  specificInsights += `Producer prices registered ${event.actual}, ${event.impact === 'negative' ? 'indicating easing inflationary pressures' : 'showing persistent price pressures'}. `;
                 }
               } else if (event.title.toLowerCase().includes('cpi') || event.title.toLowerCase().includes('inflation')) {
                 if (event.forecast) {
                   const direction = variance && variance > 0 ? 'exceeded' : 'fell below';
-                  specificInsights += `Core inflation ${direction} expectations at **${event.actual}** versus ${event.forecast}%, ${variance && variance < 0 ? 'supporting Fed dovish positioning' : 'complicating Fed policy decisions'}. `;
+                  specificInsights += `Core inflation ${direction} expectations at ${event.actual} versus ${event.forecast}%, ${variance && variance < 0 ? 'supporting Fed dovish positioning' : 'complicating Fed policy decisions'}. `;
                 } else {
-                  specificInsights += `Core inflation came in at **${event.actual}**, ${event.impact === 'negative' ? 'supporting Fed dovish positioning' : 'maintaining inflation concerns'}. `;
+                  specificInsights += `Core inflation came in at ${event.actual}, ${event.impact === 'negative' ? 'supporting Fed dovish positioning' : 'maintaining inflation concerns'}. `;
                 }
               }
             }
@@ -205,11 +205,11 @@ export class EnhancedAIAnalysisService {
           }
         } else {
           // No recent events with actual data - use specific known data points
-          economicInsights = `Economic calendar remains light this week with focus shifting to upcoming high-impact releases. **Initial jobless claims at 221,000** continues showing labor market resilience, down from previous weeks and below the 234,000 consensus, indicating robust employment conditions. Recent **Core CPI at 2.9%** versus 2.8% expected shows slight inflation uptick but remains manageable within Fed parameters. This mixed but generally supportive data backdrop allows markets to focus on technical factors without major economic disruptions.`;
+          economicInsights = `Economic calendar remains light this week with focus shifting to upcoming high-impact releases. Initial jobless claims at 221,000 continues showing labor market resilience, down from previous weeks and below the 234,000 consensus, indicating robust employment conditions. Recent Core CPI at 2.9% versus 2.8% expected shows slight inflation uptick but remains manageable within Fed parameters. This mixed but generally supportive data backdrop allows markets to focus on technical factors without major economic disruptions.`;
         }
       } else {
         // Robust fallback with current known data - ALWAYS include specific readings
-        economicInsights = `This week's key economic indicators demonstrate continued labor market strength with **initial jobless claims at 221,000**, coming in below the 234,000 consensus and showing resilient employment conditions. Recent **Core CPI reading at 2.9%** exceeded the 2.8% forecast, indicating persistent but manageable inflationary pressures that support Fed's measured policy approach. **Retail sales growth at 1.0%** versus 0.8% expected signals ongoing consumer resilience, while **Producer Price Index showing modest gains** reflects stable cost pressures throughout the supply chain. This balanced economic picture supports current market positioning with fundamentals remaining constructive for equity valuations.`;
+        economicInsights = `This week's key economic indicators demonstrate continued labor market strength with initial jobless claims at 221,000, coming in below the 234,000 consensus and showing resilient employment conditions. Recent Core CPI reading at 2.9% exceeded the 2.8% forecast, indicating persistent but manageable inflationary pressures that support Fed's measured policy approach. Retail sales growth at 1.0% versus 0.8% expected signals ongoing consumer resilience, while Producer Price Index showing modest gains reflects stable cost pressures throughout the supply chain. This balanced economic picture supports current market positioning with fundamentals remaining constructive for equity valuations.`;
       }
 
       // Count positive sectors safely and analyze rotation

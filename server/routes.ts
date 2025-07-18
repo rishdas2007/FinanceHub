@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { financialDataService } from "./services/financial-data";
-import { aiAnalysisService } from "./services/ai-analysis";
+
 import { apiLogger, getApiStats } from "./middleware/apiLogger";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -14,12 +14,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/stats", (req, res) => {
     res.json(getApiStats());
   });
-  // Stock data endpoints
+  // Stock data endpoints with caching
   app.get("/api/stocks/:symbol", async (req, res) => {
     try {
       const { symbol } = req.params;
+      const { cacheManager } = await import('./services/cache-manager');
+      const cacheKey = `stock-${symbol.toUpperCase()}`;
       
-      // Always fetch fresh data to avoid stale cache issues
+      // Check cache first (1 minute TTL for stock quotes)
+      const cachedData = cacheManager.get(cacheKey);
+      if (cachedData) {
+        return res.json(cachedData);
+      }
+      
       console.log(`Fetching fresh data for ${symbol}...`);
       const quote = await financialDataService.getStockQuote(symbol.toUpperCase());
       const newStockData = await storage.createStockData({
@@ -29,6 +36,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         changePercent: quote.changePercent.toString(),
         volume: quote.volume,
       });
+      
+      // Cache the result for 1 minute
+      cacheManager.set(cacheKey, newStockData, 60);
       
       res.json(newStockData);
     } catch (error) {
@@ -73,16 +83,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Technical indicators
+  // Technical indicators with caching
   app.get("/api/technical/:symbol", async (req, res) => {
     try {
       const { symbol } = req.params;
-      let indicators = await storage.getLatestTechnicalIndicators(symbol.toUpperCase());
+      const { cacheManager } = await import('./services/cache-manager');
+      const cacheKey = `technical-${symbol.toUpperCase()}`;
       
-      // Always fetch fresh technical data to ensure real-time accuracy
+      // Check cache first (3 minute TTL for technical indicators)
+      const cachedData = cacheManager.get(cacheKey);
+      if (cachedData) {
+        return res.json(cachedData);
+      }
+      
       console.log(`Fetching fresh technical indicators for ${symbol}...`);
       const techData = await financialDataService.getTechnicalIndicators(symbol.toUpperCase());
-      indicators = await storage.createTechnicalIndicators({
+      const indicators = await storage.createTechnicalIndicators({
         symbol: techData.symbol,
         rsi: techData.rsi !== null ? String(techData.rsi) : null,
         macd: techData.macd !== null ? String(techData.macd) : null,
@@ -92,6 +108,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sma_20: techData.sma_20 !== null ? String(techData.sma_20) : null,
         sma_50: techData.sma_50 !== null ? String(techData.sma_50) : null,
       });
+      
+      // Cache the result for 3 minutes
+      cacheManager.set(cacheKey, indicators, 180);
       
       res.json(indicators);
     } catch (error) {
