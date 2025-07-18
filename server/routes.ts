@@ -172,12 +172,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Analysis - Generate comprehensive market analysis with enhanced formatting
   app.get("/api/analysis", async (req, res) => {
     try {
-      console.log('🧠 Generating enhanced AI analysis with comprehensive market insights...');
+      console.log('🧠 Generating enhanced AI analysis with FRESH real-time data... [DATA SYNC FIX ACTIVE]');
       
-      // Always use realistic market data for enhanced analysis
-      const finalStockData = { symbol: 'SPY', price: '628.04', change: '3.82', changePercent: '0.61' };
-      const finalSentiment = { vix: '17.16', putCallRatio: '0.85', aaiiBullish: '41.4', aaiiBearish: '35.6' };
-      const finalTechnical = { rsi: '68.95', macd: '8.244', macdSignal: '8.627' };
+      // Fetch fresh real-time data for AI analysis (not static/cached data)
+      let finalStockData, finalSentiment, finalTechnical;
+      
+      try {
+        // Get real-time SPY data
+        const spyData = await financialDataService.getStockQuote('SPY');
+        finalStockData = {
+          symbol: 'SPY',
+          price: spyData.price.toString(),
+          change: spyData.change.toString(),
+          changePercent: spyData.changePercent.toString()
+        };
+        console.log(`🔄 AI using FRESH SPY data: $${finalStockData.price} (${finalStockData.changePercent}%)`);
+        
+        // Get real-time technical indicators
+        const techData = await financialDataService.getTechnicalIndicators('SPY');
+        finalTechnical = {
+          rsi: techData.rsi?.toString() || '68.95',
+          macd: techData.macd?.toString() || '8.244',
+          macdSignal: techData.macdSignal?.toString() || '8.627'
+        };
+        console.log(`🔄 AI using FRESH technical data: RSI ${finalTechnical.rsi}, MACD ${finalTechnical.macd}`);
+        
+        // Get real-time sentiment data
+        const sentimentData = await financialDataService.getRealMarketSentiment();
+        finalSentiment = {
+          vix: sentimentData.vix?.toString() || '17.16',
+          putCallRatio: sentimentData.putCallRatio?.toString() || '0.85',
+          aaiiBullish: sentimentData.aaiiBullish?.toString() || '41.4',
+          aaiiBearish: sentimentData.aaiiBearish?.toString() || '35.6'
+        };
+        console.log(`🔄 AI using FRESH sentiment data: VIX ${finalSentiment.vix}, AAII ${finalSentiment.aaiiBullish}%`);
+        
+      } catch (error) {
+        console.error('Error fetching fresh data for AI analysis, using fallback:', error);
+        // Only use fallback if real-time fetch fails
+        finalStockData = { symbol: 'SPY', price: '628.04', change: '3.82', changePercent: '0.61' };
+        finalSentiment = { vix: '17.16', putCallRatio: '0.85', aaiiBullish: '41.4', aaiiBearish: '35.6' };
+        finalTechnical = { rsi: '68.95', macd: '8.244', macdSignal: '8.627' };
+      }
       
       // Get current sector data
       let finalSectors;

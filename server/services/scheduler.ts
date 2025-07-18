@@ -66,7 +66,7 @@ export class DataScheduler {
       
       // Update sentiment data
       console.log('💭 Updating sentiment data...');
-      await this.financialService.getSentimentData();
+      await this.financialService.getRealMarketSentiment();
       
       console.log('✅ Comprehensive data update completed');
     } catch (error) {
@@ -107,7 +107,7 @@ export class DataScheduler {
       await Promise.all([
         this.financialService.getStockQuote('SPY'),
         this.financialService.getMarketIndicators(),
-        this.financialService.getSentimentData()
+        this.financialService.getRealMarketSentiment()
       ]);
       
       console.log('✅ Real-time data updated');
