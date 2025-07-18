@@ -73,7 +73,7 @@ export function EconomicCalendar() {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {events?.slice(0, 8).map((event) => (
+          {events?.slice(0, 12).map((event) => (
             <div key={event.id} className="bg-financial-card rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">

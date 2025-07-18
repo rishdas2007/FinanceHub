@@ -286,8 +286,19 @@ export class EconomicDataService {
       }
     ];
 
-    // Sort by date (most recent first, then upcoming)
-    return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // Sort by importance first (high->medium->low), then by date (most recent first)
+    return events.sort((a, b) => {
+      const importanceOrder = { 'high': 3, 'medium': 2, 'low': 1 };
+      const aImportance = importanceOrder[a.importance as keyof typeof importanceOrder] || 1;
+      const bImportance = importanceOrder[b.importance as keyof typeof importanceOrder] || 1;
+      
+      if (aImportance !== bImportance) {
+        return bImportance - aImportance; // Higher importance first
+      }
+      
+      // If same importance, sort by date (most recent first)
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
   }
 
   generateMacroAnalysis(events: EconomicEvent[]): string {
