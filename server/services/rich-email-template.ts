@@ -55,7 +55,7 @@ export function generateRichEmailTemplate(analysisData: any): string {
           <div style="text-align: center; margin-bottom: 30px;">
             <h1 style="color: #10b981; margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.02em;">Rishabh's Market Dashboard</h1>
             <p style="color: #64748b; margin: 8px 0 0 0; font-size: 16px;">
-              <a href="https://rishabhdas.substack.com/" style="color: #10b981; text-decoration: none; font-weight: 500; border-bottom: 1px solid #10b981;">Follow my market insights on Substack</a>
+              <a href="https://rishabhdas.substack.com/" style="color: #3b82f6; text-decoration: underline; font-weight: 500;">Follow my market insights on Substack</a>
             </p>
             <p style="color: #94a3b8; margin: 8px 0 0 0; font-size: 14px; font-style: italic;">
               Data as of ${timestamp}
