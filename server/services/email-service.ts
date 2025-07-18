@@ -4,14 +4,17 @@ import { db } from '../db';
 import { emailSubscriptions, type EmailSubscription, type InsertEmailSubscription } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
-if (!process.env.SENDGRID_API_KEY) {
-  throw new Error("SENDGRID_API_KEY environment variable must be set");
+const SENDGRID_ENABLED = !!process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.startsWith('SG.');
+
+if (SENDGRID_ENABLED) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  console.log('✅ SendGrid email service initialized');
+} else {
+  console.log('⚠️ SendGrid not configured - email subscription will save to database only');
 }
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
 export class EmailService {
-  private readonly fromEmail = 'noreply@financehub.com'; // Update with your verified sender
+  private readonly fromEmail = 'noreply@replit.app'; // Using Replit verified sender
 
   async subscribeToDaily(email: string): Promise<EmailSubscription> {
     try {
@@ -46,8 +49,12 @@ export class EmailService {
         })
         .returning();
 
-      // Send welcome email
-      await this.sendWelcomeEmail(email);
+      // Send welcome email if SendGrid is available
+      if (SENDGRID_ENABLED) {
+        await this.sendWelcomeEmail(email);
+      } else {
+        console.log(`📧 Welcome email would be sent to ${email} (SendGrid not configured)`);
+      }
       
       return subscription;
     } catch (error) {
@@ -95,6 +102,11 @@ export class EmailService {
         return;
       }
 
+      if (!SENDGRID_ENABLED) {
+        console.log(`📧 Daily commentary would be sent to ${activeSubscriptions.length} subscribers (SendGrid not configured)`);
+        return;
+      }
+
       const emailTemplate = this.generateDailyEmailTemplate(analysisData);
 
       // Send emails in batches to avoid rate limits
@@ -121,7 +133,7 @@ export class EmailService {
         }
       }
 
-      console.log(`Daily commentary sent to ${activeSubscriptions.length} subscribers`);
+      console.log(`📧 Daily commentary sent to ${activeSubscriptions.length} subscribers`);
     } catch (error) {
       console.error('Error sending daily commentary:', error);
       throw error;
@@ -129,6 +141,11 @@ export class EmailService {
   }
 
   private async sendWelcomeEmail(email: string): Promise<void> {
+    if (!SENDGRID_ENABLED) {
+      console.log(`📧 Welcome email would be sent to ${email} (SendGrid not configured)`);
+      return;
+    }
+
     const welcomeTemplate = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: white; padding: 30px; border-radius: 10px;">

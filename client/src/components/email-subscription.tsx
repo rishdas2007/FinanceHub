@@ -14,18 +14,25 @@ export function EmailSubscription() {
 
   const subscribeMutation = useMutation({
     mutationFn: async (email: string) => {
-      return await apiRequest('/api/email/subscribe', {
+      const response = await fetch('/api/email/subscribe', {
         method: 'POST',
         body: JSON.stringify({ email }),
         headers: { 'Content-Type': 'application/json' }
       });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to subscribe');
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       setIsSubscribed(true);
       setEmail("");
       toast({
         title: "Subscription Successful!",
-        description: "You'll receive daily market commentary at 8 AM EST, Monday-Friday.",
+        description: "You're now subscribed to daily market commentary (8 AM EST, Monday-Friday). Email delivery depends on SendGrid configuration.",
         duration: 5000,
       });
     },
@@ -61,7 +68,7 @@ export function EmailSubscription() {
             <CheckCircle className="w-12 h-12 text-gain-green mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-white mb-2">Successfully Subscribed!</h3>
             <p className="text-gray-400 text-sm">
-              You'll receive your first daily market commentary tomorrow morning at 8 AM EST.
+              You're subscribed! Daily commentary emails will be sent at 8 AM EST (Monday-Friday) when SendGrid is properly configured.
             </p>
           </div>
         </CardContent>
