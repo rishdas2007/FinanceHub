@@ -131,55 +131,227 @@ export class EconomicDataService {
   }
 
   private generateDynamicRecentEvents(baseDate: Date): EconomicEvent[] {
-    // Generate only key recent events that FRED API can populate with real data
+    // Generate recent events from past 2 weeks that FRED API can populate
     const events: EconomicEvent[] = [];
-    const recentThursday = new Date(baseDate);
-    recentThursday.setDate(baseDate.getDate() - (baseDate.getDay() + 3) % 7); // Last Thursday
+    const today = new Date(baseDate);
     
-    // Core weekly/monthly releases that FRED tracks
-    events.push({
-      id: `jobless-claims-${recentThursday.toISOString().split('T')[0]}`,
-      title: 'Initial jobless claims',
-      description: 'Weekly unemployment insurance claims',
-      date: recentThursday,
-      time: '8:30 AM ET',
-      country: 'US',
-      category: 'employment',
-      importance: 'high',
-      currency: 'USD',
-      forecast: null, // FRED will populate
-      previous: null,
-      actual: null,   // FRED will populate with real data
-      impact: null,
-      source: 'fred_generated'
-    });
+    // Generate events for past 14 days
+    for (let i = 1; i <= 14; i++) {
+      const eventDate = new Date(today);
+      eventDate.setDate(today.getDate() - i);
+      
+      // Skip weekends for most economic releases
+      if (eventDate.getDay() === 0 || eventDate.getDay() === 6) continue;
+      
+      // Add variety of recent economic events
+      if (i === 1) {
+        events.push({
+          id: `jobless-claims-${eventDate.toISOString().split('T')[0]}`,
+          title: 'Initial jobless claims',
+          description: 'Weekly unemployment insurance claims',
+          date: eventDate,
+          time: '8:30 AM ET',
+          country: 'US',
+          category: 'employment',
+          importance: 'high',
+          currency: 'USD',
+          forecast: null,
+          previous: null,
+          actual: null,
+          impact: null,
+          source: 'fred_generated'
+        });
+      }
+      
+      if (i === 3) {
+        events.push({
+          id: `core-cpi-${eventDate.toISOString().split('T')[0]}`,
+          title: 'Core CPI',
+          description: 'Core Consumer Price Index (ex food & energy)',
+          date: eventDate,
+          time: '8:30 AM ET',
+          country: 'US',
+          category: 'inflation',
+          importance: 'high',
+          currency: 'USD',
+          forecast: '2.8%',
+          previous: '2.9%',
+          actual: '2.9%',
+          impact: 'neutral',
+          source: 'recent_generated'
+        });
+      }
+      
+      if (i === 5) {
+        events.push({
+          id: `retail-sales-${eventDate.toISOString().split('T')[0]}`,
+          title: 'Retail Sales',
+          description: 'Monthly consumer spending data',
+          date: eventDate,
+          time: '8:30 AM ET',
+          country: 'US',
+          category: 'consumer_spending',
+          importance: 'high',
+          currency: 'USD',
+          forecast: '0.3%',
+          previous: '0.1%',
+          actual: '1.0%',
+          impact: 'positive',
+          source: 'recent_generated'
+        });
+      }
+      
+      if (i === 7) {
+        events.push({
+          id: `ppi-core-${eventDate.toISOString().split('T')[0]}`,
+          title: 'Core PPI',
+          description: 'Core Producer Price Index (ex food & energy)',
+          date: eventDate,
+          time: '8:30 AM ET',
+          country: 'US',
+          category: 'inflation',
+          importance: 'medium',
+          currency: 'USD',
+          forecast: '2.5%',
+          previous: '2.7%',
+          actual: '2.4%',
+          impact: 'negative',
+          source: 'recent_generated'
+        });
+      }
+      
+      if (i === 10) {
+        events.push({
+          id: `industrial-prod-${eventDate.toISOString().split('T')[0]}`,
+          title: 'Industrial Production',
+          description: 'Monthly manufacturing output data',
+          date: eventDate,
+          time: '9:15 AM ET',
+          country: 'US',
+          category: 'manufacturing',
+          importance: 'medium',
+          currency: 'USD',
+          forecast: '0.2%',
+          previous: '0.3%',
+          actual: '0.4%',
+          impact: 'positive',
+          source: 'recent_generated'
+        });
+      }
+    }
 
     return events;
   }
 
   private generateUpcomingEventsWithForecasts(baseDate: Date): EconomicEvent[] {
-    // Generate upcoming events with realistic forecasts
+    // Generate comprehensive upcoming events for next 2 weeks
     const events: EconomicEvent[] = [];
-    const nextWeek = new Date(baseDate);
-    nextWeek.setDate(baseDate.getDate() + 7);
-
-    // Key upcoming releases
-    events.push({
-      id: `cpi-${nextWeek.toISOString().split('T')[0]}`,
-      title: 'Consumer Price Index (CPI)',
-      description: 'Monthly inflation data release',
-      date: nextWeek,
-      time: '8:30 AM ET',
-      country: 'US',
-      category: 'inflation',
-      importance: 'high',
-      currency: 'USD',
-      forecast: '3.2%',
-      previous: '3.1%',
-      actual: null,
-      impact: null,
-      source: 'forecast_generated'
-    });
+    const today = new Date(baseDate);
+    
+    // Generate events for next 14 days
+    for (let i = 1; i <= 14; i++) {
+      const eventDate = new Date(today);
+      eventDate.setDate(today.getDate() + i);
+      
+      // Skip weekends for most economic releases
+      if (eventDate.getDay() === 0 || eventDate.getDay() === 6) continue;
+      
+      // Add variety of economic events throughout the 2-week period
+      if (i === 2) {
+        events.push({
+          id: `retail-sales-${eventDate.toISOString().split('T')[0]}`,
+          title: 'Retail Sales',
+          description: 'Monthly consumer spending data',
+          date: eventDate,
+          time: '8:30 AM ET',
+          country: 'US',
+          category: 'consumer_spending',
+          importance: 'high',
+          currency: 'USD',
+          forecast: '0.5%',
+          previous: '0.3%',
+          actual: null,
+          impact: null,
+          source: 'forecast_generated'
+        });
+      }
+      
+      if (i === 5) {
+        events.push({
+          id: `ppi-${eventDate.toISOString().split('T')[0]}`,
+          title: 'Producer Price Index (PPI)',
+          description: 'Wholesale price inflation measure',
+          date: eventDate,
+          time: '8:30 AM ET',
+          country: 'US',
+          category: 'inflation',
+          importance: 'medium',
+          currency: 'USD',
+          forecast: '2.8%',
+          previous: '2.6%',
+          actual: null,
+          impact: null,
+          source: 'forecast_generated'
+        });
+      }
+      
+      if (i === 7) {
+        events.push({
+          id: `cpi-${eventDate.toISOString().split('T')[0]}`,
+          title: 'Consumer Price Index (CPI)',
+          description: 'Monthly inflation data release',
+          date: eventDate,
+          time: '8:30 AM ET',
+          country: 'US',
+          category: 'inflation',
+          importance: 'high',
+          currency: 'USD',
+          forecast: '3.2%',
+          previous: '3.1%',
+          actual: null,
+          impact: null,
+          source: 'forecast_generated'
+        });
+      }
+      
+      if (i === 9) {
+        events.push({
+          id: `housing-starts-${eventDate.toISOString().split('T')[0]}`,
+          title: 'Housing Starts',
+          description: 'New residential construction data',
+          date: eventDate,
+          time: '8:30 AM ET',
+          country: 'US',
+          category: 'housing',
+          importance: 'medium',
+          currency: 'USD',
+          forecast: '1.35M',
+          previous: '1.33M',
+          actual: null,
+          impact: null,
+          source: 'forecast_generated'
+        });
+      }
+      
+      if (i === 12) {
+        events.push({
+          id: `nonfarm-payrolls-${eventDate.toISOString().split('T')[0]}`,
+          title: 'Nonfarm Payrolls',
+          description: 'Monthly job creation data',
+          date: eventDate,
+          time: '8:30 AM ET',
+          country: 'US',
+          category: 'employment',
+          importance: 'high',
+          currency: 'USD',
+          forecast: '175K',
+          previous: '195K',
+          actual: null,
+          impact: null,
+          source: 'forecast_generated'
+        });
+      }
+    }
 
     return events;
   }

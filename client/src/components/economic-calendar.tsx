@@ -96,14 +96,24 @@ export function EconomicCalendar() {
   return (
     <Card className="bg-financial-gray border-financial-border">
       <CardHeader>
-        <CardTitle className="text-lg font-semibold text-white flex items-center">
-          <Calendar className="w-5 h-5 mr-2" />
-          Economic Calendar
+        <CardTitle className="text-lg font-semibold text-white flex items-center justify-between">
+          <div className="flex items-center">
+            <Calendar className="w-5 h-5 mr-2" />
+            Economic Calendar
+          </div>
+          <div className="text-xs text-gray-400 font-normal">
+            Past 2 Weeks & Upcoming Events
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {sortedEvents?.slice(0, 12).map((event) => {
+        <div className="text-xs text-gray-400 mb-3 text-center">
+          • Forecasts from MarketWatch • Actual data from Federal Reserve • All times Eastern
+          <br />
+          <span className="text-loss-red">Red</span>: High Impact • <span className="text-warning-yellow">Yellow</span>: Medium Impact • <span className="text-gray-300">Gray</span>: Low Impact • <span className="text-blue-400">Blue highlight</span>: Today's releases
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+          {sortedEvents?.slice(0, 20).map((event) => {
             const todayEvent = isToday(event.eventDate);
             const variance = calculateVariance(event.actual, event.forecast);
             

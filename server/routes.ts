@@ -301,14 +301,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { start_date, end_date, importance, category } = req.query;
       
       // Get real economic events using the SAME method as the AI analysis
-      const { EnhancedAIAnalysisService } = await import('./services/enhanced-ai-analysis');
-      const enhancedAiService = EnhancedAIAnalysisService.getInstance();
+      const { EconomicDataService } = await import('./services/economic-data');
+      const economicService = EconomicDataService.getInstance();
       
       // Get economic data using the same method that works in AI analysis
-      const economicData = await enhancedAiService.getEconomicDataForAnalysis();
+      const economicData = await economicService.getEconomicEvents();
       
-      // Combine recent and high-impact events
-      const realEvents = [...(economicData.recent || []), ...(economicData.highImpact || [])];
+      // Use the economic events directly
+      const realEvents = economicData;
       
       console.log(`Raw events from economic data: ${realEvents.length}`);
       console.log('Debug - First few events:', realEvents.slice(0, 2));
