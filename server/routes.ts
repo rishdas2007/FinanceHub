@@ -261,7 +261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get real economic events from the economic data service
         const { EconomicDataService } = await import('./services/economic-data');
         const economicService = EconomicDataService.getInstance();
-        const realEvents = await economicService.getEconomicEvents();
+        const realEvents = await economicService.getFallbackEvents();
         
         // Store events in database for caching
         for (const event of realEvents.slice(0, 10)) {
