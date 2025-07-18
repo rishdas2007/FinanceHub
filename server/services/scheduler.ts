@@ -217,14 +217,17 @@ export class DataScheduler {
       timezone: "America/New_York"
     });
 
-    // MarketWatch Calendar Auto-Scraping: Weekly on Sunday at 11 PM EST (prepare for next week)
-    cron.schedule('0 23 * * 0', async () => {
-      console.log('🔍 MARKETWATCH: Weekly calendar scraping for upcoming events...');
+    // MarketWatch Calendar Auto-Scraping: Daily at 4 AM EST (after FRED updates, before market open)
+    cron.schedule('0 4 * * 1-5', async () => {
+      console.log('🔍 MARKETWATCH: Daily calendar refresh for upcoming events...');
       try {
-        await this.updateEconomicDataWithFred(); // This now includes MarketWatch scraping
-        console.log('✅ MARKETWATCH: Weekly calendar updated successfully');
+        // Force refresh the cached scraping data
+        const economicDataService = (await import('./economic-data')).EconomicDataService.getInstance();
+        (economicDataService as any).lastScrapedTime = null; // Force refresh
+        await this.updateEconomicDataWithFred(); // This will trigger fresh scraping
+        console.log('✅ MARKETWATCH: Daily calendar updated successfully');
       } catch (error) {
-        console.error('❌ MARKETWATCH: Error updating weekly calendar:', error);
+        console.error('❌ MARKETWATCH: Error updating daily calendar:', error);
       }
     }, {
       timezone: "America/New_York"

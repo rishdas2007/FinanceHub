@@ -40,9 +40,14 @@
 
 ### **3. Automated Scheduling**
 ```typescript
-// Daily at 3 PM EST (after most economic releases)
+// FRED API Updates: Daily at 3 PM EST (after most economic releases)
 cron.schedule('0 15 * * 1-5', async () => {
   await updateEconomicDataWithFred();
+}, { timezone: "America/New_York" });
+
+// MarketWatch Scraping: Daily at 4 AM EST (optimized frequency)
+cron.schedule('0 4 * * 1-5', async () => {
+  await refreshMarketWatchCalendar();
 }, { timezone: "America/New_York" });
 ```
 
@@ -68,9 +73,10 @@ cron.schedule('0 15 * * 1-5', async () => {
 
 ### **COMPLETELY AUTOMATED:**
 ✅ **Event Generation**: Automated fallback creates 15+ upcoming events with forecasts
-✅ **Weekly Calendar Updates**: Sunday 11 PM EST automated refresh
-✅ **MarketWatch Integration**: Attempts scraping, falls back to curated event generation
-✅ **Data Population**: FRED API automatically updates actual values daily
+✅ **Daily Calendar Updates**: 4 AM EST automated refresh (reasonable frequency)
+✅ **MarketWatch Integration**: Daily scraping with 24-hour caching (efficient rate limiting)
+✅ **Data Population**: FRED API automatically updates actual values daily at 3 PM EST
+✅ **Smart Caching**: Web scraping happens once per day, cached for subsequent requests
 
 ### **NO MANUAL WORK REQUIRED:**
 - ✅ **Event Creation**: Auto-generated with realistic forecasts (GDP, CPI, Employment, etc.)
@@ -125,15 +131,23 @@ POST /api/force-refresh
 
 ### **Success Indicators:**
 ```
-✅ Economic calendar loaded: 19 events (15 with actual data)
-📊 Auto-updated Housing Starts: 1.35M
+✅ OPTIMIZED calendar: 30 events (10 with actual, 16 cached)
+📅 Scraped 16 events, cached for 24 hours
+📋 Using cached scraping data (refreshes in 18 hours)
 📊 FRED: Economic data updated successfully
+```
+
+### **Efficient Scraping Logs:**
+```
+🕐 Daily MarketWatch scraping (last scraped 24+ hours ago)...
+📋 Using cached scraping data (refreshes in X hours)
+✅ MARKETWATCH: Daily calendar updated successfully
 ```
 
 ### **Error Monitoring:**
 ```
 ❌ FRED: Error updating economic data
-❌ Failed to update [Event] with FRED data
+❌ MARKETWATCH: Error updating daily calendar
 ```
 
 ---

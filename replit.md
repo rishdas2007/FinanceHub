@@ -37,11 +37,11 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 - **DUAL AUTOMATION**: FRED API for actual data + automated event generation for 2-3 weeks of upcoming releases
 - **COMPREHENSIVE COVERAGE**: CPI, PPI, Retail Sales, Industrial Production, Housing Starts, Jobless Claims, JOLTS, GDP, Employment data
 - **INTELLIGENT FALLBACK**: MarketWatch scraping attempts + robust fallback generation of realistic forecast events
-- **WEEKLY AUTO-REFRESH**: Sunday 11 PM EST automated calendar update with next 2-3 weeks of events
+- **DAILY AUTO-REFRESH**: 4 AM EST automated calendar update with efficient 24-hour caching
 - **PROFESSIONAL GRADE**: Official Federal Reserve data + realistic forecast generation with proper scheduling
 - **CURRENT STATUS**: 17+ events loaded (15 with FRED actual data + auto-generated upcoming events with forecasts)
 - **AUTOMATED EVENTS**: Richmond Fed (-8 forecast), GDP Advance (2.5% forecast), Nonfarm Payrolls (175K forecast), Core CPI (3.2% forecast)
-- **DAILY SCHEDULE**: FRED updates at 3 PM EST + weekly calendar refresh Sunday 11 PM EST
+- **DAILY SCHEDULE**: FRED updates at 3 PM EST + daily calendar refresh 4 AM EST (24-hour cache)
 - **ZERO MAINTENANCE**: System now requires NO human intervention for any economic calendar operations
 - **DOCUMENTATION**: Complete 100% automation guide in ECONOMIC_CALENDAR_AUTOMATION.md
 

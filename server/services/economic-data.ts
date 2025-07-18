@@ -12,30 +12,50 @@ export class EconomicDataService {
     return EconomicDataService.instance;
   }
 
+  private lastScrapedTime: Date | null = null;
+  private cachedScrapedEvents: EconomicEvent[] = [];
+  private readonly SCRAPE_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
   async scrapeMarketWatchCalendar(): Promise<EconomicEvent[]> {
-    console.log('🔄 Fetching economic events with FULL AUTOMATION (MarketWatch + FRED)...');
+    console.log('🔄 Fetching economic events with FRED automation + cached scraping...');
     
     try {
-      // Step 1: Get upcoming events from MarketWatch (automated forecasts)
-      const upcomingEvents = await marketWatchScraper.scrapeUpcomingEvents(14); // Next 2 weeks
-      const scrapedEvents = marketWatchScraper.convertToEconomicEvents(upcomingEvents);
+      // Check if we need to refresh MarketWatch data (only once per day)
+      const now = new Date();
+      const needsRefresh = !this.lastScrapedTime || 
+        (now.getTime() - this.lastScrapedTime.getTime()) > this.SCRAPE_CACHE_DURATION;
+
+      let scrapedEvents: EconomicEvent[] = [];
       
-      // Step 2: Combine with curated historical events (for completeness)
+      if (needsRefresh) {
+        console.log('🕐 Daily MarketWatch scraping (last scraped 24+ hours ago)...');
+        const upcomingEvents = await marketWatchScraper.scrapeUpcomingEvents(14);
+        scrapedEvents = marketWatchScraper.convertToEconomicEvents(upcomingEvents);
+        this.cachedScrapedEvents = scrapedEvents;
+        this.lastScrapedTime = now;
+        console.log(`📅 Scraped ${scrapedEvents.length} events, cached for 24 hours`);
+      } else {
+        scrapedEvents = this.cachedScrapedEvents;
+        const hoursUntilRefresh = Math.ceil((this.SCRAPE_CACHE_DURATION - (now.getTime() - this.lastScrapedTime.getTime())) / (60 * 60 * 1000));
+        console.log(`📋 Using cached scraping data (refreshes in ${hoursUntilRefresh} hours)`);
+      }
+      
+      // Combine with curated historical events
       const historicalEvents = await this.getFallbackEvents();
       const filteredHistorical = historicalEvents.filter(event => {
         const eventDate = new Date(event.date);
         const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
-        return eventDate >= threeDaysAgo; // Only keep recent historical events
+        return eventDate >= threeDaysAgo;
       });
       
-      // Step 3: Merge events and remove duplicates
+      // Merge events and remove duplicates
       const allEvents = [...filteredHistorical, ...scrapedEvents];
       const uniqueEvents = this.deduplicateEvents(allEvents);
       
-      // Step 4: Auto-update actual values using FRED API for recent events
+      // Auto-update actual values using FRED API for recent events
       const updatedEvents = await this.updateEventsWithFredData(uniqueEvents);
       
-      console.log(`✅ FULLY AUTOMATED calendar: ${updatedEvents.length} events (${updatedEvents.filter(e => e.actual).length} with actual, ${scrapedEvents.length} auto-scraped)`);
+      console.log(`✅ OPTIMIZED calendar: ${updatedEvents.length} events (${updatedEvents.filter(e => e.actual).length} with actual, ${scrapedEvents.length} cached)`);
       return updatedEvents;
     } catch (error) {
       console.error('Error in automated calendar fetch, falling back to curated events:', error);
