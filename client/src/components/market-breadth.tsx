@@ -22,7 +22,8 @@ export function MarketBreadth() {
   // Get market indicators data
   const { data: indicatorsData, isLoading } = useQuery<MarketIndicatorsData>({
     queryKey: ['/api/market-indicators'],
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 120000, // Refresh every 2 minutes
+    staleTime: 90000, // Data is fresh for 90 seconds
   });
 
   if (isLoading || !indicatorsData) {

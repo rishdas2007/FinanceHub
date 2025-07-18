@@ -127,9 +127,10 @@ export class FinancialDataService {
       this.lastMinute = currentMinute;
     }
     
-    if (this.requestCount >= 55) {
-      // Wait until next minute if we've hit the limit
-      const waitTime = 60000 - (Date.now() % 60000);
+    if (this.requestCount >= 40) {
+      // Reduce to 40 calls per minute for better performance
+      console.log(`⏱️ Rate limit protection: ${this.requestCount}/40 calls used this minute`);
+      const waitTime = 60000 - (Date.now() % 60000) + 1000;
       await new Promise(resolve => setTimeout(resolve, waitTime));
       this.requestCount = 0;
       this.lastMinute = Math.floor(Date.now() / 60000);

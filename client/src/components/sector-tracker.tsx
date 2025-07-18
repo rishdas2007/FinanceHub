@@ -7,7 +7,8 @@ import type { SectorData } from "@/types/financial";
 export function SectorTracker() {
   const { data: sectors, isLoading, refetch } = useQuery<SectorData[]>({
     queryKey: ['/api/sectors'],
-    refetchInterval: 60000, // Refresh every minute
+    refetchInterval: 180000, // Refresh every 3 minutes
+    staleTime: 120000, // Data is fresh for 2 minutes
   });
 
   if (isLoading) {

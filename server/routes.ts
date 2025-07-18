@@ -100,13 +100,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Market sentiment
+  // Market sentiment with caching
   app.get("/api/sentiment", async (req, res) => {
     try {
-      console.log('No sentiment data found, generating...');
+      const { cacheManager } = await import('./services/cache-manager');
+      const cacheKey = 'market-sentiment';
+      
+      // Check cache first (2 minute TTL for sentiment data)
+      const cachedData = cacheManager.get(cacheKey);
+      if (cachedData) {
+        return res.json(cachedData);
+      }
       
       // Generate fresh real sentiment data using VIX and market indicators
       const sentimentData = await financialDataService.getRealMarketSentiment();
+      
+      // Cache the result for 2 minutes
+      cacheManager.set(cacheKey, sentimentData, 120);
       
       res.json(sentimentData);
     } catch (error) {
@@ -115,28 +125,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Sector performance
+  // Sector performance with caching
   app.get("/api/sectors", async (req, res) => {
     try {
+      const { cacheManager } = await import('./services/cache-manager');
+      const cacheKey = 'sector-data';
+      
+      // Check cache first (5 minute TTL for sector data)
+      const cachedData = cacheManager.get(cacheKey);
+      if (cachedData) {
+        return res.json(cachedData);
+      }
+      
       console.log('Fetching fresh sector data with 5-day and 1-month performance...');
       const freshSectors = await financialDataService.getSectorETFs();
       
-      // Cache the fresh data with all performance metrics
-      for (const sector of freshSectors) {
-        try {
-          await storage.createSectorData({
-            symbol: sector.symbol,
-            name: sector.name,
-            price: typeof sector.price === 'number' ? sector.price.toString() : sector.price.toString(),
-            changePercent: typeof sector.changePercent === 'number' ? sector.changePercent.toString() : sector.changePercent.toString(),
-            fiveDayChange: (sector.fiveDayChange || 0).toString(),
-            oneMonthChange: (sector.oneMonthChange || 0).toString(),
-            volume: sector.volume || 0,
-          });
-        } catch (error) {
-          console.error(`Error storing sector data for ${sector.symbol}:`, error);
+      // Cache the result for 5 minutes
+      cacheManager.set(cacheKey, freshSectors, 300);
+      
+      // Store in database for fallback (background task)
+      setTimeout(async () => {
+        for (const sector of freshSectors) {
+          try {
+            await storage.createSectorData({
+              symbol: sector.symbol,
+              name: sector.name,
+              price: typeof sector.price === 'number' ? sector.price.toString() : sector.price.toString(),
+              changePercent: typeof sector.changePercent === 'number' ? sector.changePercent.toString() : sector.changePercent.toString(),
+              fiveDayChange: (sector.fiveDayChange || 0).toString(),
+              oneMonthChange: (sector.oneMonthChange || 0).toString(),
+              volume: sector.volume || 0,
+            });
+          } catch (error) {
+            console.error(`Error storing sector data for ${sector.symbol}:`, error);
+          }
         }
-      }
+      }, 0);
       
       res.json(freshSectors);
     } catch (error) {
@@ -360,6 +384,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Market indicators (VWAP, RSI, McClellan, Williams %R) - REAL DATA
   app.get("/api/market-indicators", async (req, res) => {
     try {
+      const { cacheManager } = await import('./services/cache-manager');
+      const cacheKey = 'market-indicators';
+      
+      // Check cache first (2 minute TTL for market indicators)
+      const cachedData = cacheManager.get(cacheKey);
+      if (cachedData) {
+        return res.json(cachedData);
+      }
+      
       console.log('📊 Fetching real market indicators...');
       
       // Get fresh market indicators from financial service
@@ -372,6 +405,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data_source: 'twelve_data_live',
         market_status: financialDataService.getDataTimestamp()
       };
+      
+      // Cache the result for 2 minutes
+      cacheManager.set(cacheKey, response, 120);
       
       console.log(`📊 Market indicators updated: ${response.last_updated}`);
       res.json(response);

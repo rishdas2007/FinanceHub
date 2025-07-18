@@ -11,9 +11,9 @@ export function AIAnalysisComponent() {
   const { data: analysis, isLoading } = useQuery<AiAnalysis>({
     queryKey: ['/api/analysis'],
     refetchInterval: 300000, // Refresh every 5 minutes
-    refetchOnMount: true, // Always fetch fresh data on component mount
+    refetchOnMount: false, // Use cached data if available
     refetchOnWindowFocus: false, // Don't refetch on window focus to avoid excessive calls
-    staleTime: 0, // Always consider data stale for fresh analysis
+    staleTime: 180000, // Data is fresh for 3 minutes
   });
 
   const { data: currentStock } = useQuery<StockData>({
