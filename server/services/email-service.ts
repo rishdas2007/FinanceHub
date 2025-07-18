@@ -14,7 +14,7 @@ if (SENDGRID_ENABLED) {
 }
 
 export class EmailService {
-  private readonly fromEmail = 'hello@rishabhdas.com'; // Using verified sender domain
+  private readonly fromEmail = 'me@rishabhdas.com'; // Using verified sender domain
 
   async subscribeToDaily(email: string): Promise<EmailSubscription> {
     try {
