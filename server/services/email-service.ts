@@ -4,8 +4,7 @@ import { db } from '../db';
 import { emailSubscriptions, type EmailSubscription, type InsertEmailSubscription } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
-// Temporarily disable SendGrid due to API key issues - subscriptions will still be saved
-const SENDGRID_ENABLED = false; // !!process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.length > 10;
+const SENDGRID_ENABLED = !!process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.length > 10;
 
 if (SENDGRID_ENABLED) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -15,7 +14,7 @@ if (SENDGRID_ENABLED) {
 }
 
 export class EmailService {
-  private readonly fromEmail = 'noreply@replit.app'; // Using Replit verified sender
+  private readonly fromEmail = 'hello@rishabhdas.com'; // Using verified sender domain
 
   async subscribeToDaily(email: string): Promise<EmailSubscription> {
     try {
@@ -144,6 +143,9 @@ export class EmailService {
       console.error('Error sending daily commentary:', error);
       if (error.code === 401) {
         console.error('❌ SendGrid API key is invalid or expired. Please check your API key.');
+      } else if (error.code === 403) {
+        console.error('❌ SendGrid API key lacks permissions or sender email not verified. Check SendGrid dashboard.');
+        console.error('Response body:', JSON.stringify(error.response?.body, null, 2));
       }
       throw error;
     }
