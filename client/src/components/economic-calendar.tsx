@@ -102,7 +102,7 @@ export function EconomicCalendar() {
             Economic Calendar
           </div>
           <div className="text-xs text-gray-400 font-normal">
-            Past 2 Weeks & Upcoming Events
+            Maximum Historical Data & Next Week Events
           </div>
         </CardTitle>
       </CardHeader>

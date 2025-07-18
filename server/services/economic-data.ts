@@ -295,12 +295,151 @@ export class EconomicDataService {
       impact: 'positive',
       source: 'marketwatch'
     });
+    
+    // Additional Thursday July 17 events from MarketWatch screenshot
+    events.push({
+      id: `retail-sales-ex-autos-2025-07-17`,
+      title: 'Retail sales minus autos',
+      description: 'Consumer spending excluding auto sales',
+      date: july17,
+      time: '8:30 AM ET',
+      country: 'US',
+      category: 'consumer_spending',
+      importance: 'medium',
+      currency: 'USD',
+      forecast: '0.3%',
+      previous: '-0.2%',
+      actual: '0.5%',
+      impact: 'positive',
+      source: 'marketwatch'
+    });
+    
+    events.push({
+      id: `import-price-index-2025-07-17`,
+      title: 'Import price index',
+      description: 'Price changes in imported goods',
+      date: july17,
+      time: '8:30 AM ET',
+      country: 'US',
+      category: 'inflation',
+      importance: 'low',
+      currency: 'USD',
+      forecast: '0.3%',
+      previous: '-0.4%',
+      actual: '0.1%',
+      impact: 'negative',
+      source: 'marketwatch'
+    });
+    
+    events.push({
+      id: `philadelphia-fed-2025-07-17`,
+      title: 'Philadelphia Fed manufacturing survey',
+      description: 'Regional manufacturing activity index',
+      date: july17,
+      time: '8:30 AM ET',
+      country: 'US',
+      category: 'manufacturing',
+      importance: 'medium',
+      currency: 'USD',
+      forecast: '-1.0',
+      previous: '-4.0%',
+      actual: '15.9',
+      impact: 'positive',
+      source: 'marketwatch'
+    });
+    
+    events.push({
+      id: `business-inventories-2025-07-17`,
+      title: 'Business inventories',
+      description: 'Monthly business inventory levels',
+      date: july17,
+      time: '10:00 AM ET',
+      country: 'US',
+      category: 'manufacturing',
+      importance: 'low',
+      currency: 'USD',
+      forecast: '0.0%',
+      previous: '0.0%',
+      actual: '0.0%',
+      impact: 'neutral',
+      source: 'marketwatch'
+    });
+    
+    events.push({
+      id: `home-builder-confidence-2025-07-17`,
+      title: 'Home builder confidence index',
+      description: 'NAHB housing market confidence',
+      date: july17,
+      time: '10:00 AM ET',
+      country: 'US',
+      category: 'housing',
+      importance: 'medium',
+      currency: 'USD',
+      forecast: '33',
+      previous: '32',
+      actual: '33',
+      impact: 'neutral',
+      source: 'marketwatch'
+    });
+    
+    // Friday July 18 events from MarketWatch screenshot
+    const july18 = new Date('2025-07-18');
+    events.push({
+      id: `housing-starts-2025-07-18`,
+      title: 'Housing starts',
+      description: 'New residential construction starts',
+      date: july18,
+      time: '8:30 AM ET',
+      country: 'US',
+      category: 'housing',
+      importance: 'medium',
+      currency: 'USD',
+      forecast: '1.30 million',
+      previous: '1.26 million',
+      actual: '1.32 million',
+      impact: 'positive',
+      source: 'marketwatch'
+    });
+    
+    events.push({
+      id: `building-permits-2025-07-18`,
+      title: 'Building permits',
+      description: 'New construction permits issued',
+      date: july18,
+      time: '8:30 AM ET',
+      country: 'US',
+      category: 'housing',
+      importance: 'medium',
+      currency: 'USD',
+      forecast: '1.39 million',
+      previous: '1.39 million',
+      actual: '1.40 million',
+      impact: 'positive',
+      source: 'marketwatch'
+    });
+    
+    events.push({
+      id: `consumer-sentiment-prelim-2025-07-18`,
+      title: 'Consumer sentiment (prelim)',
+      description: 'University of Michigan consumer sentiment',
+      date: july18,
+      time: '10:00 AM ET',
+      country: 'US',
+      category: 'consumer_spending',
+      importance: 'medium',
+      currency: 'USD',
+      forecast: '61.8',
+      previous: '60.7',
+      actual: '61.8',
+      impact: 'neutral',
+      source: 'marketwatch'
+    });
 
     return events;
   }
 
   private generateUpcomingEventsWithForecasts(baseDate: Date): EconomicEvent[] {
-    // Generate comprehensive upcoming events for next 2 weeks (typical MarketWatch schedule)
+    // Generate comprehensive upcoming events for next 1 week only (July 21-25, 2025)
     const events: EconomicEvent[] = [];
     
     // Next week's key releases (July 21-25, 2025)
@@ -422,78 +561,6 @@ export class EconomicDataService {
       currency: 'USD',
       forecast: '2.8%',
       previous: '1.4%',
-      actual: null,
-      impact: null,
-      source: 'marketwatch'
-    });
-    
-    // Following week key releases (July 28-Aug 1, 2025)
-    const july29 = new Date('2025-07-29');
-    events.push({
-      id: `consumer-confidence-2025-07-29`,
-      title: 'Consumer Confidence',
-      description: 'Conference Board consumer confidence index',
-      date: july29,
-      time: '10:00 AM ET',
-      country: 'US',
-      category: 'consumer_spending',
-      importance: 'medium',
-      currency: 'USD',
-      forecast: '100.5',
-      previous: '100.4',
-      actual: null,
-      impact: null,
-      source: 'marketwatch'
-    });
-    
-    const july31 = new Date('2025-07-31');
-    events.push({
-      id: `jobless-claims-2025-07-31`,
-      title: 'Initial jobless claims',
-      description: 'Weekly unemployment insurance claims',
-      date: july31,
-      time: '8:30 AM ET',
-      country: 'US',
-      category: 'employment',
-      importance: 'high',
-      currency: 'USD',
-      forecast: '240,000',
-      previous: '235,000',
-      actual: null,
-      impact: null,
-      source: 'marketwatch'
-    });
-    
-    const aug1 = new Date('2025-08-01');
-    events.push({
-      id: `nonfarm-payrolls-2025-08-01`,
-      title: 'Nonfarm Payrolls',
-      description: 'Monthly employment change',
-      date: aug1,
-      time: '8:30 AM ET',
-      country: 'US',
-      category: 'employment',
-      importance: 'high',
-      currency: 'USD',
-      forecast: '185K',
-      previous: '206K',
-      actual: null,
-      impact: null,
-      source: 'marketwatch'
-    });
-    
-    events.push({
-      id: `unemployment-rate-2025-08-01`,
-      title: 'Unemployment rate',
-      description: 'Monthly unemployment rate',
-      date: aug1,
-      time: '8:30 AM ET',
-      country: 'US',
-      category: 'employment',
-      importance: 'high',
-      currency: 'USD',
-      forecast: '4.0%',
-      previous: '4.0%',
       actual: null,
       impact: null,
       source: 'marketwatch'
