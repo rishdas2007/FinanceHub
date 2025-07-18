@@ -763,11 +763,11 @@ export class FinancialDataService {
         spy_vwap: parseFloat(spyVwap.toFixed(2)),
         nasdaq_vwap: parseFloat(qqqVwap.toFixed(2)),
         dow_vwap: parseFloat(rutVwap.toFixed(2)), // Russell 2000 VWAP
-        mcclellan_oscillator: parseFloat(mcclellanOsc.toFixed(1)),
+        mcclellan_oscillator: parseFloat(Number(mcclellanOsc).toFixed(1)),
         spy_rsi: spyRsi,
         nasdaq_rsi: qqqRsi,
         dow_rsi: rutRsi, // Russell 2000 RSI
-        williams_r: parseFloat(williamsR.toFixed(1))
+        williams_r: parseFloat(Number(williamsR).toFixed(1))
       };
     } catch (error) {
       console.error('Error fetching market indicators:', error);
