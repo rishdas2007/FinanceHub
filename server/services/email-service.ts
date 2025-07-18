@@ -3,6 +3,8 @@ import { nanoid } from 'nanoid';
 import { db } from '../db';
 import { emailSubscriptions, type EmailSubscription, type InsertEmailSubscription } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { FinancialDataService } from './financial-data';
+import { EnhancedAIAnalysisService } from './enhanced-ai-analysis';
 
 const SENDGRID_ENABLED = !!process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.length > 10;
 
@@ -15,6 +17,8 @@ if (SENDGRID_ENABLED) {
 
 export class EmailService {
   private readonly fromEmail = 'me@rishabhdas.com'; // Using verified sender domain
+  private financialService = new FinancialDataService();
+  private aiService = new EnhancedAIAnalysisService();
 
   async subscribeToDaily(email: string): Promise<EmailSubscription> {
     try {

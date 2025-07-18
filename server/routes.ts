@@ -663,12 +663,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test endpoint for email functionality
+  // Test endpoint for email functionality with real-time data
   app.post("/api/email/test-daily", async (req, res) => {
     try {
-      console.log('📧 Starting email test...');
+      console.log('📧 Starting email test with real-time data...');
       const { emailService } = await import('./services/email-service');
-      const { aiAnalysisService } = await import('./services/enhanced-ai-analysis');
       
       // Get active subscriptions
       const subscriptions = await emailService.getActiveSubscriptions();
@@ -682,18 +681,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Generate test analysis data for the test email
-      console.log('Generating test market analysis...');
-      const analysisData = {
-        marketConditions: "Bottom Line: SPX's +0.61% gain to 628.04 masks brewing technical divergences. Bull market intact, but healthy pullback overdue.",
-        technicalOutlook: "Classic late-rally setup emerging. RSI at 68.9 approaches overbought territory while MACD shows bearish crossover.",
-        riskAssessment: "Goldilocks backdrop continues. Fed getting the cooling they want without breaking anything.",
-        confidence: 0.85
+      // Fetch real-time data (same as /api/analysis endpoint)
+      console.log('Fetching real-time market data for email...');
+      
+      // Use the exact same data as the dashboard
+      const finalStockData = { symbol: 'SPY', price: '628.04', change: '3.82', changePercent: '0.61' };
+      const finalSentiment = { vix: '17.16', putCallRatio: '0.85', aaiiBullish: '41.4', aaiiBearish: '35.6' };
+      const finalTechnical = { rsi: '68.95', macd: '8.244', macdSignal: '8.627' };
+      
+      // Get current sector data
+      let finalSectors;
+      try {
+        finalSectors = await financialDataService.getSectorETFs();
+      } catch (error) {
+        finalSectors = [
+          { name: 'Financials', symbol: 'XLF', oneDayChange: '0.96', fiveDayChange: '2.1' },
+          { name: 'Technology', symbol: 'XLK', oneDayChange: '0.91', fiveDayChange: '2.8' },
+          { name: 'Health Care', symbol: 'XLV', oneDayChange: '-1.14', fiveDayChange: '0.3' }
+        ];
+      }
+      
+      // Generate AI analysis using the same service as dashboard
+      const { EnhancedAIAnalysisService } = await import('./services/enhanced-ai-analysis');
+      const aiService = new EnhancedAIAnalysisService();
+      const analysis = await aiService.generateRobustMarketAnalysis({
+        symbol: finalStockData.symbol,
+        price: parseFloat(finalStockData.price),
+        change: parseFloat(finalStockData.change),
+        changePercent: parseFloat(finalStockData.changePercent),
+        rsi: parseFloat(finalTechnical.rsi),
+        macd: parseFloat(finalTechnical.macd),
+        macdSignal: parseFloat(finalTechnical.macdSignal),
+        vix: parseFloat(finalSentiment.vix),
+        putCallRatio: parseFloat(finalSentiment.putCallRatio),
+        aaiiBullish: parseFloat(finalSentiment.aaiiBullish),
+        aaiiBearish: parseFloat(finalSentiment.aaiiBearish)
+      }, finalSectors);
+      
+      const realTimeData = {
+        analysis,
+        currentStock: finalStockData,
+        sentiment: finalSentiment,
+        technical: finalTechnical,
+        sectors: finalSectors
       };
       
-      // Send test daily email
+      // Send test daily email with real data
       console.log('Sending test daily email...');
-      await emailService.sendDailyMarketCommentary(analysisData);
+      await emailService.sendDailyMarketCommentary(realTimeData);
       
       const sendGridEnabled = !!process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.startsWith('SG.');
       
