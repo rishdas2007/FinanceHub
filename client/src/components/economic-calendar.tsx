@@ -12,6 +12,9 @@ interface EconomicEvent {
   forecast: string | null;
   previous: string | null;
   timestamp: string;
+  country?: string;
+  category?: string;
+  source?: string;
 }
 
 export function EconomicCalendar() {
@@ -104,7 +107,12 @@ export function EconomicCalendar() {
                 </div>
               </div>
               
-              <div className="text-xs text-gray-400 mb-3">{event.description}</div>
+              <div className="text-xs text-gray-400 mb-3">
+                {event.description}
+                {event.source && (
+                  <span className="ml-2 text-xs text-blue-400">• {event.source}</span>
+                )}
+              </div>
               
               {/* Enhanced metrics display */}
               <div className="grid grid-cols-3 gap-3 text-xs mb-3">

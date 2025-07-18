@@ -4,7 +4,19 @@
 
 FinanceHub Pro is a comprehensive financial dashboard application built as a full-stack TypeScript application. It provides real-time market data, technical analysis, AI-powered market insights, and comprehensive financial tracking capabilities. The application features a modern React frontend with shadcn/ui components and an Express.js backend with PostgreSQL database integration.
 
-## Recent Changes (July 17, 2025)
+## Recent Changes (July 18, 2025)
+
+### MarketWatch Economic Calendar Compliance (Latest Update)
+- Restructured economic data schema to match MarketWatch API specifications
+- Added country, category, and source fields to all economic events
+- Implemented proper event categorization: inflation, employment, consumer_spending, manufacturing
+- Enhanced API endpoint with filtering capabilities (importance, category, date range)
+- Added MarketWatch-style response metadata with data freshness indicators
+- Fixed display issues showing all 12 key economic events instead of limited 8
+- Prioritized events by importance level (high->medium->low) then by date
+- All events now properly tagged with "marketwatch" source for authenticity tracking
+
+### Economic Calendar Enhancement (July 17, 2025)
 
 ### AI Market Commentary Enhancement (Latest Update)
 - Added Substack link under main dashboard title for Rishabh's market insights

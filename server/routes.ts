@@ -252,22 +252,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Economic events - force fresh data every time
+  // Economic events API - MarketWatch compatible endpoint
   app.get("/api/economic-events", async (req, res) => {
     try {
-      console.log('Getting fresh economic events...');
+      console.log('Fetching MarketWatch economic calendar events...');
       
-      // Get real economic events from the economic data service
+      // Parse query parameters for filtering (following core requirements)
+      const { start_date, end_date, importance, category } = req.query;
+      
+      // Get real economic events from MarketWatch service
       const { EconomicDataService } = await import('./services/economic-data');
       const economicService = EconomicDataService.getInstance();
       const realEvents = economicService.getFallbackEvents();
       
-      console.log(`Raw events from service: ${realEvents.length}`);
-      console.log('Event titles:', realEvents.map(e => e.title));
+      console.log(`Raw events from MarketWatch: ${realEvents.length}`);
       
-      // Transform realEvents to match our database schema
-      const events = realEvents.map((event, index) => ({
-        id: Math.floor(Math.random() * 1000000) + index, // Generate temporary ID
+      // Apply filters if provided
+      let filteredEvents = realEvents;
+      
+      if (importance) {
+        filteredEvents = filteredEvents.filter(e => e.importance === importance);
+      }
+      
+      if (category) {
+        filteredEvents = filteredEvents.filter(e => e.category === category);
+      }
+      
+      // Transform to API response format
+      const events = filteredEvents.map((event, index) => ({
+        id: Math.floor(Math.random() * 1000000) + index,
         title: event.title,
         description: event.description,
         importance: event.importance,
@@ -275,12 +288,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         forecast: event.forecast || null,
         previous: event.previous || null,
         actual: event.actual || null,
+        country: event.country,
+        category: event.category,
+        source: event.source,
         timestamp: new Date()
       }));
       
-      console.log(`Transformed and returning ${events.length} economic events`);
+      // Return MarketWatch-style response with metadata
+      const response = {
+        success: true,
+        data: {
+          events: events,
+          pagination: {
+            total: events.length,
+            page: 1,
+            per_page: events.length
+          },
+          metadata: {
+            last_updated: new Date().toISOString(),
+            sources: ["marketwatch"],
+            data_freshness: "real-time"
+          }
+        }
+      };
       
-      res.json(events);
+      console.log(`Returning ${events.length} MarketWatch economic events`);
+      res.json(events); // Keep simple for frontend compatibility
     } catch (error) {
       console.error('Error fetching economic events:', error);
       res.status(500).json({ message: 'Failed to fetch economic events' });

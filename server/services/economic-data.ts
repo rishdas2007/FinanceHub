@@ -93,32 +93,40 @@ export class EconomicDataService {
   }
 
   getFallbackEvents(): EconomicEvent[] {
-    // Current week's actual events from MarketWatch as fallback
+    // Current week's actual events from MarketWatch - following core requirements schema
     const events: EconomicEvent[] = [
-      // Thursday, July 17 - Released Events
+      // Thursday, July 17 - Released Events (MarketWatch Data)
       {
-        id: 'jobless-claims-jul17-2025',
+        id: 'us-jobless-claims-jul17-2025',
         title: 'Initial jobless claims',
         description: 'Weekly unemployment insurance claims',
         date: new Date('2025-07-17T12:30:00Z'),
         time: '8:30 AM ET',
+        country: 'US',
+        category: 'employment',
         importance: 'high',
+        currency: 'USD',
         forecast: '234,000',
         previous: '228,000',
         actual: '221,000',
-        impact: 'positive'
+        impact: 'positive',
+        source: 'marketwatch'
       },
       {
-        id: 'retail-sales-jun2025',
+        id: 'us-retail-sales-jun2025',
         title: 'U.S. retail sales',
         description: 'Monthly retail sales data',
         date: new Date('2025-07-17T12:30:00Z'),
         time: '8:30 AM ET',
+        country: 'US',
+        category: 'consumer_spending',
         importance: 'high',
+        currency: 'USD',
         forecast: '0.2%',
         previous: '-0.9%',
         actual: '0.6%',
-        impact: 'very_positive'
+        impact: 'very_positive',
+        source: 'marketwatch'
       },
       {
         id: 'philly-fed-jul2025',
@@ -183,53 +191,68 @@ export class EconomicDataService {
       },
       // Tuesday, July 15 - Released Events
       {
-        id: 'cpi-jun2025',
+        id: 'us-cpi-jun2025',
         title: 'Consumer price index',
         description: 'Monthly inflation measure',
         date: new Date('2025-07-15T12:30:00Z'),
         time: '8:30 AM ET',
+        country: 'US',
+        category: 'inflation',
         importance: 'high',
+        currency: 'USD',
         forecast: '0.3%',
         previous: '0.1%',
         actual: '0.3%',
-        impact: 'neutral'
+        impact: 'neutral',
+        source: 'marketwatch'
       },
       {
-        id: 'core-cpi-jun2025',
+        id: 'us-core-cpi-jun2025',
         title: 'Core CPI',
         description: 'Core consumer price index',
         date: new Date('2025-07-15T12:30:00Z'),
         time: '8:30 AM ET',
+        country: 'US',
+        category: 'inflation',
         importance: 'high',
+        currency: 'USD',
         forecast: '0.3%',
         previous: '0.1%',
         actual: '0.2%',
-        impact: 'positive'
+        impact: 'positive',
+        source: 'marketwatch'
       },
       {
-        id: 'empire-state-jul2025',
+        id: 'us-empire-state-jul2025',
         title: 'Empire State manufacturing survey',
         description: 'NY Fed regional manufacturing index',
         date: new Date('2025-07-15T12:30:00Z'),
         time: '8:30 AM ET',
+        country: 'US',
+        category: 'manufacturing',
         importance: 'medium',
+        currency: 'USD',
         forecast: '-9.0',
         previous: '-16.0',
         actual: '5.5',
-        impact: 'very_positive'
+        impact: 'very_positive',
+        source: 'marketwatch'
       },
       {
-        id: 'jolts-jul2025',
+        id: 'us-jolts-jul2025',
         title: 'JOLTS Job Openings',
         description: 'Job openings and labor turnover survey',
         date: new Date('2025-07-08T14:00:00Z'),
         time: '10:00 AM ET',
+        country: 'US',
+        category: 'employment',
         importance: 'medium',
         currency: 'USD',
         forecast: '8.05M',
         previous: '8.14M',
         actual: '8.18M',
-        impact: 'positive'
+        impact: 'positive',
+        source: 'marketwatch'
       },
 
       {
