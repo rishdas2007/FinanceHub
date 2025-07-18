@@ -56,8 +56,8 @@ export class DataScheduler {
       console.log('🏢 Updating sector data...');
       await this.financialService.getSectorETFs();
       
-      // Update economic events
-      console.log('📈 Updating economic calendar...');
+      // Update economic events with FRED API automation
+      console.log('📈 Updating economic calendar with FRED data...');
       await this.economicService.scrapeMarketWatchCalendar();
       
       // Update technical indicators
@@ -149,6 +149,19 @@ export class DataScheduler {
     }
   }
 
+  async updateEconomicDataWithFred(): Promise<void> {
+    try {
+      console.log('📊 FRED: Updating economic calendar with FRED API...');
+      
+      // Use the economic service which now includes FRED integration
+      await this.economicService.scrapeMarketWatchCalendar();
+      
+      console.log('✅ FRED: Economic calendar updated with latest data');
+    } catch (error) {
+      console.error('❌ FRED: Error updating economic data:', error);
+    }
+  }
+
   async cleanupOldData(): Promise<void> {
     try {
       console.log('🧹 Starting data cleanup...');
@@ -187,6 +200,19 @@ export class DataScheduler {
     // Forecast updates: Every 6 hours
     cron.schedule('0 */6 * * *', async () => {
       await this.updateForecastData();
+    }, {
+      timezone: "America/New_York"
+    });
+
+    // FRED Economic Data Auto-Updates: Daily at 3 PM EST (after most economic releases)
+    cron.schedule('0 15 * * 1-5', async () => {
+      console.log('📊 FRED: Daily economic data update at 3 PM EST...');
+      try {
+        await this.updateEconomicDataWithFred();
+        console.log('✅ FRED: Economic data updated successfully');
+      } catch (error) {
+        console.error('❌ FRED: Error updating economic data:', error);
+      }
     }, {
       timezone: "America/New_York"
     });

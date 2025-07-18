@@ -1,4 +1,5 @@
 import type { EconomicEvent } from '../types/financial';
+import { fredApiService } from './fred-api';
 
 export class EconomicDataService {
   private static instance: EconomicDataService;
@@ -11,10 +12,47 @@ export class EconomicDataService {
   }
 
   async scrapeMarketWatchCalendar(): Promise<EconomicEvent[]> {
-    // For now, use fallback data since HTML scraping is causing issues
-    // We'll return the curated real events from this week
-    console.log('Using curated real economic events for reliability');
-    return this.getFallbackEvents();
+    console.log('🔄 Fetching economic events with FRED API automation...');
+    const events = await this.getFallbackEvents();
+    
+    // Auto-update actual values using FRED API for recent events
+    const updatedEvents = await this.updateEventsWithFredData(events);
+    
+    console.log(`✅ Economic calendar loaded: ${updatedEvents.length} events (${updatedEvents.filter(e => e.actual).length} with actual data)`);
+    return updatedEvents;
+  }
+
+  private async updateEventsWithFredData(events: EconomicEvent[]): Promise<EconomicEvent[]> {
+    const updatedEvents = [...events];
+    const today = new Date();
+    const threeDaysAgo = new Date(today.getTime() - (3 * 24 * 60 * 60 * 1000));
+
+    for (let i = 0; i < updatedEvents.length; i++) {
+      const event = updatedEvents[i];
+      const eventDate = new Date(event.date);
+      
+      // Only update events from the last 3 days that don't already have actual values
+      if (eventDate >= threeDaysAgo && eventDate <= today && !event.actual) {
+        try {
+          const fredUpdate = await fredApiService.updateEconomicEvent(event.title);
+          if (fredUpdate.actual) {
+            updatedEvents[i] = {
+              ...event,
+              actual: fredUpdate.actual,
+              impact: fredUpdate.impact as any
+            };
+            console.log(`📊 Auto-updated ${event.title}: ${fredUpdate.actual}`);
+          }
+        } catch (error) {
+          console.error(`Failed to update ${event.title} with FRED data:`, error);
+        }
+        
+        // Rate limit: 120 calls per minute for FRED API
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
+    return updatedEvents;
   }
 
   private parseEventDate(dateStr: string, timeStr: string): Date {
