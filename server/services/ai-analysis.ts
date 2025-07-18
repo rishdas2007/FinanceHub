@@ -70,20 +70,31 @@ Put/Call Ratio: ${marketData.putCallRatio ? formatPrice(marketData.putCallRatio)
 AAII Bullish: ${marketData.aaiiBullish ? formatPrice(marketData.aaiiBullish) : 'N/A'}% vs Bearish: ${marketData.aaiiBearish ? formatPrice(marketData.aaiiBearish) : 'N/A'}%
 ${sectorAnalysis}
 
-CURRENT ECONOMIC CALENDAR DATA:
-Inflation Trends: Core CPI 2.9% (vs 2.8% forecast, accelerating from 2.4%), Headline CPI 2.7% (vs 2.6% estimate). PPI 2.1% (down from 2.4%, beating 2.2% forecast - wholesale prices cooling).
-Consumer Activity: Retail Sales surged 1.0% (vs 0.3% expectation), showing resilient spending despite rate pressures.
-Labor Market: JOLTS 8.18M openings (steady above 8.14M forecast), indicating balanced demand without overheating.
-Business Activity: ISM Services PMI 52.5 (down from 53.8, missing 52.8 forecast). Industrial Production slowing to 0.3% from 0.9%.
-Housing Sector: Starts expected 1.31M (up from 1.28M), showing modest improvement.
+CURRENT ECONOMIC CALENDAR DATA (MarketWatch):
+Recent High-Impact Releases:
+- Consumer Price Index (CPI): 0.3% monthly (vs 0.3% forecast), annualized 2.7% (vs 2.6% estimate)
+- Core CPI: 0.2% monthly (vs 0.3% forecast), annualized 2.9% (exceeding Fed's 2% target)
+- Producer Price Index (PPI): 0.0% monthly (vs 0.2% forecast), showing wholesale price cooling at 2.1%
+- Retail Sales: +0.6% monthly (vs 0.2% forecast), demonstrating consumer resilience
+- Initial Jobless Claims: 221,000 (vs 234,000 forecast), labor market strength
+- Philadelphia Fed Manufacturing: +15.9 (vs -1.0 forecast), significant manufacturing improvement
+- Empire State Manufacturing: +5.5 (vs -9.0 forecast), NY region expansion
+- JOLTS Job Openings: 8.18M (vs 8.05M forecast), stable employment demand
+- Industrial Production: +0.3% (vs 0.1% forecast), steady manufacturing growth
+- Housing Starts: 1.31M (vs 1.28M previous), modest housing sector improvement
 
-KEY ECONOMIC THEMES: Persistent core inflation above Fed's 2% target, resilient consumer spending, wholesale price relief, balanced labor markets, moderating business activity suggesting sustainable growth pace.
+KEY ECONOMIC THEMES: 
+1. Inflation Persistence: Core CPI at 2.9% remains above Fed's 2% target despite PPI cooling
+2. Consumer Resilience: Retail sales beating forecasts shows spending strength amid rate pressures
+3. Labor Market Balance: Strong jobs data (221K claims vs 234K forecast) without overheating signs
+4. Manufacturing Recovery: Philadelphia Fed (+15.9) and Empire State (+5.5) both beat expectations significantly
+5. Wholesale Price Relief: PPI at 0.0% monthly suggests upstream inflation pressures easing
 
 Provide a comprehensive market analysis in JSON format that INTEGRATES technical indicators with specific economic calendar data points:
 {
   "marketConditions": "Provide technical and sentiment analysis commentary based on current indicators. Discuss RSI levels, MACD signals, volatility environment (VIX), and investor sentiment readings. Use 1 decimal place formatting. Do NOT include any economic data in this section.",
   "technicalOutlook": "Technical analysis including MACD crossover status, RSI levels, and sentiment backdrop. Use 1 decimal place for all technical values.", 
-  "riskAssessment": "ECONOMIC ANALYSIS: Risk factors incorporating inflation persistence, Fed policy implications based on economic calendar data, and growth trajectory. BOLD all economic readings (e.g., **Core CPI at 2.9%**, **Retail Sales at 1.0%**) in this section.\n\nSECTOR ROTATION ANALYSIS: Include sector performance insights and rotation patterns from the sector data as a separate paragraph.",
+  "riskAssessment": "ECONOMIC ANALYSIS: Comprehensive analysis incorporating latest MarketWatch economic releases. BOLD all economic readings (e.g., **Core CPI at 2.9%**, **Retail Sales at 0.6%**, **Initial Claims at 221,000**). Address Fed policy implications from persistent inflation vs cooling PPI. Discuss consumer spending strength vs manufacturing recovery signals.\n\nSECTOR ROTATION ANALYSIS: Detailed sector performance analysis covering 1-day and 5-day trends. Include technology resilience, energy sector weakness, financial sector performance, and rotation patterns. This must be a separate complete paragraph.",
   "confidence": 0.85
 }
 
@@ -107,7 +118,7 @@ IMPORTANT FORMATTING RULES:
           }
         ],
         response_format: { type: "json_object" },
-        max_tokens: 800,
+        max_tokens: 1200,
         temperature: 0.7,
       });
 
