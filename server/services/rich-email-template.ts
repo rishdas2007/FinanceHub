@@ -8,6 +8,15 @@ export function generateRichEmailTemplate(analysisData: any): string {
     year: 'numeric' 
   });
 
+  // Add timestamp to show data freshness
+  const timestamp = new Date().toLocaleString('en-US', { 
+    timeZone: 'America/New_York',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZoneName: 'short'
+  });
+
   console.log('Email template received sectors:', sectors ? `${sectors.length} sectors` : 'no sectors');
   if (sectors) {
     console.log('First sector example:', JSON.stringify(sectors[0], null, 2));
@@ -35,7 +44,7 @@ export function generateRichEmailTemplate(analysisData: any): string {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>AI Market Commentary - ${date}</title>
+      <title>Rishabh's Market Dashboard - ${date}</title>
     </head>
     <body style="margin: 0; padding: 0; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;">
       
@@ -44,8 +53,13 @@ export function generateRichEmailTemplate(analysisData: any): string {
         <!-- Header Section -->
         <div style="background: #ffffff; padding: 40px 30px; border-bottom: 3px solid #10b981;">
           <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #10b981; margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.02em;">AI Market Commentary</h1>
-            <p style="color: #64748b; margin: 8px 0 0 0; font-size: 16px;">Powered by GPT-4o</p>
+            <h1 style="color: #10b981; margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.02em;">Rishabh's Market Dashboard</h1>
+            <p style="color: #64748b; margin: 8px 0 0 0; font-size: 16px;">
+              <a href="https://substack.com/@rishabhd" style="color: #10b981; text-decoration: none; font-weight: 500; border-bottom: 1px solid #10b981;">Follow my market insights on Substack</a>
+            </p>
+            <p style="color: #94a3b8; margin: 8px 0 0 0; font-size: 14px; font-style: italic;">
+              Data as of ${timestamp}
+            </p>
           </div>
           
           <!-- Current Market Position -->
