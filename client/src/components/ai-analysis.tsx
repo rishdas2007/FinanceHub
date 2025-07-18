@@ -306,8 +306,7 @@ export function AIAnalysisComponent() {
                     <h5 className="text-white font-bold underline mb-2 mt-4">ECONOMIC ANALYSIS</h5>
                     <div className="text-gray-300" dangerouslySetInnerHTML={{
                       __html: analysis.riskAssessment.split('\n\n')[0]
-                        .replace(/(\d+K|\d+\.\d+%|\d+\.\d+)/g, '<span class="text-blue-400 font-bold">$1</span>')
-                        .replace(/(\w+\s+\w+\s+\w+)/g, '<span class="font-bold">$1</span>')
+                        .replace(/(\d+,?\d*K?|\d+\.\d+%?|\d+%)/g, '<span class="text-blue-400 font-bold">$1</span>')
                     }} />
                   </div>
                   

@@ -70,6 +70,8 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 - **DATA SYNCHRONIZATION RESOLVED (Latest)**: AI analysis now uses fresh real-time data matching dashboard values exactly
 - **REAL-TIME AI ANALYSIS**: AI commentary updates with current market conditions instead of cached/static data
 - **COMPREHENSIVE FRESH DATA**: AI fetches live SPY prices, technical indicators, and sentiment data at request time
+- **ECONOMIC ANALYSIS FORMATTING REFINED (Latest)**: Fixed excessive bold formatting - now only key data readings are bolded in blue
+- **PRECISION BOLD TARGETING**: Removed regex causing entire phrases to be bold, only economic readings highlighted as requested
 
 ### Complete Real Technical Indicators Integration
 - Implemented authentic VWAP data from Twelve Data API for SPY, QQQ, and Russell 2000 (IWM)
