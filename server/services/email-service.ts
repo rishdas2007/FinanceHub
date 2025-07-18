@@ -5,6 +5,7 @@ import { emailSubscriptions, type EmailSubscription, type InsertEmailSubscriptio
 import { eq } from 'drizzle-orm';
 import { FinancialDataService } from './financial-data';
 import { EnhancedAIAnalysisService } from './enhanced-ai-analysis';
+import { generateRichEmailTemplate } from './rich-email-template';
 
 const SENDGRID_ENABLED = !!process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.length > 10;
 
@@ -116,7 +117,7 @@ export class EmailService {
         return;
       }
 
-      const emailTemplate = this.generateDailyEmailTemplate(analysisData);
+      const emailTemplate = generateRichEmailTemplate(analysisData);
 
       // Send emails in batches to avoid rate limits
       const batchSize = 10;
