@@ -8,13 +8,20 @@ export function generateRichEmailTemplate(analysisData: any): string {
     year: 'numeric' 
   });
 
-  // Calculate sector performance for display
-  const topSectors = sectors?.slice(0, 5) || [
-    { name: 'Financials', oneDayChange: '0.96' },
-    { name: 'Technology', oneDayChange: '0.91' },
-    { name: 'Industrials', oneDayChange: '0.92' },
-    { name: 'Health Care', oneDayChange: '-1.14' },
-    { name: 'Consumer Discretionary', oneDayChange: '0.82' }
+  // Get all 12 sector ETFs for display
+  const allSectors = sectors || [
+    { name: 'Technology', symbol: 'XLK', oneDayChange: '0.91' },
+    { name: 'Financials', symbol: 'XLF', oneDayChange: '0.96' },
+    { name: 'Health Care', symbol: 'XLV', oneDayChange: '-1.14' },
+    { name: 'Consumer Discretionary', symbol: 'XLY', oneDayChange: '0.82' },
+    { name: 'Communication', symbol: 'XLC', oneDayChange: '0.74' },
+    { name: 'Industrials', symbol: 'XLI', oneDayChange: '0.92' },
+    { name: 'Consumer Staples', symbol: 'XLP', oneDayChange: '0.23' },
+    { name: 'Energy', symbol: 'XLE', oneDayChange: '1.45' },
+    { name: 'Utilities', symbol: 'XLU', oneDayChange: '-0.34' },
+    { name: 'Real Estate', symbol: 'XLRE', oneDayChange: '0.67' },
+    { name: 'Materials', symbol: 'XLB', oneDayChange: '1.12' },
+    { name: 'S&P 500', symbol: 'SPY', oneDayChange: '0.61' }
   ];
 
   return `
@@ -30,44 +37,44 @@ export function generateRichEmailTemplate(analysisData: any): string {
       <div style="max-width: 800px; margin: 0 auto; background: #0a0a0a;">
         
         <!-- Header Section -->
-        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%); padding: 40px 30px;">
+        <div style="background: #ffffff; padding: 40px 30px; border-bottom: 3px solid #10b981;">
           <div style="text-align: center; margin-bottom: 30px;">
             <h1 style="color: #10b981; margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.02em;">AI Market Commentary</h1>
-            <p style="color: #94a3b8; margin: 8px 0 0 0; font-size: 16px;">Powered by GPT-4o</p>
+            <p style="color: #64748b; margin: 8px 0 0 0; font-size: 16px;">Powered by GPT-4o</p>
           </div>
           
           <!-- Current Market Position -->
-          <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 12px; padding: 24px; margin: 24px 0;">
+          <div style="background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 24px; margin: 24px 0;">
             <div style="display: flex; align-items: center; margin-bottom: 16px;">
               <div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; margin-right: 12px;"></div>
-              <h2 style="color: #f1f5f9; margin: 0; font-size: 18px; font-weight: 600;">Current Market Position</h2>
+              <h2 style="color: #1e293b; margin: 0; font-size: 18px; font-weight: 600;">Current Market Position</h2>
             </div>
-            <p style="color: #cbd5e1; margin: 0 0 20px 0; font-size: 14px; line-height: 1.6;">
+            <p style="color: #475569; margin: 0 0 20px 0; font-size: 14px; line-height: 1.6;">
               The S&P 500 (SPY) closed at $${parseFloat(currentStock?.price || '628.04').toFixed(2)}, gaining ${parseFloat(currentStock?.changePercent || '0.61') >= 0 ? '+' : ''}${parseFloat(currentStock?.changePercent || '0.61').toFixed(2)}% today. 
-              <span style="color: #f59e0b;">This puts the market near historical highs, trading at elevated valuations that warrant careful monitoring.</span>
+              <span style="color: #f59e0b; font-weight: 600;">This puts the market near historical highs, trading at elevated valuations that warrant careful monitoring.</span>
             </p>
             
             <!-- Market Metrics Grid -->
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 20px;">
               <tr>
-                <td style="text-align: center; background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; margin-right: 4px; width: 23%;">
+                <td style="text-align: center; background: #ffffff; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin-right: 4px; width: 23%;">
                   <div style="color: #64748b; font-size: 12px; margin-bottom: 4px;">Current Price</div>
                   <div style="color: #10b981; font-size: 20px; font-weight: 700;">$${parseFloat(currentStock?.price || '628.04').toFixed(2)}</div>
                 </td>
                 <td style="width: 2%;"></td>
-                <td style="text-align: center; background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; margin-right: 4px; width: 23%;">
+                <td style="text-align: center; background: #ffffff; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin-right: 4px; width: 23%;">
                   <div style="color: #64748b; font-size: 12px; margin-bottom: 4px;">Daily Change</div>
                   <div style="color: ${parseFloat(currentStock?.changePercent || '0.61') >= 0 ? '#10b981' : '#ef4444'}; font-size: 20px; font-weight: 700;">
                     ${parseFloat(currentStock?.changePercent || '0.61') >= 0 ? '+' : ''}${parseFloat(currentStock?.changePercent || '0.61').toFixed(2)}%
                   </div>
                 </td>
                 <td style="width: 2%;"></td>
-                <td style="text-align: center; background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; margin-right: 4px; width: 23%;">
+                <td style="text-align: center; background: #ffffff; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin-right: 4px; width: 23%;">
                   <div style="color: #64748b; font-size: 12px; margin-bottom: 4px;">VIX Level</div>
                   <div style="color: #f59e0b; font-size: 20px; font-weight: 700;">${parseFloat(sentiment?.vix || '16.5').toFixed(1)}</div>
                 </td>
                 <td style="width: 2%;"></td>
-                <td style="text-align: center; background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; width: 23%;">
+                <td style="text-align: center; background: #ffffff; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; width: 23%;">
                   <div style="color: #64748b; font-size: 12px; margin-bottom: 4px;">AAII Bullish</div>
                   <div style="color: #10b981; font-size: 20px; font-weight: 700;">${parseFloat(sentiment?.aaiiBullish || '41.4').toFixed(1)}%</div>
                 </td>
@@ -118,32 +125,67 @@ export function generateRichEmailTemplate(analysisData: any): string {
           <div style="margin-bottom: 32px;">
             <div style="display: flex; align-items: center; margin-bottom: 16px;">
               <div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; margin-right: 12px;"></div>
-              <h3 style="color: #f1f5f9; margin: 0; font-size: 18px; font-weight: 600;">Sector Performance</h3>
+              <h3 style="color: #f1f5f9; margin: 0; font-size: 18px; font-weight: 600;">Sector Performance (Today)</h3>
             </div>
             <div style="background: #111827; border-radius: 12px; padding: 24px;">
-              <p style="color: #cbd5e1; margin: 0 0 16px 0; font-size: 14px;">Today's sector performance reveals interesting underlying trends:</p>
+              <p style="color: #cbd5e1; margin: 0 0 16px 0; font-size: 14px;">Today's sector ETF performance across all 12 major sectors:</p>
               <table width="100%" cellpadding="0" cellspacing="0">
+                <!-- First Row -->
                 <tr>
-                  ${topSectors.slice(0, 3).map(sector => `
+                  ${allSectors.slice(0, 3).map((sector, index) => `
                     <td style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 8px; padding: 12px; width: 31%; text-align: center;">
-                      <div style="color: #10b981; font-weight: 600; font-size: 14px;">${sector.name}</div>
+                      <div style="color: #10b981; font-weight: 600; font-size: 12px;">${sector.name}</div>
+                      <div style="color: #94a3b8; font-size: 10px; margin: 2px 0;">${sector.symbol || ''}</div>
                       <div style="color: ${parseFloat(sector.oneDayChange || '0') >= 0 ? '#10b981' : '#ef4444'}; font-size: 16px; font-weight: 700;">
                         ${parseFloat(sector.oneDayChange || '0') >= 0 ? '+' : ''}${parseFloat(sector.oneDayChange || '0').toFixed(2)}%
                       </div>
                     </td>
-                    ${sector !== topSectors[2] ? '<td style="width: 3.5%;"></td>' : ''}
+                    ${index < 2 ? '<td style="width: 3.5%;"></td>' : ''}
                   `).join('')}
                 </tr>
-                <tr><td colspan="5" style="padding: 8px;"></td></tr>
+                <tr><td colspan="5" style="padding: 6px;"></td></tr>
+                
+                <!-- Second Row -->
                 <tr>
-                  ${topSectors.slice(3, 5).map((sector, index) => `
+                  ${allSectors.slice(3, 6).map((sector, index) => `
                     <td style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 8px; padding: 12px; width: 31%; text-align: center;">
-                      <div style="color: #10b981; font-weight: 600; font-size: 14px;">${sector.name}</div>
+                      <div style="color: #10b981; font-weight: 600; font-size: 12px;">${sector.name}</div>
+                      <div style="color: #94a3b8; font-size: 10px; margin: 2px 0;">${sector.symbol || ''}</div>
                       <div style="color: ${parseFloat(sector.oneDayChange || '0') >= 0 ? '#10b981' : '#ef4444'}; font-size: 16px; font-weight: 700;">
                         ${parseFloat(sector.oneDayChange || '0') >= 0 ? '+' : ''}${parseFloat(sector.oneDayChange || '0').toFixed(2)}%
                       </div>
                     </td>
-                    ${index === 0 ? '<td style="width: 3.5%;"></td><td style="width: 31%;"></td>' : ''}
+                    ${index < 2 ? '<td style="width: 3.5%;"></td>' : ''}
+                  `).join('')}
+                </tr>
+                <tr><td colspan="5" style="padding: 6px;"></td></tr>
+                
+                <!-- Third Row -->
+                <tr>
+                  ${allSectors.slice(6, 9).map((sector, index) => `
+                    <td style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 8px; padding: 12px; width: 31%; text-align: center;">
+                      <div style="color: #10b981; font-weight: 600; font-size: 12px;">${sector.name}</div>
+                      <div style="color: #94a3b8; font-size: 10px; margin: 2px 0;">${sector.symbol || ''}</div>
+                      <div style="color: ${parseFloat(sector.oneDayChange || '0') >= 0 ? '#10b981' : '#ef4444'}; font-size: 16px; font-weight: 700;">
+                        ${parseFloat(sector.oneDayChange || '0') >= 0 ? '+' : ''}${parseFloat(sector.oneDayChange || '0').toFixed(2)}%
+                      </div>
+                    </td>
+                    ${index < 2 ? '<td style="width: 3.5%;"></td>' : ''}
+                  `).join('')}
+                </tr>
+                <tr><td colspan="5" style="padding: 6px;"></td></tr>
+                
+                <!-- Fourth Row -->
+                <tr>
+                  ${allSectors.slice(9, 12).map((sector, index) => `
+                    <td style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 8px; padding: 12px; width: 31%; text-align: center;">
+                      <div style="color: #10b981; font-weight: 600; font-size: 12px;">${sector.name}</div>
+                      <div style="color: #94a3b8; font-size: 10px; margin: 2px 0;">${sector.symbol || ''}</div>
+                      <div style="color: ${parseFloat(sector.oneDayChange || '0') >= 0 ? '#10b981' : '#ef4444'}; font-size: 16px; font-weight: 700;">
+                        ${parseFloat(sector.oneDayChange || '0') >= 0 ? '+' : ''}${parseFloat(sector.oneDayChange || '0').toFixed(2)}%
+                      </div>
+                    </td>
+                    ${index < 2 ? '<td style="width: 3.5%;"></td>' : ''}
                   `).join('')}
                 </tr>
               </table>
