@@ -209,11 +209,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         macroContext: macroContext
       };
       
-      // Generate enhanced AI analysis with rich formatting
+      // Generate enhanced AI analysis with trader-style formatting
       const { EnhancedAIAnalysisService } = await import('./services/enhanced-ai-analysis');
       const enhancedAiService = EnhancedAIAnalysisService.getInstance();
       const aiResult = await enhancedAiService.generateRobustMarketAnalysis(enhancedMarketData, finalSectors);
-      console.log('✅ Enhanced AI analysis generated with comprehensive market insights');
+      console.log('✅ Enhanced AI analysis generated with trader-style insights');
       
       const analysisData = await storage.createAiAnalysis({
         marketConditions: aiResult.marketConditions || 'Market analysis unavailable',
