@@ -217,6 +217,19 @@ export class DataScheduler {
       timezone: "America/New_York"
     });
 
+    // MarketWatch Calendar Auto-Scraping: Weekly on Sunday at 11 PM EST (prepare for next week)
+    cron.schedule('0 23 * * 0', async () => {
+      console.log('🔍 MARKETWATCH: Weekly calendar scraping for upcoming events...');
+      try {
+        await this.updateEconomicDataWithFred(); // This now includes MarketWatch scraping
+        console.log('✅ MARKETWATCH: Weekly calendar updated successfully');
+      } catch (error) {
+        console.error('❌ MARKETWATCH: Error updating weekly calendar:', error);
+      }
+    }, {
+      timezone: "America/New_York"
+    });
+
     // Comprehensive sync: Daily at 6 AM EST
     cron.schedule('0 6 * * *', async () => {
       console.log('🌅 Starting daily comprehensive sync at 6 AM EST...');

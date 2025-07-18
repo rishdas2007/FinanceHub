@@ -1,5 +1,6 @@
 import type { EconomicEvent } from '../types/financial';
 import { fredApiService } from './fred-api';
+import { marketWatchScraper } from './marketwatch-scraper';
 
 export class EconomicDataService {
   private static instance: EconomicDataService;
@@ -12,14 +13,37 @@ export class EconomicDataService {
   }
 
   async scrapeMarketWatchCalendar(): Promise<EconomicEvent[]> {
-    console.log('🔄 Fetching economic events with FRED API automation...');
-    const events = await this.getFallbackEvents();
+    console.log('🔄 Fetching economic events with FULL AUTOMATION (MarketWatch + FRED)...');
     
-    // Auto-update actual values using FRED API for recent events
-    const updatedEvents = await this.updateEventsWithFredData(events);
-    
-    console.log(`✅ Economic calendar loaded: ${updatedEvents.length} events (${updatedEvents.filter(e => e.actual).length} with actual data)`);
-    return updatedEvents;
+    try {
+      // Step 1: Get upcoming events from MarketWatch (automated forecasts)
+      const upcomingEvents = await marketWatchScraper.scrapeUpcomingEvents(14); // Next 2 weeks
+      const scrapedEvents = marketWatchScraper.convertToEconomicEvents(upcomingEvents);
+      
+      // Step 2: Combine with curated historical events (for completeness)
+      const historicalEvents = await this.getFallbackEvents();
+      const filteredHistorical = historicalEvents.filter(event => {
+        const eventDate = new Date(event.date);
+        const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+        return eventDate >= threeDaysAgo; // Only keep recent historical events
+      });
+      
+      // Step 3: Merge events and remove duplicates
+      const allEvents = [...filteredHistorical, ...scrapedEvents];
+      const uniqueEvents = this.deduplicateEvents(allEvents);
+      
+      // Step 4: Auto-update actual values using FRED API for recent events
+      const updatedEvents = await this.updateEventsWithFredData(uniqueEvents);
+      
+      console.log(`✅ FULLY AUTOMATED calendar: ${updatedEvents.length} events (${updatedEvents.filter(e => e.actual).length} with actual, ${scrapedEvents.length} auto-scraped)`);
+      return updatedEvents;
+    } catch (error) {
+      console.error('Error in automated calendar fetch, falling back to curated events:', error);
+      const fallbackEvents = await this.getFallbackEvents();
+      const updatedFallback = await this.updateEventsWithFredData(fallbackEvents);
+      console.log(`📋 Fallback calendar: ${updatedFallback.length} events (${updatedFallback.filter(e => e.actual).length} with actual data)`);
+      return updatedFallback;
+    }
   }
 
   private async updateEventsWithFredData(events: EconomicEvent[]): Promise<EconomicEvent[]> {
@@ -53,6 +77,21 @@ export class EconomicDataService {
     }
 
     return updatedEvents;
+  }
+
+  private deduplicateEvents(events: EconomicEvent[]): EconomicEvent[] {
+    const seen = new Map<string, EconomicEvent>();
+    
+    events.forEach(event => {
+      const key = `${event.title.toLowerCase().replace(/\s+/g, '')}-${new Date(event.date).toDateString()}`;
+      
+      // Keep the event with actual data if duplicate exists
+      if (!seen.has(key) || (event.actual && !seen.get(key)?.actual)) {
+        seen.set(key, event);
+      }
+    });
+    
+    return Array.from(seen.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }
 
   private parseEventDate(dateStr: string, timeStr: string): Date {
