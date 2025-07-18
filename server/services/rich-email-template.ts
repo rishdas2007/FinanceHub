@@ -32,9 +32,9 @@ export function generateRichEmailTemplate(analysisData: any): string {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>AI Market Commentary - ${date}</title>
     </head>
-    <body style="margin: 0; padding: 0; background: #0a0a0a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;">
+    <body style="margin: 0; padding: 0; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;">
       
-      <div style="max-width: 800px; margin: 0 auto; background: #0a0a0a;">
+      <div style="max-width: 800px; margin: 0 auto; background: #ffffff;">
         
         <!-- Header Section -->
         <div style="background: #ffffff; padding: 40px 30px; border-bottom: 3px solid #10b981;">
@@ -136,8 +136,8 @@ export function generateRichEmailTemplate(analysisData: any): string {
                     <td style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 8px; padding: 12px; width: 31%; text-align: center;">
                       <div style="color: #10b981; font-weight: 600; font-size: 12px;">${sector.name}</div>
                       <div style="color: #94a3b8; font-size: 10px; margin: 2px 0;">${sector.symbol || ''}</div>
-                      <div style="color: ${parseFloat(sector.oneDayChange || '0') >= 0 ? '#10b981' : '#ef4444'}; font-size: 16px; font-weight: 700;">
-                        ${parseFloat(sector.oneDayChange || '0') >= 0 ? '+' : ''}${parseFloat(sector.oneDayChange || '0').toFixed(2)}%
+                      <div style="color: ${parseFloat(sector.changePercent || sector.oneDayChange || '0') >= 0 ? '#10b981' : '#ef4444'}; font-size: 16px; font-weight: 700;">
+                        ${parseFloat(sector.changePercent || sector.oneDayChange || '0') >= 0 ? '+' : ''}${parseFloat(sector.changePercent || sector.oneDayChange || '0').toFixed(2)}%
                       </div>
                     </td>
                     ${index < 2 ? '<td style="width: 3.5%;"></td>' : ''}
@@ -151,8 +151,8 @@ export function generateRichEmailTemplate(analysisData: any): string {
                     <td style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 8px; padding: 12px; width: 31%; text-align: center;">
                       <div style="color: #10b981; font-weight: 600; font-size: 12px;">${sector.name}</div>
                       <div style="color: #94a3b8; font-size: 10px; margin: 2px 0;">${sector.symbol || ''}</div>
-                      <div style="color: ${parseFloat(sector.oneDayChange || '0') >= 0 ? '#10b981' : '#ef4444'}; font-size: 16px; font-weight: 700;">
-                        ${parseFloat(sector.oneDayChange || '0') >= 0 ? '+' : ''}${parseFloat(sector.oneDayChange || '0').toFixed(2)}%
+                      <div style="color: ${parseFloat(sector.changePercent || sector.oneDayChange || '0') >= 0 ? '#10b981' : '#ef4444'}; font-size: 16px; font-weight: 700;">
+                        ${parseFloat(sector.changePercent || sector.oneDayChange || '0') >= 0 ? '+' : ''}${parseFloat(sector.changePercent || sector.oneDayChange || '0').toFixed(2)}%
                       </div>
                     </td>
                     ${index < 2 ? '<td style="width: 3.5%;"></td>' : ''}
@@ -166,8 +166,8 @@ export function generateRichEmailTemplate(analysisData: any): string {
                     <td style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 8px; padding: 12px; width: 31%; text-align: center;">
                       <div style="color: #10b981; font-weight: 600; font-size: 12px;">${sector.name}</div>
                       <div style="color: #94a3b8; font-size: 10px; margin: 2px 0;">${sector.symbol || ''}</div>
-                      <div style="color: ${parseFloat(sector.oneDayChange || '0') >= 0 ? '#10b981' : '#ef4444'}; font-size: 16px; font-weight: 700;">
-                        ${parseFloat(sector.oneDayChange || '0') >= 0 ? '+' : ''}${parseFloat(sector.oneDayChange || '0').toFixed(2)}%
+                      <div style="color: ${parseFloat(sector.changePercent || sector.oneDayChange || '0') >= 0 ? '#10b981' : '#ef4444'}; font-size: 16px; font-weight: 700;">
+                        ${parseFloat(sector.changePercent || sector.oneDayChange || '0') >= 0 ? '+' : ''}${parseFloat(sector.changePercent || sector.oneDayChange || '0').toFixed(2)}%
                       </div>
                     </td>
                     ${index < 2 ? '<td style="width: 3.5%;"></td>' : ''}
@@ -181,8 +181,8 @@ export function generateRichEmailTemplate(analysisData: any): string {
                     <td style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 8px; padding: 12px; width: 31%; text-align: center;">
                       <div style="color: #10b981; font-weight: 600; font-size: 12px;">${sector.name}</div>
                       <div style="color: #94a3b8; font-size: 10px; margin: 2px 0;">${sector.symbol || ''}</div>
-                      <div style="color: ${parseFloat(sector.oneDayChange || '0') >= 0 ? '#10b981' : '#ef4444'}; font-size: 16px; font-weight: 700;">
-                        ${parseFloat(sector.oneDayChange || '0') >= 0 ? '+' : ''}${parseFloat(sector.oneDayChange || '0').toFixed(2)}%
+                      <div style="color: ${parseFloat(sector.changePercent || sector.oneDayChange || '0') >= 0 ? '#10b981' : '#ef4444'}; font-size: 16px; font-weight: 700;">
+                        ${parseFloat(sector.changePercent || sector.oneDayChange || '0') >= 0 ? '+' : ''}${parseFloat(sector.changePercent || sector.oneDayChange || '0').toFixed(2)}%
                       </div>
                     </td>
                     ${index < 2 ? '<td style="width: 3.5%;"></td>' : ''}
