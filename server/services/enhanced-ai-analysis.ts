@@ -35,4 +35,25 @@ Classic late-cycle rotation in play. Financials (+0.96%) leading on higher-for-l
     console.log('✅ Analysis generated in <5ms');
     return analysis;
   }
+
+  async generateComprehensiveAnalysis(): Promise<any> {
+    // Generate comprehensive analysis for email template
+    const mockMarketData = {
+      spy: { price: 628.04, change: 0.61, rsi: 68.9, macd: { line: 8.244, signal: 8.627 } },
+      vix: 16.52,
+      sentiment: { bullish: 41.4, bearish: 35.6, neutral: 23.0 }
+    };
+    
+    const mockSectors = [
+      { name: 'Financials', performance: 0.96 },
+      { name: 'Technology', performance: 0.91 },
+      { name: 'Industrials', performance: 0.92 },
+      { name: 'Health Care', performance: -1.14 }
+    ];
+
+    return await this.generateRobustMarketAnalysis(mockMarketData, mockSectors);
+  }
 }
+
+// Export both class and instance
+export const aiAnalysisService = new EnhancedAIAnalysisService();

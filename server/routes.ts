@@ -666,33 +666,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test endpoint for email functionality
   app.post("/api/email/test-daily", async (req, res) => {
     try {
+      console.log('📧 Starting email test...');
       const { emailService } = await import('./services/email-service');
       const { aiAnalysisService } = await import('./services/enhanced-ai-analysis');
       
       // Get active subscriptions
       const subscriptions = await emailService.getActiveSubscriptions();
+      console.log(`Found ${subscriptions.length} active subscriptions`);
       
       if (subscriptions.length === 0) {
         return res.json({ 
           message: 'No active subscriptions found',
-          subscriptions: 0
+          subscriptions: 0,
+          status: 'no_subscribers'
         });
       }
       
-      // Generate fresh analysis data for the test email
-      const analysisData = await aiAnalysisService.generateComprehensiveAnalysis();
+      // Generate test analysis data for the test email
+      console.log('Generating test market analysis...');
+      const analysisData = {
+        marketConditions: "Bottom Line: SPX's +0.61% gain to 628.04 masks brewing technical divergences. Bull market intact, but healthy pullback overdue.",
+        technicalOutlook: "Classic late-rally setup emerging. RSI at 68.9 approaches overbought territory while MACD shows bearish crossover.",
+        riskAssessment: "Goldilocks backdrop continues. Fed getting the cooling they want without breaking anything.",
+        confidence: 0.85
+      };
       
       // Send test daily email
+      console.log('Sending test daily email...');
       await emailService.sendDailyMarketCommentary(analysisData);
       
+      const sendGridEnabled = !!process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.startsWith('SG.');
+      
       res.json({ 
-        message: 'Test daily email sent successfully',
+        message: sendGridEnabled ? 'Test daily email sent successfully' : 'Email test completed (SendGrid not configured - emails logged only)',
         subscriptions: subscriptions.length,
-        sendGridEnabled: !!process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.startsWith('SG.')
+        sendGridEnabled,
+        status: 'success',
+        emails: subscriptions.map(sub => ({ email: sub.email, active: sub.isActive }))
       });
     } catch (error) {
       console.error('Error sending test email:', error);
-      res.status(500).json({ message: 'Failed to send test email', error: error.message });
+      res.status(500).json({ 
+        message: 'Failed to send test email', 
+        error: error.message,
+        status: 'error'
+      });
     }
   });
 
