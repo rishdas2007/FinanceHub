@@ -88,13 +88,23 @@ export class EnhancedAIAnalysisService {
     const momentum = macd > macdSignal ? 'bullish' : 'bearish';
     const rsiCondition = rsi > 70 ? 'overbought' : rsi > 60 ? 'elevated' : rsi < 30 ? 'oversold' : 'neutral';
     
-    return `**TECHNICAL ANALYSIS:** RSI at ${rsi.toFixed(1)} shows ${rsiCondition} conditions while MACD shows ${momentum} crossover (${macd.toFixed(3)} vs ${macdSignal.toFixed(3)}). VIX at ${vix.toFixed(2)} reflects ${vix < 20 ? 'dangerous complacency' : 'elevated stress'}. ${rsi > 65 ? 'Expect near-term chop as conditions normalize' : 'Technical setup supportive for further gains'}.`;
+    const momentumInsight = macd > macdSignal ? 
+      'Momentum readings suggest continued upside potential as buying interest remains robust' :
+      'Bearish momentum crossover signals potential near-term weakness as selling pressure builds';
+      
+    const volatilityInsight = vix < 15 ? 
+      'Extremely low volatility suggests dangerous complacency that typically precedes sharp reversals' :
+      vix < 20 ? 
+      'Subdued fear levels indicate market confidence but also raise concerns about positioning crowding' :
+      'Elevated fear levels present contrarian buying opportunities for nimble traders';
+    
+    return `RSI at ${rsi.toFixed(1)} indicates ${rsiCondition} momentum conditions with MACD showing ${momentum} crossover dynamics (${macd.toFixed(3)} vs ${macdSignal.toFixed(3)}). ${momentumInsight}. VIX at ${vix.toFixed(2)} reveals important sentiment extremes - ${volatilityInsight}. ${rsi > 65 ? 'Expect consolidation or pullback as overbought conditions work off naturally' : 'Technical setup remains constructive for further gains with momentum supporting upside breakouts'}.`;
   }
 
   private generateEconomicAnalysis(economicData: any, sectors: any[]) {
     // Safe fallback if no sector data
     if (!sectors || sectors.length === 0) {
-      return '**ECONOMIC ANALYSIS:** Fed policy supportive, labor market resilient. **SECTOR ROTATION ANALYSIS:** Broad market structure remains constructive with balanced sector participation.';
+      return 'Fed policy backdrop remains supportive with labor market resilience providing economic foundation. Broad market structure shows constructive sector participation indicating healthy underlying conditions.';
     }
 
     try {
@@ -112,23 +122,41 @@ export class EnhancedAIAnalysisService {
         }
       });
 
-      // Economic analysis
-      let economicText = '';
-      if (economicData.summary) {
-        economicText = `**ECONOMIC ANALYSIS:** ${economicData.summary}. `;
+      // Generate economic insights from recent data
+      let economicInsights = '';
+      if (economicData.summary && economicData.summary.length > 0) {
+        const events = economicData.summary.split(', ');
+        const beatCount = events.filter(e => e.includes('beat')).length;
+        const missedCount = events.filter(e => e.includes('missed')).length;
+        
+        if (beatCount > missedCount) {
+          economicInsights = `Recent economic releases signal underlying strength with data generally exceeding expectations. This backdrop supports risk appetite and validates current market positioning. Key releases including retail sales and employment data suggest consumer resilience remains intact, providing fundamental support for equity markets.`;
+        } else if (missedCount > beatCount) {
+          economicInsights = `Economic data showing mixed signals with several key releases missing forecasts. This creates some uncertainty about growth momentum and could influence Fed policy considerations. Markets remain focused on labor market stability and consumer spending patterns for directional clarity.`;
+        } else {
+          economicInsights = `Economic releases aligned closely with expectations, suggesting stable growth trajectory without significant surprises. This Goldilocks scenario supports current market conditions while keeping Fed policy path predictable.`;
+        }
       } else {
-        economicText = '**ECONOMIC ANALYSIS:** Fed policy supportive, labor market resilient. ';
+        economicInsights = 'Fed policy framework continues supporting market conditions with labor market resilience providing economic foundation. Recent data flow suggests sustainable growth trajectory without concerning inflationary pressures.';
       }
 
-      // Count positive sectors safely
+      // Count positive sectors safely and analyze rotation
       const positiveSectors = sectors.filter(s => Number(s.changePercent) > 0).length;
+      const rotationStrength = positiveSectors / sectors.length;
+      
+      let rotationInsights = '';
+      if (rotationStrength >= 0.75) {
+        rotationInsights = `Broad-based sector strength with ${positiveSectors}/${sectors.length} sectors advancing signals healthy risk appetite and broad market participation. ${topSector.name} leadership (${topSector.change > 0 ? '+' : ''}${topSector.change.toFixed(2)}%) reflects sector rotation into growth/cyclical areas, while ${bottomSector.name} weakness (${bottomSector.change.toFixed(2)}%) shows normal profit-taking dynamics. This broad participation typically supports sustained market advances.`;
+      } else if (rotationStrength >= 0.5) {
+        rotationInsights = `Selective sector performance with ${positiveSectors}/${sectors.length} sectors positive indicates discerning rotation rather than broad buying. ${topSector.name} outperformance (${topSector.change > 0 ? '+' : ''}${topSector.change.toFixed(2)}%) suggests capital flowing into quality names while ${bottomSector.name} underperforms (${bottomSector.change.toFixed(2)}%). This selective approach often precedes either breakouts or consolidation phases.`;
+      } else {
+        rotationInsights = `Defensive sector rotation evident with only ${positiveSectors}/${sectors.length} sectors advancing. ${topSector.name} relative strength (${topSector.change > 0 ? '+' : ''}${topSector.change.toFixed(2)}%) while ${bottomSector.name} lags (${bottomSector.change.toFixed(2)}%) suggests investors positioning more cautiously. This defensive positioning typically emerges during uncertainty periods or late-cycle conditions.`;
+      }
 
-      return `${economicText}
-
-**SECTOR ROTATION ANALYSIS:** Classic rotation in play. ${topSector.name} leading (${topSector.change > 0 ? '+' : ''}${topSector.change.toFixed(2)}%) while ${bottomSector.name} lagging (${bottomSector.change.toFixed(2)}%). Broad market structure ${positiveSectors >= sectors.length * 0.6 ? 'bullish' : 'mixed'} with ${positiveSectors}/${sectors.length} sectors positive.`;
+      return `${economicInsights}\n\n${rotationInsights}`;
     } catch (error) {
       console.error('Error in generateEconomicAnalysis:', error);
-      return '**ECONOMIC ANALYSIS:** Fed policy supportive, labor market resilient. **SECTOR ROTATION ANALYSIS:** Classic rotation continues with balanced sector participation.';
+      return 'Fed policy backdrop remains supportive with labor market resilience providing economic foundation. Classic sector rotation continues with balanced participation indicating healthy underlying market conditions.';
     }
   }
 
