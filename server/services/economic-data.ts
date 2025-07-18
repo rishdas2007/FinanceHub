@@ -92,7 +92,7 @@ export class EconomicDataService {
     }
   }
 
-  private getFallbackEvents(): EconomicEvent[] {
+  getFallbackEvents(): EconomicEvent[] {
     // Current week's actual events from MarketWatch as fallback
     const events: EconomicEvent[] = [
       // Thursday, July 17 - Released Events
@@ -231,33 +231,7 @@ export class EconomicDataService {
         actual: '8.18M',
         impact: 'positive'
       },
-      // Current Week Events
-      {
-        id: 'cpi-jun2025',
-        title: 'US Consumer Price Index (CPI) - June',
-        description: 'Monthly inflation measure - RELEASED',
-        date: new Date('2025-07-15T12:30:00Z'),
-        time: '8:30 AM ET',
-        importance: 'high',
-        currency: 'USD',
-        forecast: '2.6%',
-        previous: '2.4%',
-        actual: '2.7%',
-        impact: 'slightly_negative'
-      },
-      {
-        id: 'core-cpi-jun2025',
-        title: 'US Core CPI - June',
-        description: 'CPI excluding food and energy - RELEASED',
-        date: new Date('2025-07-15T12:30:00Z'),
-        time: '8:30 AM ET',
-        importance: 'high',
-        currency: 'USD',
-        forecast: '2.8%',
-        previous: '2.6%',
-        actual: '2.9%',
-        impact: 'slightly_negative'
-      },
+
       {
         id: 'ppi-jul2025',
         title: 'US Producer Price Index (PPI)',

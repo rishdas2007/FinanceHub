@@ -252,46 +252,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Economic events
+  // Economic events - force fresh data every time
   app.get("/api/economic-events", async (req, res) => {
     try {
-      let events = await storage.getUpcomingEconomicEvents();
+      console.log('Getting fresh economic events...');
       
-      if (events.length === 0) {
-        // Get real economic events from the economic data service
-        const { EconomicDataService } = await import('./services/economic-data');
-        const economicService = EconomicDataService.getInstance();
-        const realEvents = await economicService.getFallbackEvents();
-        
-        // Store events in database for caching
-        for (const event of realEvents.slice(0, 10)) {
-          try {
-            await storage.createEconomicEvent({
-              title: event.title,
-              description: event.description || '',
-              eventDate: event.date,
-              importance: event.importance,
-              forecast: event.forecast || null,
-              previous: event.previous || null,
-              actual: event.actual || null,
-            });
-          } catch (error) {
-            // Event might already exist, continue
-          }
-        }
-        // Transform realEvents to match our database schema
-        events = realEvents.map(event => ({
-          id: Math.floor(Math.random() * 1000000), // Generate temporary ID
-          title: event.title,
-          description: event.description,
-          importance: event.importance,
-          eventDate: event.date,
-          forecast: event.forecast || null,
-          previous: event.previous || null,
-          actual: event.actual || null,
-          timestamp: new Date()
-        }));
-      }
+      // Get real economic events from the economic data service
+      const { EconomicDataService } = await import('./services/economic-data');
+      const economicService = EconomicDataService.getInstance();
+      const realEvents = economicService.getFallbackEvents();
+      
+      console.log(`Raw events from service: ${realEvents.length}`);
+      console.log('Event titles:', realEvents.map(e => e.title));
+      
+      // Transform realEvents to match our database schema
+      const events = realEvents.map((event, index) => ({
+        id: Math.floor(Math.random() * 1000000) + index, // Generate temporary ID
+        title: event.title,
+        description: event.description,
+        importance: event.importance,
+        eventDate: event.date,
+        forecast: event.forecast || null,
+        previous: event.previous || null,
+        actual: event.actual || null,
+        timestamp: new Date()
+      }));
+      
+      console.log(`Transformed and returning ${events.length} economic events`);
       
       res.json(events);
     } catch (error) {
