@@ -273,36 +273,21 @@ export class MarketWatchScraper {
   }
 
   private generateFallbackEvents(): MarketWatchEvent[] {
-    // Generate comprehensive upcoming events for next 2 weeks if scraping fails
+    // ENHANCED: Generate minimal essential upcoming events for next 2 weeks if scraping fails
     const events: MarketWatchEvent[] = [];
     const today = new Date();
     
-    // Add comprehensive economic calendar for upcoming weeks
-    const upcomingEvents = [
-      // Week 1 (July 22-26, 2025)
-      { title: 'Richmond Fed Manufacturing Index', day: 1, time: '10:00 AM ET', importance: 'medium' as const, forecast: '-8', previous: '-12' },
-      { title: 'Existing Home Sales', day: 2, time: '10:00 AM ET', importance: 'medium' as const, forecast: '3.95M', previous: '3.89M' },
-      { title: 'Initial Jobless Claims', day: 3, time: '8:30 AM ET', importance: 'high' as const, forecast: '235K', previous: '221K' },
-      { title: 'New Home Sales', day: 3, time: '10:00 AM ET', importance: 'medium' as const, forecast: '640K', previous: '617K' },
-      { title: 'GDP Advance', day: 4, time: '8:30 AM ET', importance: 'high' as const, forecast: '2.5%', previous: '1.4%' },
-      
-      // Week 2 (July 29-Aug 2, 2025)  
-      { title: 'Personal Income', day: 8, time: '8:30 AM ET', importance: 'medium' as const, forecast: '0.3%', previous: '0.1%' },
-      { title: 'Personal Spending', day: 8, time: '8:30 AM ET', importance: 'high' as const, forecast: '0.4%', previous: '0.3%' },
-      { title: 'Core PCE Price Index', day: 8, time: '8:30 AM ET', importance: 'high' as const, forecast: '2.6%', previous: '2.7%' },
-      { title: 'ISM Manufacturing PMI', day: 9, time: '10:00 AM ET', importance: 'high' as const, forecast: '48.8', previous: '48.5' },
-      { title: 'Initial Jobless Claims', day: 10, time: '8:30 AM ET', importance: 'high' as const, forecast: '240K', previous: '235K' },
-      { title: 'Nonfarm Payrolls', day: 11, time: '8:30 AM ET', importance: 'high' as const, forecast: '175K', previous: '206K' },
-      { title: 'Unemployment Rate', day: 11, time: '8:30 AM ET', importance: 'high' as const, forecast: '4.0%', previous: '4.0%' },
-      
-      // Week 3 (Aug 5-9, 2025)
-      { title: 'ISM Services PMI', day: 12, time: '10:00 AM ET', importance: 'high' as const, forecast: '53.5', previous: '53.8' },
-      { title: 'Trade Balance', day: 13, time: '8:30 AM ET', importance: 'medium' as const, forecast: '-$78.8B', previous: '-$73.1B' },
-      { title: 'Consumer Price Index', day: 17, time: '8:30 AM ET', importance: 'high' as const, forecast: '3.0%', previous: '3.0%' },
-      { title: 'Core CPI', day: 17, time: '8:30 AM ET', importance: 'high' as const, forecast: '3.2%', previous: '3.3%' }
+    // Only essential high-impact events that FRED API will likely update
+    const essentialEvents = [
+      // Core weekly release (always available)
+      { title: 'Initial Jobless Claims', day: 4, time: '8:30 AM ET', importance: 'high' as const, forecast: null, previous: null },
+      // Core monthly releases 
+      { title: 'GDP Advance', day: 11, time: '8:30 AM ET', importance: 'high' as const, forecast: null, previous: null },
+      { title: 'Consumer Price Index (CPI)', day: 18, time: '8:30 AM ET', importance: 'high' as const, forecast: null, previous: null },
+      { title: 'Nonfarm Payrolls', day: 25, time: '8:30 AM ET', importance: 'high' as const, forecast: null, previous: null },
     ];
 
-    upcomingEvents.forEach(event => {
+    essentialEvents.forEach(event => {
       const eventDate = new Date(today);
       eventDate.setDate(today.getDate() + event.day);
       

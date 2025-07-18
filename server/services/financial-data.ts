@@ -936,11 +936,12 @@ export class FinancialDataService {
 
 
   private generateRealisticMarketBreadth() {
-    // Generate realistic market breadth based on typical NYSE statistics
+    // EMERGENCY FALLBACK: Generate market breadth estimates when API completely fails
+    console.log('⚠️ EMERGENCY: Market breadth API failure, generating baseline estimates');
     const time = new Date().getHours();
     const isMarketHours = time >= 9 && time <= 16;
     
-    // During market hours, more typical distribution
+    // Baseline estimates when API fails completely - based on NYSE typical distribution
     const baseAdvancing = isMarketHours ? 1800 : 1600;
     const baseVariation = isMarketHours ? 600 : 400;
     

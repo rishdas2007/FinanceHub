@@ -450,8 +450,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching market indicators:', error);
       
-      // Fallback to cached data with warning
-      const fallbackData = {
+      // Emergency fallback with clear labeling
+      const emergencyData = {
         spy_vwap: 628.12,
         nasdaq_vwap: 560.45,
         dow_vwap: 445.30,
@@ -461,11 +461,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dow_rsi: 69.8,
         williams_r: -31.5,
         last_updated: new Date().toISOString(),
-        data_source: 'fallback_estimated',
-        market_status: 'API_ERROR'
+        data_source: 'EMERGENCY_FALLBACK_COMPLETE_API_FAILURE',
+        market_status: 'CRITICAL_API_ERROR',
+        warning: 'Emergency data only - not current market values due to API failure'
       };
       
-      res.json(fallbackData);
+      console.log('⚠️ EMERGENCY: Market indicators API failure, serving emergency data with warning');
+      res.json(emergencyData);
     }
   });
 

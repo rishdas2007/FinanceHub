@@ -113,16 +113,17 @@ export class DataScheduler {
         finalSectors = await this.financialService.getSectorETFs();
         
       } catch (error) {
-        console.error('Error fetching real data for email, using emergency fallback:', error);
-        // Only use emergency fallback if APIs completely fail
+        console.error('⚠️ EMERGENCY: Complete API failure for email data, using emergency fallback data:', error);
+        // EMERGENCY FALLBACK - Only if APIs completely fail for email
         finalStockData = { symbol: 'SPY', price: '627.07', change: '-0.97', changePercent: '-0.15' };
         finalSentiment = { vix: '16.52', putCallRatio: '0.85', aaiiBullish: '41.4', aaiiBearish: '35.6' };
         finalTechnical = { rsi: '67.32', macd: '8.06', macdSignal: '8.51' };
         finalSectors = [
-          { name: 'Technology', symbol: 'XLK', changePercent: 0.91, fiveDayChange: 2.8 },
-          { name: 'Financials', symbol: 'XLF', changePercent: 0.96, fiveDayChange: 2.1 },
-          { name: 'Health Care', symbol: 'XLV', changePercent: -1.14, fiveDayChange: 0.3 }
+          { name: 'Technology', symbol: 'XLK', changePercent: 0.91, fiveDayChange: 2.8, price: 260.86 },
+          { name: 'Financials', symbol: 'XLF', changePercent: 0.96, fiveDayChange: 2.1, price: 52.56 },
+          { name: 'Health Care', symbol: 'XLV', changePercent: -1.14, fiveDayChange: 0.3, price: 131.86 }
         ];
+        console.log('⚠️ Email will use EMERGENCY FALLBACK DATA due to complete API failure');
       }
 
       // Generate analysis using the enhanced AI service with real data
