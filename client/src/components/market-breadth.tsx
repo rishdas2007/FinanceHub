@@ -58,7 +58,7 @@ export function MarketBreadth() {
       isPositive: true
     },
     {
-      title: 'DOW VWAP',
+      title: 'Russell 2000 VWAP',
       value: `$${formatNumber(indicatorsData.dow_vwap, 2)}`,
       subtitle: 'Volume Weighted Average Price', 
       isPositive: true
@@ -83,7 +83,7 @@ export function MarketBreadth() {
       isWarning: Number(indicatorsData.nasdaq_rsi) > 70 || Number(indicatorsData.nasdaq_rsi) < 30
     },
     {
-      title: 'DOW RSI',
+      title: 'Russell 2000 RSI',
       value: formatNumber(indicatorsData.dow_rsi, 1),
       subtitle: '14-day RSI',
       isWarning: Number(indicatorsData.dow_rsi) > 70 || Number(indicatorsData.dow_rsi) < 30

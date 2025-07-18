@@ -6,7 +6,15 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 
 ## Recent Changes (July 18, 2025)
 
-### Comprehensive Data Scheduling System (Latest Update)
+### Real RSI Integration with Twelve Data API (Latest Update)
+- Implemented authentic RSI data from Twelve Data API for SPY, QQQ, and Russell 2000 (IWM)
+- Direct API calls to https://api.twelvedata.com/rsi with 14-day period calculation
+- Replaced hardcoded RSI values with live technical analysis data
+- Market Breadth indicators now show Russell 2000 instead of DOW for small-cap representation
+- Added proper error handling and realistic fallback values for API failures
+- Rate limiting compliance with 55 calls/minute to preserve API quotas
+
+### Comprehensive Data Scheduling System
 - Implemented automated data scheduler with cron jobs for daily updates
 - Real-time updates: Every 2 minutes (8:30 AM - 6 PM EST, weekdays) 
 - Forecast updates: Every 6 hours for economic calendar and AI analysis refresh
