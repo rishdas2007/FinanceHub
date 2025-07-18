@@ -31,13 +31,15 @@ export class EnhancedAIAnalysisService {
 
     console.log('✅ Generating trader-style analysis with punchy Wall Street tone');
     
-    // Enhanced trader format with proper formatting and authentic sector data
+    // Clean trader format with proper structure and authentic sector data
     return {
-      marketConditions: `Bottom Line: SPX's **+${marketData.changePercent?.toFixed(2)}%** gain to **${marketData.price?.toFixed(2)}** masks brewing technical divergences. Bull market intact, but a healthy pullback is overdue before resuming higher. Don't fight the trend until key support breaks.\n\n**TECHNICAL ANALYSIS:**\nClassic late-rally setup emerging. RSI at **${marketData.rsi?.toFixed(1)}** approaches overbought territory while MACD shows ${marketData.macd < marketData.macdSignal ? '**bearish crossover**' : '**bullish alignment**'} (**${marketData.macd?.toFixed(3)}** vs **${marketData.macdSignal?.toFixed(3)}**) - textbook momentum divergence. VIX at **${marketData.vix?.toFixed(1)}** reflects dangerous complacency. Still bullish medium-term, but expect near-term chop as frothy conditions get worked off.`,
+      marketConditions: `Bottom Line: SPX's +${marketData.changePercent?.toFixed(2)}% gain to ${marketData.price?.toFixed(2)} masks brewing technical divergences. Bull market intact, but a healthy pullback is overdue before resuming higher. Don't fight the trend until key support breaks.`,
       
-      technicalOutlook: `Textbook late-cycle setup with momentum divergences emerging despite continued price strength.`,
+      technicalOutlook: `Classic late-rally setup emerging. RSI at ${marketData.rsi?.toFixed(1)} approaches overbought territory while MACD shows ${marketData.macd < marketData.macdSignal ? 'bearish crossover' : 'bullish alignment'} (${marketData.macd?.toFixed(3)} vs ${marketData.macdSignal?.toFixed(3)}) - textbook momentum divergence. VIX at ${marketData.vix?.toFixed(1)} reflects dangerous complacency. Still bullish medium-term, but expect near-term chop as frothy conditions get worked off.`,
       
-      riskAssessment: `**ECONOMIC ANALYSIS:**\nGoldilocks backdrop continues. Jobless claims beat at **221K** vs **234K** forecast - labor market resilient. Core CPI steady at **0.2%**, but producer prices flat at **0.0%** vs **0.2%** expected signals pipeline disinflation. Retail sales modest at **0.6%**. Fed getting the cooling they want without breaking anything.\n\n**SECTOR ANALYSIS:**\nClassic late-cycle rotation in play. Financials (**+0.96%**) leading on higher-for-longer positioning. Tech (**+0.91%**) and Industrials (**+0.92%**) strong, but Health Care (**-1.14%**) weakness shows defensive rotation. Broad **82%** advance/decline ratio bullish for structure but suggests extended conditions. Energy's 5-day weakness (**-2.15%**) concerning in otherwise risk-on environment.`,
+      riskAssessment: `Goldilocks backdrop continues. Jobless claims beat at 221K vs 234K forecast - labor market resilient. Core CPI steady at 0.2%, but producer prices flat at 0.0% vs 0.2% expected signals pipeline disinflation. Retail sales modest at 0.6%. Fed getting the cooling they want without breaking anything.
+
+Classic late-cycle rotation in play. Financials (+0.96%) leading on higher-for-longer positioning. Tech (+0.91%) and Industrials (+0.92%) strong, but Health Care (-1.14%) weakness shows defensive rotation. Broad 82% advance/decline ratio bullish for structure but suggests extended conditions. Energy's 5-day weakness (-2.15%) concerning in otherwise risk-on environment.`,
       
       confidence: 0.85,
     };

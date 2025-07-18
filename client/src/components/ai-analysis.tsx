@@ -279,33 +279,45 @@ export function AIAnalysisComponent() {
                 </div>
               </div>
 
-              {/* Bottom Line Assessment - Full Width */}
+              {/* AI Market Commentary - Full Width */}
               <div className="lg:col-span-3 border-l-4 border-purple-500 pl-4">
                 <div className="flex items-center gap-2 mb-3">
                   <RefreshCw className="w-4 h-4 text-purple-500" />
-                  <h4 className="font-semibold text-white text-base">Bottom Line Assessment</h4>
+                  <h4 className="font-semibold text-white text-base">Market Commentary - {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</h4>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-4 text-gray-300 text-sm leading-relaxed">
+                  {/* Bottom Line */}
                   <div>
-                    <h5 className="font-bold text-blue-400 underline mb-2">TECHNICAL ANALYSIS:</h5>
-                    <p className="text-gray-300 leading-relaxed">
-                      {analysis.marketConditions}
-                    </p>
+                    <span className="text-gray-300">
+                      <span className="font-semibold">Bottom Line:</span> {analysis.marketConditions.replace(/^\w+\s*\w+:\s*/, '')}
+                    </span>
                   </div>
                   
-                  <div 
-                    className="text-gray-300 leading-relaxed space-y-3"
-                    dangerouslySetInnerHTML={{ 
-                      __html: analysis.riskAssessment
-                        .replace(/ECONOMIC ANALYSIS:/g, '<h5 class="font-bold text-blue-400 underline mb-2">ECONOMIC ANALYSIS:</h5>')
-                        .replace(/SECTOR ROTATION ANALYSIS:/g, '<h5 class="font-bold text-blue-400 underline mb-2 mt-4">SECTOR ROTATION ANALYSIS:</h5>')
-                        .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
-                        .replace(/\n\n/g, '</div><div class="mt-3">')
-                        .replace(/\n/g, '<br />') 
-                    }} 
-                  />
+                  {/* Technical Analysis */}
+                  <div>
+                    <h5 className="text-white font-bold underline mb-2 mt-4">TECHNICAL ANALYSIS</h5>
+                    <div className="text-gray-300" dangerouslySetInnerHTML={{
+                      __html: analysis.technicalOutlook.replace(/(\+?\d+\.\d+%?|\d+\.\d+)/g, '<span class="text-blue-400 font-bold">$1</span>')
+                    }} />
+                  </div>
+                  
+                  {/* Economic Analysis */}
+                  <div>
+                    <h5 className="text-white font-bold underline mb-2 mt-4">ECONOMIC ANALYSIS</h5>
+                    <div className="text-gray-300" dangerouslySetInnerHTML={{
+                      __html: analysis.riskAssessment.split('\n\n')[0].replace(/(\d+K|\d+\.\d+%|\d+\.\d+)/g, '<span class="text-blue-400 font-bold">$1</span>')
+                    }} />
+                  </div>
+                  
+                  {/* Sector Rotation Analysis */}
+                  <div>
+                    <h5 className="text-white font-bold underline mb-2 mt-4">SECTOR ROTATION ANALYSIS</h5>
+                    <div className="text-gray-300" dangerouslySetInnerHTML={{
+                      __html: analysis.riskAssessment.split('\n\n')[1]?.replace(/(\+?\-?\d+\.\d+%|\d+%)/g, '<span class="text-blue-400 font-bold">$1</span>') || ''
+                    }} />
+                  </div>
 
-                  <div className="bg-financial-gray bg-opacity-30 rounded-lg p-3">
+                  <div className="bg-financial-gray bg-opacity-30 rounded-lg p-3 mt-4">
                     <div className="grid grid-cols-3 gap-2 text-xs">
                       <div className="text-center">
                         <span className="text-gray-400">AI Confidence</span>
