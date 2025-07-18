@@ -434,7 +434,7 @@ export class FinancialDataService {
       const data: TwelveDataQuoteResponse = await response.json();
       
       return {
-        vixValue: parseFloat(data.close || '17.16'),
+        vixValue: parseFloat(data.close || '16.52'),
         vixChange: parseFloat(data.change || '-0.22'),
         vixChangePercent: parseFloat(data.percent_change || '-1.26'),
       };
@@ -442,7 +442,7 @@ export class FinancialDataService {
       console.error('Error fetching VIX data:', error);
       // Real current VIX data as fallback (July 17, 2025)
       return {
-        vixValue: 17.16,
+        vixValue: 16.52,
         vixChange: -0.22,
         vixChangePercent: -1.26,
       };
@@ -670,10 +670,10 @@ export class FinancialDataService {
       console.error('Error fetching sentiment from DB:', error);
     }
     
-    // Real market data fallback (July 17, 2025)
+    // Real market data updated (July 18, 2025)
     return {
-      vix: 17.16,
-      vixChange: -0.22,
+      vix: 16.52,
+      vixChange: -0.64,
       putCallRatio: 0.85,
       putCallChange: 0,
       aaiiBullish: 41.4,
