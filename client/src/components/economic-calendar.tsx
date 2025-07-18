@@ -1,7 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Clock } from "lucide-react";
-import type { EconomicEvent } from "@/types/financial";
+
+interface EconomicEvent {
+  id: number;
+  title: string;
+  description: string;
+  importance: string;
+  eventDate: string;
+  actual: string | null;
+  forecast: string | null;
+  previous: string | null;
+  timestamp: string;
+}
 
 export function EconomicCalendar() {
   const { data: events, isLoading } = useQuery<EconomicEvent[]>({
