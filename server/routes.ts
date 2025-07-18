@@ -177,52 +177,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('🧠 Generating enhanced AI analysis with FRESH real-time data... [DATA SYNC FIX ACTIVE]');
       
-      // Fetch fresh real-time data for AI analysis (not static/cached data)
+      const { cacheManager } = await import('./services/cache-manager');
+      const cacheKey = 'ai-analysis-data';
+      
+      // Check cache first (2 minute TTL for AI analysis data)
+      const bypassCache = req.headers['x-bypass-cache'] === 'true';
+      let cachedData = null;
+      if (!bypassCache) {
+        cachedData = cacheManager.get(cacheKey);
+        if (cachedData) {
+          console.log('✅ Using cached AI analysis data');
+          return res.json(cachedData.analysisResult);
+        }
+      }
+      
+      // Fetch fresh real-time data for AI analysis (use database cache for performance)
       let finalStockData, finalSentiment, finalTechnical;
       
       try {
-        // Get real-time SPY data
-        const spyData = await financialDataService.getStockQuote('SPY');
-        finalStockData = {
-          symbol: 'SPY',
-          price: spyData.price.toString(),
-          change: spyData.change.toString(),
-          changePercent: spyData.changePercent.toString()
-        };
-        console.log(`🔄 AI using FRESH SPY data: $${finalStockData.price} (${finalStockData.changePercent}%)`);
+        // Get SPY data from database cache first
+        const latestSpy = await storage.getLatestStockData('SPY');
+        if (latestSpy) {
+          finalStockData = {
+            symbol: 'SPY',
+            price: latestSpy.price,
+            change: latestSpy.change,
+            changePercent: latestSpy.changePercent
+          };
+          console.log(`🔄 AI using cached SPY data: $${finalStockData.price} (${finalStockData.changePercent}%)`);
+        } else {
+          // Fallback to fresh API call
+          const spyData = await financialDataService.getStockQuote('SPY');
+          finalStockData = {
+            symbol: 'SPY',
+            price: spyData.price.toString(),
+            change: spyData.change.toString(),
+            changePercent: spyData.changePercent.toString()
+          };
+        }
         
-        // Get real-time technical indicators
-        const techData = await financialDataService.getTechnicalIndicators('SPY');
-        finalTechnical = {
-          rsi: techData.rsi?.toString() || '68.95',
-          macd: techData.macd?.toString() || '8.244',
-          macdSignal: techData.macdSignal?.toString() || '8.627'
-        };
-        console.log(`🔄 AI using FRESH technical data: RSI ${finalTechnical.rsi}, MACD ${finalTechnical.macd}`);
+        // Get technical indicators from database cache
+        const latestTech = await storage.getLatestTechnicalIndicators('SPY');
+        if (latestTech) {
+          finalTechnical = {
+            rsi: latestTech.rsi || '68.95',
+            macd: latestTech.macd || '8.244',
+            macdSignal: latestTech.macdSignal || '8.627'
+          };
+          console.log(`🔄 AI using cached technical data: RSI ${finalTechnical.rsi}, MACD ${finalTechnical.macd}`);
+        } else {
+          // Fallback to fresh API call
+          const techData = await financialDataService.getTechnicalIndicators('SPY');
+          finalTechnical = {
+            rsi: techData.rsi?.toString() || '68.95',
+            macd: techData.macd?.toString() || '8.244',
+            macdSignal: techData.macdSignal?.toString() || '8.627'
+          };
+        }
         
-        // Get real-time sentiment data
-        const sentimentData = await financialDataService.getRealMarketSentiment();
-        finalSentiment = {
-          vix: sentimentData.vix?.toString() || '17.16',
-          putCallRatio: sentimentData.putCallRatio?.toString() || '0.85',
-          aaiiBullish: sentimentData.aaiiBullish?.toString() || '41.4',
-          aaiiBearish: sentimentData.aaiiBearish?.toString() || '35.6'
-        };
-        console.log(`🔄 AI using FRESH sentiment data: VIX ${finalSentiment.vix}, AAII ${finalSentiment.aaiiBullish}%`);
+        // Get sentiment data from database cache
+        const latestSentiment = await storage.getLatestMarketSentiment();
+        if (latestSentiment) {
+          finalSentiment = {
+            vix: latestSentiment.vix || '17.16',
+            putCallRatio: latestSentiment.putCallRatio || '0.85',
+            aaiiBullish: latestSentiment.aaiiBullish || '41.4',
+            aaiiBearish: latestSentiment.aaiiBearish || '35.6'
+          };
+          console.log(`🔄 AI using cached sentiment data: VIX ${finalSentiment.vix}, AAII ${finalSentiment.aaiiBullish}%`);
+        } else {
+          // Fallback to fresh API call
+          const sentimentData = await financialDataService.getRealMarketSentiment();
+          finalSentiment = {
+            vix: sentimentData.vix?.toString() || '17.16',
+            putCallRatio: sentimentData.putCallRatio?.toString() || '0.85',
+            aaiiBullish: sentimentData.aaiiBullish?.toString() || '41.4',
+            aaiiBearish: sentimentData.aaiiBearish?.toString() || '35.6'
+          };
+        }
         
       } catch (error) {
-        console.error('Error fetching fresh data for AI analysis, using fallback:', error);
+        console.error('Error fetching data for AI analysis, using fallback:', error);
         // Only use fallback if real-time fetch fails
         finalStockData = { symbol: 'SPY', price: '628.04', change: '3.82', changePercent: '0.61' };
         finalSentiment = { vix: '17.16', putCallRatio: '0.85', aaiiBullish: '41.4', aaiiBearish: '35.6' };
         finalTechnical = { rsi: '68.95', macd: '8.244', macdSignal: '8.627' };
       }
       
-      // Get current sector data
+      // Get current sector data from cache
       let finalSectors;
       try {
-        finalSectors = await financialDataService.getSectorETFs();
-        console.log('✅ Using fresh sector data for enhanced analysis');
+        const sectorCacheKey = 'sector-data';
+        const cachedSectors = cacheManager.get(sectorCacheKey);
+        if (cachedSectors) {
+          finalSectors = cachedSectors;
+          console.log('✅ Using cached sector data for enhanced analysis');
+        } else {
+          finalSectors = await financialDataService.getSectorETFs();
+          console.log('✅ Using fresh sector data for enhanced analysis');
+        }
       } catch (error) {
         console.log('Using fallback sector data for enhanced analysis');
         finalSectors = [
@@ -284,6 +337,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         riskAssessment: aiResult.riskAssessment || 'Risk assessment unavailable',
         confidence: (aiResult.confidence || 0.5).toString(),
       });
+      
+      // Cache the result for 2 minutes to improve performance
+      cacheManager.set(cacheKey, { analysisResult: analysisData }, 120);
       
       res.json(analysisData);
     } catch (error) {

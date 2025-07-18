@@ -40,11 +40,16 @@ export class EnhancedAIAnalysisService {
     if (!events || events.length === 0) return { recent: [], highImpact: [], summary: '' };
 
     const now = new Date();
-    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    // Filter recent events (last 3 days)
+    // Filter recent events (last 7 days) with actual data - expanded from 3 days
     const recentEvents = events.filter(event => 
-      new Date(event.eventDate) >= threeDaysAgo && event.actual
+      new Date(event.eventDate) >= oneWeekAgo && event.actual
+    ).sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime());
+
+    // Filter ALL events with actual data (including medium importance)
+    const allActualEvents = events.filter(event => 
+      event.actual && new Date(event.eventDate) >= oneWeekAgo
     ).sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime());
 
     // Filter high impact events with actual data
@@ -53,22 +58,25 @@ export class EnhancedAIAnalysisService {
     ).sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime());
 
     return {
-      recent: recentEvents.slice(0, 5),
-      highImpact: highImpactEvents.slice(0, 5),
-      summary: this.generateEconomicSummary(recentEvents, highImpactEvents)
+      recent: recentEvents.slice(0, 10), // Increased from 5 to 10
+      highImpact: highImpactEvents.slice(0, 8), // Increased from 5 to 8
+      allActual: allActualEvents.slice(0, 15), // New: all events with actual data
+      summary: this.generateEconomicSummary(recentEvents, highImpactEvents, allActualEvents)
     };
   }
 
-  private generateEconomicSummary(recent: any[], highImpact: any[]) {
-    const keyEvents = [...recent, ...highImpact]
+  private generateEconomicSummary(recent: any[], highImpact: any[], allActual: any[]) {
+    const keyEvents = [...recent, ...highImpact, ...allActual]
       .filter((event, index, self) => self.findIndex(e => e.id === event.id) === index)
-      .slice(0, 6);
+      .slice(0, 12); // Increased from 6 to 12 for comprehensive coverage
 
     return keyEvents.map(event => {
       const variance = this.calculateVariance(event.actual, event.forecast);
       const direction = variance && variance > 0 ? 'beat' : variance && variance < 0 ? 'missed' : 'met';
-      return `${event.title}: ${event.actual} ${direction} ${event.forecast || 'expectations'}`;
-    }).join(', ');
+      const forecastText = event.forecast ? `${event.forecast}` : 'expectations';
+      const varianceText = variance ? ` (variance: ${variance > 0 ? '+' : ''}${variance.toFixed(2)})` : '';
+      return `${event.title}: ${event.actual} ${direction} ${forecastText}${varianceText}`;
+    }).join('; ');
   }
 
   private calculateVariance(actual: string, forecast: string) {
@@ -133,10 +141,10 @@ export class EnhancedAIAnalysisService {
       const hasHighImpactEvents = economicData.highImpact && economicData.highImpact.length > 0;
       
       if (hasActualEvents || hasHighImpactEvents) {
-        // Combine and prioritize recent and high-impact events
-        const allEvents = [...(economicData.recent || []), ...(economicData.highImpact || [])]
+        // Combine and prioritize recent, high-impact, and all actual events  
+        const allEvents = [...(economicData.recent || []), ...(economicData.highImpact || []), ...(economicData.allActual || [])]
           .filter((event, index, self) => self.findIndex(e => e.title === event.title) === index)
-          .slice(0, 4);
+          .slice(0, 8); // Increased from 4 to 8 for comprehensive coverage
         
         if (allEvents.length > 0) {
           // Count beats vs misses for overall tone
