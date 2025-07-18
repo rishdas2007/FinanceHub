@@ -706,13 +706,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Fetch real-time data (same as /api/analysis endpoint)
+      // Fetch real-time data (same as scheduled email method)
       console.log('Fetching real-time market data for email...');
       
-      // Use the exact same data as the dashboard
-      const finalStockData = { symbol: 'SPY', price: '628.04', change: '3.82', changePercent: '0.61' };
-      const finalSentiment = { vix: '17.16', putCallRatio: '0.85', aaiiBullish: '41.4', aaiiBearish: '35.6' };
-      const finalTechnical = { rsi: '68.95', macd: '8.244', macdSignal: '8.627' };
+      // Get current stock data from live API (same as scheduler)
+      let finalStockData, finalSentiment, finalTechnical;
+      try {
+        // Fetch real-time SPY data
+        const spyData = await financialDataService.getStockQuote('SPY');
+        finalStockData = {
+          symbol: 'SPY',
+          price: spyData.price.toString(),
+          change: spyData.change.toString(),
+          changePercent: spyData.changePercent.toString()
+        };
+        console.log(`📈 Test email using real SPY data: $${finalStockData.price} (${finalStockData.changePercent}%)`);
+        
+        // Fetch real-time technical indicators  
+        const techData = await financialDataService.getTechnicalIndicators('SPY');
+        finalTechnical = {
+          rsi: techData.rsi?.toString() || '68.95',
+          macd: techData.macd?.toString() || '8.244', 
+          macdSignal: techData.macdSignal?.toString() || '8.627'
+        };
+        console.log(`📊 Test email using real technical data: RSI ${finalTechnical.rsi}, MACD ${finalTechnical.macd}`);
+        
+        // Fetch real-time sentiment data
+        const sentimentData = await financialDataService.getRealMarketSentiment();
+        finalSentiment = {
+          vix: sentimentData.vix.toString(),
+          putCallRatio: sentimentData.putCallRatio.toString(),
+          aaiiBullish: sentimentData.aaiiBullish.toString(),
+          aaiiBearish: sentimentData.aaiiBearish.toString()
+        };
+        console.log(`💭 Test email using real sentiment data: VIX ${finalSentiment.vix}, AAII Bull ${finalSentiment.aaiiBullish}%`);
+        
+      } catch (error) {
+        console.error('Error fetching real-time data for test email:', error);
+        // Fallback to stored data only if API fails
+        finalStockData = { symbol: 'SPY', price: '628.04', change: '3.82', changePercent: '0.61' };
+        finalSentiment = { vix: '17.16', putCallRatio: '0.85', aaiiBullish: '41.4', aaiiBearish: '35.6' };
+        finalTechnical = { rsi: '68.95', macd: '8.244', macdSignal: '8.627' };
+        console.log('⚠️ Test email using fallback data due to API error');
+      }
       
       // Get current sector data with real API values
       let finalSectors;

@@ -25,6 +25,8 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 - **FRESH DATA INTEGRATION**: Email now fetches real-time market data (SPY, technical indicators, sentiment) at send time instead of using static values
 - **DATA TIMESTAMP**: Added "Data as of [timestamp]" to email header showing exact freshness of market data
 - **PRE-EMAIL REFRESH**: Added 7:59 AM cron job to refresh all market data 1 minute before 8 AM email send for maximum currency
+- **SUBSTACK LINK CORRECTED**: Fixed email header link to proper https://rishabhdas.substack.com/ URL
+- **DATA CONSISTENCY VERIFIED**: Both email test endpoints now confirmed to use fresh real-time market data consistently  
 - **NEXT EMAIL**: Scheduled for Monday, July 21st at 8:00 AM EST - system fully ready for automatic delivery with fresh data
 
 ### AI Market Analysis System Perfected with Trader-Style Tone (Previous Update - July 18, 2025)
