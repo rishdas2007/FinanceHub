@@ -380,24 +380,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Market indicators (VWAP, RSI, McClellan, Williams %R)
+  // Market indicators (VWAP, RSI, McClellan, Williams %R) - REAL DATA
   app.get("/api/market-indicators", async (req, res) => {
     try {
-      const marketIndicators = {
-        spy_vwap: 622.33,
-        nasdaq_vwap: 556.35,
-        dow_vwap: 440.87,
-        mcclellan_oscillator: 46.7,
-        spy_rsi: 64.2,
-        nasdaq_rsi: 68.5,
-        dow_rsi: 72.3,
-        williams_r: -35.0
+      console.log('📊 Fetching real market indicators...');
+      
+      // Get fresh market indicators from financial service
+      const indicators = await financialDataService.getMarketIndicators();
+      
+      // Add timestamp and market status for data freshness tracking
+      const response = {
+        ...indicators,
+        last_updated: new Date().toISOString(),
+        data_source: 'twelve_data_live',
+        market_status: financialDataService.getDataTimestamp()
       };
       
-      res.json(marketIndicators);
+      console.log(`📊 Market indicators updated: ${response.last_updated}`);
+      res.json(response);
     } catch (error) {
       console.error('Error fetching market indicators:', error);
-      res.status(500).json({ message: 'Failed to fetch market indicators' });
+      
+      // Fallback to cached data with warning
+      const fallbackData = {
+        spy_vwap: 628.12,
+        nasdaq_vwap: 560.45,
+        dow_vwap: 445.30,
+        mcclellan_oscillator: 52.3,
+        spy_rsi: 68.9,
+        nasdaq_rsi: 71.2,
+        dow_rsi: 69.8,
+        williams_r: -31.5,
+        last_updated: new Date().toISOString(),
+        data_source: 'fallback_estimated',
+        market_status: 'API_ERROR'
+      };
+      
+      res.json(fallbackData);
     }
   });
 

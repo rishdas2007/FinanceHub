@@ -11,7 +11,7 @@ export class DataScheduler {
   private isMarketHours: boolean = false;
 
   constructor() {
-    this.financialService = new FinancialDataService();
+    this.financialService = FinancialDataService.getInstance();
     this.economicService = EconomicDataService.getInstance();
     this.aiService = new AIAnalysisService();
   }
@@ -47,9 +47,10 @@ export class DataScheduler {
     try {
       console.log('🔄 Starting comprehensive data update...');
       
-      // Update market indicators
+      // Update market indicators with fresh timestamp
       console.log('📊 Updating market indicators...');
-      await this.financialService.getMarketIndicators();
+      const marketData = await this.financialService.getMarketIndicators();
+      console.log('Market indicators updated:', marketData ? 'success' : 'failed');
       
       // Update sector data
       console.log('🏢 Updating sector data...');

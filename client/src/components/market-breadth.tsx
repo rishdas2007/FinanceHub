@@ -11,6 +11,9 @@ interface MarketIndicatorsData {
   nasdaq_rsi: number;
   dow_rsi: number;
   williams_r: number;
+  last_updated?: string;
+  data_source?: string;
+  market_status?: string;
 }
 
 export function MarketBreadth() {
@@ -35,56 +38,62 @@ export function MarketBreadth() {
     );
   }
 
+  // Helper function to safely format numbers
+  const formatNumber = (value: any, decimals: number = 1): string => {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    return isNaN(num) ? '0.0' : num.toFixed(decimals);
+  };
+
   const indicators = [
     {
       title: 'S&P 500 VWAP',
-      value: `$${indicatorsData.spy_vwap.toFixed(2)}`,
+      value: `$${formatNumber(indicatorsData.spy_vwap, 2)}`,
       subtitle: 'Volume Weighted Average Price',
       isPositive: true
     },
     {
       title: 'NASDAQ VWAP', 
-      value: `$${indicatorsData.nasdaq_vwap.toFixed(2)}`,
+      value: `$${formatNumber(indicatorsData.nasdaq_vwap, 2)}`,
       subtitle: 'Volume Weighted Average Price',
       isPositive: true
     },
     {
       title: 'DOW VWAP',
-      value: `$${indicatorsData.dow_vwap.toFixed(2)}`,
+      value: `$${formatNumber(indicatorsData.dow_vwap, 2)}`,
       subtitle: 'Volume Weighted Average Price', 
       isPositive: true
     },
     {
       title: 'McClellan Oscillator',
-      value: indicatorsData.mcclellan_oscillator.toFixed(1),
+      value: formatNumber(indicatorsData.mcclellan_oscillator, 1),
       subtitle: 'Momentum Indicator',
-      isPositive: indicatorsData.mcclellan_oscillator > 0,
-      isDanger: indicatorsData.mcclellan_oscillator < -50
+      isPositive: Number(indicatorsData.mcclellan_oscillator) > 0,
+      isDanger: Number(indicatorsData.mcclellan_oscillator) < -50
     },
     {
       title: 'S&P 500 RSI',
-      value: indicatorsData.spy_rsi.toFixed(1),
+      value: formatNumber(indicatorsData.spy_rsi, 1),
       subtitle: '14-day RSI',
-      isWarning: indicatorsData.spy_rsi > 70 || indicatorsData.spy_rsi < 30
+      isWarning: Number(indicatorsData.spy_rsi) > 70 || Number(indicatorsData.spy_rsi) < 30
     },
     {
       title: 'NASDAQ RSI',
-      value: indicatorsData.nasdaq_rsi.toFixed(1), 
+      value: formatNumber(indicatorsData.nasdaq_rsi, 1),
       subtitle: '14-day RSI',
-      isWarning: indicatorsData.nasdaq_rsi > 70 || indicatorsData.nasdaq_rsi < 30
+      isWarning: Number(indicatorsData.nasdaq_rsi) > 70 || Number(indicatorsData.nasdaq_rsi) < 30
     },
     {
       title: 'DOW RSI',
-      value: indicatorsData.dow_rsi.toFixed(1),
+      value: formatNumber(indicatorsData.dow_rsi, 1),
       subtitle: '14-day RSI',
-      isWarning: indicatorsData.dow_rsi > 70 || indicatorsData.dow_rsi < 30
+      isWarning: Number(indicatorsData.dow_rsi) > 70 || Number(indicatorsData.dow_rsi) < 30
     },
     {
       title: 'Williams %R',
-      value: indicatorsData.williams_r.toFixed(1),
+      value: formatNumber(indicatorsData.williams_r, 1),
       subtitle: 'Momentum Oscillator',
-      isDanger: indicatorsData.williams_r < -80,
-      isWarning: indicatorsData.williams_r > -20
+      isDanger: Number(indicatorsData.williams_r) < -80,
+      isWarning: Number(indicatorsData.williams_r) > -20
     }
   ];
 
