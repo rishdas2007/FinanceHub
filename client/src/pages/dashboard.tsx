@@ -7,6 +7,7 @@ import { AAIISentiment } from "@/components/aaii-sentiment";
 import { MarketHeatMap } from "@/components/market-heatmap";
 import { EconomicCalendar } from "@/components/economic-calendar";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
+import { EmailSubscription } from "@/components/email-subscription";
 
 import { TrendingUp } from "lucide-react";
 import { useApiTracker } from "@/hooks/useApiTracker";
@@ -71,6 +72,9 @@ export default function Dashboard() {
 
         {/* Economic Calendar - Full Width */}
         <EconomicCalendar />
+
+        {/* Email Subscription - Full Width */}
+        <EmailSubscription />
       </div>
 
       {/* Footer */}

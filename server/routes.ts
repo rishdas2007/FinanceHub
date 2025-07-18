@@ -586,5 +586,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Email subscription endpoints
+  app.post("/api/email/subscribe", async (req, res) => {
+    try {
+      const { emailService } = await import('./services/email-service');
+      const { email } = req.body;
+      
+      if (!email || !email.includes('@')) {
+        return res.status(400).json({ message: 'Valid email address is required' });
+      }
+      
+      const subscription = await emailService.subscribeToDaily(email);
+      res.json({ 
+        message: 'Successfully subscribed to daily market commentary',
+        subscription: {
+          email: subscription.email,
+          subscribedAt: subscription.subscribedAt
+        }
+      });
+    } catch (error) {
+      console.error('Error subscribing to email:', error);
+      res.status(500).json({ message: error.message || 'Failed to subscribe to daily emails' });
+    }
+  });
+
+  app.get("/api/email/unsubscribe/:token", async (req, res) => {
+    try {
+      const { emailService } = await import('./services/email-service');
+      const { token } = req.params;
+      
+      const success = await emailService.unsubscribe(token);
+      
+      if (success) {
+        res.send(`
+          <html>
+            <head>
+              <title>Unsubscribed - FinanceHub Pro</title>
+              <style>
+                body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+                .container { background: #f8f9fa; padding: 40px; border-radius: 10px; }
+                .success { color: #28a745; font-size: 24px; margin-bottom: 20px; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="success">✓ Successfully Unsubscribed</div>
+                <p>You have been unsubscribed from FinanceHub Pro daily market commentary emails.</p>
+                <p>You can always re-subscribe at any time by visiting our dashboard.</p>
+              </div>
+            </body>
+          </html>
+        `);
+      } else {
+        res.status(404).send(`
+          <html>
+            <head>
+              <title>Unsubscribe Link Invalid - FinanceHub Pro</title>
+              <style>
+                body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+                .container { background: #f8f9fa; padding: 40px; border-radius: 10px; }
+                .error { color: #dc3545; font-size: 24px; margin-bottom: 20px; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="error">⚠ Invalid Unsubscribe Link</div>
+                <p>This unsubscribe link is invalid or has already been used.</p>
+              </div>
+            </body>
+          </html>
+        `);
+      }
+    } catch (error) {
+      console.error('Error unsubscribing:', error);
+      res.status(500).json({ message: 'Failed to unsubscribe' });
+    }
+  });
+
   return httpServer;
 }

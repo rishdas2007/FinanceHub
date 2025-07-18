@@ -74,6 +74,26 @@ export class DataScheduler {
     }
   }
 
+  async sendDailyEmail(): Promise<void> {
+    try {
+      console.log('📧 Sending daily market commentary emails...');
+      
+      // Import email service and AI analysis service
+      const { emailService } = await import('./email-service');
+      const { aiAnalysisService } = await import('./enhanced-ai-analysis');
+      
+      // Generate fresh analysis for the email
+      const analysisData = await aiAnalysisService.generateComprehensiveAnalysis();
+      
+      // Send the daily email
+      await emailService.sendDailyMarketCommentary(analysisData);
+      
+      console.log('✅ Daily market commentary emails sent successfully');
+    } catch (error) {
+      console.error('❌ Error sending daily emails:', error);
+    }
+  }
+
   async updateRealTimeData(): Promise<void> {
     if (!this.checkMarketHours()) {
       console.log('⏰ Outside market hours, skipping real-time updates');
@@ -174,6 +194,14 @@ export class DataScheduler {
     cron.schedule('0 6 * * *', async () => {
       console.log('🌅 Starting daily comprehensive sync at 6 AM EST...');
       await this.updateAllData();
+    }, {
+      timezone: "America/New_York"
+    });
+
+    // Daily email at 8 AM EST (Monday-Friday)
+    cron.schedule('0 8 * * 1-5', async () => {
+      console.log('📧 Sending daily market commentary at 8 AM EST...');
+      await this.sendDailyEmail();
     }, {
       timezone: "America/New_York"
     });

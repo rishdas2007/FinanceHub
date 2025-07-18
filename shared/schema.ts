@@ -68,6 +68,16 @@ export const aiAnalysis = pgTable("ai_analysis", {
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 });
 
+// Email subscription table for daily AI Market Commentary
+export const emailSubscriptions = pgTable("email_subscriptions", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  isActive: boolean("is_active").notNull().default(true),
+  subscribedAt: timestamp("subscribed_at").notNull().defaultNow(),
+  unsubscribedAt: timestamp("unsubscribed_at"),
+  unsubscribeToken: text("unsubscribe_token").notNull().unique(),
+});
+
 export const economicEvents = pgTable("economic_events", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
@@ -174,6 +184,12 @@ export const insertHistoricalStockDataSchema = createInsertSchema(historicalStoc
   createdAt: true,
 });
 
+export const insertEmailSubscriptionSchema = createInsertSchema(emailSubscriptions).omit({
+  id: true,
+  subscribedAt: true,
+  unsubscribedAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type StockData = typeof stockData.$inferSelect;
@@ -193,4 +209,6 @@ export type InsertEconomicEvent = z.infer<typeof insertEconomicEventsSchema>;
 export type InsertMarketBreadth = z.infer<typeof insertMarketBreadthSchema>;
 export type InsertVixData = z.infer<typeof insertVixDataSchema>;
 export type SectorData = typeof sectorData.$inferSelect;
+export type EmailSubscription = typeof emailSubscriptions.$inferSelect;
+export type InsertEmailSubscription = z.infer<typeof insertEmailSubscriptionSchema>;
 export type InsertSectorData = z.infer<typeof insertSectorDataSchema>;
