@@ -918,7 +918,10 @@ export class FinancialDataService {
     
     // Normalize to typical McClellan range (-100 to +100)
     const ratio = adDiff / total;
-    return ratio * 100;
+    const result = ratio * 100;
+    
+    // Ensure we return a valid number
+    return isFinite(result) ? result : 0;
   }
 
 

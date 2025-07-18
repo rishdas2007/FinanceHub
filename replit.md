@@ -38,7 +38,14 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 
 ### Economic Calendar Enhancement (July 17, 2025)
 
-### AI Market Commentary Enhancement (Latest Update)
+### AI Market Commentary Enhancement (Latest Update - July 18, 2025)
+- **CRITICAL IMPROVEMENT**: AI Analysis now refreshes with fresh data on every page load for most current market view
+- Enhanced AI endpoint to fetch ALL dashboard data simultaneously: market indicators, sentiment, technical data, sectors
+- AI analysis now incorporates real-time VWAP, McClellan Oscillator, and Williams %R for comprehensive analysis
+- Frontend configured with `refetchOnMount: true` and `staleTime: 0` for immediate fresh analysis on page load
+- Backend force-fetches fresh data from all APIs instead of using cached database values
+- Market data now includes authentic RSI from Twelve Data API (SPY: 68.95, QQQ: 71.92, Russell 2000: 62.04)
+- AI analysis references most up-to-date economic calendar events and sector performance data
 - Added Substack link under main dashboard title for Rishabh's market insights
 - FIXED: Restructured AI analysis format to eliminate repetitive content in Bottom Line Assessment
 - First paragraph now generates proper technical and sentiment commentary (RSI, MACD, VIX, AAII insights)

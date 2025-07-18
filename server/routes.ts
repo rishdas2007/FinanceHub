@@ -145,71 +145,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Analysis
+  // AI Analysis - Always fetch fresh data for most current analysis
   app.get("/api/analysis", async (req, res) => {
     try {
-      let analysis = await storage.getLatestAiAnalysis();
+      console.log('🧠 Generating fresh AI analysis with latest dashboard data...');
       
-      // Generate fresh analysis if none exists or if it's older than 5 minutes
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-      if (!analysis || analysis.timestamp < fiveMinutesAgo || analysis.marketConditions.includes('TECHNICAL AND SENTIMENT ONLY:')) {
-        console.log('Generating new AI analysis...');
+      // Always generate fresh analysis to ensure most up-to-date market view
+      const shouldRefresh = true;
+      if (shouldRefresh) {
+        // Force fresh data collection for most current analysis
+        console.log('📊 Fetching fresh market data for AI analysis...');
+        const [spyQuote, marketIndicators, sentimentData, sectorData, technicalData] = await Promise.all([
+          financialDataService.getStockQuote('SPY'),
+          financialDataService.getMarketIndicators(),
+          financialDataService.getRealMarketSentiment(),
+          financialDataService.getSectorETFs(),
+          financialDataService.getTechnicalIndicators('SPY')
+        ]);
         
-        // Get current market data for analysis - fetch fresh if needed
-        let stockData = await storage.getLatestStockData('SPY');
-        if (!stockData) {
-          console.log('No SPY data found, fetching fresh...');
-          const spyQuote = await financialDataService.getStockQuote('SPY');
-          stockData = await storage.createStockData({
-            symbol: spyQuote.symbol,
-            price: spyQuote.price.toString(),
-            change: spyQuote.change.toString(),
-            changePercent: spyQuote.changePercent.toString(),
-            volume: spyQuote.volume,
-          });
-        }
+        // Store fresh SPY data
+        const stockData = await storage.createStockData({
+          symbol: spyQuote.symbol,
+          price: spyQuote.price.toString(),
+          change: spyQuote.change.toString(),
+          changePercent: spyQuote.changePercent.toString(),
+          volume: spyQuote.volume,
+        });
         
-        let sentiment = await storage.getLatestMarketSentiment();
-        if (!sentiment) {
-          console.log('No sentiment data found, generating...');
-          const sentimentData = await financialDataService.generateMarketSentiment();
-          sentiment = await storage.createMarketSentiment({
-            vix: sentimentData.vix.toString(),
-            putCallRatio: sentimentData.putCallRatio.toString(),
-            aaiiBullish: sentimentData.aaiiBullish.toString(),
-            aaiiBearish: sentimentData.aaiiBearish.toString(),
-            aaiiNeutral: sentimentData.aaiiNeutral.toString(),
-          });
-        }
+        // Store fresh sentiment data
+        const sentiment = await storage.createMarketSentiment({
+          vix: sentimentData.vix.toString(),
+          putCallRatio: sentimentData.putCallRatio.toString(),
+          aaiiBullish: sentimentData.aaiiBullish.toString(),
+          aaiiBearish: sentimentData.aaiiBearish.toString(),
+          aaiiNeutral: sentimentData.aaiiNeutral.toString(),
+        });
         
-        let technical = await storage.getLatestTechnicalIndicators('SPY');
-        if (!technical) {
-          console.log('No technical data found, fetching fresh...');
-          const techData = await financialDataService.getTechnicalIndicators('SPY');
-          technical = await storage.createTechnicalIndicators({
-            symbol: techData.symbol,
-            rsi: techData.rsi !== null ? String(techData.rsi) : null,
-            macd: techData.macd !== null ? String(techData.macd) : null,
-            macdSignal: techData.macdSignal !== null ? String(techData.macdSignal) : null,
-            bb_upper: techData.bb_upper !== null ? String(techData.bb_upper) : null,
-            bb_lower: techData.bb_lower !== null ? String(techData.bb_lower) : null,
-            sma_20: techData.sma_20 !== null ? String(techData.sma_20) : null,
-            sma_50: techData.sma_50 !== null ? String(techData.sma_50) : null,
-          });
-        }
+        // Store fresh technical data
+        const technical = await storage.createTechnicalIndicators({
+          symbol: technicalData.symbol,
+          rsi: technicalData.rsi !== null ? String(technicalData.rsi) : null,
+          macd: technicalData.macd !== null ? String(technicalData.macd) : null,
+          macdSignal: technicalData.macdSignal !== null ? String(technicalData.macdSignal) : null,
+          bb_upper: technicalData.bb_upper !== null ? String(technicalData.bb_upper) : null,
+          bb_lower: technicalData.bb_lower !== null ? String(technicalData.bb_lower) : null,
+          sma_20: technicalData.sma_20 !== null ? String(technicalData.sma_20) : null,
+          sma_50: technicalData.sma_50 !== null ? String(technicalData.sma_50) : null,
+        });
         
         const marketData = {
           symbol: stockData.symbol,
           price: parseFloat(stockData.price),
           change: parseFloat(stockData.change),
           changePercent: parseFloat(stockData.changePercent),
-          rsi: technical?.rsi ? parseFloat(technical.rsi) : undefined,
+          rsi: marketIndicators.spy_rsi || (technical?.rsi ? parseFloat(technical.rsi) : undefined),
           macd: technical?.macd ? parseFloat(technical.macd) : undefined,
           macdSignal: technical?.macdSignal ? parseFloat(technical.macdSignal) : undefined,
           vix: sentiment?.vix ? parseFloat(sentiment.vix) : undefined,
           putCallRatio: sentiment?.putCallRatio ? parseFloat(sentiment.putCallRatio) : undefined,
           aaiiBullish: sentiment?.aaiiBullish ? parseFloat(sentiment.aaiiBullish) : undefined,
           aaiiBearish: sentiment?.aaiiBearish ? parseFloat(sentiment.aaiiBearish) : undefined,
+          // Include fresh Market Breadth indicators for comprehensive analysis
+          spyVwap: marketIndicators.spy_vwap,
+          mcclellanOscillator: marketIndicators.mcclellan_oscillator,
+          williamsR: marketIndicators.williams_r
         };
         
         console.log('Market data for AI analysis:', marketData);
@@ -231,8 +230,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           macroContext: macroContext
         };
         
-        // Get sector data for analysis
-        const freshSectors = await financialDataService.getSectorETFs();
+        // Use already fetched fresh sector data for analysis
+        const freshSectors = sectorData;
         
         const aiResult = await aiAnalysisService.generateMarketAnalysis(enhancedMarketData, freshSectors);
         console.log('AI analysis result:', aiResult);
