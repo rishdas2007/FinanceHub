@@ -25,9 +25,9 @@ export class EnhancedAIAnalysisService {
       
       technicalOutlook: `Classic late-rally setup emerging. RSI at 68.9 approaches overbought territory while MACD shows bearish crossover (8.244 vs 8.627) - textbook momentum divergence. VIX at 16.52 reflects dangerous complacency. Still bullish medium-term, but expect near-term chop as frothy conditions get worked off.`,
       
-      riskAssessment: `Goldilocks backdrop continues. **Initial jobless claims** at 221K beat 234K forecast - labor market resilient. **Core CPI** steady at 2.9%, **Producer prices** flat signals pipeline disinflation. **Retail sales** modest at 0.6%. Fed getting the cooling they want without breaking anything.
+      riskAssessment: `Goldilocks backdrop continues. Initial jobless claims at 221K beat 234K forecast - labor market resilient. Core CPI steady at 2.9%, Producer prices flat signals pipeline disinflation. Retail sales modest at 0.6%. Fed getting the cooling they want without breaking anything.
 
-Classic late-cycle rotation in play. **Financials** (+0.96%) leading on higher-for-longer positioning. **Technology** (+0.91%) and **Industrials** (+0.92%) strong, but **Health Care** (-1.14%) weakness shows defensive rotation. Broad 82% advance/decline ratio bullish for structure but suggests extended conditions. **Energy's** 5-day weakness (-2.15%) concerning in otherwise risk-on environment.`,
+Classic late-cycle rotation in play. Financials (+0.96%) leading on higher-for-longer positioning. Technology (+0.91%) and Industrials (+0.92%) strong, but Health Care (-1.14%) weakness shows defensive rotation. Broad 82% advance/decline ratio bullish for structure but suggests extended conditions. Energy's 5-day weakness (-2.15%) concerning in otherwise risk-on environment.`,
       
       confidence: 0.85,
     };

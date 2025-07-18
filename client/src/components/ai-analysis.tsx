@@ -305,7 +305,9 @@ export function AIAnalysisComponent() {
                   <div>
                     <h5 className="text-white font-bold underline mb-2 mt-4">ECONOMIC ANALYSIS</h5>
                     <div className="text-gray-300" dangerouslySetInnerHTML={{
-                      __html: analysis.riskAssessment.split('\n\n')[0].replace(/(\d+K|\d+\.\d+%|\d+\.\d+)/g, '<span class="text-blue-400 font-bold">$1</span>')
+                      __html: analysis.riskAssessment.split('\n\n')[0]
+                        .replace(/(\d+K|\d+\.\d+%|\d+\.\d+)/g, '<span class="text-blue-400 font-bold">$1</span>')
+                        .replace(/(\w+\s+\w+\s+\w+)/g, '<span class="font-bold">$1</span>')
                     }} />
                   </div>
                   
@@ -313,7 +315,9 @@ export function AIAnalysisComponent() {
                   <div>
                     <h5 className="text-white font-bold underline mb-2 mt-4">SECTOR ROTATION ANALYSIS</h5>
                     <div className="text-gray-300" dangerouslySetInnerHTML={{
-                      __html: analysis.riskAssessment.split('\n\n')[1]?.replace(/(\+?\-?\d+\.\d+%|\d+%)/g, '<span class="text-blue-400 font-bold">$1</span>') || ''
+                      __html: (analysis.riskAssessment.split('\n\n')[1] || '')
+                        .replace(/(\+?\-?\d+\.\d+%|\d+%)/g, '<span class="text-blue-400 font-bold">$1</span>')
+                        .replace(/(Financials|Technology|Industrials|Health Care|Energy)/g, '<span class="font-bold">$1</span>')
                     }} />
                   </div>
 

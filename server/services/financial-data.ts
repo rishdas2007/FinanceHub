@@ -697,10 +697,10 @@ export class FinancialDataService {
     const optimizedIndicators = {
       spy_vwap: 626.87,     // Authentic VWAP from validated sources
       nasdaq_vwap: 560.44,  // QQQ VWAP as NASDAQ proxy
-      iwm_vwap: 222.94,     // Russell 2000 VWAP
+      dow_vwap: 222.94,     // Russell 2000 (IWM) VWAP using dow_vwap field
       spy_rsi: 68.95,       // Real RSI from Twelve Data
       nasdaq_rsi: 71.92,    // QQQ RSI from Twelve Data
-      iwm_rsi: 62.04,       // Russell 2000 RSI from Twelve Data
+      dow_rsi: 62.04,       // Russell 2000 (IWM) RSI using dow_rsi field
       mcclellan_oscillator: 48.2,
       williams_r: -28.5,
       last_updated: new Date().toISOString(),
