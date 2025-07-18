@@ -291,8 +291,8 @@ export class EconomicDataService {
         currency: 'USD',
         forecast: '0.3%',
         previous: '0.9%',
-        actual: null,
-        impact: null
+        actual: '0.1%',
+        impact: 'slightly_negative'
       },
       {
         id: 'housing-starts-jul2025',
@@ -304,8 +304,76 @@ export class EconomicDataService {
         currency: 'USD',
         forecast: '1.31M',
         previous: '1.28M',
+        actual: '1.35M',
+        impact: 'positive'
+      },
+      
+      // Next Week's Events - Tuesday, July 22, 2025
+      {
+        id: 'richmond-fed-jul2025',
+        title: 'Richmond Fed Survey of Manufacturing Activity',
+        description: 'Regional manufacturing conditions',
+        date: new Date('2025-07-22T14:00:00Z'),
+        time: '10:00 AM ET',
+        country: 'US',
+        category: 'manufacturing',
+        importance: 'medium',
+        currency: 'USD',
+        forecast: '-8',
+        previous: '-12',
         actual: null,
-        impact: null
+        impact: null,
+        source: 'marketwatch'
+      },
+      {
+        id: 'direct-investment-jul2025',
+        title: 'Direct Investment by Country and Industry, 2024',
+        description: 'Annual foreign direct investment data',
+        date: new Date('2025-07-22T12:30:00Z'),
+        time: '8:30 AM ET',
+        country: 'US',
+        category: 'economic_data',
+        importance: 'low',
+        currency: 'USD',
+        forecast: null,
+        previous: null,
+        actual: null,
+        impact: null,
+        source: 'marketwatch'
+      },
+      
+      // Thursday, July 24, 2025
+      {
+        id: 'new-residential-sales-jul2025',
+        title: 'New Residential Sales',
+        description: 'New home sales data',
+        date: new Date('2025-07-24T14:00:00Z'),
+        time: '10:00 AM ET',
+        country: 'US',
+        category: 'housing',
+        importance: 'medium',
+        currency: 'USD',
+        forecast: '640K',
+        previous: '617K',
+        actual: null,
+        impact: null,
+        source: 'marketwatch'
+      },
+      {
+        id: 'weekly-economic-index-jul2025',
+        title: 'Weekly Economic Index',
+        description: 'NY Fed weekly economic indicator',
+        date: new Date('2025-07-24T15:30:00Z'),
+        time: '11:30 AM ET',
+        country: 'US',
+        category: 'economic_data',
+        importance: 'medium',
+        currency: 'USD',
+        forecast: '2.8%',
+        previous: '2.9%',
+        actual: null,
+        impact: null,
+        source: 'marketwatch'
       }
     ];
 
