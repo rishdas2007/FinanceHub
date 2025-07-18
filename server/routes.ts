@@ -169,7 +169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           price: spyQuote.price.toString(),
           change: spyQuote.change.toString(),
           changePercent: spyQuote.changePercent.toString(),
-          volume: spyQuote.volume,
+          volume: spyQuote.volume || '0',
         });
         
         // Store fresh sentiment data
@@ -234,17 +234,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const freshSectors = sectorData;
         
         const aiResult = await aiAnalysisService.generateMarketAnalysis(enhancedMarketData, freshSectors);
-        console.log('AI analysis result:', aiResult);
+        console.log('✅ Fresh AI analysis generated with current dashboard data');
         
-        analysis = await storage.createAiAnalysis({
-          marketConditions: aiResult.marketConditions,
-          technicalOutlook: aiResult.technicalOutlook,
-          riskAssessment: aiResult.riskAssessment,
-          confidence: aiResult.confidence.toString(),
+        const analysisData = await storage.createAiAnalysis({
+          marketConditions: aiResult.marketConditions || 'Market analysis unavailable',
+          technicalOutlook: aiResult.technicalOutlook || 'Technical outlook unavailable',
+          riskAssessment: aiResult.riskAssessment || 'Risk assessment unavailable',
+          confidence: (aiResult.confidence || 0.5).toString(),
         });
+        
+        res.json(analysisData);
+      } else {
+        // Fallback to cached analysis (this branch won't be reached with current logic)
+        const cachedAnalysis = await storage.getLatestAiAnalysis();
+        res.json(cachedAnalysis);
       }
-      
-      res.json(analysis);
     } catch (error) {
       console.error('Error fetching AI analysis:', error);
       res.status(500).json({ message: 'Failed to fetch AI analysis' });
