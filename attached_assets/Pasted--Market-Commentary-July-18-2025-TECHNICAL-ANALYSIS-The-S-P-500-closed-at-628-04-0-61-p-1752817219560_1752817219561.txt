@@ -1,0 +1,15 @@
+# Market Commentary - July 18, 2025
+
+## TECHNICAL ANALYSIS
+
+The S&P 500 closed at 628.04 (+0.61%), pushing into historically elevated territory that demands heightened vigilance. Technical indicators are flashing mixed signals: RSI at 68.9 suggests we're approaching overbought conditions (70+ threshold), while the MACD bearish crossover at 8.244 vs 8.627 indicates potential downward momentum building beneath the surface. This divergence between price action and momentum suggests the recent rally may be losing steam and due for a consolidation pause.
+
+## ECONOMIC ANALYSIS
+
+Recent economic data presents a mixed but generally supportive backdrop. Initial jobless claims came in better than expected at 221K vs 234K forecast, signaling continued labor market resilience. However, inflation remains sticky with Core CPI at 0.2% (matching forecasts) and retail sales showing modest 0.6% growth. The Fed's tightening cycle appears to be having its intended cooling effect without triggering widespread economic distress. Producer price data at 0.0% (vs 0.2% forecast) suggests disinflationary pressures may be building in the pipeline.
+
+## SECTOR ROTATION ANALYSIS
+
+Clear defensive rotation is underway with Financials leading (+0.96%) as the standout performer, likely benefiting from sustained higher rate expectations. Technology (+0.91%) and Industrials (+0.92%) are showing strength, while Health Care lags significantly (-1.14%), suggesting investors are rotating out of traditionally defensive sectors. The 82% advance/decline ratio (9 sectors up, 2 down) indicates broad-based participation, though the VIX at 17.2 reflects low volatility and market complacency. Energy's weakness (-2.15% over 5 days) contrasts with the otherwise risk-on environment, potentially signaling concerns about demand destruction from higher rates.
+
+**Bottom Line:** Markets are displaying classic late-cycle characteristics with technical divergences emerging despite continued economic resilience. The defensive rotation into Financials suggests investors are positioning for a higher-for-longer rate environment while remaining cautiously optimistic about economic fundamentals.
