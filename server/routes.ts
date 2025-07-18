@@ -131,10 +131,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { cacheManager } = await import('./services/cache-manager');
       const cacheKey = 'sector-data';
       
-      // Check cache first (5 minute TTL for sector data)
-      const cachedData = cacheManager.get(cacheKey);
-      if (cachedData) {
-        return res.json(cachedData);
+      // Check cache first (5 minute TTL for sector data) - skip cache if bypass header present
+      const bypassCache = req.headers['x-bypass-cache'] === 'true';
+      if (!bypassCache) {
+        const cachedData = cacheManager.get(cacheKey);
+        if (cachedData) {
+          return res.json(cachedData);
+        }
       }
       
       console.log('Fetching fresh sector data with 5-day and 1-month performance...');
