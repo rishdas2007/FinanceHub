@@ -4,7 +4,8 @@ import { db } from '../db';
 import { emailSubscriptions, type EmailSubscription, type InsertEmailSubscription } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
-const SENDGRID_ENABLED = !!process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.startsWith('SG.');
+// Temporarily disable SendGrid due to API key issues - subscriptions will still be saved
+const SENDGRID_ENABLED = false; // !!process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.length > 10;
 
 if (SENDGRID_ENABLED) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -49,9 +50,14 @@ export class EmailService {
         })
         .returning();
 
-      // Send welcome email if SendGrid is available
+      // Send welcome email if SendGrid is available (but don't fail subscription if email fails)
       if (SENDGRID_ENABLED) {
-        await this.sendWelcomeEmail(email);
+        try {
+          await this.sendWelcomeEmail(email);
+        } catch (sendGridError) {
+          console.log(`📧 Welcome email failed to send to ${email} (SendGrid error), but subscription saved`);
+          // Don't throw error - subscription should still succeed even if email fails
+        }
       } else {
         console.log(`📧 Welcome email would be sent to ${email} (SendGrid not configured)`);
       }
@@ -136,6 +142,9 @@ export class EmailService {
       console.log(`📧 Daily commentary sent to ${activeSubscriptions.length} subscribers`);
     } catch (error) {
       console.error('Error sending daily commentary:', error);
+      if (error.code === 401) {
+        console.error('❌ SendGrid API key is invalid or expired. Please check your API key.');
+      }
       throw error;
     }
   }
@@ -170,12 +179,21 @@ export class EmailService {
       </div>
     `;
 
-    await sgMail.send({
-      to: email,
-      from: this.fromEmail,
-      subject: 'Welcome to FinanceHub Pro Daily Commentary',
-      html: welcomeTemplate,
-    });
+    try {
+      await sgMail.send({
+        to: email,
+        from: this.fromEmail,
+        subject: 'Welcome to FinanceHub Pro Daily Commentary',
+        html: welcomeTemplate,
+      });
+      console.log(`✅ Welcome email sent successfully to ${email}`);
+    } catch (error) {
+      console.error(`❌ Failed to send welcome email to ${email}:`, error.message);
+      if (error.code === 401) {
+        console.error('❌ SendGrid API key is invalid or expired.');
+      }
+      throw error;
+    }
   }
 
   private generateDailyEmailTemplate(analysisData: any): string {
