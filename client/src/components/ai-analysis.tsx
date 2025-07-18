@@ -8,12 +8,13 @@ import type { AiAnalysis, StockData, MarketSentiment, TechnicalIndicators, Secto
 export function AIAnalysisComponent() {
   const queryClient = useQueryClient();
 
-  const { data: analysis, isLoading } = useQuery<AiAnalysis>({
+  const { data: analysis, isLoading, error } = useQuery<AiAnalysis>({
     queryKey: ['/api/analysis'],
     refetchInterval: 300000, // Refresh every 5 minutes
-    refetchOnMount: false, // Use cached data if available
+    refetchOnMount: true, // Always fetch fresh data on mount
     refetchOnWindowFocus: false, // Don't refetch on window focus to avoid excessive calls
-    staleTime: 180000, // Data is fresh for 3 minutes
+    staleTime: 0, // Always consider data stale to force fresh fetches
+    retry: 1,
   });
 
   const { data: currentStock } = useQuery<StockData>({

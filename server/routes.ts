@@ -300,12 +300,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Parse query parameters for filtering (following core requirements)
       const { start_date, end_date, importance, category } = req.query;
       
-      // Get real economic events from MarketWatch service
-      const { EconomicDataService } = await import('./services/economic-data');
-      const economicService = EconomicDataService.getInstance();
-      const realEvents = economicService.getFallbackEvents();
+      // Get real economic events using the SAME method as the AI analysis
+      const { EnhancedAIAnalysisService } = await import('./services/enhanced-ai-analysis');
+      const enhancedAiService = EnhancedAIAnalysisService.getInstance();
       
-      console.log(`Raw events from MarketWatch: ${realEvents.length}`);
+      // Get economic data using the same method that works in AI analysis
+      const economicData = await enhancedAiService.getEconomicDataForAnalysis();
+      
+      // Combine recent and high-impact events
+      const realEvents = [...(economicData.recent || []), ...(economicData.highImpact || [])];
+      
+      console.log(`Raw events from economic data: ${realEvents.length}`);
+      console.log('Debug - First few events:', realEvents.slice(0, 2));
       
       // Apply filters if provided
       let filteredEvents = realEvents;
