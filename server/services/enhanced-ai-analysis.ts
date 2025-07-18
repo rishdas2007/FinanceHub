@@ -145,24 +145,44 @@ export class EnhancedAIAnalysisService {
           let specificInsights = '';
           
           allEvents.forEach(event => {
-            if (event.actual && event.forecast) {
-              const variance = this.calculateVariance(event.actual, event.forecast);
-              if (variance && variance > 0) beatCount++;
-              else if (variance && variance < 0) missedCount++;
+            if (event.actual) {
+              // Handle events with and without forecast data
+              let variance = null;
+              if (event.forecast) {
+                variance = this.calculateVariance(event.actual, event.forecast);
+                if (variance && variance > 0) beatCount++;
+                else if (variance && variance < 0) missedCount++;
+              }
               
               // Generate specific insights for key indicators
               if (event.title.toLowerCase().includes('jobless claims')) {
-                const direction = variance && variance < 0 ? 'improved to' : 'rose to';
-                specificInsights += `Initial jobless claims ${direction} **${event.actual}** versus ${event.forecast} expected, indicating ${variance && variance < 0 ? 'continued labor market strength' : 'some softening but within healthy ranges'}. `;
+                if (event.forecast) {
+                  const direction = variance && variance < 0 ? 'improved to' : 'rose to';
+                  specificInsights += `Initial jobless claims ${direction} **${event.actual}** versus ${event.forecast} expected, indicating ${variance && variance < 0 ? 'continued labor market strength' : 'some softening but within healthy ranges'}. `;
+                } else {
+                  specificInsights += `Initial jobless claims registered **${event.actual}**, reflecting ${event.impact === 'negative' ? 'ongoing labor market resilience with jobless claims remaining at historically low levels' : 'some softening in labor demand but within healthy ranges'}. `;
+                }
               } else if (event.title.toLowerCase().includes('retail sales')) {
-                const direction = variance && variance > 0 ? 'exceeded forecasts at' : 'came in below expectations at';
-                specificInsights += `Retail sales ${direction} **${event.actual}** versus ${event.forecast}% consensus, ${variance && variance > 0 ? 'signaling robust consumer demand' : 'suggesting some consumer caution'}. `;
+                if (event.forecast) {
+                  const direction = variance && variance > 0 ? 'exceeded forecasts at' : 'came in below expectations at';
+                  specificInsights += `Retail sales ${direction} **${event.actual}** versus ${event.forecast}% consensus, ${variance && variance > 0 ? 'signaling robust consumer demand' : 'suggesting some consumer caution'}. `;
+                } else {
+                  specificInsights += `Retail sales came in at **${event.actual}**, ${event.impact === 'positive' ? 'demonstrating consumer resilience' : 'showing some consumer caution'}. `;
+                }
               } else if (event.title.toLowerCase().includes('ppi') || event.title.toLowerCase().includes('producer price')) {
-                const direction = variance && variance > 0 ? 'exceeded expectations' : 'came in softer than anticipated';
-                specificInsights += `Producer prices ${direction} at **${event.actual}** versus ${event.forecast}, ${variance && variance < 0 ? 'alleviating inflationary pressures' : 'maintaining price pressure concerns'}. `;
+                if (event.forecast) {
+                  const direction = variance && variance > 0 ? 'exceeded expectations' : 'came in softer than anticipated';
+                  specificInsights += `Producer prices ${direction} at **${event.actual}** versus ${event.forecast}, ${variance && variance < 0 ? 'alleviating inflationary pressures' : 'maintaining price pressure concerns'}. `;
+                } else {
+                  specificInsights += `Producer prices registered **${event.actual}**, ${event.impact === 'negative' ? 'indicating easing inflationary pressures' : 'showing persistent price pressures'}. `;
+                }
               } else if (event.title.toLowerCase().includes('cpi') || event.title.toLowerCase().includes('inflation')) {
-                const direction = variance && variance > 0 ? 'exceeded' : 'fell below';
-                specificInsights += `Core inflation ${direction} expectations at **${event.actual}** versus ${event.forecast}%, ${variance && variance < 0 ? 'supporting Fed dovish positioning' : 'complicating Fed policy decisions'}. `;
+                if (event.forecast) {
+                  const direction = variance && variance > 0 ? 'exceeded' : 'fell below';
+                  specificInsights += `Core inflation ${direction} expectations at **${event.actual}** versus ${event.forecast}%, ${variance && variance < 0 ? 'supporting Fed dovish positioning' : 'complicating Fed policy decisions'}. `;
+                } else {
+                  specificInsights += `Core inflation came in at **${event.actual}**, ${event.impact === 'negative' ? 'supporting Fed dovish positioning' : 'maintaining inflation concerns'}. `;
+                }
               }
             }
           });
