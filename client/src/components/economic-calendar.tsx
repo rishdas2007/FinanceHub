@@ -23,6 +23,17 @@ export function EconomicCalendar() {
     refetchInterval: 300000, // Refresh every 5 minutes
   });
 
+  // Sort events in descending chronological order (most recent first)
+  const sortedEvents = events ? [...events].sort((a, b) => {
+    return new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime();
+  }) : [];
+
+  const isToday = (eventDate: string) => {
+    const today = new Date();
+    const event = new Date(eventDate);
+    return today.toDateString() === event.toDateString();
+  };
+
   const getRelativeTime = (eventDate: Date) => {
     const now = new Date();
     const diffMs = new Date(eventDate).getTime() - now.getTime();
@@ -41,6 +52,22 @@ export function EconomicCalendar() {
       case 'low': return 'text-gray-300';
       default: return 'text-gray-300';
     }
+  };
+
+  const calculateVariance = (actual: string | null, forecast: string | null) => {
+    if (!actual || !forecast) return null;
+    
+    const actualValue = parseFloat(actual.replace(/[^\d.-]/g, ''));
+    const forecastValue = parseFloat(forecast.replace(/[^\d.-]/g, ''));
+    
+    if (isNaN(actualValue) || isNaN(forecastValue)) return null;
+    
+    const variance = actualValue - forecastValue;
+    return {
+      value: variance,
+      isPositive: variance > 0,
+      formatted: variance > 0 ? `+${variance.toFixed(2)}` : variance.toFixed(2)
+    };
   };
 
   if (isLoading) {
@@ -76,8 +103,19 @@ export function EconomicCalendar() {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {events?.slice(0, 12).map((event) => (
-            <div key={event.id} className="bg-financial-card rounded-lg p-4">
+          {sortedEvents?.slice(0, 12).map((event) => {
+            const todayEvent = isToday(event.eventDate);
+            const variance = calculateVariance(event.actual, event.forecast);
+            
+            return (
+            <div 
+              key={event.id} 
+              className={`rounded-lg p-4 ${
+                todayEvent && event.actual 
+                  ? 'bg-blue-950/30 border border-blue-500/30' 
+                  : 'bg-financial-card'
+              }`}
+            >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${
@@ -86,11 +124,16 @@ export function EconomicCalendar() {
                   }`}></div>
                   <div className="text-white font-medium text-sm">
                     {event.title}
+                    {todayEvent && event.actual && (
+                      <span className="ml-2 px-2 py-1 text-xs bg-blue-600 text-white rounded-full">
+                        TODAY
+                      </span>
+                    )}
                   </div>
                 </div>
                 {/* Enhanced date/time display */}
                 <div className="text-right">
-                  <div className="text-xs text-gray-400">
+                  <div className={`text-xs ${todayEvent ? 'text-blue-400' : 'text-gray-400'}`}>
                     {new Date(event.eventDate).toLocaleDateString('en-US', { 
                       weekday: 'short', 
                       month: 'short', 
@@ -114,12 +157,12 @@ export function EconomicCalendar() {
                 )}
               </div>
               
-              {/* Enhanced metrics display */}
+              {/* Enhanced metrics display with variance */}
               <div className="grid grid-cols-3 gap-3 text-xs mb-3">
                 {event.forecast && (
                   <div className="text-center bg-financial-dark rounded-lg p-2">
                     <div className="text-gray-500 mb-1">Forecast</div>
-                    <div className="text-white font-medium">{event.forecast}</div>
+                    <div className="text-blue-300 font-medium">{event.forecast}</div>
                   </div>
                 )}
                 {event.previous && (
@@ -138,6 +181,18 @@ export function EconomicCalendar() {
                 )}
               </div>
               
+              {/* Variance display */}
+              {variance && (
+                <div className="text-center mb-3">
+                  <div className="text-xs text-gray-500 mb-1">Variance (Actual - Forecast)</div>
+                  <div className={`text-sm font-bold ${
+                    variance.isPositive ? 'text-gain-green' : 'text-loss-red'
+                  }`}>
+                    {variance.formatted}
+                  </div>
+                </div>
+              )}
+              
               {/* Show impact if available */}
               {event.actual && (
                 <div className="mt-2 text-xs">
@@ -148,16 +203,17 @@ export function EconomicCalendar() {
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
         
         <div className="mt-6 pt-4 border-t border-financial-border">
           <div className="text-xs text-gray-400 text-center">
             <Clock className="w-3 h-3 inline mr-1" />
-            Economic data from real MarketWatch sources • All times Eastern • Updated continuously
+            Forecasts from MarketWatch • Actual data from Federal Reserve • All times Eastern
           </div>
           <div className="text-xs text-gray-500 text-center mt-1">
-            Red: High Impact • Yellow: Medium Impact • Gray: Low Impact
+            Red: High Impact • Yellow: Medium Impact • Gray: Low Impact • Blue highlight: Today's releases
           </div>
         </div>
       </CardContent>

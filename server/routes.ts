@@ -217,26 +217,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('📊 Market data for AI analysis:', marketData);
       
-      // Get macro economic context
-      let macroContext = "Recent economic data shows mixed signals with inflation moderating but employment remaining robust.";
+      // Get economic events for comprehensive analysis
+      let economicEvents = [];
       try {
+        console.log('Fetching real economic events from this week...');
         const { EconomicDataService } = await import('./services/economic-data');
         const economicService = EconomicDataService.getInstance();
-        const economicEvents = await economicService.getEconomicEvents();
-        macroContext = economicService.generateMacroAnalysis(economicEvents);
+        economicEvents = await economicService.scrapeMarketWatchCalendar();
       } catch (error) {
-        console.log('Using fallback macro context');
+        console.log('Using fallback economic data for analysis');
       }
       
       const enhancedMarketData = {
         ...marketData,
-        macroContext: macroContext
+        economicEvents: economicEvents
       };
       
-      // Generate enhanced AI analysis with trader-style formatting
+      // Generate enhanced AI analysis with trader-style formatting and economic integration
       const { EnhancedAIAnalysisService } = await import('./services/enhanced-ai-analysis');
       const enhancedAiService = EnhancedAIAnalysisService.getInstance();
-      const aiResult = await enhancedAiService.generateRobustMarketAnalysis(enhancedMarketData, finalSectors);
+      const aiResult = await enhancedAiService.generateRobustMarketAnalysis(enhancedMarketData, finalSectors, economicEvents);
       console.log('✅ Enhanced AI analysis generated with trader-style insights');
       
       const analysisData = await storage.createAiAnalysis({

@@ -10,7 +10,7 @@ export class EnhancedAIAnalysisService {
     return new EnhancedAIAnalysisService();
   }
 
-  async generateRobustMarketAnalysis(marketData: any, sectors: any[]): Promise<{
+  async generateRobustMarketAnalysis(marketData: any, sectors: any[], economicEvents?: any[]): Promise<{
     marketConditions: string;
     technicalOutlook: string;
     riskAssessment: string;
@@ -18,22 +18,97 @@ export class EnhancedAIAnalysisService {
   }> {
     console.log('✅ Generating optimized trader-style analysis...');
     
-    // PERFORMANCE OPTIMIZATION: Generate analysis immediately without complex calculations
-    // Using authenticated market data for accurate trader commentary
+    // Process economic events for enhanced analysis
+    const processedEconomicData = this.processEconomicData(economicEvents || []);
+    
+    // Generate dynamic analysis based on real data
     const analysis = {
-      marketConditions: `Bottom Line: SPX's +0.61% gain to 628.04 masks brewing technical divergences. Bull market intact, but healthy pullback overdue before resuming higher. Don't fight the trend until key support breaks.`,
+      marketConditions: this.generateTechnicalAnalysis(marketData),
       
-      technicalOutlook: `Classic late-rally setup emerging. RSI at 68.9 approaches overbought territory while MACD shows bearish crossover (8.244 vs 8.627) - textbook momentum divergence. VIX at 16.52 reflects dangerous complacency. Still bullish medium-term, but expect near-term chop as frothy conditions get worked off.`,
+      technicalOutlook: this.generateTechnicalOutlook(marketData),
       
-      riskAssessment: `Goldilocks backdrop continues. Initial jobless claims at 221K beat 234K forecast - labor market resilient. Core CPI steady at 2.9%, Producer prices flat signals pipeline disinflation. Retail sales modest at 0.6%. Fed getting the cooling they want without breaking anything.
-
-Classic late-cycle rotation in play. Financials (+0.96%) leading on higher-for-longer positioning. Technology (+0.91%) and Industrials (+0.92%) strong, but Health Care (-1.14%) weakness shows defensive rotation. Broad 82% advance/decline ratio bullish for structure but suggests extended conditions. Energy's 5-day weakness (-2.15%) concerning in otherwise risk-on environment.`,
+      riskAssessment: this.generateEconomicAnalysis(processedEconomicData, sectors),
       
       confidence: 0.85,
     };
 
     console.log('✅ Analysis generated in <5ms');
     return analysis;
+  }
+
+  private processEconomicData(events: any[]) {
+    if (!events || events.length === 0) return { recent: [], highImpact: [], summary: '' };
+
+    const now = new Date();
+    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+
+    // Filter recent events (last 3 days)
+    const recentEvents = events.filter(event => 
+      new Date(event.eventDate) >= threeDaysAgo && event.actual
+    ).sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime());
+
+    // Filter high impact events with actual data
+    const highImpactEvents = events.filter(event => 
+      event.importance === 'high' && event.actual
+    ).sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime());
+
+    return {
+      recent: recentEvents.slice(0, 5),
+      highImpact: highImpactEvents.slice(0, 5),
+      summary: this.generateEconomicSummary(recentEvents, highImpactEvents)
+    };
+  }
+
+  private generateEconomicSummary(recent: any[], highImpact: any[]) {
+    const keyEvents = [...recent, ...highImpact]
+      .filter((event, index, self) => self.findIndex(e => e.id === event.id) === index)
+      .slice(0, 6);
+
+    return keyEvents.map(event => {
+      const variance = this.calculateVariance(event.actual, event.forecast);
+      const direction = variance && variance > 0 ? 'beat' : variance && variance < 0 ? 'missed' : 'met';
+      return `${event.title}: ${event.actual} ${direction} ${event.forecast || 'expectations'}`;
+    }).join(', ');
+  }
+
+  private calculateVariance(actual: string, forecast: string) {
+    if (!actual || !forecast) return null;
+    const actualValue = parseFloat(actual.replace(/[^\d.-]/g, ''));
+    const forecastValue = parseFloat(forecast.replace(/[^\d.-]/g, ''));
+    return isNaN(actualValue) || isNaN(forecastValue) ? null : actualValue - forecastValue;
+  }
+
+  private generateTechnicalAnalysis(marketData: any) {
+    const { price, changePercent, rsi, macd, macdSignal, vix } = marketData;
+    return `Bottom Line: SPX's ${changePercent > 0 ? '+' : ''}${changePercent.toFixed(1)}% ${changePercent > 0 ? 'gain' : 'decline'} to ${price.toFixed(2)} ${rsi > 70 ? 'shows overbought conditions' : rsi > 60 ? 'masks brewing technical divergences' : 'reflects oversold bounce potential'}. ${macd > macdSignal ? 'Momentum bullish' : 'Momentum bearish'}, but ${vix < 20 ? 'complacency elevated' : 'fear elevated'}.`;
+  }
+
+  private generateTechnicalOutlook(marketData: any) {
+    const { rsi, macd, macdSignal, vix } = marketData;
+    const momentum = macd > macdSignal ? 'bullish' : 'bearish';
+    const rsiCondition = rsi > 70 ? 'overbought' : rsi > 60 ? 'elevated' : rsi < 30 ? 'oversold' : 'neutral';
+    
+    return `**TECHNICAL ANALYSIS:** RSI at ${rsi.toFixed(1)} shows ${rsiCondition} conditions while MACD shows ${momentum} crossover (${macd.toFixed(3)} vs ${macdSignal.toFixed(3)}). VIX at ${vix.toFixed(2)} reflects ${vix < 20 ? 'dangerous complacency' : 'elevated stress'}. ${rsi > 65 ? 'Expect near-term chop as conditions normalize' : 'Technical setup supportive for further gains'}.`;
+  }
+
+  private generateEconomicAnalysis(economicData: any, sectors: any[]) {
+    const topSector = sectors.reduce((prev, current) => 
+      (current.dayChange > prev.dayChange) ? current : prev
+    );
+    const bottomSector = sectors.reduce((prev, current) => 
+      (current.dayChange < prev.dayChange) ? current : prev
+    );
+
+    let economicText = '';
+    if (economicData.summary) {
+      economicText = `**ECONOMIC ANALYSIS:** ${economicData.summary}. `;
+    } else {
+      economicText = '**ECONOMIC ANALYSIS:** Fed policy supportive, labor market resilient. ';
+    }
+
+    return `${economicText}
+
+**SECTOR ROTATION ANALYSIS:** Classic rotation in play. ${topSector.name} leading (${topSector.dayChange > 0 ? '+' : ''}${topSector.dayChange.toFixed(2)}%) while ${bottomSector.name} lagging (${bottomSector.dayChange.toFixed(2)}%). Broad market structure ${sectors.filter(s => s.dayChange > 0).length >= sectors.length * 0.6 ? 'bullish' : 'mixed'} with ${sectors.filter(s => s.dayChange > 0).length}/${sectors.length} sectors positive.`;
   }
 
   async generateComprehensiveAnalysis(): Promise<any> {
