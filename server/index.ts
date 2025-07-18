@@ -66,6 +66,14 @@ app.use((req, res, next) => {
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
-    log(`serving on port ${port}`);
+    log(`🚀 FinanceHub Pro serving on port ${port}`);
+    
+    // Start the data scheduler for daily updates
+    import("./services/scheduler").then(({ dataScheduler }) => {
+      log('📊 Initializing comprehensive data scheduler...');
+      dataScheduler.startScheduler();
+    }).catch(error => {
+      log('❌ Failed to start data scheduler:', error);
+    });
   });
 })();

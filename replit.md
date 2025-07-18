@@ -6,7 +6,17 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 
 ## Recent Changes (July 18, 2025)
 
-### MarketWatch Economic Calendar Compliance (Latest Update)
+### Comprehensive Data Scheduling System (Latest Update)
+- Implemented automated data scheduler with cron jobs for daily updates
+- Real-time updates: Every 2 minutes (8:30 AM - 6 PM EST, weekdays) 
+- Forecast updates: Every 6 hours for economic calendar and AI analysis refresh
+- Comprehensive sync: Daily at 6 AM EST for all market data, sectors, indicators
+- Data cleanup: Daily at 2 AM EST to remove stale cached data
+- Added force refresh API endpoint (/api/force-refresh) for manual updates
+- Market hours detection to optimize API usage during trading vs off-hours
+- Eliminated stale data issues - all indicators now update daily with authentic sources
+
+### MarketWatch Economic Calendar Compliance  
 - Restructured economic data schema to match MarketWatch API specifications
 - Added country, category, and source fields to all economic events
 - Implemented proper event categorization: inflation, employment, consumer_spending, manufacturing

@@ -529,5 +529,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Force refresh endpoint for immediate data updates
+  app.post("/api/force-refresh", async (req, res) => {
+    try {
+      console.log('🔄 Force refresh triggered...');
+      
+      // Import and use the scheduler for comprehensive updates
+      const { dataScheduler } = await import('./services/scheduler');
+      await dataScheduler.forceUpdate();
+      
+      res.json({ 
+        message: 'All data refreshed successfully via scheduler',
+        timestamp: new Date().toISOString(),
+        schedule: {
+          realtime: 'Every 2 minutes (8:30 AM - 6 PM EST, weekdays)',
+          forecast: 'Every 6 hours',
+          comprehensive: 'Daily at 6 AM EST',
+          cleanup: 'Daily at 2 AM EST'
+        }
+      });
+    } catch (error) {
+      console.error('❌ Error during force refresh:', error);
+      res.status(500).json({ message: 'Failed to refresh data' });
+    }
+  });
+
   return httpServer;
 }
