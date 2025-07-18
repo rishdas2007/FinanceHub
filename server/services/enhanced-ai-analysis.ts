@@ -122,22 +122,70 @@ export class EnhancedAIAnalysisService {
         }
       });
 
-      // Generate economic insights from recent data
+      // Generate detailed economic insights from recent data with specific readings
       let economicInsights = '';
       if (economicData.summary && economicData.summary.length > 0) {
         const events = economicData.summary.split(', ');
         const beatCount = events.filter(e => e.includes('beat')).length;
         const missedCount = events.filter(e => e.includes('missed')).length;
         
+        // Extract specific readings for detailed analysis
+        const joblessClaimsMatch = economicData.summary.match(/Initial jobless claims: ([\d,]+) (missed|beat) ([\d,]+)/);
+        const retailSalesMatch = economicData.summary.match(/retail sales: ([\d.]+)% (missed|beat) ([\d.]+)%/);
+        const ppiMatch = economicData.summary.match(/Producer price index: ([\d.-]+)% (missed|beat) ([\d.-]+)%/);
+        const corePpiMatch = economicData.summary.match(/Core PPI: ([\d.-]+)% (missed|beat) ([\d.-]+)%/);
+        
         if (beatCount > missedCount) {
-          economicInsights = `Recent economic releases signal underlying strength with data generally exceeding expectations. This backdrop supports risk appetite and validates current market positioning. Key releases including retail sales and employment data suggest consumer resilience remains intact, providing fundamental support for equity markets.`;
+          economicInsights = `This week's economic releases demonstrate underlying economic resilience with key data points exceeding forecasts. `;
+          
+          if (retailSalesMatch) {
+            const [, actual, direction, forecast] = retailSalesMatch;
+            economicInsights += `Retail sales at ${actual}% ${direction === 'beat' ? 'substantially outpaced' : 'fell short of'} the ${forecast}% consensus, signaling robust consumer demand that underpins economic expansion. `;
+          }
+          
+          if (joblessClaimsMatch) {
+            const [, actual, direction, forecast] = joblessClaimsMatch;
+            economicInsights += `Initial jobless claims at ${actual} ${direction === 'missed' ? 'came in higher than' : 'improved from'} expected ${forecast}, indicating ${direction === 'missed' ? 'some softening in labor demand but still within healthy ranges' : 'continued labor market tightness'}. `;
+          }
+          
+          if (ppiMatch && corePpiMatch) {
+            const [, ppiActual, ppiDir] = ppiMatch;
+            const [, corePpiActual, corePpiDir] = corePpiMatch;
+            economicInsights += `Producer price data showed ${ppiActual}% headline and ${corePpiActual}% core readings, both ${ppiDir === 'missed' ? 'coming in softer than anticipated' : 'exceeding expectations'}, which ${ppiDir === 'missed' ? 'alleviates inflationary pressures and supports Fed dovish positioning' : 'raises questions about persistent price pressures'}. `;
+          }
+          
+          economicInsights += `This constructive data backdrop validates current market positioning and supports continued risk appetite as fundamental economic conditions remain supportive of equity valuations.`;
         } else if (missedCount > beatCount) {
-          economicInsights = `Economic data showing mixed signals with several key releases missing forecasts. This creates some uncertainty about growth momentum and could influence Fed policy considerations. Markets remain focused on labor market stability and consumer spending patterns for directional clarity.`;
+          economicInsights = `Economic data this week presents a mixed picture with several key releases falling short of expectations, creating some uncertainty about growth momentum trajectory. `;
+          
+          if (joblessClaimsMatch) {
+            const [, actual, direction, forecast] = joblessClaimsMatch;
+            if (direction === 'missed') {
+              economicInsights += `Initial jobless claims rising to ${actual} versus ${forecast} expected suggests potential softening in labor demand, though levels remain historically low. `;
+            }
+          }
+          
+          if (ppiMatch && corePpiMatch) {
+            const [, ppiActual, ppiDir] = ppiMatch;
+            const [, corePpiActual, corePpiDir] = corePpiMatch;
+            if (ppiDir === 'missed') {
+              economicInsights += `Producer prices showing ${ppiActual}% headline and ${corePpiActual}% core, both weaker than forecasts, indicates disinflationary trends gaining traction. `;
+            }
+          }
+          
+          if (retailSalesMatch) {
+            const [, actual, direction, forecast] = retailSalesMatch;
+            if (direction === 'beat') {
+              economicInsights += `However, retail sales strength at ${actual}% versus ${forecast}% expected provides reassurance about consumer resilience. `;
+            }
+          }
+          
+          economicInsights += `Markets remain focused on upcoming employment data and Fed communications for clarity on policy trajectory. This data uncertainty could influence Fed policy considerations as officials balance growth concerns against inflation targets.`;
         } else {
-          economicInsights = `Economic releases aligned closely with expectations, suggesting stable growth trajectory without significant surprises. This Goldilocks scenario supports current market conditions while keeping Fed policy path predictable.`;
+          economicInsights = `Economic releases this week tracked closely with expectations, providing a Goldilocks scenario that supports current market equilibrium. The balanced data flow suggests stable growth trajectory without concerning inflationary pressures or recessionary signals. This predictable economic backdrop keeps Fed policy path well-telegraphed and supports current equity risk premium assumptions.`;
         }
       } else {
-        economicInsights = 'Fed policy framework continues supporting market conditions with labor market resilience providing economic foundation. Recent data flow suggests sustainable growth trajectory without concerning inflationary pressures.';
+        economicInsights = 'Fed policy framework continues supporting market conditions with labor market resilience providing economic foundation. Recent data flow suggests sustainable growth trajectory without concerning inflationary pressures that would necessitate aggressive policy adjustments.';
       }
 
       // Count positive sectors safely and analyze rotation

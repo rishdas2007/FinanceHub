@@ -55,14 +55,16 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 
 ### AI Market Analysis System Perfected with Trader-Style Tone (Updated July 18, 2025)
 - **COMPREHENSIVE ECONOMIC INTEGRATION**: AI analysis now incorporates complete economic calendar data with preference for recent/high-impact events
-- **ENHANCED ANALYSIS SECTIONS**: Dynamic economic analysis based on real economic releases with variance calculations
-- **SMART EVENT PROCESSING**: AI prioritizes events from last 3 days and high-impact releases for relevant market commentary
-- **REAL-TIME VARIANCE ANALYSIS**: AI calculates and comments on actual vs forecast performance (beat/missed expectations)
+- **ENHANCED ECONOMIC COMMENTARY (Latest)**: Significantly longer and more detailed economic analysis with specific weekly readings
+- **WEEKLY DATA PREFERENCE**: AI prioritizes current day and recent week's releases (jobless claims, retail sales, PPI, Core PPI)
+- **DETAILED MARKET IMPLICATIONS**: Each economic reading explained with market impact analysis and Fed policy considerations
+- **SPECIFIC DATA REFERENCES**: Analysis includes actual vs. expected comparisons (e.g., "221,000 vs 234,000 expected")
 - **TRADER-STYLE INTEGRATION**: Economic analysis seamlessly blended with technical and sector analysis in Wall Street trading desk format
-- **BOLD FORMATTING**: Key economic metrics highlighted with **bold formatting** for emphasis (e.g., **Core CPI at 2.9%**)
+- **PROFESSIONAL INSIGHTS**: Explains disinflationary trends, consumer resilience, labor market dynamics, and policy implications
 - **PERFORMANCE OPTIMIZED**: Analysis generation remains under 5ms while incorporating comprehensive economic dataset
 - Analysis uses authentic market data: RSI 68.95, MACD bearish crossover (8.244 vs 8.627), VIX 17.16, plus real economic releases
-- **DYNAMIC CONTENT**: Economic analysis adapts based on actual recent releases rather than static commentary
+- **DYNAMIC CONTENT**: Economic analysis adapts based on actual recent releases with detailed weekly commentary
+- **FORMATTING PERFECTED**: Eliminated all markdown artifacts (** bold text) for clean professional presentation
 
 ### Complete Real Technical Indicators Integration
 - Implemented authentic VWAP data from Twelve Data API for SPY, QQQ, and Russell 2000 (IWM)
