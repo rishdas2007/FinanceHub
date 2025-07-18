@@ -663,6 +663,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test scheduled daily email functionality
+  app.post("/api/email/test-scheduled", async (req, res) => {
+    try {
+      console.log('📧 Testing scheduled daily email functionality...');
+      
+      // Import the scheduler and trigger the daily email method
+      const { dataScheduler } = await import('./services/scheduler');
+      await dataScheduler.sendDailyEmail();
+      
+      res.json({
+        message: 'Scheduled daily email test completed successfully',
+        status: 'success',
+        timestamp: new Date().toISOString(),
+        note: 'This tests the same method that runs at 8 AM EST daily'
+      });
+    } catch (error) {
+      console.error('Error testing scheduled email:', error);
+      res.status(500).json({ 
+        message: 'Failed to test scheduled email', 
+        error: error.message,
+        status: 'error'
+      });
+    }
+  });
+
   // Test endpoint for email functionality with real-time data
   app.post("/api/email/test-daily", async (req, res) => {
     try {

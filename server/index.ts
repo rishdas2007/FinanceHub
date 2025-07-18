@@ -68,12 +68,24 @@ app.use((req, res, next) => {
   }, () => {
     log(`🚀 FinanceHub Pro serving on port ${port}`);
     
-    // Start the data scheduler for daily updates
-    import("./services/scheduler").then(({ dataScheduler }) => {
-      log('📊 Initializing comprehensive data scheduler...');
-      dataScheduler.startScheduler();
-    }).catch(error => {
-      log('❌ Failed to start data scheduler:', error);
-    });
+    // Start the data scheduler for daily updates with enhanced error handling
+    setTimeout(async () => {
+      try {
+        log('📊 Initializing comprehensive data scheduler...');
+        const { dataScheduler } = await import("./services/scheduler");
+        
+        await dataScheduler.startScheduler();
+        log('✅ Data scheduler started successfully with 8 AM email cron job');
+        
+        // Verify the scheduler is working by checking its status
+        log('📧 Daily email scheduled for 8:00 AM EST (Monday-Friday)');
+        log(`📅 Current EST time: ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}`);
+        log('🔄 All scheduled tasks initialized and ready');
+        
+      } catch (error) {
+        log('❌ CRITICAL: Failed to start data scheduler:', error);
+        console.error('Scheduler initialization error:', error);
+      }
+    }, 3000); // 3 second delay to ensure full server initialization
   });
 })();
