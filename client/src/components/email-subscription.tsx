@@ -6,6 +6,7 @@ import { Mail, CheckCircle, AlertCircle } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { EmailTestButton } from "./email-test-button";
 
 export function EmailSubscription() {
   const [email, setEmail] = useState("");
@@ -136,6 +137,12 @@ export function EmailSubscription() {
           <p className="text-xs text-gray-500 text-center">
             Free service • Monday-Friday delivery • Easy unsubscribe
           </p>
+
+          {/* Admin Test Button */}
+          <div className="mt-6 pt-4 border-t border-financial-border">
+            <h4 className="text-white font-semibold text-sm mb-2">Developer Testing</h4>
+            <EmailTestButton />
+          </div>
         </form>
       </CardContent>
     </Card>

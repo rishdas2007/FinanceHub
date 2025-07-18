@@ -663,5 +663,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint for email functionality
+  app.post("/api/email/test-daily", async (req, res) => {
+    try {
+      const { emailService } = await import('./services/email-service');
+      const { aiAnalysisService } = await import('./services/enhanced-ai-analysis');
+      
+      // Get active subscriptions
+      const subscriptions = await emailService.getActiveSubscriptions();
+      
+      if (subscriptions.length === 0) {
+        return res.json({ 
+          message: 'No active subscriptions found',
+          subscriptions: 0
+        });
+      }
+      
+      // Generate fresh analysis data for the test email
+      const analysisData = await aiAnalysisService.generateComprehensiveAnalysis();
+      
+      // Send test daily email
+      await emailService.sendDailyMarketCommentary(analysisData);
+      
+      res.json({ 
+        message: 'Test daily email sent successfully',
+        subscriptions: subscriptions.length,
+        sendGridEnabled: !!process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.startsWith('SG.')
+      });
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      res.status(500).json({ message: 'Failed to send test email', error: error.message });
+    }
+  });
+
   return httpServer;
 }
