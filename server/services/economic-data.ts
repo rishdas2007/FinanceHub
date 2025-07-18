@@ -1,4 +1,4 @@
-import type { EconomicEvent } from '@shared/types';
+import type { EconomicEvent } from '../types/financial';
 
 export class EconomicDataService {
   private static instance: EconomicDataService;

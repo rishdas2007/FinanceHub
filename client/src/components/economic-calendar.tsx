@@ -77,14 +77,18 @@ export function EconomicCalendar() {
                 {/* Enhanced date/time display */}
                 <div className="text-right">
                   <div className="text-xs text-gray-400">
-                    {new Date(event.date).toLocaleDateString('en-US', { 
+                    {new Date(event.eventDate).toLocaleDateString('en-US', { 
                       weekday: 'short', 
                       month: 'short', 
                       day: 'numeric' 
                     }).toUpperCase()}
                   </div>
                   <div className="text-xs text-warning-yellow">
-                    {event.time}
+                    {new Date(event.eventDate).toLocaleTimeString('en-US', {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true
+                    })}
                   </div>
                 </div>
               </div>
@@ -108,12 +112,7 @@ export function EconomicCalendar() {
                 {event.actual && (
                   <div className="text-center bg-financial-dark rounded-lg p-2">
                     <div className="text-gray-500 mb-1">Actual</div>
-                    <div className={`font-bold ${
-                      event.impact === 'positive' || event.impact === 'very_positive' ? 'text-gain-green' :
-                      event.impact === 'negative' ? 'text-loss-red' :
-                      event.impact === 'slightly_negative' ? 'text-warning-yellow' :
-                      'text-white'
-                    }`}>
+                    <div className="text-white font-bold">
                       {event.actual}
                     </div>
                   </div>
@@ -121,19 +120,11 @@ export function EconomicCalendar() {
               </div>
               
               {/* Show impact if available */}
-              {event.actual && event.impact && (
+              {event.actual && (
                 <div className="mt-2 text-xs">
-                  <span className="text-gray-500">Impact: </span>
-                  <span className={`font-medium ${
-                    event.impact === 'positive' || event.impact === 'very_positive' ? 'text-gain-green' :
-                    event.impact === 'negative' ? 'text-loss-red' :
-                    event.impact === 'slightly_negative' ? 'text-warning-yellow' :
-                    'text-gray-300'
-                  }`}>
-                    {event.impact === 'very_positive' ? 'Very Positive' :
-                     event.impact === 'positive' ? 'Positive' :
-                     event.impact === 'slightly_negative' ? 'Slightly Negative' :
-                     event.impact === 'negative' ? 'Negative' : 'Neutral'}
+                  <span className="text-gray-500">Released: </span>
+                  <span className="text-white font-medium">
+                    {new Date(event.eventDate).toLocaleDateString()}
                   </span>
                 </div>
               )}

@@ -58,7 +58,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             change: item.change.toString(),
             changePercent: item.changePercent.toString(),
             volume: item.volume,
-            timestamp: item.timestamp,
+            // timestamp: item.timestamp, // Remove this line as it's not in the schema
           });
         }
         
@@ -267,19 +267,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const event of realEvents.slice(0, 10)) {
           try {
             await storage.createEconomicEvent({
-              id: event.id,
               title: event.title,
               description: event.description || '',
-              date: event.date,
+              eventDate: event.date,
               importance: event.importance,
               forecast: event.forecast || null,
-              impact: event.impact || null,
+              previous: event.previous || null,
+              actual: event.actual || null,
             });
           } catch (error) {
             // Event might already exist, continue
           }
         }
-        events = realEvents;
+        // Transform realEvents to match our database schema
+        events = realEvents.map(event => ({
+          id: Math.floor(Math.random() * 1000000), // Generate temporary ID
+          title: event.title,
+          description: event.description,
+          importance: event.importance,
+          eventDate: event.date,
+          forecast: event.forecast || null,
+          previous: event.previous || null,
+          actual: event.actual || null,
+          timestamp: new Date()
+        }));
       }
       
       res.json(events);
