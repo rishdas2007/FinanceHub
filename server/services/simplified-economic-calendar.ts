@@ -25,7 +25,7 @@ interface MarketHoursContext {
 export class SimplifiedEconomicCalendarService {
   private static instance: SimplifiedEconomicCalendarService;
   private cache: { events: EconomicEvent[]; lastUpdated: Date } | null = null;
-  private readonly cacheValidityMs = 5 * 60 * 1000; // 5 minute cache for testing expanded coverage
+  private readonly cacheValidityMs = 1 * 60 * 1000; // 1 minute cache to refresh with historical events
 
   static getInstance(): SimplifiedEconomicCalendarService {
     if (!SimplifiedEconomicCalendarService.instance) {
@@ -713,20 +713,26 @@ export class SimplifiedEconomicCalendarService {
   async getCalendarEvents(): Promise<EconomicEvent[]> {
     const allEvents = await this.getAllEconomicEvents();
     
-    // Sort by date (most recent first) and importance
+    // Prioritize events with actual values first, then by date and importance
     const sortedEvents = allEvents.sort((a, b) => {
-      // First sort by date (newest first)
+      // First priority: Events with actual values come first
+      const aHasActual = !!a.actual;
+      const bHasActual = !!b.actual;
+      if (aHasActual && !bHasActual) return -1;
+      if (!aHasActual && bHasActual) return 1;
+      
+      // Second priority: Sort by date (newest first)
       const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime();
       if (dateCompare !== 0) return dateCompare;
       
-      // Then by importance (high -> medium -> low)
+      // Third priority: Sort by importance (high -> medium -> low)
       const importanceOrder = { high: 3, medium: 2, low: 1 };
       return importanceOrder[b.importance] - importanceOrder[a.importance];
     });
     
-    console.log(`📅 Reliable Calendar Events: ${sortedEvents.length} events sorted by date and importance`);
+    console.log(`📅 Reliable Calendar Events: ${sortedEvents.length} events sorted by actual values, date, and importance`);
     
-    return sortedEvents.slice(0, 20); // Limit to 20 most relevant events
+    return sortedEvents.slice(0, 40); // Increased to show more events with actual values
   }
 }
 
