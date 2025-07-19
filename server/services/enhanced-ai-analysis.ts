@@ -84,9 +84,36 @@ export class EnhancedAIAnalysisService {
 
   private calculateVariance(actual: string, forecast: string) {
     if (!actual || !forecast) return null;
-    const actualValue = parseFloat(actual.replace(/[^\d.-]/g, ''));
-    const forecastValue = parseFloat(forecast.replace(/[^\d.-]/g, ''));
-    return isNaN(actualValue) || isNaN(forecastValue) ? null : actualValue - forecastValue;
+    
+    // Handle percentage values
+    let actualValue = parseFloat(actual.replace(/[^\d.-]/g, ''));
+    let forecastValue = parseFloat(forecast.replace(/[^\d.-]/g, ''));
+    
+    // Handle values with 'K', 'M' suffixes consistently
+    const actualHasK = actual.includes('K') || actual.includes('k');
+    const actualHasM = actual.includes('M') || actual.includes('m');
+    const forecastHasK = forecast.includes('K') || forecast.includes('k');
+    const forecastHasM = forecast.includes('M') || forecast.includes('m');
+    
+    if (actualHasK) actualValue = actualValue * 1000;
+    if (actualHasM) actualValue = actualValue * 1000000;
+    if (forecastHasK) forecastValue = forecastValue * 1000;
+    if (forecastHasM) forecastValue = forecastValue * 1000000;
+    
+    if (isNaN(actualValue) || isNaN(forecastValue)) return null;
+    
+    const variance = actualValue - forecastValue;
+    
+    // For AI analysis, return consistent numeric format matching actual/forecast units
+    if (actualHasK || forecastHasK) {
+      return (variance / 1000).toFixed(0) + '.00';  // Return as thousands with consistent decimals
+    } else if (actualHasM || forecastHasM) {
+      return (variance / 1000000).toFixed(2);  // Return as millions with 2 decimals  
+    } else if (actual.includes('%')) {
+      return variance.toFixed(2);  // Return percentage variance with 2 decimals
+    } else {
+      return variance.toFixed(0);  // Return whole numbers consistently
+    }
   }
 
   /**
@@ -250,58 +277,90 @@ export class EnhancedAIAnalysisService {
     // Comprehensive economic foundation
     sentences.push("The economic backdrop reveals a complex interplay of disinflationary pressures, resilient labor dynamics, and evolving Fed policy expectations that collectively shape risk asset valuations and sector rotation patterns.");
     
-    // Labor market deep dive
-    const joblessEvent = recentEvents.find(e => e.title?.toLowerCase().includes('jobless') || e.title?.toLowerCase().includes('claims'));
-    if (joblessEvent) {
-      const claimsValue = parseInt(joblessEvent.actual?.replace(/[^\d]/g, ''));
-      const forecast = parseInt(joblessEvent.forecast?.replace(/[^\d]/g, ''));
-      if (claimsValue && forecast) {
-        const beat = claimsValue < forecast;
-        sentences.push(`Labor market resilience ${beat ? 'exceeded expectations' : 'disappointed'} with initial jobless claims at ${claimsValue.toLocaleString()}, ${beat ? 'supporting' : 'challenging'} the narrative of sustained employment strength that underpins consumer spending and Fed policy normalization trajectories.`);
-      }
-    } else {
-      sentences.push("Labor market conditions continue to display remarkable resilience with jobless claims remaining below critical thresholds, supporting consumer spending patterns and Federal Reserve policy normalization expectations while underpinning cyclical sector leadership across the equity landscape.");
-    }
+    // Categorize events by economic category
+    const growthEvents = recentEvents.filter(e => e.category === 'growth' || 
+      e.title?.toLowerCase().includes('retail') || 
+      e.title?.toLowerCase().includes('industrial') ||
+      e.title?.toLowerCase().includes('housing') ||
+      e.title?.toLowerCase().includes('gdp'));
     
-    // Inflation and monetary policy implications
-    const inflationEvents = recentEvents.filter(e => 
+    const laborEvents = recentEvents.filter(e => e.category === 'employment' ||
+      e.title?.toLowerCase().includes('jobless') || 
+      e.title?.toLowerCase().includes('employment') ||
+      e.title?.toLowerCase().includes('claims'));
+    
+    const inflationEvents = recentEvents.filter(e => e.category === 'inflation' ||
       e.title?.toLowerCase().includes('cpi') || 
       e.title?.toLowerCase().includes('ppi') || 
-      e.title?.toLowerCase().includes('inflation')
-    );
+      e.title?.toLowerCase().includes('inflation'));
     
+    const sentimentEvents = recentEvents.filter(e => e.category === 'sentiment' ||
+      e.title?.toLowerCase().includes('confidence') ||
+      e.title?.toLowerCase().includes('sentiment'));
+
+    // Growth category analysis
+    if (growthEvents.length > 0) {
+      const retailEvent = growthEvents.find(e => e.title?.toLowerCase().includes('retail'));
+      const housingEvents = growthEvents.filter(e => e.title?.toLowerCase().includes('housing') || e.title?.toLowerCase().includes('building'));
+      
+      if (retailEvent) {
+        const retailValue = parseFloat(retailEvent.actual?.replace(/[^\d.-]/g, ''));
+        const forecast = parseFloat(retailEvent.forecast?.replace(/[^\d.-]/g, ''));
+        if (!isNaN(retailValue) && !isNaN(forecast)) {
+          const beat = retailValue > forecast;
+          sentences.push(`Growth indicators showed consumer resilience with retail sales at ${retailValue > 0 ? '+' : ''}${retailValue.toFixed(1)}% ${beat ? 'exceeding' : 'missing'} the ${forecast.toFixed(1)}% forecast, ${beat ? 'validating expansion momentum and supporting cyclical sectors' : 'suggesting consumer caution and favoring defensive positioning'}.`);
+        }
+      }
+      
+      if (housingEvents.length > 0) {
+        const housingEvent = housingEvents[0];
+        sentences.push(`Housing sector data with ${housingEvent.title} at ${housingEvent.actual} indicates ${parseFloat(housingEvent.actual?.replace(/[^\d.-]/g, '')) > parseFloat(housingEvent.forecast?.replace(/[^\d.-]/g, '')) ? 'strength in residential investment supporting Materials and Financials sectors' : 'moderation in housing activity reflecting higher borrowing costs'}.`);
+      }
+    } else {
+      sentences.push("Growth indicators remain supportive with consumer spending and housing activity providing foundation for continued expansion while interest-sensitive sectors benefit from stable economic momentum.");
+    }
+
+    // Labor Market category analysis  
+    if (laborEvents.length > 0) {
+      const joblessEvent = laborEvents.find(e => e.title?.toLowerCase().includes('jobless') || e.title?.toLowerCase().includes('claims'));
+      if (joblessEvent) {
+        const claimsValue = parseInt(joblessEvent.actual?.replace(/[^\d]/g, ''));
+        const forecast = parseInt(joblessEvent.forecast?.replace(/[^\d]/g, ''));
+        if (claimsValue && forecast) {
+          const beat = claimsValue < forecast;
+          sentences.push(`Labor Market indicators showed ${beat ? 'strength' : 'softening'} with initial jobless claims at ${claimsValue.toLocaleString()} ${beat ? 'below' : 'above'} the ${forecast.toLocaleString()} forecast, ${beat ? 'supporting wage growth and consumer spending while underpinning cyclical sector performance' : 'suggesting labor market cooling that could pressure consumer discretionary sectors'}.`);
+        }
+      }
+    } else {
+      sentences.push("Labor Market conditions maintain resilience with employment strength supporting consumer spending capacity and Federal Reserve policy normalization while benefiting cyclical equity sectors.");
+    }
+
+    // Inflation category analysis
     if (inflationEvents.length > 0) {
       const cpiEvent = inflationEvents.find(e => e.title?.toLowerCase().includes('cpi'));
+      const ppiEvent = inflationEvents.find(e => e.title?.toLowerCase().includes('ppi'));
+      
       if (cpiEvent) {
         const cpiValue = parseFloat(cpiEvent.actual?.replace(/[^\d.-]/g, ''));
-        sentences.push(`Core inflation dynamics at ${cpiValue}% continue the disinflationary trajectory that provides Federal Reserve flexibility while supporting equity multiple expansion, particularly benefiting duration-sensitive sectors including Technology, Real Estate, and Utilities.`);
+        const forecast = parseFloat(cpiEvent.forecast?.replace(/[^\d.-]/g, ''));
+        const beat = !isNaN(cpiValue) && !isNaN(forecast) ? cpiValue < forecast : false;
+        sentences.push(`Inflation dynamics with Core CPI at ${cpiValue}% ${beat ? 'below' : 'above'} expectations continue ${beat ? 'disinflationary progress supporting Fed flexibility and duration-sensitive sectors including Technology and Real Estate' : 'elevated pressures constraining Fed policy options while favoring value sectors'}.`);
+      } else if (ppiEvent) {
+        sentences.push(`Producer price pressures at ${ppiEvent.actual} indicate upstream inflation trends that influence Fed policy positioning and sector rotation between growth and value styles.`);
       }
     } else {
-      sentences.push("Disinflationary trends continue to provide Federal Reserve flexibility while supporting equity valuation expansion, particularly benefiting interest-sensitive sectors like Technology and Real Estate as declining real rates enhance present value calculations for growth-oriented assets.");
+      sentences.push("Inflation trends continue supporting Federal Reserve flexibility while benefiting interest-sensitive sectors as declining real rates enhance present value calculations for growth-oriented assets.");
     }
-    
-    // Consumer spending and economic growth analysis
-    const consumerEvents = recentEvents.filter(e => 
-      e.title?.toLowerCase().includes('retail') || 
-      e.title?.toLowerCase().includes('consumer') || 
-      e.title?.toLowerCase().includes('spending')
-    );
-    
-    if (consumerEvents.length > 0) {
-      const retailEvent = consumerEvents[0];
-      const retailValue = parseFloat(retailEvent.actual?.replace(/[^\d.-]/g, ''));
-      const forecast = parseFloat(retailEvent.forecast?.replace(/[^\d.-]/g, ''));
-      if (!isNaN(retailValue) && !isNaN(forecast)) {
-        const beat = retailValue > forecast;
-        sentences.push(`Consumer discretionary strength ${beat ? 'surpassed' : 'fell short of'} expectations with retail sales registering ${retailValue > 0 ? '+' : ''}${retailValue.toFixed(1)}% growth, ${beat ? 'validating' : 'questioning'} the sustainability of economic expansion and supporting ${beat ? 'cyclical sector leadership' : 'defensive sector rotation strategies'}.`);
-      }
-    } else {
-      sentences.push("Consumer spending resilience continues to underpin economic growth expectations with discretionary categories showing strength that validates cyclical sector positioning while supporting broader equity market valuations across the growth and value spectrum.");
+
+    // Sentiment category analysis
+    if (sentimentEvents.length > 0) {
+      const confidenceEvent = sentimentEvents[0];
+      const confidenceValue = parseFloat(confidenceEvent.actual?.replace(/[^\d.-]/g, ''));
+      const forecast = parseFloat(confidenceEvent.forecast?.replace(/[^\d.-]/g, ''));
+      const beat = !isNaN(confidenceValue) && !isNaN(forecast) ? confidenceValue > forecast : false;
+      sentences.push(`Sentiment indicators with ${confidenceEvent.title} at ${confidenceEvent.actual} ${beat ? 'exceeded forecasts, supporting risk asset appetite and cyclical sector leadership' : 'disappointed expectations, favoring defensive positioning in Utilities and Consumer Staples'}.`);
     }
-    
-    // Manufacturing and economic breadth
-    sentences.push("Manufacturing sector dynamics reflect supply chain normalization and domestic demand patterns, with implications for Industrial, Materials, and Technology hardware segments while broader economic indicators suggest sustained expansion momentum supporting risk asset allocations.");
-    
+
     // Forward-looking policy and market implications
     sentences.push("Federal Reserve policy trajectory remains data-dependent with markets pricing measured approach to rate adjustments, creating environment supportive of equity risk premiums while maintaining sensitivity to economic data surprises and cross-asset volatility dynamics.");
     

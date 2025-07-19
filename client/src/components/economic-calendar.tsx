@@ -91,16 +91,25 @@ export function EconomicCalendar() {
     
     const variance = actualValue - forecastValue;
     
-    // Format based on original data type
+    // Format variance to match the format of actual values consistently
     let formattedVariance: string;
-    if (actual.includes('K')) {
+    const hasK = actual.includes('K') || forecast.includes('K');
+    const hasM = actual.includes('M') || forecast.includes('M');
+    const hasPercent = actual.includes('%');
+    
+    if (hasK) {
+      // For K values, show variance in K format with no decimals to match actual format (e.g., "221K")
       formattedVariance = variance > 0 ? `+${(variance/1000).toFixed(0)}K` : `${(variance/1000).toFixed(0)}K`;
-    } else if (actual.includes('M')) {
+    } else if (hasM) {
+      // For M values, show variance in M format with 2 decimals to match actual format (e.g., "1.40M")
       formattedVariance = variance > 0 ? `+${(variance/1000000).toFixed(2)}M` : `${(variance/1000000).toFixed(2)}M`;
-    } else if (actual.includes('%')) {
+    } else if (hasPercent) {
+      // For percentage values, show variance with 1 decimal to match actual format (e.g., "0.6%")
       formattedVariance = variance > 0 ? `+${variance.toFixed(1)}%` : `${variance.toFixed(1)}%`;
     } else {
-      formattedVariance = variance > 0 ? `+${variance.toFixed(1)}` : `${variance.toFixed(1)}`;
+      // For regular numbers, match the precision of actual values (usually whole numbers)
+      const actualDecimals = actual.includes('.') ? actual.split('.')[1]?.length || 0 : 0;
+      formattedVariance = variance > 0 ? `+${variance.toFixed(actualDecimals)}` : `${variance.toFixed(actualDecimals)}`;
     }
     
     return {
