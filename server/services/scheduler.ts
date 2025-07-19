@@ -78,9 +78,8 @@ export class DataScheduler {
     try {
       console.log('📧 Sending daily market commentary emails...');
       
-      // Import email service and AI analysis service
+      // Import email service  
       const { emailService } = await import('./email-service');
-      const { aiAnalysisService } = await import('./enhanced-ai-analysis');
       
       // FIXED: Generate fresh analysis using real data instead of mock data
       // Get fresh real-time data for email
@@ -141,19 +140,26 @@ export class DataScheduler {
         aaiiBearish: parseFloat(finalSentiment.aaiiBearish)
       };
       
-      // Get economic events data using existing economic service
+      // Get economic events data using existing economic service  
       let finalEconomicEvents;
       try {
+        console.log('📊 Scheduler: Fetching economic events for email...');
         finalEconomicEvents = await this.economicService.getEconomicEvents();
         console.log(`📅 Scheduler fetched ${finalEconomicEvents.length} economic events for email`);
+        if (finalEconomicEvents.length > 0) {
+          console.log(`📅 Scheduler first event sample: ${finalEconomicEvents[0].title} - ${finalEconomicEvents[0].actual}`);
+        }
       } catch (error) {
         console.error('Error fetching economic events for scheduled email:', error);
         finalEconomicEvents = [];
       }
 
-      const analysis = await aiAnalysisService.generateRobustMarketAnalysis(enhancedMarketData, finalSectors);
+      // Generate analysis using the enhanced AI service with real data
+      const { EnhancedAIAnalysisService } = await import('./enhanced-ai-analysis');
+      const enhancedAIService = new EnhancedAIAnalysisService();
+      const analysis = await enhancedAIService.generateRobustMarketAnalysis(enhancedMarketData, finalSectors);
       
-      // Construct complete analysis data with all required fields
+      // Construct complete analysis data with all required fields (same as manual test)
       const analysisData = {
         analysis,
         currentStock: finalStockData,
