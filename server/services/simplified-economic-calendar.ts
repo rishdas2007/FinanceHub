@@ -78,9 +78,9 @@ export class SimplifiedEconomicCalendarService {
         time: '8:30 AM ET',
         description: 'Monthly job creation data',
         firstFridayOfMonth: true,
-        actual: '206,000',
-        forecast: '190,000',
-        previous: '272,000'
+        actual: '206K',
+        forecast: '190K',
+        previous: '272K'
       },
       {
         title: 'Industrial Production',
@@ -237,9 +237,9 @@ export class SimplifiedEconomicCalendarService {
         time: '8:30 AM ET',
         description: 'Weekly unemployment insurance claims',
         dayOfWeek: 4, // Thursday
-        actual: '221,000',
-        forecast: '234,000',
-        previous: '228,000'
+        actual: '221K',
+        forecast: '234K',
+        previous: '228K'
       },
       {
         title: 'JOLTS Job Openings',
@@ -430,7 +430,7 @@ export class SimplifiedEconomicCalendarService {
       {
         title: 'Nonfarm Payrolls',
         date: new Date('2025-07-04T12:30:00Z'),
-        actual: '206,000', forecast: '190,000', previous: '272,000',
+        actual: '206K', forecast: '190K', previous: '272K',
         category: 'employment', importance: 'high' as const
       },
       {
@@ -449,7 +449,7 @@ export class SimplifiedEconomicCalendarService {
       {
         title: 'Initial Jobless Claims',
         date: new Date('2025-07-17T12:30:00Z'),
-        actual: '221,000', forecast: '234,000', previous: '228,000',
+        actual: '221K', forecast: '234K', previous: '228K',
         category: 'employment', importance: 'high' as const
       },
       {
