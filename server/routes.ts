@@ -144,47 +144,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Sector performance with caching
+  // Sector performance with market hours awareness and weekend fallback
   app.get("/api/sectors", async (req, res) => {
     try {
       const { cacheManager } = await import('./services/cache-manager');
       const cacheKey = 'sector-data';
       
-      // Check cache first (5 minute TTL for sector data) - skip cache if bypass header present
-      const bypassCache = req.headers['x-bypass-cache'] === 'true';
-      if (!bypassCache) {
+      // Check if markets are open (9:30 AM - 4:00 PM ET, Monday-Friday)
+      const now = new Date();
+      const et = new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/New_York",
+        weekday: "short",
+        hour: "numeric",
+        minute: "numeric",
+        hour12: false
+      }).formatToParts(now);
+      
+      const dayOfWeek = et.find(part => part.type === 'weekday')?.value;
+      const hour = parseInt(et.find(part => part.type === 'hour')?.value || '0');
+      const minute = parseInt(et.find(part => part.type === 'minute')?.value || '0');
+      const currentMinutes = hour * 60 + minute;
+      
+      const isWeekend = dayOfWeek === 'Sat' || dayOfWeek === 'Sun';
+      const isMarketHours = !isWeekend && currentMinutes >= 570 && currentMinutes <= 960; // 9:30 AM to 4:00 PM
+      
+      // During weekends or after hours, ALWAYS use cached data if available
+      if (isWeekend || !isMarketHours) {
         const cachedData = cacheManager.get(cacheKey);
         if (cachedData) {
+          console.log(`📈 Weekend/After Hours: Using cached sector data (${isWeekend ? 'Weekend' : 'After Hours'})`);
+          return res.json(cachedData);
+        }
+        
+        // If no cache, try database fallback for weekend/after hours
+        try {
+          const dbSectors = await storage.getLatestSectorData();
+          if (dbSectors && dbSectors.length > 0) {
+            console.log(`📂 Weekend/After Hours: Using database fallback sector data`);
+            return res.json(dbSectors);
+          }
+        } catch (dbError) {
+          console.error('Database fallback failed:', dbError);
+        }
+      }
+      
+      // During market hours, check cache first but allow fresh data if needed
+      const bypassCache = req.headers['x-bypass-cache'] === 'true';
+      if (!bypassCache && isMarketHours) {
+        const cachedData = cacheManager.get(cacheKey);
+        if (cachedData) {
+          console.log('📈 Market Hours: Using cached sector data');
           return res.json(cachedData);
         }
       }
       
-      console.log('Fetching fresh sector data with 5-day and 1-month performance...');
-      const freshSectors = await financialDataService.getSectorETFs();
-      
-      // Cache the result for 5 minutes
-      cacheManager.set(cacheKey, freshSectors, 300);
-      
-      // Store in database for fallback (background task)
-      setTimeout(async () => {
-        for (const sector of freshSectors) {
-          try {
-            await storage.createSectorData({
-              symbol: sector.symbol,
-              name: sector.name,
-              price: typeof sector.price === 'number' ? sector.price.toString() : sector.price.toString(),
-              changePercent: typeof sector.changePercent === 'number' ? sector.changePercent.toString() : sector.changePercent.toString(),
-              fiveDayChange: (sector.fiveDayChange || 0).toString(),
-              oneMonthChange: (sector.oneMonthChange || 0).toString(),
-              volume: sector.volume || 0,
-            });
-          } catch (error) {
-            console.error(`Error storing sector data for ${sector.symbol}:`, error);
+      // Only make API calls during market hours or when absolutely necessary
+      if (isMarketHours || (!cacheManager.get(cacheKey))) {
+        console.log(`🚀 Fetching fresh sector ETF data... (Market ${isMarketHours ? 'Open' : 'Closed'})`);
+        const freshSectors = await financialDataService.getSectorETFs();
+        
+        // Cache the result for 5 minutes during market hours, longer for after hours
+        const cacheTime = isMarketHours ? 300 : 1800; // 5 min vs 30 min
+        cacheManager.set(cacheKey, freshSectors, cacheTime);
+        
+        // Store in database for fallback (background task)
+        setTimeout(async () => {
+          for (const sector of freshSectors) {
+            try {
+              await storage.createSectorData({
+                symbol: sector.symbol,
+                name: sector.name,
+                price: typeof sector.price === 'number' ? sector.price.toString() : sector.price.toString(),
+                changePercent: typeof sector.changePercent === 'number' ? sector.changePercent.toString() : sector.changePercent.toString(),
+                fiveDayChange: (sector.fiveDayChange || 0).toString(),
+                oneMonthChange: (sector.oneMonthChange || 0).toString(),
+                volume: sector.volume || 0,
+              });
+            } catch (error) {
+              console.error(`Error storing sector data for ${sector.symbol}:`, error);
+            }
           }
-        }
-      }, 0);
+        }, 0);
+        
+        res.json(freshSectors);
+      } else {
+        // Fallback to last known data or emergency data
+        console.log('⚠️ No fresh data available during off hours, using fallback');
+        res.status(503).json({ message: 'Market data not available during off hours' });
+      }
       
-      res.json(freshSectors);
     } catch (error) {
       console.error('Error fetching sectors:', error);
       res.status(500).json({ message: 'Failed to fetch sectors' });

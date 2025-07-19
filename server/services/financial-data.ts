@@ -464,6 +464,25 @@ export class FinancialDataService {
         return cached;
       }
       
+      // Check if markets are open - during weekends/after hours, use longer cache
+      const now = new Date();
+      const et = new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/New_York",
+        weekday: "short",
+        hour: "numeric"
+      }).formatToParts(now);
+      
+      const dayOfWeek = et.find(part => part.type === 'weekday')?.value;
+      const isWeekend = dayOfWeek === 'Sat' || dayOfWeek === 'Sun';
+      
+      // During weekends, use fallback performance data instead of API calls
+      if (isWeekend) {
+        const fallbackPerformance = this.getCorrelationBasedPerformance(symbol);
+        console.log(`📈 Weekend: Using correlation-based performance for ${symbol}`);
+        cacheManager.set(cacheKey, fallbackPerformance, 3600); // Cache for 1 hour
+        return fallbackPerformance;
+      }
+      
       await this.rateLimitCheck();
       
       // Fetch 30 days of historical data to calculate 5-day and 1-month performance
