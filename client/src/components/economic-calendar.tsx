@@ -54,6 +54,21 @@ export function EconomicCalendar() {
     }
   };
 
+  const getCategoryDisplay = (category: string) => {
+    const categoryMap: Record<string, string> = {
+      'employment': 'Labor Market',
+      'inflation': 'Inflation',
+      'growth': 'Growth',
+      'consumer_spending': 'Growth',
+      'housing': 'Growth',
+      'manufacturing': 'Growth',
+      'services': 'Growth',
+      'sentiment': 'Sentiment',
+      'monetary_policy': 'Monetary Policy'
+    };
+    return categoryMap[category] || 'Other';
+  };
+
   const calculateVariance = (actual: string | null, forecast: string | null) => {
     if (!actual || !forecast) return null;
     
@@ -109,123 +124,103 @@ export function EconomicCalendar() {
       <CardContent>
         <div className="text-xs text-gray-400 mb-3 text-center">
           • Forecasts from MarketWatch • Actual data from Federal Reserve • All times Eastern
-          <br />
-          <span className="text-loss-red">Red</span>: High Impact • <span className="text-warning-yellow">Yellow</span>: Medium Impact • <span className="text-gray-300">Gray</span>: Low Impact • <span className="text-blue-400">Blue highlight</span>: Today's releases
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
-          {sortedEvents?.slice(0, 20).map((event) => {
+        
+        {/* Table Header */}
+        <div className="bg-financial-card rounded-t-lg">
+          <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs font-semibold text-gray-300 border-b border-gray-600">
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+              <span>INDICATOR</span>
+            </div>
+            <div>CATEGORY</div>
+            <div className="text-center">ACTUAL</div>
+            <div className="text-center">FORECAST</div>
+            <div className="text-center">PREVIOUS</div>
+            <div className="text-right">DATE</div>
+          </div>
+        </div>
+
+        {/* Table Body */}
+        <div className="bg-financial-card rounded-b-lg max-h-96 overflow-y-auto">
+          {sortedEvents?.slice(0, 20).map((event, index) => {
             const todayEvent = isToday(event.eventDate);
             const variance = calculateVariance(event.actual, event.forecast);
             
             return (
-            <div 
-              key={event.id} 
-              className={`rounded-lg p-4 ${
-                todayEvent && event.actual 
-                  ? 'bg-blue-950/30 border border-blue-500/30' 
-                  : 'bg-financial-card'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
+              <div 
+                key={event.id} 
+                className={`grid grid-cols-6 gap-4 px-4 py-3 text-sm border-b border-gray-700/50 last:border-b-0 hover:bg-financial-gray/30 transition-colors ${
+                  todayEvent && event.actual ? 'bg-blue-950/20' : ''
+                }`}
+              >
+                {/* Indicator Name with Importance */}
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                     event.importance === 'high' ? 'bg-loss-red' : 
                     event.importance === 'medium' ? 'bg-warning-yellow' : 'bg-gray-400'
                   }`}></div>
-                  <div className="text-white font-medium text-sm">
+                  <div className="text-white text-xs leading-tight">
                     {event.title}
                     {todayEvent && event.actual && (
-                      <span className="ml-2 px-2 py-1 text-xs bg-blue-600 text-white rounded-full">
-                        TODAY
-                      </span>
+                      <div className="text-xs text-blue-400 mt-1">TODAY</div>
                     )}
                   </div>
                 </div>
-                {/* Enhanced date/time display */}
-                <div className="text-right">
-                  <div className={`text-xs ${todayEvent ? 'text-blue-400' : 'text-gray-400'}`}>
-                    {new Date(event.eventDate).toLocaleDateString('en-US', { 
-                      weekday: 'short', 
-                      month: 'short', 
-                      day: 'numeric' 
-                    }).toUpperCase()}
-                  </div>
-                  <div className="text-xs text-warning-yellow">
-                    {new Date(event.eventDate).toLocaleTimeString('en-US', {
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      hour12: true
-                    })}
-                  </div>
+
+                {/* Category */}
+                <div className="text-gray-300 text-xs flex items-center">
+                  {getCategoryDisplay(event.category || '')}
                 </div>
-              </div>
-              
-              <div className="text-xs text-gray-400 mb-3">
-                {event.description}
-                {event.source && (
-                  <span className="ml-2 text-xs text-blue-400">• {event.source}</span>
-                )}
-              </div>
-              
-              {/* Enhanced metrics display with variance */}
-              <div className="grid grid-cols-3 gap-3 text-xs mb-3">
-                {event.forecast && (
-                  <div className="text-center bg-financial-dark rounded-lg p-2">
-                    <div className="text-gray-500 mb-1">Forecast</div>
-                    <div className="text-blue-300 font-medium">{event.forecast}</div>
-                  </div>
-                )}
-                {event.previous && (
-                  <div className="text-center bg-financial-dark rounded-lg p-2">
-                    <div className="text-gray-500 mb-1">Previous</div>
-                    <div className="text-gray-300 font-medium">{event.previous}</div>
-                  </div>
-                )}
-                {event.actual && (
-                  <div className="text-center bg-financial-dark rounded-lg p-2">
-                    <div className="text-gray-500 mb-1">Actual</div>
-                    <div className="text-white font-bold">
+
+                {/* Actual */}
+                <div className="text-center flex items-center justify-center">
+                  {event.actual ? (
+                    <span className={`text-xs font-medium ${
+                      variance && variance.isPositive ? 'text-gain-green' : 
+                      variance && !variance.isPositive ? 'text-loss-red' : 'text-white'
+                    }`}>
                       {event.actual}
+                    </span>
+                  ) : (
+                    <span className="text-gray-500 text-xs">-</span>
+                  )}
+                </div>
+
+                {/* Forecast */}
+                <div className="text-center flex items-center justify-center">
+                  {event.forecast ? (
+                    <span className="text-blue-400 text-xs">{event.forecast}</span>
+                  ) : (
+                    <span className="text-gray-500 text-xs">-</span>
+                  )}
+                </div>
+
+                {/* Previous */}
+                <div className="text-center flex items-center justify-center">
+                  {event.previous ? (
+                    <span className="text-gray-300 text-xs">{event.previous}</span>
+                  ) : (
+                    <span className="text-gray-500 text-xs">-</span>
+                  )}
+                </div>
+
+                {/* Date */}
+                <div className="text-right flex items-center justify-end">
+                  <div className="text-xs">
+                    <div className={`${todayEvent ? 'text-blue-400' : 'text-gray-400'}`}>
+                      {new Date(event.eventDate).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric' 
+                      }).toUpperCase()}
                     </div>
                   </div>
-                )}
+                </div>
               </div>
-              
-              {/* Variance display */}
-              {variance && (
-                <div className="text-center mb-3">
-                  <div className="text-xs text-gray-500 mb-1">Variance (Actual - Forecast)</div>
-                  <div className={`text-sm font-bold ${
-                    variance.isPositive ? 'text-gain-green' : 'text-loss-red'
-                  }`}>
-                    {variance.formatted}
-                  </div>
-                </div>
-              )}
-              
-              {/* Show impact if available */}
-              {event.actual && (
-                <div className="mt-2 text-xs">
-                  <span className="text-gray-500">Released: </span>
-                  <span className="text-white font-medium">
-                    {new Date(event.eventDate).toLocaleDateString()}
-                  </span>
-                </div>
-              )}
-            </div>
             );
           })}
         </div>
-        
-        <div className="mt-6 pt-4 border-t border-financial-border">
-          <div className="text-xs text-gray-400 text-center">
-            <Clock className="w-3 h-3 inline mr-1" />
-            Forecasts from MarketWatch • Actual data from Federal Reserve • All times Eastern
-          </div>
-          <div className="text-xs text-gray-500 text-center mt-1">
-            Red: High Impact • Yellow: Medium Impact • Gray: Low Impact • Blue highlight: Today's releases
-          </div>
-        </div>
+
       </CardContent>
     </Card>
   );
