@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { FinancialDataService } from './financial-data';
 import { EnhancedAIAnalysisService } from './enhanced-ai-analysis';
 import { generateRichEmailTemplate } from './rich-email-template';
+import { generateEnhancedEmailTemplate } from './enhanced-email-template';
 
 const SENDGRID_ENABLED = !!process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.length > 10;
 
@@ -117,7 +118,7 @@ export class EmailService {
         return;
       }
 
-      const emailTemplate = generateRichEmailTemplate(analysisData);
+      const emailTemplate = generateEnhancedEmailTemplate(analysisData);
 
       // Send emails in batches to avoid rate limits
       const batchSize = 10;
@@ -132,7 +133,7 @@ export class EmailService {
             day: 'numeric', 
             year: 'numeric' 
           })}`,
-          html: emailTemplate.replace('{{UNSUBSCRIBE_TOKEN}}', subscription.unsubscribeToken),
+          html: emailTemplate.replace('{{UNSUBSCRIBE_URL}}', `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost'}/api/email/unsubscribe/${subscription.unsubscribeToken}`),
         }));
 
         await sgMail.send(emails);

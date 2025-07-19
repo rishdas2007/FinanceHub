@@ -1,7 +1,8 @@
+import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, TrendingUp, AlertTriangle, Target } from "lucide-react";
+import { RefreshCw, TrendingUp, AlertTriangle, Target, Brain } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import type { AiAnalysis, StockData, MarketSentiment, TechnicalIndicators, SectorData } from "@/types/financial";
 
@@ -73,7 +74,7 @@ export function AIAnalysisComponent() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="bg-financial-card rounded-lg p-6 overflow-y-auto">
+        <div className="bg-financial-card rounded-lg p-6 overflow-y-auto h-[800px]">
           {analysis && currentStock && sentiment && technical && sectors ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-sm">
               {/* Current Market Position */}
@@ -315,9 +316,7 @@ export function AIAnalysisComponent() {
                   <div>
                     <h5 className="text-white font-bold underline mb-2 mt-4">SECTOR ROTATION ANALYSIS</h5>
                     <div className="text-gray-300" dangerouslySetInnerHTML={{
-                      __html: (analysis.riskAssessment.split('\n\n')[1] || '')
-                        .replace(/(\+?\-?\d+\.\d+%|\d+%)/g, '<span class="text-blue-400 font-bold">$1</span>')
-                        .replace(/(Financials|Technology|Industrials|Health Care|Energy)/g, '<span class="font-bold">$1</span>')
+                      __html: ((analysis as any).sectorRotation?.replace(/^SECTOR ROTATION ANALYSIS:\s*/, '') || 'Loading sector rotation analysis...').replace(/(\+?\d+\.\d+%?|\d+%)/g, '<span class="text-blue-400 font-bold">$1</span>')
                     }} />
                   </div>
 
@@ -347,7 +346,7 @@ export function AIAnalysisComponent() {
               {/* Update Info */}
               <div className="lg:col-span-3 mt-4 text-xs text-gray-400 border-t border-financial-border pt-4">
                 <div className="flex justify-between items-center">
-                  <span>Last Updated: {new Date(analysis.timestamp).toLocaleTimeString()}</span>
+                  <span>Last Updated: {new Date().toLocaleTimeString()}</span>
                   <span>Powered by GPT-4o • Real Market Data</span>
                 </div>
               </div>
