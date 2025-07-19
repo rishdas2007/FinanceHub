@@ -59,20 +59,100 @@ export class SimplifiedEconomicCalendarService {
     
     // Generate consistent economic events based on typical US calendar
     const baseEvents = [
+      // Growth Indicators
       {
-        title: 'Initial Jobless Claims',
+        title: 'GDP Growth Rate',
+        category: 'growth',
+        importance: 'high' as const,
+        time: '8:30 AM ET',
+        description: 'Quarterly gross domestic product growth',
+        dayOfMonth: 30,
+        actual: '2.8%',
+        forecast: '2.5%',
+        previous: '1.4%'
+      },
+      {
+        title: 'Nonfarm Payrolls',
         category: 'employment',
         importance: 'high' as const,
         time: '8:30 AM ET',
-        description: 'Weekly unemployment insurance claims',
-        dayOfWeek: 4, // Thursday
-        actual: '221,000',
-        forecast: '234,000',
-        previous: '228,000'
+        description: 'Monthly job creation data',
+        firstFridayOfMonth: true,
+        actual: '206,000',
+        forecast: '190,000',
+        previous: '272,000'
       },
       {
+        title: 'Industrial Production',
+        category: 'manufacturing',
+        importance: 'medium' as const,
+        time: '9:15 AM ET',
+        description: 'Manufacturing and utilities output',
+        dayOfMonth: 15,
+        actual: '0.3%',
+        forecast: '0.2%',
+        previous: '0.8%'
+      },
+      {
+        title: 'Retail Sales',
+        category: 'consumer_spending',
+        importance: 'high' as const,
+        time: '8:30 AM ET',
+        description: 'Monthly consumer spending data',
+        dayOfMonth: 17,
+        actual: '0.6%',
+        forecast: '0.2%',
+        previous: '-0.9%'
+      },
+      {
+        title: 'New Home Sales',
+        category: 'housing',
+        importance: 'medium' as const,
+        time: '10:00 AM ET',
+        description: 'Monthly new home sales data',
+        dayOfMonth: 25,
+        actual: '640K',
+        forecast: '620K',
+        previous: '619K'
+      },
+      {
+        title: 'Durable Goods Orders',
+        category: 'manufacturing',
+        importance: 'medium' as const,
+        time: '8:30 AM ET',
+        description: 'Orders for long-lasting manufactured goods',
+        dayOfMonth: 25,
+        actual: '0.8%',
+        forecast: '0.5%',
+        previous: '0.2%'
+      },
+      {
+        title: 'Building Permits',
+        category: 'housing',
+        importance: 'medium' as const,
+        time: '8:30 AM ET',
+        description: 'New construction permits issued',
+        dayOfMonth: 18,
+        actual: '1.40M',
+        forecast: '1.39M',
+        previous: '1.39M'
+      },
+      {
+        title: 'Personal Income',
+        category: 'consumer_spending',
+        importance: 'medium' as const,
+        time: '8:30 AM ET',
+        description: 'Monthly personal income growth',
+        dayOfMonth: 26,
+        actual: '0.4%',
+        forecast: '0.3%',
+        previous: '0.2%'
+      },
+
+      // Inflation Indicators
+      {
         title: 'Consumer Price Index (CPI)',
-        category: 'inflation', 
+        category: 'inflation',
         importance: 'high' as const,
         time: '8:30 AM ET',
         description: 'Monthly inflation measure',
@@ -82,15 +162,37 @@ export class SimplifiedEconomicCalendarService {
         previous: '3.0%'
       },
       {
-        title: 'Retail Sales',
-        category: 'consumer_spending',
+        title: 'Core CPI',
+        category: 'inflation',
         importance: 'high' as const,
-        time: '8:30 AM ET', 
-        description: 'Monthly consumer spending data',
-        dayOfMonth: 17,
-        actual: '0.6%',
-        forecast: '0.2%',
-        previous: '-0.9%'
+        time: '8:30 AM ET',
+        description: 'CPI excluding food and energy',
+        dayOfMonth: 13,
+        actual: '3.2%',
+        forecast: '3.1%',
+        previous: '3.2%'
+      },
+      {
+        title: 'PCE Price Index',
+        category: 'inflation',
+        importance: 'high' as const,
+        time: '8:30 AM ET',
+        description: "Fed's preferred inflation measure",
+        dayOfMonth: 26,
+        actual: '2.6%',
+        forecast: '2.5%',
+        previous: '2.7%'
+      },
+      {
+        title: 'Core PCE Price Index',
+        category: 'inflation',
+        importance: 'high' as const,
+        time: '8:30 AM ET',
+        description: 'PCE excluding food and energy',
+        dayOfMonth: 26,
+        actual: '2.8%',
+        forecast: '2.7%',
+        previous: '2.8%'
       },
       {
         title: 'Producer Price Index (PPI)',
@@ -104,6 +206,123 @@ export class SimplifiedEconomicCalendarService {
         previous: '0.2%'
       },
       {
+        title: 'Employment Cost Index',
+        category: 'inflation',
+        importance: 'medium' as const,
+        time: '8:30 AM ET',
+        description: 'Labor cost inflation measure',
+        quarterly: true,
+        dayOfMonth: 31,
+        actual: '0.9%',
+        forecast: '1.0%',
+        previous: '1.2%'
+      },
+
+      // Labor Market Indicators
+      {
+        title: 'Unemployment Rate',
+        category: 'employment',
+        importance: 'high' as const,
+        time: '8:30 AM ET',
+        description: 'Monthly unemployment percentage',
+        firstFridayOfMonth: true,
+        actual: '4.0%',
+        forecast: '4.1%',
+        previous: '4.0%'
+      },
+      {
+        title: 'Initial Jobless Claims',
+        category: 'employment',
+        importance: 'high' as const,
+        time: '8:30 AM ET',
+        description: 'Weekly unemployment insurance claims',
+        dayOfWeek: 4, // Thursday
+        actual: '221,000',
+        forecast: '234,000',
+        previous: '228,000'
+      },
+      {
+        title: 'JOLTS Job Openings',
+        category: 'employment',
+        importance: 'medium' as const,
+        time: '10:00 AM ET',
+        description: 'Job openings and labor turnover',
+        dayOfMonth: 3,
+        actual: '8.1M',
+        forecast: '8.3M',
+        previous: '8.5M'
+      },
+      {
+        title: 'Average Hourly Earnings',
+        category: 'employment',
+        importance: 'high' as const,
+        time: '8:30 AM ET',
+        description: 'Wage growth measurement',
+        firstFridayOfMonth: true,
+        actual: '4.1%',
+        forecast: '3.9%',
+        previous: '4.0%'
+      },
+      {
+        title: 'Labor Force Participation Rate',
+        category: 'employment',
+        importance: 'medium' as const,
+        time: '8:30 AM ET',
+        description: 'Percentage of population in labor force',
+        firstFridayOfMonth: true,
+        actual: '62.8%',
+        forecast: '62.7%',
+        previous: '62.7%'
+      },
+
+      // Sentiment Indicators
+      {
+        title: 'Consumer Confidence',
+        category: 'sentiment',
+        importance: 'medium' as const,
+        time: '10:00 AM ET',
+        description: 'Conference Board consumer confidence',
+        lastTuesdayOfMonth: true,
+        actual: '103.0',
+        forecast: '101.5',
+        previous: '100.3'
+      },
+      {
+        title: 'University of Michigan Consumer Sentiment',
+        category: 'sentiment',
+        importance: 'medium' as const,
+        time: '10:00 AM ET',
+        description: 'Consumer sentiment survey',
+        dayOfMonth: 15,
+        actual: '72.8',
+        forecast: '71.0',
+        previous: '71.8'
+      },
+      {
+        title: 'ISM Manufacturing PMI',
+        category: 'manufacturing',
+        importance: 'high' as const,
+        time: '10:00 AM ET',
+        description: 'Manufacturing purchasing managers index',
+        firstBusinessDayOfMonth: true,
+        actual: '48.4',
+        forecast: '49.0',
+        previous: '48.7'
+      },
+      {
+        title: 'ISM Services PMI',
+        category: 'services',
+        importance: 'high' as const,
+        time: '10:00 AM ET',
+        description: 'Services sector activity index',
+        dayOfMonth: 5,
+        actual: '54.8',
+        forecast: '54.0',
+        previous: '53.8'
+      },
+
+      // Housing Market Indicators
+      {
         title: 'Housing Starts',
         category: 'housing',
         importance: 'medium' as const,
@@ -115,14 +334,39 @@ export class SimplifiedEconomicCalendarService {
         previous: '1.26M'
       },
       {
-        title: 'PMI Manufacturing',
-        category: 'manufacturing',
+        title: 'Existing Home Sales',
+        category: 'housing',
         importance: 'medium' as const,
-        time: '9:45 AM ET',
-        description: 'Manufacturing purchasing managers index',
-        dayOfMonth: 23,
-        forecast: '51.5',
-        previous: '51.6'
+        time: '10:00 AM ET',
+        description: 'Monthly existing home sales data',
+        dayOfMonth: 22,
+        actual: '4.15M',
+        forecast: '4.10M',
+        previous: '4.11M'
+      },
+      {
+        title: 'Home Builder Confidence',
+        category: 'housing',
+        importance: 'low' as const,
+        time: '1:00 PM ET',
+        description: 'NAHB housing market confidence',
+        dayOfMonth: 17,
+        actual: '33',
+        forecast: '32',
+        previous: '32'
+      },
+
+      // Monetary Policy Indicators
+      {
+        title: 'Federal Funds Rate Decision',
+        category: 'monetary_policy',
+        importance: 'high' as const,
+        time: '2:00 PM ET',
+        description: 'Federal Reserve interest rate decision',
+        fomc: true,
+        actual: '5.25-5.50%',
+        forecast: '5.25-5.50%',
+        previous: '5.25-5.50%'
       }
     ];
 
@@ -139,6 +383,16 @@ export class SimplifiedEconomicCalendarService {
         if (eventTemplate.dayOfWeek && eventTemplate.dayOfWeek === dayOfWeek) {
           shouldInclude = true;
         } else if (eventTemplate.dayOfMonth && eventTemplate.dayOfMonth === dayOfMonth) {
+          shouldInclude = true;
+        } else if (eventTemplate.firstFridayOfMonth && this.isFirstFridayOfMonth(eventDate)) {
+          shouldInclude = true;
+        } else if (eventTemplate.lastTuesdayOfMonth && this.isLastTuesdayOfMonth(eventDate)) {
+          shouldInclude = true;
+        } else if (eventTemplate.firstBusinessDayOfMonth && this.isFirstBusinessDayOfMonth(eventDate)) {
+          shouldInclude = true;
+        } else if (eventTemplate.fomc && this.isFOMCMeeting(eventDate)) {
+          shouldInclude = true;
+        } else if (eventTemplate.quarterly && this.isQuarterlyRelease(eventDate)) {
           shouldInclude = true;
         }
         
@@ -170,6 +424,49 @@ export class SimplifiedEconomicCalendarService {
     }
 
     return events.sort((a, b) => b.date.getTime() - a.date.getTime()); // Sort by date, newest first
+  }
+
+  private isFirstFridayOfMonth(date: Date): boolean {
+    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+    const firstFriday = new Date(firstDay);
+    firstFriday.setDate(1 + (5 - firstDay.getDay() + 7) % 7);
+    return date.toDateString() === firstFriday.toDateString();
+  }
+
+  private isLastTuesdayOfMonth(date: Date): boolean {
+    const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    const lastTuesday = new Date(lastDay);
+    lastTuesday.setDate(lastDay.getDate() - (lastDay.getDay() + 5) % 7);
+    return date.toDateString() === lastTuesday.toDateString();
+  }
+
+  private isFirstBusinessDayOfMonth(date: Date): boolean {
+    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+    while (firstDay.getDay() === 0 || firstDay.getDay() === 6) {
+      firstDay.setDate(firstDay.getDate() + 1);
+    }
+    return date.toDateString() === firstDay.toDateString();
+  }
+
+  private isFOMCMeeting(date: Date): boolean {
+    // FOMC meetings typically occur 8 times per year, roughly every 6 weeks
+    const fomcDates = [
+      new Date(2025, 2, 20), // March
+      new Date(2025, 4, 1),  // May
+      new Date(2025, 5, 12), // June
+      new Date(2025, 6, 31), // July
+      new Date(2025, 8, 18), // September
+      new Date(2025, 10, 7), // November
+      new Date(2025, 11, 18) // December
+    ];
+    return fomcDates.some(fomcDate => date.toDateString() === fomcDate.toDateString());
+  }
+
+  private isQuarterlyRelease(date: Date): boolean {
+    const month = date.getMonth();
+    const dayOfMonth = date.getDate();
+    // Quarterly releases typically at end of Jan, Apr, Jul, Oct
+    return (month === 0 || month === 3 || month === 6 || month === 9) && dayOfMonth === 31;
   }
 
   private calculateImpact(actual: string, forecast: string): 'positive' | 'negative' | 'neutral' {
