@@ -86,6 +86,128 @@ export class EnhancedAIAnalysisService {
     return isNaN(actualValue) || isNaN(forecastValue) ? null : actualValue - forecastValue;
   }
 
+  /**
+   * Generate market hours-aware economic analysis first sentence
+   * References current trading day data if market is open (9:30 AM - 4:00 PM ET)
+   * References last trading day data if market is closed
+   */
+  private generateMarketHoursEconomicAnalysis(economicData: any): string {
+    const now = new Date();
+    const easternTime = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false
+    }).format(now);
+    
+    const [hours, minutes] = easternTime.split(':').map(Number);
+    const currentTimeMinutes = hours * 60 + minutes;
+    const marketOpen = 9 * 60 + 30; // 9:30 AM
+    const marketClose = 16 * 60; // 4:00 PM
+    
+    const isMarketHours = currentTimeMinutes >= marketOpen && currentTimeMinutes <= marketClose;
+    const timeReference = isMarketHours ? "today's" : "the most recent trading day's";
+    
+    // Get the most relevant economic events
+    const relevantEvents = this.getCurrentTradingDayEvents(economicData, isMarketHours);
+    
+    if (relevantEvents.length === 0) {
+      return `ECONOMIC ANALYSIS: ${timeReference.charAt(0).toUpperCase() + timeReference.slice(1)} economic calendar shows limited high-impact releases, with markets focused on existing Fed policy stance and ongoing labor market dynamics.`;
+    }
+    
+    // Format the most important event(s)
+    const topEvent = relevantEvents[0];
+    const eventText = this.formatEventForAnalysis(topEvent);
+    
+    if (relevantEvents.length === 1) {
+      return `ECONOMIC ANALYSIS: ${timeReference.charAt(0).toUpperCase() + timeReference.slice(1)} key economic release was ${eventText}, providing important directional guidance for Fed policy and market sentiment.`;
+    } else {
+      const secondEvent = relevantEvents[1];
+      const secondEventText = this.formatEventForAnalysis(secondEvent);
+      return `ECONOMIC ANALYSIS: ${timeReference.charAt(0).toUpperCase() + timeReference.slice(1)} major economic releases included ${eventText} and ${secondEventText}, offering critical insights into economic momentum and policy implications.`;
+    }
+  }
+
+  /**
+   * Get current or last trading day events based on market hours
+   */
+  private getCurrentTradingDayEvents(economicData: any, isMarketHours: boolean): any[] {
+    if (!economicData || (!economicData.recent && !economicData.highImpact)) {
+      return [];
+    }
+    
+    const now = new Date();
+    const targetDate = isMarketHours ? now : this.getLastTradingDay(now);
+    
+    // Combine all available events
+    const allEvents = [
+      ...(economicData.recent || []),
+      ...(economicData.highImpact || []),
+      ...(economicData.allActual || [])
+    ];
+    
+    // Filter for events from target date and prioritize by importance
+    const dayEvents = allEvents
+      .filter((event, index, self) => {
+        // Deduplicate by ID
+        return self.findIndex(e => e.id === event.id) === index;
+      })
+      .filter(event => {
+        if (!event.eventDate && !event.date) return false;
+        const eventDate = new Date(event.eventDate || event.date);
+        return eventDate.toDateString() === targetDate.toDateString();
+      })
+      .sort((a, b) => {
+        // Sort by importance (high > medium > low)
+        const importanceOrder = { high: 3, medium: 2, low: 1 };
+        const aImportance = importanceOrder[a.importance] || 1;
+        const bImportance = importanceOrder[b.importance] || 1;
+        return bImportance - aImportance;
+      })
+      .slice(0, 2); // Take top 2 events
+      
+    return dayEvents;
+  }
+
+  /**
+   * Get last trading day (excluding weekends)
+   */
+  private getLastTradingDay(date: Date): Date {
+    const lastDay = new Date(date);
+    lastDay.setDate(date.getDate() - 1);
+    
+    // Skip weekends
+    while (lastDay.getDay() === 0 || lastDay.getDay() === 6) {
+      lastDay.setDate(lastDay.getDate() - 1);
+    }
+    
+    return lastDay;
+  }
+
+  /**
+   * Format economic event for analysis text
+   */
+  private formatEventForAnalysis(event: any): string {
+    const title = event.title || 'Economic Release';
+    const actual = event.actual;
+    const forecast = event.forecast;
+    
+    if (actual && forecast) {
+      const variance = this.calculateVariance(actual, forecast);
+      if (variance !== null) {
+        const direction = variance > 0 ? 'beating' : variance < 0 ? 'missing' : 'meeting';
+        const varianceText = Math.abs(variance) > 0.01 ? ` by ${Math.abs(variance).toFixed(2)}` : '';
+        return `${title} at ${actual} ${direction} expectations of ${forecast}${varianceText}`;
+      }
+    }
+    
+    if (actual) {
+      return `${title} reporting ${actual}`;
+    }
+    
+    return `${title} release`;
+  }
+
   private generateTechnicalAnalysis(marketData: any) {
     const { price, changePercent, rsi, macd, macdSignal, vix } = marketData;
     return `Bottom Line: SPX's ${changePercent > 0 ? '+' : ''}${changePercent.toFixed(1)}% ${changePercent > 0 ? 'gain' : 'decline'} to ${price.toFixed(2)} ${rsi > 70 ? 'shows overbought conditions' : rsi > 60 ? 'masks brewing technical divergences' : 'reflects oversold bounce potential'}. ${macd > macdSignal ? 'Momentum bullish' : 'Momentum bearish'}, but ${vix < 20 ? 'complacency elevated' : 'fear elevated'}.`;
@@ -113,9 +235,12 @@ export class EnhancedAIAnalysisService {
     // Debug log to understand economic data structure
     console.log('🔍 Economic data received for analysis:', JSON.stringify(economicData, null, 2));
     
+    // Generate market hours-aware economic analysis first sentence
+    const marketHoursEconomicSentence = this.generateMarketHoursEconomicAnalysis(economicData);
+    
     // Safe fallback if no sector data
     if (!sectors || sectors.length === 0) {
-      return 'Fed policy backdrop remains supportive with labor market resilience providing economic foundation. Broad market structure shows constructive sector participation indicating healthy underlying conditions.';
+      return `${marketHoursEconomicSentence} Fed policy backdrop remains supportive with labor market resilience providing economic foundation. Broad market structure shows constructive sector participation indicating healthy underlying conditions.`;
     }
 
     try {
@@ -225,10 +350,11 @@ export class EnhancedAIAnalysisService {
         rotationInsights = `Defensive sector rotation evident with only ${positiveSectors}/${sectors.length} sectors advancing. ${topSector.name} relative strength (${topSector.change > 0 ? '+' : ''}${topSector.change.toFixed(2)}%) while ${bottomSector.name} lags (${bottomSector.change.toFixed(2)}%) suggests investors positioning more cautiously. This defensive positioning typically emerges during uncertainty periods or late-cycle conditions.`;
       }
 
-      return `${economicInsights}\n\n${rotationInsights}`;
+      return `${marketHoursEconomicSentence} ${economicInsights} ${rotationInsights}`;
     } catch (error) {
       console.error('Error in generateEconomicAnalysis:', error);
-      return 'Fed policy backdrop remains supportive with labor market resilience providing economic foundation. Classic sector rotation continues with balanced participation indicating healthy underlying market conditions.';
+      const fallbackEconomicSentence = this.generateMarketHoursEconomicAnalysis(economicData);
+      return `${fallbackEconomicSentence} Fed policy backdrop remains supportive with labor market resilience providing economic foundation. Classic sector rotation continues with balanced participation indicating healthy underlying market conditions.`;
     }
   }
 

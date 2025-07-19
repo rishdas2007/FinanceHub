@@ -4,9 +4,20 @@
 
 FinanceHub Pro is a comprehensive financial dashboard application built as a full-stack TypeScript application. It provides real-time market data, technical analysis, AI-powered market insights, and comprehensive financial tracking capabilities. The application features a modern React frontend with shadcn/ui components and an Express.js backend with PostgreSQL database integration.
 
-## Recent Changes (July 18, 2025)
+## Recent Changes (July 19, 2025)
 
-### PERFORMANCE OPTIMIZATION BREAKTHROUGH (July 18, 2025 - Latest)
+### MARKET HOURS AWARENESS & TRADINGVIEW INTEGRATION COMPLETED (July 19, 2025 - Latest)
+- **MARKET HOURS AI ANALYSIS**: AI Analysis now intelligently references current trading day data (9:30am-4pm ET) or last trading day data (after market close)
+- **TRADINGVIEW INTEGRATION**: Added comprehensive TradingView economic calendar scraping filtering medium (2 bars) and high (3 bars) importance US events only  
+- **ENHANCED ECONOMIC DATA SERVICE**: Created comprehensive service combining MarketWatch, TradingView, and FRED sources with proper importance filtering
+- **DYNAMIC MARKET REFERENCE**: Economic Analysis first sentence now dynamically adapts based on market hours - "today's releases" vs "last trading day's releases"
+- **COMPREHENSIVE EVENT COVERAGE**: System now cross-references multiple economic calendar sources for complete US event tracking
+- **INTELLIGENT DEDUPLICATION**: Enhanced service merges events from different sources while avoiding duplicates and preferring events with actual data
+- **PERFORMANCE MAINTAINED**: All previous optimizations preserved - AI analysis remains cached with 2-minute TTL for optimal speed
+- **US EVENTS FOCUS**: TradingView integration specifically filters for medium/high importance US events only, avoiding data noise
+- **STATUS**: Both market hours awareness and TradingView integration fully operational with comprehensive economic event coverage
+
+### PERFORMANCE OPTIMIZATION BREAKTHROUGH (July 18, 2025)
 - **MASSIVE PERFORMANCE GAINS**: AI Analysis optimized from 147 seconds to 4.7 seconds (97% improvement)
 - **SECTOR TRACKER RESTORED**: Fixed slow loading issues with intelligent database caching
 - **DATABASE CACHE STRATEGY**: Implemented smart caching that uses database storage for faster AI analysis data
@@ -120,20 +131,21 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 - Market hours detection to optimize API usage during trading vs off-hours
 - Eliminated stale data issues - all indicators now update daily with authentic sources
 
-### MarketWatch Economic Calendar Compliance  
-- Restructured economic data schema to match MarketWatch API specifications
-- Added country, category, and source fields to all economic events
-- Implemented proper event categorization: inflation, employment, consumer_spending, manufacturing
-- Enhanced API endpoint with filtering capabilities (importance, category, date range)
-- Added MarketWatch-style response metadata with data freshness indicators
-- Fixed display issues showing all 12 key economic events instead of limited 8
-- Prioritized events by importance level (high->medium->low) then by date
-- All events now properly tagged with "marketwatch" source for authenticity tracking
+### Enhanced Economic Calendar with Multi-Source Integration
+- **TRADINGVIEW INTEGRATION**: Added TradingView economic calendar API with filtering for medium (2 bars) and high (3 bars) importance US events
+- **MULTI-SOURCE ARCHITECTURE**: Created enhanced service combining MarketWatch, TradingView, and FRED data sources with intelligent deduplication
+- **MARKET HOURS AWARENESS**: Economic events now filtered by current/last trading day based on market hours (9:30am-4pm ET)
+- **IMPORTANCE FILTERING**: System filters events by importance level ensuring only medium/high impact US releases are included
+- **DATA SOURCE ATTRIBUTION**: Events properly tagged with source ("marketwatch", "tradingview", "fred") for transparency
+- **INTELLIGENT MERGING**: Enhanced deduplication prevents duplicate events while preferring sources with actual data values
+- **COMPREHENSIVE COVERAGE**: API endpoint now returns events from all integrated sources with proper metadata attribution
 
 ### Economic Calendar Enhancement (July 17, 2025)
 
-### AI Market Commentary Enhancement (Latest Update - July 18, 2025)
-- **CRITICAL IMPROVEMENT**: AI Analysis now refreshes with fresh data on every page load for most current market view
+### AI Market Commentary Enhancement with Market Hours Intelligence (Latest Update - July 19, 2025)
+- **MARKET HOURS INTELLIGENCE**: AI Analysis now dynamically references current trading day or last trading day based on market hours (9:30am-4pm ET)
+- **ENHANCED DATA SOURCES**: AI analysis incorporates TradingView economic events alongside MarketWatch and FRED data for comprehensive coverage
+- **CRITICAL IMPROVEMENT**: AI Analysis refreshes with fresh data on every page load for most current market view
 - Enhanced AI endpoint to fetch ALL dashboard data simultaneously: market indicators, sentiment, technical data, sectors
 - AI analysis now incorporates real-time VWAP, McClellan Oscillator, and Williams %R for comprehensive analysis
 - Frontend configured with `refetchOnMount: true` and `staleTime: 0` for immediate fresh analysis on page load
