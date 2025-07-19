@@ -977,12 +977,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         aaiiBearish: parseFloat(finalSentiment.aaiiBearish)
       }, finalSectors);
       
+      // Get economic events data
+      let finalEconomicEvents;
+      try {
+        const { EconomicDataService } = await import('./services/economic-data');
+        const economicService = EconomicDataService.getInstance();
+        finalEconomicEvents = await economicService.getEconomicEvents();
+        console.log(`📅 Email economic events: ${finalEconomicEvents.length} events`);
+      } catch (error) {
+        console.error('Error fetching economic events for email:', error);
+        finalEconomicEvents = [];
+      }
+
       const realTimeData = {
         analysis,
         currentStock: finalStockData,
         sentiment: finalSentiment,
         technical: finalTechnical,
-        sectors: finalSectors
+        sectors: finalSectors,
+        economicEvents: finalEconomicEvents
       };
       
       // Send test daily email with real data

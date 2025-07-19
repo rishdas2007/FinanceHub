@@ -141,7 +141,27 @@ export class DataScheduler {
         aaiiBearish: parseFloat(finalSentiment.aaiiBearish)
       };
       
-      const analysisData = await aiAnalysisService.generateRobustMarketAnalysis(enhancedMarketData, finalSectors);
+      // Get economic events data using existing economic service
+      let finalEconomicEvents;
+      try {
+        finalEconomicEvents = await this.economicService.getEconomicEvents();
+        console.log(`📅 Scheduler fetched ${finalEconomicEvents.length} economic events for email`);
+      } catch (error) {
+        console.error('Error fetching economic events for scheduled email:', error);
+        finalEconomicEvents = [];
+      }
+
+      const analysis = await aiAnalysisService.generateRobustMarketAnalysis(enhancedMarketData, finalSectors);
+      
+      // Construct complete analysis data with all required fields
+      const analysisData = {
+        analysis,
+        currentStock: finalStockData,
+        sentiment: finalSentiment,
+        technical: finalTechnical,
+        sectors: finalSectors,
+        economicEvents: finalEconomicEvents
+      };
       
       // Send the daily email
       await emailService.sendDailyMarketCommentary(analysisData);
