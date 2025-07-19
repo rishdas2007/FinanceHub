@@ -357,19 +357,6 @@ export class EnhancedAIAnalysisService {
       console.error('Error in generateEconomicAnalysis:', error);
       return `${comprehensiveEconomicAnalysis} Economic fundamentals remain supportive with balanced growth and inflation dynamics.`;
     }
-        rotationInsights = `Broad-based sector strength with ${positiveSectors}/${sectors.length} sectors advancing signals healthy risk appetite and broad market participation. ${topSector.name} leadership (${topSector.change > 0 ? '+' : ''}${topSector.change.toFixed(2)}%) reflects sector rotation into growth/cyclical areas, while ${bottomSector.name} weakness (${bottomSector.change.toFixed(2)}%) shows normal profit-taking dynamics. This broad participation typically supports sustained market advances.`;
-      } else if (rotationStrength >= 0.5) {
-        rotationInsights = `Selective sector performance with ${positiveSectors}/${sectors.length} sectors positive indicates discerning rotation rather than broad buying. ${topSector.name} outperformance (${topSector.change > 0 ? '+' : ''}${topSector.change.toFixed(2)}%) suggests capital flowing into quality names while ${bottomSector.name} underperforms (${bottomSector.change.toFixed(2)}%). This selective approach often precedes either breakouts or consolidation phases.`;
-      } else {
-        rotationInsights = `Defensive sector rotation evident with only ${positiveSectors}/${sectors.length} sectors advancing. ${topSector.name} relative strength (${topSector.change > 0 ? '+' : ''}${topSector.change.toFixed(2)}%) while ${bottomSector.name} lags (${bottomSector.change.toFixed(2)}%) suggests investors positioning more cautiously. This defensive positioning typically emerges during uncertainty periods or late-cycle conditions.`;
-      }
-
-      return `${marketHoursEconomicSentence} ${economicInsights} ${rotationInsights}`;
-    } catch (error) {
-      console.error('Error in generateEconomicAnalysis:', error);
-      const fallbackEconomicSentence = this.generateMarketHoursEconomicAnalysis(economicData);
-      return `${fallbackEconomicSentence} Fed policy backdrop remains supportive with labor market resilience providing economic foundation. Classic sector rotation continues with balanced participation indicating healthy underlying market conditions.`;
-    }
   }
 
 
