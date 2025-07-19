@@ -23,10 +23,11 @@ export function EconomicCalendar() {
     refetchInterval: 300000, // Refresh every 5 minutes
   });
 
-  // Sort events in descending chronological order (most recent first)
-  const sortedEvents = events ? [...events].sort((a, b) => {
+  // Filter events to show only those with actual values and sort in descending chronological order
+  const eventsWithActual = events ? events.filter(event => event.actual && event.actual.trim() !== '') : [];
+  const sortedEvents = eventsWithActual.sort((a, b) => {
     return new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime();
-  }) : [];
+  });
 
   const isToday = (eventDate: string) => {
     const today = new Date();
@@ -72,16 +73,40 @@ export function EconomicCalendar() {
   const calculateVariance = (actual: string | null, forecast: string | null) => {
     if (!actual || !forecast) return null;
     
-    const actualValue = parseFloat(actual.replace(/[^\d.-]/g, ''));
-    const forecastValue = parseFloat(forecast.replace(/[^\d.-]/g, ''));
+    // Handle percentage values
+    let actualValue = parseFloat(actual.replace(/[^\d.-]/g, ''));
+    let forecastValue = parseFloat(forecast.replace(/[^\d.-]/g, ''));
+    
+    // Handle values with 'K', 'M' suffixes (like jobless claims)
+    if (actual.includes('K') || actual.includes('M')) {
+      if (actual.includes('K')) actualValue = actualValue * 1000;
+      if (actual.includes('M')) actualValue = actualValue * 1000000;
+    }
+    if (forecast.includes('K') || forecast.includes('M')) {
+      if (forecast.includes('K')) forecastValue = forecastValue * 1000;
+      if (forecast.includes('M')) forecastValue = forecastValue * 1000000;
+    }
     
     if (isNaN(actualValue) || isNaN(forecastValue)) return null;
     
     const variance = actualValue - forecastValue;
+    
+    // Format based on original data type
+    let formattedVariance: string;
+    if (actual.includes('K')) {
+      formattedVariance = variance > 0 ? `+${(variance/1000).toFixed(0)}K` : `${(variance/1000).toFixed(0)}K`;
+    } else if (actual.includes('M')) {
+      formattedVariance = variance > 0 ? `+${(variance/1000000).toFixed(2)}M` : `${(variance/1000000).toFixed(2)}M`;
+    } else if (actual.includes('%')) {
+      formattedVariance = variance > 0 ? `+${variance.toFixed(1)}%` : `${variance.toFixed(1)}%`;
+    } else {
+      formattedVariance = variance > 0 ? `+${variance.toFixed(1)}` : `${variance.toFixed(1)}`;
+    }
+    
     return {
       value: variance,
       isPositive: variance > 0,
-      formatted: variance > 0 ? `+${variance.toFixed(2)}` : variance.toFixed(2)
+      formatted: formattedVariance
     };
   };
 
@@ -117,18 +142,18 @@ export function EconomicCalendar() {
             Economic Calendar
           </div>
           <div className="text-xs text-gray-400 font-normal">
-            Maximum Historical Data & Next Week Events
+            Recent Indicators with Actual Values
           </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="text-xs text-gray-400 mb-3 text-center">
-          • Forecasts from MarketWatch • Actual data from Federal Reserve • All times Eastern
+          • Showing only indicators with actual values • Forecasts from MarketWatch • Actual data from Federal Reserve • All times Eastern
         </div>
         
         {/* Table Header */}
         <div className="bg-financial-card rounded-t-lg">
-          <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs font-semibold text-gray-300 border-b border-gray-600">
+          <div className="grid grid-cols-7 gap-3 px-4 py-3 text-xs font-semibold text-gray-300 border-b border-gray-600">
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-full bg-gray-400"></div>
               <span>INDICATOR</span>
@@ -136,6 +161,7 @@ export function EconomicCalendar() {
             <div>CATEGORY</div>
             <div className="text-center">ACTUAL</div>
             <div className="text-center">FORECAST</div>
+            <div className="text-center">VARIANCE</div>
             <div className="text-center">PREVIOUS</div>
             <div className="text-right">DATE</div>
           </div>
@@ -150,7 +176,7 @@ export function EconomicCalendar() {
             return (
               <div 
                 key={event.id} 
-                className={`grid grid-cols-6 gap-4 px-4 py-3 text-sm border-b border-gray-700/50 last:border-b-0 hover:bg-financial-gray/30 transition-colors ${
+                className={`grid grid-cols-7 gap-3 px-4 py-3 text-sm border-b border-gray-700/50 last:border-b-0 hover:bg-financial-gray/30 transition-colors ${
                   todayEvent && event.actual ? 'bg-blue-950/20' : ''
                 }`}
               >
@@ -191,6 +217,19 @@ export function EconomicCalendar() {
                 <div className="text-center flex items-center justify-center">
                   {event.forecast ? (
                     <span className="text-blue-400 text-xs">{event.forecast}</span>
+                  ) : (
+                    <span className="text-gray-500 text-xs">-</span>
+                  )}
+                </div>
+
+                {/* Variance */}
+                <div className="text-center flex items-center justify-center">
+                  {variance ? (
+                    <span className={`text-xs font-semibold ${
+                      variance.isPositive ? 'text-gain-green' : 'text-loss-red'
+                    }`}>
+                      {variance.formatted}
+                    </span>
                   ) : (
                     <span className="text-gray-500 text-xs">-</span>
                   )}
