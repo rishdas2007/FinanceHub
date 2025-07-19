@@ -396,6 +396,7 @@ export class EnhancedAIAnalysisService {
     } catch (error) {
       console.error('Error in generateEconomicAnalysis:', error);
       return `${comprehensiveEconomicAnalysis} Economic fundamentals remain supportive with balanced growth and inflation dynamics.`;
+    }
   }
 
   private generateSectorRotationAnalysis(sectors: any[]) {
