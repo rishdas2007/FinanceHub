@@ -74,11 +74,9 @@ export class EnhancedAIAnalysisService {
       .slice(0, 12); // Increased from 6 to 12 for comprehensive coverage
 
     return keyEvents.map(event => {
-      const variance = this.calculateVariance(event.actual, event.forecast);
-      const direction = variance && variance > 0 ? 'beat' : variance && variance < 0 ? 'missed' : 'met';
-      const forecastText = event.forecast ? `${event.forecast}` : 'expectations';
-      const varianceText = variance ? ` (variance: ${variance > 0 ? '+' : ''}${variance.toFixed(2)})` : '';
-      return `${event.title}: ${event.actual} ${direction} ${forecastText}${varianceText}`;
+      const direction = 'reported';
+      const forecastText = event.forecast ? `vs ${event.forecast} forecast` : '';
+      return `${event.title}: ${event.actual} ${direction} ${forecastText}`;
     }).join('; ');
   }
 
@@ -104,16 +102,7 @@ export class EnhancedAIAnalysisService {
     
     const variance = actualValue - forecastValue;
     
-    // For AI analysis, return consistent numeric format matching actual/forecast units
-    if (actualHasK || forecastHasK) {
-      return (variance / 1000).toFixed(0) + '.00';  // Return as thousands with consistent decimals
-    } else if (actualHasM || forecastHasM) {
-      return (variance / 1000000).toFixed(2);  // Return as millions with 2 decimals  
-    } else if (actual.includes('%')) {
-      return variance.toFixed(2);  // Return percentage variance with 2 decimals
-    } else {
-      return variance.toFixed(0);  // Return whole numbers consistently
-    }
+    return variance;  // Return raw numeric variance for AI analysis
   }
 
   /**

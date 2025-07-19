@@ -98,8 +98,9 @@ export function EconomicCalendar() {
     const hasPercent = actual.includes('%');
     
     if (hasK) {
-      // For K values, show variance in K format with no decimals to match actual format (e.g., "221K")
-      formattedVariance = variance > 0 ? `+${(variance/1000).toFixed(0)}K` : `${(variance/1000).toFixed(0)}K`;
+      // For K values like "221,000" show variance as "-13,000" (not "-13K")
+      const formattedValue = Math.abs(variance).toLocaleString();
+      formattedVariance = variance > 0 ? `+${formattedValue}` : `-${formattedValue}`;
     } else if (hasM) {
       // For M values, show variance in M format with 2 decimals to match actual format (e.g., "1.40M")
       formattedVariance = variance > 0 ? `+${(variance/1000000).toFixed(2)}M` : `${(variance/1000000).toFixed(2)}M`;
