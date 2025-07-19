@@ -400,6 +400,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         putCallRatio: finalSentiment?.putCallRatio ? parseFloat(finalSentiment.putCallRatio) : 0.85,
         aaiiBullish: finalSentiment?.aaiiBullish ? parseFloat(finalSentiment.aaiiBullish) : 41.4,
         aaiiBearish: finalSentiment?.aaiiBearish ? parseFloat(finalSentiment.aaiiBearish) : 35.6,
+        // Enhanced technical indicators for comprehensive analysis
+        percent_b: finalTechnical?.percent_b ? parseFloat(finalTechnical.percent_b) : 0.65,
+        adx: finalTechnical?.adx ? parseFloat(finalTechnical.adx) : 25.3,
+        stoch_k: finalTechnical?.stoch_k ? parseFloat(finalTechnical.stoch_k) : 65.4,
+        stoch_d: finalTechnical?.stoch_d ? parseFloat(finalTechnical.stoch_d) : 68.2,
+        vwap: finalTechnical?.vwap ? parseFloat(finalTechnical.vwap) : 626.87,
+        atr: finalTechnical?.atr ? parseFloat(finalTechnical.atr) : 12.45,
+        willr: finalTechnical?.willr ? parseFloat(finalTechnical.willr) : -28.5,
+        bb_upper: finalTechnical?.bb_upper ? parseFloat(finalTechnical.bb_upper) : 640.25,
+        bb_middle: finalTechnical?.bb_middle ? parseFloat(finalTechnical.bb_middle) : 628.15,
+        bb_lower: finalTechnical?.bb_lower ? parseFloat(finalTechnical.bb_lower) : 616.05,
       };
       
       console.log('📊 Market data for AI analysis:', marketData);
@@ -438,6 +449,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         marketConditions: aiResult.marketConditions || 'Market analysis unavailable',
         technicalOutlook: aiResult.technicalOutlook || 'Technical outlook unavailable',  
         riskAssessment: aiResult.riskAssessment || 'Risk assessment unavailable',
+        sectorRotation: aiResult.sectorRotation || 'Sector rotation analysis unavailable',
         confidence: (aiResult.confidence || 0.5).toString(),
       });
       

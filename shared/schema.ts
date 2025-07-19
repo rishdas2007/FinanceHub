@@ -72,6 +72,7 @@ export const aiAnalysis = pgTable("ai_analysis", {
   marketConditions: text("market_conditions").notNull(),
   technicalOutlook: text("technical_outlook").notNull(),
   riskAssessment: text("risk_assessment").notNull(),
+  sectorRotation: text("sector_rotation").notNull(),
   confidence: decimal("confidence", { precision: 3, scale: 2 }).notNull(),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 });
