@@ -237,11 +237,11 @@ export class EnhancedAIAnalysisService {
         
         if (topEvents.length === 1) {
           const eventText = this.formatEventForAnalysis(topEvents[0]);
-          sentences.push(`${dayName} key economic release was **${eventText}**, providing important directional guidance for Fed policy and market sentiment.`);
+          sentences.push(`${dayName} key economic release was ${eventText}, providing important directional guidance for Fed policy and market sentiment.`);
         } else if (topEvents.length === 2) {
           const event1Text = this.formatEventForAnalysis(topEvents[0]);
           const event2Text = this.formatEventForAnalysis(topEvents[1]);
-          sentences.push(`${dayName} major economic releases included **${event1Text}** and **${event2Text}**, offering critical insights into economic momentum.`);
+          sentences.push(`${dayName} major economic releases included ${event1Text} and ${event2Text}, offering critical insights into economic momentum.`);
         }
       }
       dayIndex++;
@@ -250,7 +250,7 @@ export class EnhancedAIAnalysisService {
     // If we don't have specific day events, create a general summary
     if (sentences.length === 0 && events.length > 0) {
       const topEvents = events.slice(0, 3);
-      const eventSummaries = topEvents.map(event => `**${event.title} at ${event.actual || event.forecast}**`);
+      const eventSummaries = topEvents.map(event => `${event.title} at ${event.actual || event.forecast}`);
       return `Recent trading sessions featured important economic releases including ${eventSummaries.join(', ')}, providing key insights into current economic conditions. These data points continue to shape Federal Reserve policy expectations and market sentiment across asset classes.`;
     }
     
@@ -263,8 +263,7 @@ export class EnhancedAIAnalysisService {
   private generateEconomicContext(economicData: any, recentEvents: any[]): string {
     const sentences = [];
     
-    // Comprehensive economic foundation
-    sentences.push("The economic backdrop reveals a complex interplay of disinflationary pressures, resilient labor dynamics, and evolving Fed policy expectations that collectively shape risk asset valuations and sector rotation patterns.");
+    // Focus on actual data only - no verbose context
     
     // Categorize events by economic category
     const growthEvents = recentEvents.filter(e => e.category === 'growth' || 
@@ -305,8 +304,6 @@ export class EnhancedAIAnalysisService {
         const housingEvent = housingEvents[0];
         sentences.push(`Housing sector data with ${housingEvent.title} at ${housingEvent.actual} indicates ${parseFloat(housingEvent.actual?.replace(/[^\d.-]/g, '')) > parseFloat(housingEvent.forecast?.replace(/[^\d.-]/g, '')) ? 'strength in residential investment supporting Materials and Financials sectors' : 'moderation in housing activity reflecting higher borrowing costs'}.`);
       }
-    } else {
-      sentences.push("Growth indicators remain supportive with consumer spending and housing activity providing foundation for continued expansion while interest-sensitive sectors benefit from stable economic momentum.");
     }
 
     // Labor Market category analysis  
@@ -320,8 +317,6 @@ export class EnhancedAIAnalysisService {
           sentences.push(`Labor Market indicators showed ${beat ? 'strength' : 'softening'} with initial jobless claims at ${claimsValue.toLocaleString()} ${beat ? 'below' : 'above'} the ${forecast.toLocaleString()} forecast, ${beat ? 'supporting wage growth and consumer spending while underpinning cyclical sector performance' : 'suggesting labor market cooling that could pressure consumer discretionary sectors'}.`);
         }
       }
-    } else {
-      sentences.push("Labor Market conditions maintain resilience with employment strength supporting consumer spending capacity and Federal Reserve policy normalization while benefiting cyclical equity sectors.");
     }
 
     // Inflation category analysis
@@ -337,8 +332,6 @@ export class EnhancedAIAnalysisService {
       } else if (ppiEvent) {
         sentences.push(`Producer price pressures at ${ppiEvent.actual} indicate upstream inflation trends that influence Fed policy positioning and sector rotation between growth and value styles.`);
       }
-    } else {
-      sentences.push("Inflation trends continue supporting Federal Reserve flexibility while benefiting interest-sensitive sectors as declining real rates enhance present value calculations for growth-oriented assets.");
     }
 
     // Sentiment category analysis
@@ -350,10 +343,7 @@ export class EnhancedAIAnalysisService {
       sentences.push(`Sentiment indicators with ${confidenceEvent.title} at ${confidenceEvent.actual} ${beat ? 'exceeded forecasts, supporting risk asset appetite and cyclical sector leadership' : 'disappointed expectations, favoring defensive positioning in Utilities and Consumer Staples'}.`);
     }
 
-    // Forward-looking policy and market implications
-    sentences.push("Federal Reserve policy trajectory remains data-dependent with markets pricing measured approach to rate adjustments, creating environment supportive of equity risk premiums while maintaining sensitivity to economic data surprises and cross-asset volatility dynamics.");
-    
-    return sentences.join(' ');
+    return sentences.slice(0, 4).join(' ') || "Economic releases support current market positioning.";
   }
 
   /**
