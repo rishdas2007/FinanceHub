@@ -183,7 +183,7 @@ export class FredApiService {
         seriesId = 'ICSA';
         valueTransform = (current) => {
           const thousands = Math.round(parseFloat(current));
-          return `${thousands.toLocaleString()}`;
+          return `${Math.round(thousands/1000)}K`;
         };
       } else if (titleLower.includes('jolts') || titleLower.includes('job openings')) {
         seriesId = 'JTSJOL';

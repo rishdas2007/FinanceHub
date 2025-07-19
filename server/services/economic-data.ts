@@ -149,9 +149,9 @@ export class EconomicDataService {
       category: 'employment',
       importance: 'high',
       currency: 'USD',
-      forecast: '234,000',
-      previous: '228,000',
-      actual: '221,000',
+      forecast: '234K',
+      previous: '228K',
+      actual: '221K',
       impact: 'positive',
       source: 'marketwatch'
     });
@@ -507,8 +507,8 @@ export class EconomicDataService {
       category: 'employment',
       importance: 'high',
       currency: 'USD',
-      forecast: '235,000',
-      previous: '221,000',
+      forecast: '235K',
+      previous: '221K',
       actual: null,
       impact: null,
       source: 'marketwatch'
