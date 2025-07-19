@@ -75,7 +75,7 @@ export function AIAnalysisComponent() {
       </CardHeader>
       <CardContent>
         <div className="bg-financial-card rounded-lg p-6 overflow-y-auto h-[800px]">
-          {analysis && currentStock && sentiment && technical && sectors ? (
+          {analysis ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-sm">
               {/* Current Market Position */}
               <div className="lg:col-span-3 border-l-4 border-gain-green pl-4 mb-4">
@@ -84,30 +84,42 @@ export function AIAnalysisComponent() {
                   <h4 className="font-semibold text-white text-lg">Current Market Position</h4>
                 </div>
                 <p className="text-gray-300 leading-relaxed mb-4">
-                  The S&P 500 (SPY) closed at ${parseFloat(currentStock.price).toFixed(2)}, gaining {parseFloat(currentStock.changePercent) >= 0 ? '+' : ''}{parseFloat(currentStock.changePercent).toFixed(2)}% today. 
-                  {parseFloat(currentStock.price) > 620 && (
-                    <span className="text-warning-yellow"> This puts the market near historical highs, trading at elevated valuations that warrant careful monitoring.</span>
+                  {currentStock ? (
+                    <>
+                      The S&P 500 (SPY) closed at ${parseFloat(currentStock.price).toFixed(2)}, gaining {parseFloat(currentStock.changePercent) >= 0 ? '+' : ''}{parseFloat(currentStock.changePercent).toFixed(2)}% today. 
+                      {parseFloat(currentStock.price) > 620 && (
+                        <span className="text-warning-yellow"> This puts the market near historical highs, trading at elevated valuations that warrant careful monitoring.</span>
+                      )}
+                    </>
+                  ) : (
+                    "Loading current market position..."
                   )}
                 </p>
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-financial-gray bg-opacity-30 rounded-lg p-4">
                   <div className="text-center">
                     <span className="text-gray-400 text-xs block">Current Price</span>
-                    <div className="text-white font-bold text-lg">${parseFloat(currentStock.price).toFixed(2)}</div>
+                    <div className="text-white font-bold text-lg">
+                      {currentStock ? `$${parseFloat(currentStock.price).toFixed(2)}` : '---'}
+                    </div>
                   </div>
                   <div className="text-center">
                     <span className="text-gray-400 text-xs block">Daily Change</span>
-                    <div className={`font-bold text-lg ${parseFloat(currentStock.changePercent) >= 0 ? 'text-gain-green' : 'text-loss-red'}`}>
-                      {parseFloat(currentStock.changePercent) >= 0 ? '+' : ''}{parseFloat(currentStock.changePercent).toFixed(2)}%
+                    <div className={`font-bold text-lg ${currentStock && parseFloat(currentStock.changePercent) >= 0 ? 'text-gain-green' : 'text-loss-red'}`}>
+                      {currentStock ? `${parseFloat(currentStock.changePercent) >= 0 ? '+' : ''}${parseFloat(currentStock.changePercent).toFixed(2)}%` : '---'}
                     </div>
                   </div>
                   <div className="text-center">
                     <span className="text-gray-400 text-xs block">VIX Level</span>
-                    <div className="text-warning-yellow font-bold text-lg">{parseFloat(sentiment.vix).toFixed(1)}</div>
+                    <div className="text-warning-yellow font-bold text-lg">
+                      {sentiment ? parseFloat(sentiment.vix).toFixed(1) : '---'}
+                    </div>
                   </div>
                   <div className="text-center">
                     <span className="text-gray-400 text-xs block">AAII Bullish</span>
-                    <div className="text-gain-green font-bold text-lg">{parseFloat(sentiment.aaiiBullish).toFixed(1)}%</div>
+                    <div className="text-gain-green font-bold text-lg">
+                      {sentiment ? `${parseFloat(sentiment.aaiiBullish).toFixed(1)}%` : '---'}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -121,26 +133,26 @@ export function AIAnalysisComponent() {
                 <div className="space-y-3">
                   <div>
                     <p className="text-gray-300 mb-2">
-                      <span className="font-semibold text-white">RSI at {technical.rsi ? parseFloat(technical.rsi).toFixed(1) : 'N/A'}</span> - 
-                      {technical.rsi && parseFloat(technical.rsi) > 65 ? (
+                      <span className="font-semibold text-white">RSI at {technical?.rsi ? parseFloat(technical.rsi).toFixed(1) : 'N/A'}</span> - 
+                      {technical?.rsi && parseFloat(technical.rsi) > 65 ? (
                         <span className="text-warning-yellow"> Approaching overbought territory (70+). Recent rally may be due for a pause.</span>
-                      ) : technical.rsi && parseFloat(technical.rsi) < 35 ? (
+                      ) : technical?.rsi && parseFloat(technical.rsi) < 35 ? (
                         <span className="text-gain-green"> In oversold territory, potential buying opportunity.</span>
                       ) : (
-                        <span className="text-gray-300"> In neutral range, momentum balanced.</span>
+                        <span className="text-gray-300"> {technical?.rsi ? 'In neutral range, momentum balanced.' : 'Loading technical data...'}</span>
                       )}
                     </p>
                   </div>
                   
                   <div>
                     <p className="text-gray-300 mb-2">
-                      <span className="font-semibold text-white">MACD at {technical.macd ? parseFloat(technical.macd).toFixed(3) : 'N/A'}</span> vs Signal {technical.macdSignal ? parseFloat(technical.macdSignal).toFixed(3) : 'N/A'} - 
-                      {(technical.macdSignal && technical.macd && parseFloat(technical.macd) < parseFloat(technical.macdSignal)) ? (
+                      <span className="font-semibold text-white">MACD at {technical?.macd ? parseFloat(technical.macd).toFixed(3) : 'N/A'}</span> vs Signal {technical?.macdSignal ? parseFloat(technical.macdSignal).toFixed(3) : 'N/A'} - 
+                      {(technical?.macdSignal && technical?.macd && parseFloat(technical.macd) < parseFloat(technical.macdSignal)) ? (
                         <span className="text-loss-red"> Bearish crossover signal, MACD below signal line indicates potential downward momentum.</span>
-                      ) : (technical.macdSignal && technical.macd && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? (
+                      ) : (technical?.macdSignal && technical?.macd && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? (
                         <span className="text-gain-green"> Bullish crossover signal, MACD above signal line indicates upward momentum.</span>
                       ) : (
-                        <span className="text-gray-300"> MACD signal data unavailable for crossover analysis.</span>
+                        <span className="text-gray-300"> {technical?.macd ? 'MACD signal data unavailable for crossover analysis.' : 'Loading technical data...'}</span>
                       )}
                     </p>
                   </div>
@@ -244,23 +256,35 @@ export function AIAnalysisComponent() {
                 </div>
                 <div className="space-y-3">
                   <p className="text-gray-300">
-                    <span className="font-semibold text-white">VIX at {parseFloat(sentiment.vix).toFixed(1)}</span> indicates 
-                    {parseFloat(sentiment.vix) > 30 ? (
-                      <span className="text-loss-red"> high fear and uncertainty in the market.</span>
-                    ) : parseFloat(sentiment.vix) > 20 ? (
-                      <span className="text-warning-yellow"> moderate concern among investors.</span>
+                    {sentiment ? (
+                      <>
+                        <span className="font-semibold text-white">VIX at {parseFloat(sentiment.vix).toFixed(1)}</span> indicates 
+                        {parseFloat(sentiment.vix) > 30 ? (
+                          <span className="text-loss-red"> high fear and uncertainty in the market.</span>
+                        ) : parseFloat(sentiment.vix) > 20 ? (
+                          <span className="text-warning-yellow"> moderate concern among investors.</span>
+                        ) : (
+                          <span className="text-gain-green"> low volatility and market complacency.</span>
+                        )}
+                      </>
                     ) : (
-                      <span className="text-gain-green"> low volatility and market complacency.</span>
+                      "Loading VIX sentiment data..."
                     )}
                   </p>
                   
                   <p className="text-gray-300">
-                    AAII sentiment shows <span className="font-semibold text-gain-green">{parseFloat(sentiment.aaiiBullish).toFixed(1)}% bullish</span> vs 
-                    <span className="font-semibold text-loss-red"> {parseFloat(sentiment.aaiiBearish).toFixed(1)}% bearish</span> - 
-                    {parseFloat(sentiment.aaiiBullish) > parseFloat(sentiment.aaiiBearish) ? (
-                      <span className="text-gain-green"> indicating net positive retail sentiment.</span>
+                    {sentiment ? (
+                      <>
+                        AAII sentiment shows <span className="font-semibold text-gain-green">{parseFloat(sentiment.aaiiBullish).toFixed(1)}% bullish</span> vs 
+                        <span className="font-semibold text-loss-red"> {parseFloat(sentiment.aaiiBearish).toFixed(1)}% bearish</span> - 
+                        {parseFloat(sentiment.aaiiBullish) > parseFloat(sentiment.aaiiBearish) ? (
+                          <span className="text-gain-green"> indicating net positive retail sentiment.</span>
+                        ) : (
+                          <span className="text-loss-red"> showing bearish retail positioning.</span>
+                        )}
+                      </>
                     ) : (
-                      <span className="text-loss-red"> showing bearish retail positioning.</span>
+                      "Loading AAII sentiment data..."
                     )}
                   </p>
 
@@ -268,13 +292,15 @@ export function AIAnalysisComponent() {
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div className="text-center">
                         <span className="text-gray-400">Fear Level</span>
-                        <div className={`font-medium ${parseFloat(sentiment.vix) > 30 ? 'text-loss-red' : parseFloat(sentiment.vix) > 20 ? 'text-warning-yellow' : 'text-gain-green'}`}>
-                          {parseFloat(sentiment.vix) > 30 ? 'High' : parseFloat(sentiment.vix) > 20 ? 'Moderate' : 'Low'}
+                        <div className={`font-medium ${sentiment && parseFloat(sentiment.vix) > 30 ? 'text-loss-red' : sentiment && parseFloat(sentiment.vix) > 20 ? 'text-warning-yellow' : 'text-gain-green'}`}>
+                          {sentiment ? (parseFloat(sentiment.vix) > 30 ? 'High' : parseFloat(sentiment.vix) > 20 ? 'Moderate' : 'Low') : '---'}
                         </div>
                       </div>
                       <div className="text-center">
                         <span className="text-gray-400">Put/Call Ratio</span>
-                        <div className="text-white font-medium">{parseFloat(sentiment.putCallRatio).toFixed(2)}</div>
+                        <div className="text-white font-medium">
+                          {sentiment ? parseFloat(sentiment.putCallRatio).toFixed(2) : '---'}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -328,14 +354,14 @@ export function AIAnalysisComponent() {
                       </div>
                       <div className="text-center">
                         <span className="text-gray-400">Risk Level</span>
-                        <div className={`font-medium ${technical.rsi && parseFloat(technical.rsi) > 65 ? 'text-warning-yellow' : 'text-gain-green'}`}>
-                          {technical.rsi && parseFloat(technical.rsi) > 65 ? 'Elevated' : 'Moderate'}
+                        <div className={`font-medium ${technical?.rsi && parseFloat(technical.rsi) > 65 ? 'text-warning-yellow' : 'text-gain-green'}`}>
+                          {technical?.rsi && parseFloat(technical.rsi) > 65 ? 'Elevated' : 'Moderate'}
                         </div>
                       </div>
                       <div className="text-center">
                         <span className="text-gray-400">Trend Status</span>
-                        <div className={`font-medium ${(technical.macdSignal && technical.macd && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'text-gain-green' : 'text-loss-red'}`}>
-                          {(technical.macdSignal && technical.macd && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'Bullish' : 'Bearish'}
+                        <div className={`font-medium ${(technical?.macdSignal && technical?.macd && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'text-gain-green' : 'text-loss-red'}`}>
+                          {(technical?.macdSignal && technical?.macd && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'Bullish' : 'Bearish'}
                         </div>
                       </div>
                     </div>
