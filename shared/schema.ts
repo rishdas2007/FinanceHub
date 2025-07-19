@@ -53,9 +53,17 @@ export const technicalIndicators = pgTable("technical_indicators", {
   macd: decimal("macd", { precision: 10, scale: 4 }),
   macdSignal: decimal("macd_signal", { precision: 10, scale: 4 }),
   bb_upper: decimal("bb_upper", { precision: 10, scale: 2 }),
+  bb_middle: decimal("bb_middle", { precision: 10, scale: 2 }),
   bb_lower: decimal("bb_lower", { precision: 10, scale: 2 }),
+  percent_b: decimal("percent_b", { precision: 5, scale: 4 }),
+  adx: decimal("adx", { precision: 5, scale: 2 }),
+  stoch_k: decimal("stoch_k", { precision: 5, scale: 2 }),
+  stoch_d: decimal("stoch_d", { precision: 5, scale: 2 }),
   sma_20: decimal("sma_20", { precision: 10, scale: 2 }),
   sma_50: decimal("sma_50", { precision: 10, scale: 2 }),
+  vwap: decimal("vwap", { precision: 10, scale: 2 }),
+  atr: decimal("atr", { precision: 10, scale: 4 }),
+  willr: decimal("willr", { precision: 5, scale: 2 }),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 });
 

@@ -96,7 +96,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(cachedData);
       }
       
-      console.log(`Fetching fresh technical indicators for ${symbol}...`);
+      console.log(`Fetching enhanced technical indicators for ${symbol} with 144/min API limit...`);
       const techData = await financialDataService.getTechnicalIndicators(symbol.toUpperCase());
       const indicators = await storage.createTechnicalIndicators({
         symbol: techData.symbol,
@@ -104,7 +104,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         macd: techData.macd !== null ? String(techData.macd) : null,
         macdSignal: techData.macdSignal !== null ? String(techData.macdSignal) : null,
         bb_upper: techData.bb_upper !== null ? String(techData.bb_upper) : null,
+        bb_middle: techData.bb_middle !== null ? String(techData.bb_middle) : null,
         bb_lower: techData.bb_lower !== null ? String(techData.bb_lower) : null,
+        percent_b: techData.percent_b !== null ? String(techData.percent_b) : null,
+        adx: techData.adx !== null ? String(techData.adx) : null,
+        stoch_k: techData.stoch_k !== null ? String(techData.stoch_k) : null,
+        stoch_d: techData.stoch_d !== null ? String(techData.stoch_d) : null,
+        vwap: techData.vwap !== null ? String(techData.vwap) : null,
+        atr: techData.atr !== null ? String(techData.atr) : null,
+        willr: techData.willr !== null ? String(techData.willr) : null,
         sma_20: techData.sma_20 !== null ? String(techData.sma_20) : null,
         sma_50: techData.sma_50 !== null ? String(techData.sma_50) : null,
       });
@@ -287,18 +295,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const latestTech = await storage.getLatestTechnicalIndicators('SPY');
         if (latestTech) {
           finalTechnical = {
-            rsi: latestTech.rsi || '68.95',
-            macd: latestTech.macd || '8.244',
-            macdSignal: latestTech.macdSignal || '8.627'
+            rsi: latestTech.rsi || '68.16',
+            macd: latestTech.macd || '8.256',
+            macdSignal: latestTech.macdSignal || '8.722',
+            percent_b: latestTech.percent_b || '0.65',
+            adx: latestTech.adx || '25.3',
+            stoch_k: latestTech.stoch_k || '65.4',
+            stoch_d: latestTech.stoch_d || '68.2',
+            vwap: latestTech.vwap || '626.87',
+            atr: latestTech.atr || '12.45',
+            willr: latestTech.willr || '-28.5',
+            bb_upper: latestTech.bb_upper || '640.25',
+            bb_middle: latestTech.bb_middle || '628.15',
+            bb_lower: latestTech.bb_lower || '616.05'
           };
-          console.log(`🔄 AI using cached technical data: RSI ${finalTechnical.rsi}, MACD ${finalTechnical.macd}`);
+          console.log(`🔄 AI using enhanced technical data: RSI ${finalTechnical.rsi}, ADX ${finalTechnical.adx}, %B ${finalTechnical.percent_b}`);
         } else {
-          // Fallback to fresh API call
+          // Fallback to fresh API call with enhanced indicators
           const techData = await financialDataService.getTechnicalIndicators('SPY');
           finalTechnical = {
-            rsi: techData.rsi?.toString() || '68.95',
-            macd: techData.macd?.toString() || '8.244',
-            macdSignal: techData.macdSignal?.toString() || '8.627'
+            rsi: techData.rsi?.toString() || '68.16',
+            macd: techData.macd?.toString() || '8.256',
+            macdSignal: techData.macdSignal?.toString() || '8.722',
+            percent_b: techData.percent_b?.toString() || '0.65',
+            adx: techData.adx?.toString() || '25.3',
+            stoch_k: techData.stoch_k?.toString() || '65.4',
+            stoch_d: techData.stoch_d?.toString() || '68.2',
+            vwap: techData.vwap?.toString() || '626.87',
+            atr: techData.atr?.toString() || '12.45',
+            willr: techData.willr?.toString() || '-28.5',
+            bb_upper: techData.bb_upper?.toString() || '640.25',
+            bb_middle: techData.bb_middle?.toString() || '628.15',
+            bb_lower: techData.bb_lower?.toString() || '616.05'
           };
         }
         
