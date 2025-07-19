@@ -328,21 +328,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('📊 Market data for AI analysis:', marketData);
       
-      // Get enhanced economic events with market hours awareness for comprehensive analysis
+      // Get economic events from simplified reliable calendar for comprehensive analysis
       let economicEvents = [];
       try {
-        console.log('Fetching enhanced economic events with market hours awareness...');
-        const { enhancedEconomicDataService } = await import('./services/economic-data-enhanced');
+        console.log('Fetching economic events from reliable calendar...');
+        const { simplifiedEconomicCalendarService } = await import('./services/simplified-economic-calendar');
         
         // Get market hours-aware economic events for AI analysis
-        const economicAnalysisData = await enhancedEconomicDataService.getAIAnalysisEvents();
+        const economicAnalysisData = await simplifiedEconomicCalendarService.getAIAnalysisEvents();
         economicEvents = [
           ...economicAnalysisData.currentTradingDay,
           ...economicAnalysisData.recent,
           ...economicAnalysisData.highImpact
         ];
+        
+        console.log(`📊 AI Analysis Events: ${economicEvents.length} total economic events from reliable calendar`);
       } catch (error) {
-        console.log('Using fallback economic data for analysis');
+        console.log('Error with reliable calendar, using fallback:', error);
       }
       
       const enhancedMarketData = {
@@ -373,28 +375,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Economic events API - MarketWatch compatible endpoint
+  // Economic events API - Now powered by reliable calendar service
   app.get("/api/economic-events", async (req, res) => {
     try {
-      console.log('Fetching MarketWatch economic calendar events...');
+      console.log('Fetching economic calendar events from reliable calendar...');
       
-      // Parse query parameters for filtering (following core requirements)
+      // Parse query parameters for filtering
       const { start_date, end_date, importance, category } = req.query;
       
-      // Get enhanced economic events with TradingView integration
-      const { enhancedEconomicDataService } = await import('./services/economic-data-enhanced');
+      // Get economic events from reliable calendar service
+      const { simplifiedEconomicCalendarService } = await import('./services/simplified-economic-calendar');
       
-      // Get comprehensive economic data from multiple sources (filtered for medium/high importance US events)
-      const economicData = await enhancedEconomicDataService.getEnhancedEconomicEvents();
+      // Get calendar events optimized for display
+      const economicData = await simplifiedEconomicCalendarService.getCalendarEvents();
       
-      // Use the economic events directly
-      const realEvents = economicData;
-      
-      console.log(`Raw events from economic data: ${realEvents.length}`);
-      console.log('Debug - First few events:', realEvents.slice(0, 2));
+      console.log(`Raw events from reliable calendar: ${economicData.length}`);
+      console.log('Debug - First few events:', economicData.slice(0, 2));
       
       // Apply filters if provided
-      let filteredEvents = realEvents;
+      let filteredEvents = economicData;
       
       if (importance) {
         filteredEvents = filteredEvents.filter(e => e.importance === importance);
@@ -410,7 +409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: event.title,
         description: event.description,
         importance: event.importance,
-        eventDate: event.eventDate || event.date,
+        eventDate: event.date,
         forecast: event.forecast || null,
         previous: event.previous || null,
         actual: event.actual || null,
@@ -420,25 +419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date()
       }));
       
-      // Return MarketWatch-style response with metadata
-      const response = {
-        success: true,
-        data: {
-          events: events,
-          pagination: {
-            total: events.length,
-            page: 1,
-            per_page: events.length
-          },
-          metadata: {
-            last_updated: new Date().toISOString(),
-            sources: ["marketwatch", "tradingview", "fred"],
-            data_freshness: "real-time"
-          }
-        }
-      };
-      
-      console.log(`Returning ${events.length} enhanced US economic events (medium/high importance only)`);
+      console.log(`Returning ${events.length} reliable economic events (US medium/high importance events)`);
       res.json(events); // Keep simple for frontend compatibility
     } catch (error) {
       console.error('Error fetching economic events:', error);
