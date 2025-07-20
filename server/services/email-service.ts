@@ -6,12 +6,11 @@ import { eq } from 'drizzle-orm';
 import { FinancialDataService } from './financial-data';
 import { EnhancedAIAnalysisService } from './enhanced-ai-analysis';
 import { generateRichEmailTemplate } from './rich-email-template';
-import { generateEnhancedEmailTemplate } from './enhanced-email-template';
 
 const SENDGRID_ENABLED = !!process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.length > 10;
 
 if (SENDGRID_ENABLED) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
   console.log('✅ SendGrid email service initialized');
 } else {
   console.log('⚠️ SendGrid not configured - email subscription will save to database only');
@@ -118,7 +117,7 @@ export class EmailService {
         return;
       }
 
-      const emailTemplate = generateEnhancedEmailTemplate(analysisData);
+      const emailTemplate = this.generateDailyEmailTemplate(analysisData);
 
       // Send emails in batches to avoid rate limits
       const batchSize = 10;
@@ -282,9 +281,9 @@ export class EmailService {
                 <h4 style="color: #3b82f6; margin: 0 0 10px 0; font-size: 13px; font-weight: bold;">Recent Economic Readings</h4>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
                   ${economicEvents
-                    .filter(event => event.actual && event.forecast)
+                    .filter((event: any) => event.actual && event.forecast)
                     .slice(0, 4)
-                    .map(event => `
+                    .map((event: any) => `
                       <div style="color: #374151;">
                         • ${event.title}: <strong style="color: #3b82f6;">${event.actual}</strong> vs <span style="color: #6b7280;">${event.forecast}</span> forecast
                       </div>

@@ -92,6 +92,7 @@ export class ThematicAIAnalysisService {
       economicInsights
     );
     
+    console.log('🧠 Sending request to OpenAI for thematic analysis...');
     const response = await this.openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
@@ -111,7 +112,9 @@ export class ThematicAIAnalysisService {
       temperature: 0.7,
     });
 
+    console.log('✅ OpenAI response received, parsing JSON...');
     const result = JSON.parse(response.choices[0].message.content || '{}');
+    console.log('🔍 Parsed thematic analysis result keys:', Object.keys(result));
     
     return {
       bottomLine: result.bottomLine || "Market narrative analysis unavailable",
