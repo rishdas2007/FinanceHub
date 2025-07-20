@@ -205,7 +205,7 @@ export class EmailService {
   }
 
   private generateDailyEmailTemplate(analysisData: any): string {
-    const { analysis, currentStock, sentiment, technical, sectors } = analysisData;
+    const { analysis, currentStock, sentiment, technical, sectors, economicEvents } = analysisData;
     
     const date = new Date().toLocaleDateString('en-US', { 
       weekday: 'long',
@@ -254,23 +254,51 @@ export class EmailService {
           <div style="border-left: 4px solid #4ade80; padding-left: 20px; margin-bottom: 25px;">
             <h3 style="color: #1f2937; margin: 0 0 10px 0; font-size: 16px;">Bottom Line</h3>
             <p style="color: #374151; line-height: 1.6; margin: 0; font-size: 15px;">
-              ${analysis?.marketConditions?.replace(/^Bottom Line:\s*/, '') || 'Market analysis unavailable'}
+              ${this.formatMetricsInHTML(analysis?.bottomLine || 'Market analysis unavailable')}
+            </p>
+            <div style="margin-top: 10px; font-size: 12px; color: #6b7280;">
+              Theme: <strong>${analysis?.dominantTheme || 'N/A'}</strong> • ${Math.round((analysis?.confidence || 0) * 100)}% Confidence
+            </div>
+          </div>
+
+          <!-- Market Setup -->
+          <div style="border-left: 4px solid #10b981; padding-left: 20px; margin-bottom: 25px;">
+            <h3 style="color: #1f2937; margin: 0 0 10px 0; font-size: 16px;">📊 Market Setup</h3>
+            <p style="color: #374151; line-height: 1.6; margin: 0; font-size: 14px;">
+              ${this.formatMetricsInHTML(analysis?.setup || 'Market setup unavailable')}
             </p>
           </div>
 
-          <!-- Technical Analysis -->
+          <!-- Evidence -->
           <div style="border-left: 4px solid #3b82f6; padding-left: 20px; margin-bottom: 25px;">
-            <h3 style="color: #1f2937; margin: 0 0 10px 0; font-size: 16px;">Technical Analysis</h3>
-            <p style="color: #374151; line-height: 1.6; margin: 0; font-size: 14px;">
-              ${analysis?.technicalOutlook || 'Technical analysis unavailable'}
+            <h3 style="color: #1f2937; margin: 0 0 10px 0; font-size: 16px;">🔍 Evidence</h3>
+            <p style="color: #374151; line-height: 1.6; margin: 0 15px 0 0; font-size: 14px;">
+              ${this.formatMetricsInHTML(analysis?.evidence || 'Evidence unavailable')}
             </p>
+            
+            <!-- Recent Economic Readings -->
+            ${economicEvents && economicEvents.length > 0 ? `
+              <div style="background: #f3f4f6; padding: 15px; border-radius: 6px; margin-top: 15px; border-left: 3px solid #3b82f6;">
+                <h4 style="color: #3b82f6; margin: 0 0 10px 0; font-size: 13px; font-weight: bold;">Recent Economic Readings</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+                  ${economicEvents
+                    .filter(event => event.actual && event.forecast)
+                    .slice(0, 4)
+                    .map(event => `
+                      <div style="color: #374151;">
+                        • ${event.title}: <strong style="color: #3b82f6;">${event.actual}</strong> vs <span style="color: #6b7280;">${event.forecast}</span> forecast
+                      </div>
+                    `).join('')}
+                </div>
+              </div>
+            ` : ''}
           </div>
 
-          <!-- Economic & Sector Analysis -->
-          <div style="border-left: 4px solid #8b5cf6; padding-left: 20px; margin-bottom: 25px;">
-            <h3 style="color: #1f2937; margin: 0 0 10px 0; font-size: 16px;">Economic & Sector Analysis</h3>
+          <!-- Implications -->
+          <div style="border-left: 4px solid #f59e0b; padding-left: 20px; margin-bottom: 25px;">
+            <h3 style="color: #1f2937; margin: 0 0 10px 0; font-size: 16px;">💡 Implications</h3>
             <p style="color: #374151; line-height: 1.6; margin: 0; font-size: 14px;">
-              ${analysis?.riskAssessment || 'Economic analysis unavailable'}
+              ${this.formatMetricsInHTML(analysis?.implications || 'Implications unavailable')}
             </p>
           </div>
 
@@ -292,7 +320,7 @@ export class EmailService {
               </div>
               <div style="text-align: center;">
                 <div style="color: #6b7280;">Confidence</div>
-                <div style="color: #1f2937; font-weight: bold;">${Math.round((parseFloat(analysis?.confidence || '0') * 100))}%</div>
+                <div style="color: #1f2937; font-weight: bold;">${Math.round((analysis?.confidence || 0) * 100)}%</div>
               </div>
             </div>
           </div>
@@ -309,6 +337,16 @@ export class EmailService {
         </div>
       </div>
     `;
+  }
+
+  private formatMetricsInHTML(text: string): string {
+    // Convert metric values to bold blue in HTML format
+    return text.replace(/(\d+\.?\d*%?K?M?)/g, '<strong style="color: #3b82f6;">$1</strong>');
+  }
+
+  // Public method to generate email template for testing
+  public generateTestEmailTemplate(analysisData: any): string {
+    return this.generateDailyEmailTemplate(analysisData);
   }
 }
 
