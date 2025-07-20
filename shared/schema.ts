@@ -143,6 +143,21 @@ export const sectorData = pgTable("sector_data", {
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 });
 
+// Enhanced AI Analysis Schema for Thematic Commentary
+export const thematicAnalysis = pgTable("thematic_analysis", {
+  id: serial("id").primaryKey(),
+  bottomLine: text("bottom_line").notNull(),
+  dominantTheme: text("dominant_theme").notNull(),
+  setup: text("setup").notNull(),
+  evidence: text("evidence").notNull(),
+  implications: text("implications").notNull(),
+  catalysts: text("catalysts").notNull(),
+  contrarianView: text("contrarian_view").notNull(),
+  confidence: decimal("confidence", { precision: 3, scale: 2 }).notNull(),
+  marketContext: jsonb("market_context"), // Store raw market data used
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,

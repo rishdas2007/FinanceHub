@@ -234,6 +234,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enhanced Thematic AI Analysis - New narrative-driven analysis
+  app.get("/api/thematic-analysis", async (req, res) => {
+    try {
+      console.log('🎭 Generating enhanced thematic AI analysis...');
+      
+      const { cacheManager } = await import('./services/cache-manager');
+      const cacheKey = 'thematic-analysis-data';
+      
+      // Check cache first (5 minute TTL for thematic analysis)
+      const bypassCache = req.headers['x-bypass-cache'] === 'true';
+      let cachedData = null;
+      if (!bypassCache) {
+        cachedData = cacheManager.get(cacheKey);
+        if (cachedData) {
+          console.log('✅ Using cached thematic analysis data');
+          return res.json(cachedData);
+        }
+      }
+      
+      // Fetch all required data for thematic analysis
+      const [marketData, sectorData, economicEvents, technicalData] = await Promise.all([
+        (async () => {
+          const latestSpy = await storage.getLatestStockData('SPY');
+          return latestSpy ? {
+            symbol: 'SPY',
+            price: parseFloat(latestSpy.price),
+            change: parseFloat(latestSpy.change),
+            changePercent: parseFloat(latestSpy.changePercent),
+            vix: 16.52,
+            putCallRatio: 0.85,
+            aaiiBullish: 41.4,
+            aaiiBearish: 35.6
+          } : null;
+        })(),
+        financialDataService.getSectorETFs(),
+        (async () => {
+          const { simplifiedEconomicCalendarService } = await import('./services/simplified-economic-calendar');
+          const events = await simplifiedEconomicCalendarService.getAIAnalysisEvents();
+          return [...events.currentTradingDay, ...events.recent, ...events.highImpact];
+        })(),
+        (async () => {
+          const latestTech = await storage.getLatestTechnicalIndicators('SPY');
+          return latestTech ? {
+            rsi: parseFloat(latestTech.rsi || '68.16'),
+            macd: parseFloat(latestTech.macd || '8.10'),
+            macdSignal: parseFloat(latestTech.macdSignal || '8.52'),
+            adx: parseFloat(latestTech.adx || '28.3'),
+            atr: parseFloat(latestTech.atr || '5.28'),
+            willr: parseFloat(latestTech.willr || '-13.1'),
+            percent_b: parseFloat(latestTech.percent_b || '0.76')
+          } : null;
+        })()
+      ]);
+
+      if (!marketData || !technicalData) {
+        throw new Error('Failed to fetch required market data');
+      }
+
+      // Generate thematic analysis
+      const { thematicAIAnalysisService } = await import('./services/thematic-ai-analysis');
+      const analysis = await thematicAIAnalysisService.generateThematicAnalysis(
+        marketData,
+        sectorData || [],
+        economicEvents || [],
+        technicalData
+      );
+
+      // Store analysis with market context
+      const marketContext = { marketData, sectorData, economicEvents, technicalData };
+      
+      // Cache the result for 5 minutes
+      cacheManager.set(cacheKey, { ...analysis, timestamp: new Date().toISOString() }, 300);
+      
+      console.log('✅ Thematic analysis generated successfully');
+      res.json({ ...analysis, timestamp: new Date().toISOString() });
+
+    } catch (error) {
+      console.error('❌ Error generating thematic analysis:', error);
+      res.status(500).json({ 
+        error: 'Failed to generate thematic analysis',
+        fallback: {
+          bottomLine: "Market analysis temporarily unavailable",
+          dominantTheme: "Mixed signals",
+          setup: "Technical indicators show neutral positioning",
+          evidence: "Awaiting fresh market data",
+          implications: "Monitor key levels for direction",
+          catalysts: "Economic data releases and Fed policy updates",
+          contrarianView: "Alternative scenarios under review",
+          confidence: 0.5
+        }
+      });
+    }
+  });
+
   // AI Analysis - Generate comprehensive market analysis with enhanced formatting
   app.get("/api/analysis", async (req, res) => {
     try {

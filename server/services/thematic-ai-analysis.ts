@@ -1,0 +1,184 @@
+import OpenAI from "openai";
+import { db } from "../db";
+import { sql } from "drizzle-orm";
+
+interface ThematicAnalysisResult {
+  bottomLine: string;
+  dominantTheme: string;
+  setup: string;
+  evidence: string;
+  implications: string;
+  catalysts: string;
+  contrarianView: string;
+  confidence: number;
+}
+
+export class ThematicAIAnalysisService {
+  private openai: OpenAI;
+  
+  constructor() {
+    this.openai = new OpenAI({ 
+      apiKey: process.env.OPENAI_API_KEY 
+    });
+  }
+
+  async generateThematicAnalysis(
+    marketData: any, 
+    sectorData: any[], 
+    economicEvents: any[],
+    technicalData: any
+  ): Promise<ThematicAnalysisResult> {
+    
+    const thematicPrompt = this.buildThematicPrompt(
+      marketData, 
+      sectorData, 
+      economicEvents, 
+      technicalData
+    );
+    
+    const response = await this.openai.chat.completions.create({
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        {
+          role: "system",
+          content: `You are a senior Wall Street analyst specializing in thematic market narratives. 
+          Your analysis must follow the exact structure provided and create coherent stories from market data.
+          Focus on narrative coherence over individual data points. Use professional trader language.`
+        },
+        {
+          role: "user",
+          content: thematicPrompt
+        }
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 2000,
+      temperature: 0.7,
+    });
+
+    const result = JSON.parse(response.choices[0].message.content || '{}');
+    
+    return {
+      bottomLine: result.bottomLine || "Market narrative analysis unavailable",
+      dominantTheme: result.dominantTheme || "Mixed signals",
+      setup: result.setup || "Market conditions are evolving",
+      evidence: result.evidence || "Technical indicators show neutral readings",
+      implications: result.implications || "Monitor key levels for direction",
+      catalysts: result.catalysts || "Economic data and Fed policy decisions",
+      contrarianView: result.contrarianView || "Alternative scenarios warrant consideration",
+      confidence: Math.max(0, Math.min(1, result.confidence || 0.7))
+    };
+  }
+
+  private buildThematicPrompt(
+    marketData: any, 
+    sectorData: any[], 
+    economicEvents: any[],
+    technicalData: any
+  ): string {
+    
+    const formatNumber = (num: number) => num?.toFixed(1) || 'N/A';
+    
+    // Analyze dominant theme based on data patterns
+    const themeAnalysis = this.analyzeMarketTheme(marketData, sectorData, technicalData);
+    
+    return `Generate a thematic market commentary following this EXACT structure:
+
+## REQUIRED JSON RESPONSE FORMAT:
+{
+  "bottomLine": "[One sentence market thesis]",
+  "dominantTheme": "[Primary market theme from options below]",
+  "setup": "[2-3 sentences explaining current market story with key data points]",
+  "evidence": "[Technical, sentiment, and cross-asset evidence supporting the theme]",
+  "implications": "[Forward-looking conclusions from evidence combination]",
+  "catalysts": "[Specific levels/events that could extend or reverse theme]",
+  "contrarianView": "[Alternative interpretation of current data]",
+  "confidence": [0.0-1.0 confidence score]
+}
+
+## THEME OPTIONS (choose most appropriate):
+- Risk-on/risk-off rotation
+- Growth vs value dynamics  
+- Inflation concerns vs disinflationary forces
+- Liquidity-driven momentum vs fundamental concerns
+- Defensive positioning vs FOMO buying
+- Sector rotation story
+- Volatility regime change
+
+## CURRENT MARKET DATA:
+**SPY**: $${formatNumber(marketData.price)} (${formatNumber(marketData.changePercent)}%)
+**Technical**: RSI ${formatNumber(technicalData.rsi)}, MACD ${formatNumber(technicalData.macd)}, ADX ${formatNumber(technicalData.adx)}
+**Sentiment**: VIX ${formatNumber(marketData.vix)}, Put/Call ${formatNumber(marketData.putCallRatio)}, AAII Bull% ${formatNumber(marketData.aaiiBullish)}
+**Volatility**: ATR ${formatNumber(technicalData.atr)}, Williams %R ${formatNumber(technicalData.willr)}
+
+## SECTOR PERFORMANCE:
+${this.formatSectorData(sectorData)}
+
+## ECONOMIC CONTEXT:
+${this.formatEconomicEvents(economicEvents)}
+
+## NARRATIVE REQUIREMENTS:
+1. Start with dominant theme identification
+2. Build logical narrative arc: Setup → Evidence → Implications → What to Watch
+3. Connect technical, sentiment, and fundamental data points
+4. Provide specific levels and catalysts
+5. Include contrarian perspective
+6. Use professional Wall Street language
+7. Focus on forward-looking actionable insights
+
+## STYLE GUIDELINES:
+- Professional, authoritative tone
+- Specific data references with context
+- Logical flow between sections  
+- Actionable insights for traders/investors
+- Clear narrative thread throughout`;
+  }
+
+  private analyzeMarketTheme(marketData: any, sectorData: any[], technicalData: any): string {
+    // Logic to auto-detect dominant theme based on data patterns
+    const rsi = technicalData.rsi || 50;
+    const vix = marketData.vix || 20;
+    const sectorSpread = this.calculateSectorSpread(sectorData);
+    
+    if (vix > 25) return "Risk-off positioning";
+    if (rsi > 70) return "Liquidity-driven momentum";
+    if (sectorSpread > 2) return "Sector rotation story";
+    
+    return "Mixed market signals";
+  }
+
+  private formatSectorData(sectorData: any[]): string {
+    if (!sectorData?.length) return "Sector data unavailable";
+    
+    const top3 = sectorData
+      .sort((a, b) => b.changePercent - a.changePercent)
+      .slice(0, 3)
+      .map(s => `${s.name}: ${s.changePercent?.toFixed(1)}%`)
+      .join(', ');
+    
+    const bottom3 = sectorData
+      .sort((a, b) => a.changePercent - b.changePercent)
+      .slice(0, 3)
+      .map(s => `${s.name}: ${s.changePercent?.toFixed(1)}%`)
+      .join(', ');
+    
+    return `Top Performers: ${top3}\nLaggards: ${bottom3}`;
+  }
+
+  private formatEconomicEvents(economicEvents: any[]): string {
+    if (!economicEvents?.length) return "No major economic events today";
+    
+    return economicEvents
+      .slice(0, 5)
+      .map(event => `${event.title}: ${event.actual || 'Pending'} (vs ${event.forecast || 'N/A'} est)`)
+      .join('\n');
+  }
+
+  private calculateSectorSpread(sectorData: any[]): number {
+    if (!sectorData?.length) return 0;
+    
+    const returns = sectorData.map(s => s.changePercent || 0);
+    return Math.max(...returns) - Math.min(...returns);
+  }
+}
+
+export const thematicAIAnalysisService = new ThematicAIAnalysisService();
