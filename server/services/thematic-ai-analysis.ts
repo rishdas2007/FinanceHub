@@ -76,6 +76,9 @@ export class ThematicAIAnalysisService {
     }
 
     // Process economic events to extract key readings with actual vs forecast
+    console.log(`🧮 Economic Events for Thematic Analysis: ${economicEvents.length} events`);
+    console.log(`📊 Sample Economic Events:`, economicEvents.slice(0, 3).map(e => ({ title: e.title, actual: e.actual, forecast: e.forecast })));
+    
     const economicInsights = this.processEconomicReadings(economicEvents);
 
     const thematicPrompt = this.buildThematicPrompt(
@@ -255,17 +258,26 @@ ${narrativeContext || 'New narrative thread starting'}
   private processEconomicReadings(economicEvents: any[]): string {
     if (!economicEvents?.length) return "No recent economic readings available";
 
-    // Filter for events with actual readings
+    // Filter for events with actual readings and extract key indicators
     const recentReadings = economicEvents
-      .filter(event => event.actual && event.forecast)
+      .filter(event => event.actual && event.forecast && (event.title || event.indicator))
       .slice(0, 10) // Top 10 most recent/important
       .map(event => {
-        const actual = parseFloat(event.actual);
-        const forecast = parseFloat(event.forecast);
-        const variance = actual - forecast;
-        const impact = variance > 0 ? "beats" : variance < 0 ? "misses" : "meets";
+        const title = event.title || event.indicator || 'Unknown';
+        const actual = event.actual;
+        const forecast = event.forecast;
         
-        return `• **${event.indicator}**: ${event.actual} vs ${event.forecast} forecast (${impact} by ${Math.abs(variance).toFixed(2)})`;
+        // For numeric comparisons
+        if (!isNaN(parseFloat(actual)) && !isNaN(parseFloat(forecast))) {
+          const actualNum = parseFloat(actual);
+          const forecastNum = parseFloat(forecast);
+          const variance = actualNum - forecastNum;
+          const impact = variance > 0 ? "beats" : variance < 0 ? "misses" : "meets";
+          return `• **${title}**: ${actual} vs ${forecast} forecast (${impact} by ${Math.abs(variance).toFixed(2)})`;
+        } else {
+          // For non-numeric data, just show actual vs forecast
+          return `• **${title}**: ${actual} vs ${forecast} forecast`;
+        }
       });
 
     if (recentReadings.length === 0) {

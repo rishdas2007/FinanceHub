@@ -74,16 +74,15 @@ export function ThematicAIAnalysis() {
         </h2>
         <div className="flex items-center space-x-2">
           <Button 
-            variant={isStandardMode ? "default" : "secondary"}
             size="sm" 
             onClick={() => setIsStandardMode(!isStandardMode)}
-            className={`text-xs font-medium ${
+            className={`font-medium transition-colors ${
               isStandardMode 
-                ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-500' 
-                : 'bg-purple-600 hover:bg-purple-700 text-white border-purple-500'
+                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                : 'bg-purple-600 hover:bg-purple-700 text-white'
             }`}
           >
-            {isStandardMode ? <ToggleLeft className="h-4 w-4 mr-1" /> : <ToggleRight className="h-4 w-4 mr-1" />}
+            {isStandardMode ? <ToggleLeft className="h-4 w-4 mr-2" /> : <ToggleRight className="h-4 w-4 mr-2" />}
             {isStandardMode ? 'Standard' : 'Enhanced'}
           </Button>
           <div className="flex items-center space-x-2">
