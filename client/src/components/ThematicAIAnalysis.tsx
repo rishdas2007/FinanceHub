@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, TrendingUp, Target, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, TrendingUp, Target, AlertTriangle, ToggleLeft, ToggleRight } from "lucide-react";
 
 interface ThematicAnalysisData {
   bottomLine: string;
@@ -14,13 +16,24 @@ interface ThematicAnalysisData {
   contrarianView: string;
   confidence: number;
   timestamp: string;
+  historicalContext?: string;
+  narrativeEvolution?: string;
+  percentileInsights?: string;
 }
 
 export function ThematicAIAnalysis() {
+  const [isStandardMode, setIsStandardMode] = useState(true);
+  
   const { data: analysis, isLoading, error } = useQuery<ThematicAnalysisData>({
     queryKey: ['/api/thematic-analysis'],
     refetchInterval: 5 * 60 * 1000, // 5 minutes
     retry: 1,
+  });
+
+  const { data: patterns } = useQuery({
+    queryKey: ['/api/pattern-recognition'],
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    enabled: !isStandardMode,
   });
 
   if (isLoading) {
@@ -60,6 +73,15 @@ export function ThematicAIAnalysis() {
           <span>🎭 Thematic Market Analysis</span>
         </h2>
         <div className="flex items-center space-x-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setIsStandardMode(!isStandardMode)}
+            className="text-xs hover:bg-gray-800"
+          >
+            {isStandardMode ? <ToggleLeft className="h-4 w-4 mr-1" /> : <ToggleRight className="h-4 w-4 mr-1" />}
+            {isStandardMode ? 'Standard' : 'Enhanced'}
+          </Button>
           <Badge variant="outline" className={`${confidenceColor}/20 border-${confidenceColor.split('-')[1]}-500/30 text-${confidenceColor.split('-')[1]}-400`}>
             {Math.round(analysis.confidence * 100)}% Confidence
           </Badge>
@@ -130,9 +152,67 @@ export function ThematicAIAnalysis() {
         </div>
       </div>
 
+      {/* Historical Context (if available) */}
+      {analysis.historicalContext && (
+        <div className="bg-gradient-to-r from-gray-900/20 to-slate-900/20 border border-gray-500/30 rounded-lg p-4">
+          <div className="flex items-start space-x-3">
+            <span className="text-lg">📊</span>
+            <div className="space-y-1">
+              <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Historical Context</h4>
+              <p className="text-gray-200 text-sm leading-relaxed">{analysis.historicalContext}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Percentile Insights (if available) */}
+      {analysis.percentileInsights && !isStandardMode && (
+        <div className="bg-gradient-to-r from-indigo-900/20 to-purple-900/20 border border-indigo-500/30 rounded-lg p-4">
+          <div className="flex items-start space-x-3">
+            <span className="text-lg">📈</span>
+            <div className="space-y-1">
+              <h4 className="text-sm font-semibold text-indigo-400 uppercase tracking-wide">Percentile Rankings</h4>
+              <p className="text-gray-200 text-sm leading-relaxed">{analysis.percentileInsights}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pattern Recognition (Enhanced Mode Only) */}
+      {!isStandardMode && patterns?.patterns && patterns.patterns.length > 0 && (
+        <div className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 border border-purple-500/30 rounded-lg p-4">
+          <div className="flex items-start space-x-3">
+            <span className="text-lg">🔍</span>
+            <div className="space-y-3 w-full">
+              <h4 className="text-sm font-semibold text-purple-400 uppercase tracking-wide">Pattern Recognition</h4>
+              <div className="space-y-2">
+                {patterns.patterns.slice(0, 3).map((pattern: any, index: number) => (
+                  <div key={index} className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h5 className="text-sm font-semibold text-white">{pattern.name}</h5>
+                      <Badge className={`text-xs ${
+                        pattern.confidence >= 0.8 ? 'bg-green-500/20 text-green-400' :
+                        pattern.confidence >= 0.6 ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-red-500/20 text-red-400'
+                      }`}>
+                        {Math.round(pattern.confidence * 100)}% confidence
+                      </Badge>
+                    </div>
+                    <p className="text-gray-300 text-xs mb-2">{pattern.description}</p>
+                    <div className="text-xs text-gray-400">
+                      <strong>Expected:</strong> {pattern.historicalOutcome}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <div className="text-xs text-gray-500 text-center pt-2">
-        Powered by GPT-4o • Enhanced Thematic Analysis • Real-time Market Data
+        Powered by GPT-4o • Enhanced Thematic Analysis • Historical Context • Real-time Market Data
       </div>
     </Card>
   );

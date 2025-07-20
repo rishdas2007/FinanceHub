@@ -1,6 +1,8 @@
 import OpenAI from "openai";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
+import { historicalContextService } from "./historical-context";
+import { narrativeMemoryService } from "./narrative-memory";
 
 interface ThematicAnalysisResult {
   bottomLine: string;
@@ -11,6 +13,9 @@ interface ThematicAnalysisResult {
   catalysts: string;
   contrarianView: string;
   confidence: number;
+  historicalContext?: string;
+  narrativeEvolution?: string;
+  percentileInsights?: string;
 }
 
 export class ThematicAIAnalysisService {
@@ -26,14 +31,58 @@ export class ThematicAIAnalysisService {
     marketData: any, 
     sectorData: any[], 
     economicEvents: any[],
-    technicalData: any
+    technicalData: any,
+    includeHistoricalContext = true
   ): Promise<ThematicAnalysisResult> {
     
+    // Get historical context and narrative memory
+    let historicalContext = "";
+    let narrativeContext = "";
+    let percentileInsights = "";
+    
+    if (includeHistoricalContext) {
+      try {
+        // Get percentile rankings for key metrics
+        const rsiPercentile = await historicalContextService.getMetricPercentile(
+          'RSI', technicalData.rsi || 68, '3Y'
+        );
+        const vixPercentile = await historicalContextService.getMetricPercentile(
+          'VIX', marketData.vix || 16.5, '3Y'
+        );
+        
+        // Get current market regime
+        const currentRegime = await historicalContextService.identifyCurrentRegime();
+        
+        // Get historical precedents for current RSI level
+        const rsiPrecedents = await historicalContextService.getHistoricalPrecedents(
+          'RSI', technicalData.rsi || 68, 0.05
+        );
+
+        percentileInsights = `RSI at ${rsiPercentile.currentPercentile}th percentile (${rsiPercentile.historicalSignificance}), VIX at ${vixPercentile.currentPercentile}th percentile`;
+        historicalContext = `Current regime: ${currentRegime}. ${rsiPrecedents.length} historical precedents found`;
+        
+        // Get narrative continuity
+        const narrativeEvolution = await narrativeMemoryService.analyzeThemeEvolution(
+          this.detectDominantTheme(marketData, sectorData, technicalData),
+          marketData
+        );
+        
+        narrativeContext = narrativeEvolution.narrativeConnection;
+        
+      } catch (error) {
+        console.error('Error getting historical context:', error);
+        percentileInsights = 'Historical context temporarily unavailable';
+      }
+    }
+
     const thematicPrompt = this.buildThematicPrompt(
       marketData, 
       sectorData, 
       economicEvents, 
-      technicalData
+      technicalData,
+      historicalContext,
+      narrativeContext,
+      percentileInsights
     );
     
     const response = await this.openai.chat.completions.create({
@@ -73,7 +122,10 @@ export class ThematicAIAnalysisService {
     marketData: any, 
     sectorData: any[], 
     economicEvents: any[],
-    technicalData: any
+    technicalData: any,
+    historicalContext: string = "",
+    narrativeContext: string = "",
+    percentileInsights: string = ""
   ): string {
     
     const formatNumber = (num: number) => num?.toFixed(1) || 'N/A';
@@ -115,6 +167,15 @@ ${this.formatSectorData(sectorData)}
 
 ## ECONOMIC CONTEXT:
 ${this.formatEconomicEvents(economicEvents)}
+
+## HISTORICAL CONTEXT:
+${historicalContext || 'Historical context not available'}
+
+## PERCENTILE INSIGHTS:
+${percentileInsights || 'Percentile data not available'}
+
+## NARRATIVE CONTINUITY:
+${narrativeContext || 'New narrative thread starting'}
 
 ## NARRATIVE REQUIREMENTS:
 1. Start with dominant theme identification
@@ -176,9 +237,38 @@ ${this.formatEconomicEvents(economicEvents)}
   private calculateSectorSpread(sectorData: any[]): number {
     if (!sectorData?.length) return 0;
     
-    const returns = sectorData.map(s => s.changePercent || 0);
-    return Math.max(...returns) - Math.min(...returns);
+    const changes = sectorData.map(s => s.changePercent || 0);
+    const max = Math.max(...changes);
+    const min = Math.min(...changes);
+    
+    return max - min;
+  }
+
+  private detectDominantTheme(marketData: any, sectorData: any[], technicalData: any): string {
+    const rsi = technicalData.rsi || 50;
+    const vix = marketData.vix || 20;
+    const putCallRatio = marketData.putCallRatio || 1;
+    const sectorSpread = this.calculateSectorSpread(sectorData);
+    
+    // Risk-off conditions
+    if (vix > 25 || putCallRatio > 1.2) return 'risk_on_off';
+    
+    // Momentum conditions
+    if (rsi > 70 && vix < 18) return 'liquidity_momentum';
+    
+    // Sector rotation
+    if (sectorSpread > 2.5) return 'sector_rotation';
+    
+    // Volatility regime
+    if (vix > 22 || vix < 15) return 'volatility_regime';
+    
+    // Defensive positioning
+    if (rsi < 35 || putCallRatio > 1.1) return 'defensive_positioning';
+    
+    return 'mixed_signals';
   }
 }
+
+export const thematicAIAnalysisService = new ThematicAIAnalysisService();
 
 export const thematicAIAnalysisService = new ThematicAIAnalysisService();

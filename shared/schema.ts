@@ -158,6 +158,76 @@ export const thematicAnalysis = pgTable("thematic_analysis", {
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 });
 
+// Historical Context System for Percentile Rankings
+export const metricPercentiles = pgTable("metric_percentiles", {
+  id: serial("id").primaryKey(),
+  metricName: text("metric_name").notNull(),
+  lookbackPeriod: text("lookback_period").notNull(), // '1Y', '3Y', '5Y', 'ALL'
+  percentile5: decimal("percentile_5", { precision: 10, scale: 4 }),
+  percentile25: decimal("percentile_25", { precision: 10, scale: 4 }),
+  percentile50: decimal("percentile_50", { precision: 10, scale: 4 }),
+  percentile75: decimal("percentile_75", { precision: 10, scale: 4 }),
+  percentile95: decimal("percentile_95", { precision: 10, scale: 4 }),
+  lastUpdated: timestamp("last_updated").notNull().defaultNow(),
+  dataPoints: integer("data_points").notNull(), // Number of observations
+});
+
+export const historicalContext = pgTable("historical_context", {
+  id: serial("id").primaryKey(),
+  metricName: text("metric_name").notNull(),
+  metricValue: decimal("metric_value", { precision: 10, scale: 4 }).notNull(),
+  contextDate: timestamp("context_date").notNull(),
+  subsequentReturn1w: decimal("subsequent_return_1w", { precision: 8, scale: 4 }),
+  subsequentReturn1m: decimal("subsequent_return_1m", { precision: 8, scale: 4 }),
+  subsequentReturn3m: decimal("subsequent_return_3m", { precision: 8, scale: 4 }),
+  eventContext: text("event_context"), // What was happening at the time
+  marketRegime: text("market_regime"), // bull, bear, sideways
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+});
+
+// Market Regime Classification
+export const marketRegimes = pgTable("market_regimes", {
+  id: serial("id").primaryKey(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"),
+  regimeType: text("regime_type").notNull(), // 'bull_market', 'bear_market', 'volatility_regime', 'low_vol_regime'
+  characteristics: jsonb("characteristics").notNull(), // Key metrics during this period
+  triggerEvent: text("trigger_event"), // What caused the regime change
+  avgReturn: decimal("avg_return", { precision: 8, scale: 4 }),
+  maxDrawdown: decimal("max_drawdown", { precision: 8, scale: 4 }),
+  volatility: decimal("volatility", { precision: 8, scale: 4 }),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+});
+
+// Pattern Recognition Storage
+export const marketPatterns = pgTable("market_patterns", {
+  id: serial("id").primaryKey(),
+  patternName: text("pattern_name").notNull(),
+  description: text("description").notNull(),
+  detectionDate: timestamp("detection_date").notNull(),
+  confidence: decimal("confidence", { precision: 3, scale: 2 }).notNull(),
+  patternData: jsonb("pattern_data").notNull(), // Technical/fundamental data that formed pattern
+  historicalPrecedents: jsonb("historical_precedents"), // Similar patterns from the past
+  outcomeActual: text("outcome_actual"), // What actually happened
+  outcomePredicted: text("outcome_predicted"), // What was expected
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+});
+
+
+
+// Narrative Memory for Coherent Storytelling
+export const narrativeMemory = pgTable("narrative_memory", {
+  id: serial("id").primaryKey(),
+  themeGroup: text("theme_group").notNull(), // risk_on_off, inflation_cycle, etc.
+  narrativeThread: text("narrative_thread").notNull(), // The ongoing story
+  keyEvents: jsonb("key_events"), // Timeline of supporting events
+  themeStrength: decimal("theme_strength", { precision: 3, scale: 2 }).notNull(),
+  lastMentioned: timestamp("last_mentioned").notNull(),
+  themeStart: timestamp("theme_start").notNull(),
+  isActive: boolean("is_active").default(true),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,

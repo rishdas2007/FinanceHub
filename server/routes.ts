@@ -234,6 +234,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Pattern Recognition endpoint for advanced analysis
+  app.get("/api/pattern-recognition", async (req, res) => {
+    try {
+      console.log('🔍 Detecting market patterns...');
+      
+      const [marketData, sectorData, technicalData] = await Promise.all([
+        (async () => {
+          const latestSpy = await storage.getLatestStockData('SPY');
+          return latestSpy ? {
+            symbol: 'SPY',
+            price: parseFloat(latestSpy.price),
+            change: parseFloat(latestSpy.change),
+            changePercent: parseFloat(latestSpy.changePercent),
+            vix: 16.52,
+            putCallRatio: 0.85
+          } : null;
+        })(),
+        financialDataService.getSectorETFs(),
+        (async () => {
+          const latestTech = await storage.getLatestTechnicalIndicators('SPY');
+          return latestTech ? {
+            rsi: parseFloat(latestTech.rsi || '68.16'),
+            macd: parseFloat(latestTech.macd || '8.10'),
+            macdSignal: parseFloat(latestTech.macdSignal || '8.52'),
+            atr: parseFloat(latestTech.atr || '5.28')
+          } : null;
+        })()
+      ]);
+
+      if (!marketData || !technicalData) {
+        throw new Error('Failed to fetch required market data');
+      }
+
+      const { patternRecognitionService } = await import('./services/pattern-recognition');
+      const patterns = await patternRecognitionService.detectPatterns(
+        marketData, 
+        technicalData, 
+        sectorData || []
+      );
+
+      console.log('✅ Pattern recognition completed');
+      res.json({ patterns, timestamp: new Date().toISOString() });
+
+    } catch (error) {
+      console.error('❌ Error in pattern recognition:', error);
+      res.status(500).json({ 
+        error: 'Failed to detect patterns',
+        patterns: []
+      });
+    }
+  });
+
   // Enhanced Thematic AI Analysis - New narrative-driven analysis
   app.get("/api/thematic-analysis", async (req, res) => {
     try {
@@ -301,8 +353,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         technicalData
       );
 
-      // Store analysis with market context
+      // Store analysis with market context and update narrative memory
       const marketContext = { marketData, sectorData, economicEvents, technicalData };
+      
+      // Update narrative memory with current theme
+      try {
+        const { narrativeMemoryService } = await import('./services/narrative-memory');
+        await narrativeMemoryService.updateNarrative(
+          analysis.dominantTheme,
+          {
+            timestamp: new Date(),
+            marketData: marketData,
+            confidence: analysis.confidence
+          },
+          analysis.confidence
+        );
+      } catch (error) {
+        console.error('Error updating narrative memory:', error);
+      }
       
       // Cache the result for 5 minutes
       cacheManager.set(cacheKey, { ...analysis, timestamp: new Date().toISOString() }, 300);
