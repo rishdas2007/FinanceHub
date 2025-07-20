@@ -199,7 +199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const freshSectors = await financialDataService.getSectorETFs();
         
         // Cache the result for 5 minutes during market hours, longer for after hours
-        const cacheTime = isMarketHours ? 300 : 1800; // 5 min vs 30 min
+        const cacheTime = isMarketHours ? CACHE_DURATIONS.SECTOR_DATA_MARKET_HOURS : CACHE_DURATIONS.SECTOR_DATA_AFTER_HOURS;
         cacheManager.set(cacheKey, freshSectors, cacheTime);
         
         // Store in database for fallback (background task)

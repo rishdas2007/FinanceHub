@@ -98,12 +98,8 @@ export class FinancialDataService {
   }
   
   // Market hours: 9:30 AM ET to 4:00 PM ET (13:30 UTC to 21:00 UTC)
-  private isMarketOpenInternal(): boolean {
-    return isMarketOpen();
-  }
-  
   getDataTimestamp(): string {
-    if (this.isMarketOpenInternal()) {
+    if (isMarketOpen()) {
       return "Live Market Data";
     } else {
       return "As of 4:00 PM ET (Market Closed)";

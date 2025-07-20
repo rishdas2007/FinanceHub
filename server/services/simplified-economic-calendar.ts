@@ -1,4 +1,5 @@
 import { isMarketOpen } from '@shared/utils/marketHours';
+import { calculateImpact } from '@shared/utils/varianceCalculations';
 
 interface EconomicEvent {
   id: string;
@@ -41,9 +42,7 @@ export class SimplifiedEconomicCalendarService {
     return Date.now() - this.cache.lastUpdated.getTime() < this.cacheValidityMs;
   }
 
-  private isMarketOpenInternal(): boolean {
-    return isMarketOpen();
-  }
+  // Removed duplicate market hours function - using shared utility
 
   private generateReliableEconomicEvents(): EconomicEvent[] {
     const events: EconomicEvent[] = [];
@@ -406,7 +405,7 @@ export class SimplifiedEconomicCalendarService {
             previous: eventTemplate.previous,
             actual: isPastEvent ? eventTemplate.actual : undefined,
             impact: isPastEvent && eventTemplate.actual && eventTemplate.forecast ? 
-              this.calculateImpact(eventTemplate.actual, eventTemplate.forecast) : undefined,
+              calculateImpact(eventTemplate.actual, eventTemplate.forecast) : undefined,
             source: 'reliable-calendar'
           };
           
@@ -544,7 +543,7 @@ export class SimplifiedEconomicCalendarService {
         forecast: eventData.forecast,
         previous: eventData.previous,
         actual: eventData.actual,
-        impact: this.calculateImpact(eventData.actual, eventData.forecast),
+        impact: calculateImpact(eventData.actual, eventData.forecast),
         source: 'reliable-calendar'
       };
       
@@ -597,22 +596,7 @@ export class SimplifiedEconomicCalendarService {
     return (month === 0 || month === 3 || month === 6 || month === 9) && dayOfMonth === 31;
   }
 
-  private calculateImpact(actual: string, forecast: string): 'positive' | 'negative' | 'neutral' {
-    try {
-      const actualNum = parseFloat(actual.replace(/[^-0-9.]/g, ''));
-      const forecastNum = parseFloat(forecast.replace(/[^-0-9.]/g, ''));
-      
-      if (isNaN(actualNum) || isNaN(forecastNum)) {
-        return 'neutral';
-      }
-      
-      if (actualNum > forecastNum) return 'positive';
-      if (actualNum < forecastNum) return 'negative';
-      return 'neutral';
-    } catch {
-      return 'neutral';
-    }
-  }
+  // Using shared variance calculation utility
 
   async getAllEconomicEvents(): Promise<EconomicEvent[]> {
     try {
@@ -659,7 +643,7 @@ export class SimplifiedEconomicCalendarService {
 
   async getMarketHoursAwareEvents(): Promise<MarketHoursContext> {
     const allEvents = await this.getAllEconomicEvents();
-    const marketOpen = this.isMarketOpenInternal();
+    const marketOpen = isMarketOpen();
     
     // Filter events based on market hours context
     const currentTradingDay = allEvents.filter(event => this.isToday(event.date));
