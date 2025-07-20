@@ -62,6 +62,27 @@ export function AIAnalysisComponent() {
     );
   }
 
+  if (error) {
+    return (
+      <Card className="bg-financial-gray border-financial-border">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold text-white">AI Market Commentary</CardTitle>
+            <div className="flex items-center space-x-2">
+              <span className="w-2 h-2 bg-loss-red rounded-full"></span>
+              <span className="text-xs text-gray-400">Error Loading</span>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-financial-card rounded-lg p-4 h-80 flex items-center justify-center">
+            <div className="text-gray-400">Unable to load AI analysis. Please refresh the page.</div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="bg-financial-gray border-financial-border">
       <CardHeader>
@@ -86,8 +107,8 @@ export function AIAnalysisComponent() {
                 <p className="text-gray-300 leading-relaxed mb-4">
                   {currentStock ? (
                     <>
-                      The S&P 500 (SPY) closed at ${parseFloat(currentStock.price).toFixed(2)}, gaining {parseFloat(currentStock.changePercent) >= 0 ? '+' : ''}{parseFloat(currentStock.changePercent).toFixed(2)}% today. 
-                      {parseFloat(currentStock.price) > 620 && (
+                      The S&P 500 (SPY) closed at ${currentStock.price ? parseFloat(currentStock.price).toFixed(2) : 'N/A'}, gaining {currentStock.changePercent ? (parseFloat(currentStock.changePercent) >= 0 ? '+' : '') + parseFloat(currentStock.changePercent).toFixed(2) : 'N/A'}% today. 
+                      {currentStock.price && parseFloat(currentStock.price) > 620 && (
                         <span className="text-warning-yellow"> This puts the market near historical highs, trading at elevated valuations that warrant careful monitoring.</span>
                       )}
                     </>
@@ -100,25 +121,25 @@ export function AIAnalysisComponent() {
                   <div className="text-center">
                     <span className="text-gray-400 text-xs block">Current Price</span>
                     <div className="text-white font-bold text-lg">
-                      {currentStock ? `$${parseFloat(currentStock.price).toFixed(2)}` : '---'}
+                      {currentStock?.price ? `$${parseFloat(currentStock.price).toFixed(2)}` : '---'}
                     </div>
                   </div>
                   <div className="text-center">
                     <span className="text-gray-400 text-xs block">Daily Change</span>
-                    <div className={`font-bold text-lg ${currentStock && parseFloat(currentStock.changePercent) >= 0 ? 'text-gain-green' : 'text-loss-red'}`}>
-                      {currentStock ? `${parseFloat(currentStock.changePercent) >= 0 ? '+' : ''}${parseFloat(currentStock.changePercent).toFixed(2)}%` : '---'}
+                    <div className={`font-bold text-lg ${currentStock?.changePercent && parseFloat(currentStock.changePercent) >= 0 ? 'text-gain-green' : 'text-loss-red'}`}>
+                      {currentStock?.changePercent ? `${parseFloat(currentStock.changePercent) >= 0 ? '+' : ''}${parseFloat(currentStock.changePercent).toFixed(2)}%` : '---'}
                     </div>
                   </div>
                   <div className="text-center">
                     <span className="text-gray-400 text-xs block">VIX Level</span>
                     <div className="text-warning-yellow font-bold text-lg">
-                      {sentiment ? parseFloat(sentiment.vix).toFixed(1) : '---'}
+                      {sentiment?.vix ? parseFloat(sentiment.vix).toFixed(1) : '---'}
                     </div>
                   </div>
                   <div className="text-center">
                     <span className="text-gray-400 text-xs block">AAII Bullish</span>
                     <div className="text-gain-green font-bold text-lg">
-                      {sentiment ? `${parseFloat(sentiment.aaiiBullish).toFixed(1)}%` : '---'}
+                      {sentiment?.aaiiBullish ? `${parseFloat(sentiment.aaiiBullish).toFixed(1)}%` : '---'}
                     </div>
                   </div>
                 </div>
