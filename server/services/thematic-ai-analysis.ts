@@ -270,5 +270,3 @@ ${narrativeContext || 'New narrative thread starting'}
 }
 
 export const thematicAIAnalysisService = new ThematicAIAnalysisService();
-
-export const thematicAIAnalysisService = new ThematicAIAnalysisService();

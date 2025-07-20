@@ -30,7 +30,7 @@ export function ThematicAIAnalysis() {
     retry: 1,
   });
 
-  const { data: patterns } = useQuery({
+  const { data: patterns } = useQuery<{patterns: any[]}>({
     queryKey: ['/api/pattern-recognition'],
     staleTime: 10 * 60 * 1000, // 10 minutes
     enabled: !isStandardMode,
@@ -53,7 +53,7 @@ export function ThematicAIAnalysis() {
 
   if (error || !analysis) {
     return (
-      <Card className="p-6 border-red-500/30">
+      <Card className="p-6 border-red-500/30 bg-gray-900 text-white">
         <div className="flex items-center space-x-2 text-red-400">
           <AlertCircle size={20} />
           <span>Enhanced analysis temporarily unavailable</span>
@@ -66,7 +66,7 @@ export function ThematicAIAnalysis() {
                          analysis.confidence >= 0.6 ? 'bg-yellow-500' : 'bg-red-500';
 
   return (
-    <Card className="p-6 space-y-6">
+    <Card className="p-6 space-y-6 bg-gray-900 text-white border-gray-700">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-white flex items-center space-x-2">
           <TrendingUp className="h-5 w-5 text-blue-400" />
@@ -211,7 +211,7 @@ export function ThematicAIAnalysis() {
       )}
 
       {/* Footer */}
-      <div className="text-xs text-gray-500 text-center pt-2">
+      <div className="text-xs text-gray-400 text-center pt-2">
         Powered by GPT-4o • Enhanced Thematic Analysis • Historical Context • Real-time Market Data
       </div>
     </Card>
