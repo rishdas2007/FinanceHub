@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { financialDataService } from "./services/financial-data";
+import { getMarketHoursInfo } from '@shared/utils/marketHours';
+import { CACHE_DURATIONS } from '@shared/constants';
 
 import { apiLogger, getApiStats } from "./middleware/apiLogger";
 
@@ -38,7 +40,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Cache the result for 1 minute
-      cacheManager.set(cacheKey, newStockData, 60);
+      cacheManager.set(cacheKey, newStockData, CACHE_DURATIONS.STOCK_QUOTES);
       
       res.json(newStockData);
     } catch (error) {
@@ -118,7 +120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Cache the result for 3 minutes
-      cacheManager.set(cacheKey, indicators, 180);
+      cacheManager.set(cacheKey, indicators, CACHE_DURATIONS.TECHNICAL_INDICATORS);
       
       res.json(indicators);
     } catch (error) {
@@ -142,8 +144,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate fresh real sentiment data using VIX and market indicators
       const sentimentData = await financialDataService.getRealMarketSentiment();
       
-      // Cache the result for 2 minutes
-      cacheManager.set(cacheKey, sentimentData, 120);
+      // Cache the result for 2 minutes  
+      cacheManager.set(cacheKey, sentimentData, CACHE_DURATIONS.SENTIMENT_DATA);
       
       res.json(sentimentData);
     } catch (error) {
@@ -158,23 +160,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { cacheManager } = await import('./services/cache-manager');
       const cacheKey = 'sector-data';
       
-      // Check if markets are open (9:30 AM - 4:00 PM ET, Monday-Friday)
-      const now = new Date();
-      const et = new Intl.DateTimeFormat("en-US", {
-        timeZone: "America/New_York",
-        weekday: "short",
-        hour: "numeric",
-        minute: "numeric",
-        hour12: false
-      }).formatToParts(now);
-      
-      const dayOfWeek = et.find(part => part.type === 'weekday')?.value;
-      const hour = parseInt(et.find(part => part.type === 'hour')?.value || '0');
-      const minute = parseInt(et.find(part => part.type === 'minute')?.value || '0');
-      const currentMinutes = hour * 60 + minute;
-      
-      const isWeekend = dayOfWeek === 'Sat' || dayOfWeek === 'Sun';
-      const isMarketHours = !isWeekend && currentMinutes >= 570 && currentMinutes <= 960; // 9:30 AM to 4:00 PM
+      // Check market hours using centralized utility
+      const { isOpen: isMarketHours, isWeekend } = getMarketHoursInfo();
       
       // During weekends or after hours, ALWAYS use cached data if available
       if (isWeekend || !isMarketHours) {

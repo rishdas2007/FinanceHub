@@ -1,3 +1,5 @@
+import { isMarketOpen } from '@shared/utils/marketHours';
+
 interface EconomicEvent {
   id: string;
   title: string;
@@ -39,18 +41,8 @@ export class SimplifiedEconomicCalendarService {
     return Date.now() - this.cache.lastUpdated.getTime() < this.cacheValidityMs;
   }
 
-  private isMarketOpen(): boolean {
-    const now = new Date();
-    const estTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-    const hour = estTime.getHours();
-    const minute = estTime.getMinutes();
-    const dayOfWeek = estTime.getDay(); // 0 = Sunday, 6 = Saturday
-    
-    // Market is open Monday-Friday, 9:30 AM - 4:00 PM ET
-    const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
-    const isMarketHours = (hour > 9 || (hour === 9 && minute >= 30)) && hour < 16;
-    
-    return isWeekday && isMarketHours;
+  private isMarketOpenInternal(): boolean {
+    return isMarketOpen();
   }
 
   private generateReliableEconomicEvents(): EconomicEvent[] {
@@ -667,7 +659,7 @@ export class SimplifiedEconomicCalendarService {
 
   async getMarketHoursAwareEvents(): Promise<MarketHoursContext> {
     const allEvents = await this.getAllEconomicEvents();
-    const marketOpen = this.isMarketOpen();
+    const marketOpen = this.isMarketOpenInternal();
     
     // Filter events based on market hours context
     const currentTradingDay = allEvents.filter(event => this.isToday(event.date));

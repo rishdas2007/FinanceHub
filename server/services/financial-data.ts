@@ -1,3 +1,8 @@
+import { isMarketOpen } from '@shared/utils/marketHours';
+import { createRateLimitTracker, checkRateLimit, logApiCall } from '@shared/utils/apiHelpers';
+import { API_RATE_LIMITS } from '@shared/constants';
+import type { StockData, TechnicalIndicators } from '@shared/schema';
+
 interface TwelveDataQuoteResponse {
   symbol: string;
   name: string;
@@ -86,34 +91,19 @@ export class FinancialDataService {
   }
   private apiKey: string;
   private baseUrl = 'https://api.twelvedata.com';
-  private requestCount = 0;
-  private lastMinute = 0;
+  private rateLimitTracker = createRateLimitTracker('TWELVE_DATA');
 
   constructor() {
     this.apiKey = process.env.TWELVE_DATA_API_KEY || 'bdceed179a5d435ba78072dfd05f8619';
   }
   
   // Market hours: 9:30 AM ET to 4:00 PM ET (13:30 UTC to 21:00 UTC)
-  private isMarketOpen(): boolean {
-    const now = new Date();
-    const utcHour = now.getUTCHours();
-    const utcMinutes = now.getUTCMinutes();
-    const timeInMinutes = utcHour * 60 + utcMinutes;
-    
-    // Market open: 13:30 UTC (9:30 AM ET)
-    // Market close: 21:00 UTC (4:00 PM ET)
-    const marketOpen = 13 * 60 + 30; // 13:30 UTC
-    const marketClose = 21 * 60; // 21:00 UTC
-    
-    // Check if it's a weekday (Monday = 1, Friday = 5)
-    const dayOfWeek = now.getUTCDay();
-    const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
-    
-    return isWeekday && timeInMinutes >= marketOpen && timeInMinutes <= marketClose;
+  private isMarketOpenInternal(): boolean {
+    return isMarketOpen();
   }
   
   getDataTimestamp(): string {
-    if (this.isMarketOpen()) {
+    if (this.isMarketOpenInternal()) {
       return "Live Market Data";
     } else {
       return "As of 4:00 PM ET (Market Closed)";
@@ -121,22 +111,7 @@ export class FinancialDataService {
   }
 
   private async rateLimitCheck() {
-    const currentMinute = Math.floor(Date.now() / 60000);
-    if (currentMinute !== this.lastMinute) {
-      this.requestCount = 0;
-      this.lastMinute = currentMinute;
-    }
-    
-    if (this.requestCount >= 144) {
-      // Updated to 144 calls per minute for enhanced API quota
-      console.log(`⏱️ Rate limit protection: ${this.requestCount}/144 calls used this minute`);
-      const waitTime = 60000 - (Date.now() % 60000) + 1000;
-      await new Promise(resolve => setTimeout(resolve, waitTime));
-      this.requestCount = 0;
-      this.lastMinute = Math.floor(Date.now() / 60000);
-    }
-    
-    this.requestCount++;
+    await checkRateLimit(this.rateLimitTracker);
   }
 
   async getHistoricalData(symbol: string, outputsize: number = 30) {
@@ -1184,11 +1159,7 @@ export class FinancialDataService {
     };
   }
 
-  private calculateMcclellanOscillator(advancing: number, declining: number): string {
-    const breadthThrust = advancing - declining;
-    const oscillator = breadthThrust * 0.1 + (Math.random() - 0.5) * 20;
-    return oscillator.toFixed(2);
-  }
+
 
   generateRealEconomicEvents() {
     const now = new Date();
