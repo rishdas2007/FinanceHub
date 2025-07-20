@@ -66,9 +66,9 @@ export function ThematicAIAnalysis() {
                          analysis.confidence >= 0.6 ? 'bg-yellow-500' : 'bg-red-500';
 
   return (
-    <Card className="p-6 space-y-6 bg-gray-900 text-white border-gray-700">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white flex items-center space-x-2">
+    <Card className="bg-financial-gray border-financial-border">
+      <div className="flex items-center justify-between p-6 border-b border-financial-border">
+        <h2 className="text-lg font-semibold text-white flex items-center space-x-2">
           <TrendingUp className="h-5 w-5 text-blue-400" />
           <span>🎭 Thematic Market Analysis</span>
         </h2>
@@ -77,42 +77,42 @@ export function ThematicAIAnalysis() {
             variant="ghost" 
             size="sm" 
             onClick={() => setIsStandardMode(!isStandardMode)}
-            className="text-xs hover:bg-gray-800"
+            className="text-xs hover:bg-gray-800 text-gray-400 hover:text-white border border-gray-600"
           >
             {isStandardMode ? <ToggleLeft className="h-4 w-4 mr-1" /> : <ToggleRight className="h-4 w-4 mr-1" />}
             {isStandardMode ? 'Standard' : 'Enhanced'}
           </Button>
-          <Badge variant="outline" className={`${confidenceColor}/20 border-${confidenceColor.split('-')[1]}-500/30 text-${confidenceColor.split('-')[1]}-400`}>
-            {Math.round(analysis.confidence * 100)}% Confidence
-          </Badge>
-        </div>
-      </div>
-
-      {/* Bottom Line - Hero Section */}
-      <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/30 rounded-lg p-6">
-        <div className="flex items-start space-x-3">
-          <Target className="h-6 w-6 text-blue-400 mt-1 flex-shrink-0" />
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-blue-400 uppercase tracking-wide">Bottom Line</h3>
-            <p className="text-lg font-medium text-white leading-relaxed">{analysis.bottomLine}</p>
-            <div className="flex items-center space-x-4 text-sm text-gray-400">
-              <span>Theme: <span className="text-white font-medium">{analysis.dominantTheme}</span></span>
-              <span>•</span>
-              <span>Updated: {new Date(analysis.timestamp).toLocaleTimeString()}</span>
-            </div>
+          <div className="flex items-center space-x-2">
+            <span className="w-2 h-2 bg-warning-yellow rounded-full animate-pulse"></span>
+            <span className="text-xs text-gray-400">{Math.round(analysis.confidence * 100)}% Confidence</span>
           </div>
         </div>
       </div>
 
-      {/* Narrative Sections */}
-      <div className="grid gap-6">
-        <AnalysisSection 
-          title="Market Setup" 
-          content={analysis.setup}
-          icon="📊"
-          gradient="from-green-900/20 to-emerald-900/20"
-          borderColor="border-green-500/30"
-        />
+      <div className="bg-financial-card rounded-lg p-6 overflow-y-auto max-h-[800px]">
+        {/* Bottom Line - Hero Section */}
+        <div className="border-l-4 border-gain-green pl-4 mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Target className="w-5 h-5 text-gain-green" />
+            <h4 className="font-semibold text-white text-lg">Bottom Line</h4>
+          </div>
+          <p className="text-gray-300 leading-relaxed mb-4">{analysis.bottomLine}</p>
+          <div className="flex items-center space-x-4 text-sm text-gray-400">
+            <span>Theme: <span className="text-white font-medium">{analysis.dominantTheme}</span></span>
+            <span>•</span>
+            <span>Updated: {new Date(analysis.timestamp).toLocaleTimeString()}</span>
+          </div>
+        </div>
+
+        {/* Narrative Sections */}
+        <div className="grid gap-4">
+          <AnalysisSection 
+            title="Market Setup" 
+            content={analysis.setup}
+            icon="📊"
+            gradient="from-green-900/10 to-emerald-900/10"
+            borderColor="border-green-500/20"
+          />
         
         <AnalysisSection 
           title="Evidence" 
@@ -210,9 +210,10 @@ export function ThematicAIAnalysis() {
         </div>
       )}
 
-      {/* Footer */}
-      <div className="text-xs text-gray-400 text-center pt-2">
-        Powered by GPT-4o • Enhanced Thematic Analysis • Historical Context • Real-time Market Data
+        {/* Footer */}
+        <div className="text-xs text-gray-400 text-center pt-2">
+          Powered by GPT-4o • Enhanced Thematic Analysis • Historical Context • Real-time Market Data
+        </div>
       </div>
     </Card>
   );

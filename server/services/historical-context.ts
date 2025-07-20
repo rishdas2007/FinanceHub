@@ -134,17 +134,7 @@ export class HistoricalContextService {
       percentile95: data.p95.toString(),
       dataPoints: 500, // Sample size
       lastUpdated: new Date()
-    }).onConflictDoUpdate({
-      target: [metricPercentiles.metricName, metricPercentiles.lookbackPeriod],
-      set: {
-        percentile5: data.p5.toString(),
-        percentile25: data.p25.toString(),
-        percentile50: data.p50.toString(),
-        percentile75: data.p75.toString(),
-        percentile95: data.p95.toString(),
-        lastUpdated: new Date()
-      }
-    });
+    }).onConflictDoNothing();
 
     return {
       percentile5: data.p5.toString(),

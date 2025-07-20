@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, jsonb, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -170,7 +170,9 @@ export const metricPercentiles = pgTable("metric_percentiles", {
   percentile95: decimal("percentile_95", { precision: 10, scale: 4 }),
   lastUpdated: timestamp("last_updated").notNull().defaultNow(),
   dataPoints: integer("data_points").notNull(), // Number of observations
-});
+}, (table) => ({
+  uniqueMetricPeriod: unique().on(table.metricName, table.lookbackPeriod),
+}));
 
 export const historicalContext = pgTable("historical_context", {
   id: serial("id").primaryKey(),
