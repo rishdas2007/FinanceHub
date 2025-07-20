@@ -6,11 +6,22 @@ import { RefreshCw, TrendingUp, AlertTriangle, Target, Brain } from "lucide-reac
 import { apiRequest } from "@/lib/queryClient";
 import type { AiAnalysis, StockData, MarketSentiment, TechnicalIndicators, SectorData } from "@/types/financial";
 
+interface ThematicAnalysisData {
+  bottomLine: string;
+  dominantTheme: string;
+  setup: string;
+  evidence: string;
+  implications: string;
+  confidence: number;
+  timestamp: string;
+}
+
 export function AIAnalysisComponent() {
   const queryClient = useQueryClient();
 
-  const { data: analysis, isLoading, error } = useQuery<AiAnalysis>({
-    queryKey: ['/api/analysis'],
+  // Use thematic analysis instead of standard analysis
+  const { data: analysis, isLoading, error } = useQuery<ThematicAnalysisData>({
+    queryKey: ['/api/thematic-analysis'],
     refetchInterval: 300000, // Refresh every 5 minutes
     refetchOnMount: true, // Always fetch fresh data on mount
     refetchOnWindowFocus: false, // Don't refetch on window focus to avoid excessive calls
@@ -37,7 +48,7 @@ export function AIAnalysisComponent() {
   const refreshMutation = useMutation({
     mutationFn: () => apiRequest('POST', '/api/refresh'),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/analysis'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/thematic-analysis'] });
     },
   });
 
@@ -145,277 +156,53 @@ export function AIAnalysisComponent() {
                 </div>
               </div>
 
-              {/* Technical Indicators Analysis */}
-              <div className="border-l-4 border-warning-yellow pl-4">
+              {/* Thematic Analysis Bottom Line */}
+              <div className="lg:col-span-3 border-l-4 border-gain-green pl-4 mb-6">
                 <div className="flex items-center gap-2 mb-3">
-                  <Target className="w-4 h-4 text-warning-yellow" />
-                  <h4 className="font-semibold text-white text-base">Technical Indicators</h4>
+                  <Target className="w-5 h-5 text-gain-green" />
+                  <h4 className="font-semibold text-white text-lg">Bottom Line</h4>
                 </div>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-gray-300 mb-2">
-                      <span className="font-semibold text-white">RSI at {technical?.rsi ? parseFloat(technical.rsi).toFixed(1) : 'N/A'}</span> - 
-                      {technical?.rsi && parseFloat(technical.rsi) > 65 ? (
-                        <span className="text-warning-yellow"> Approaching overbought territory (70+). Recent rally may be due for a pause.</span>
-                      ) : technical?.rsi && parseFloat(technical.rsi) < 35 ? (
-                        <span className="text-gain-green"> In oversold territory, potential buying opportunity.</span>
-                      ) : (
-                        <span className="text-gray-300"> {technical?.rsi ? 'In neutral range, momentum balanced.' : 'Loading technical data...'}</span>
-                      )}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-gray-300 mb-2">
-                      <span className="font-semibold text-white">MACD at {technical?.macd ? parseFloat(technical.macd).toFixed(3) : 'N/A'}</span> vs Signal {technical?.macdSignal ? parseFloat(technical.macdSignal).toFixed(3) : 'N/A'} - 
-                      {(technical?.macdSignal && technical?.macd && parseFloat(technical.macd) < parseFloat(technical.macdSignal)) ? (
-                        <span className="text-loss-red"> Bearish crossover signal, MACD below signal line indicates potential downward momentum.</span>
-                      ) : (technical?.macdSignal && technical?.macd && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? (
-                        <span className="text-gain-green"> Bullish crossover signal, MACD above signal line indicates upward momentum.</span>
-                      ) : (
-                        <span className="text-gray-300"> {technical?.macd ? 'MACD signal data unavailable for crossover analysis.' : 'Loading technical data...'}</span>
-                      )}
-                    </p>
-                  </div>
-
-                  <div className="bg-financial-gray bg-opacity-30 rounded-lg p-3">
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div className="text-center">
-                        <span className="text-gray-400">RSI Status</span>
-                        <div className={`font-medium ${technical.rsi && parseFloat(technical.rsi) > 65 ? 'text-warning-yellow' : technical.rsi && parseFloat(technical.rsi) < 35 ? 'text-gain-green' : 'text-white'}`}>
-                          {technical.rsi && parseFloat(technical.rsi) > 65 ? 'Overbought' : technical.rsi && parseFloat(technical.rsi) < 35 ? 'Oversold' : 'Neutral'}
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <span className="text-gray-400">MACD Signal</span>
-                        <div className={`font-medium ${(technical.macdSignal && technical.macd && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'text-gain-green' : 'text-loss-red'}`}>
-                          {(technical.macdSignal && technical.macd && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'Bullish' : 'Bearish'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                <p className="text-gray-300 leading-relaxed mb-4">{analysis.bottomLine}</p>
+                <div className="flex items-center space-x-4 text-sm text-gray-400">
+                  <span>Theme: <span className="text-white font-medium">{analysis.dominantTheme}</span></span>
+                  <span>•</span>
+                  <span>Updated: {new Date(analysis.timestamp).toLocaleTimeString()}</span>
+                  <span>•</span>
+                  <span>{Math.round(analysis.confidence * 100)}% Confidence</span>
                 </div>
               </div>
 
-              {/* Sector Performance Analysis */}
-              <div className="border-l-4 border-green-500 pl-4">
+              {/* Market Setup */}
+              <div className="border-l-4 border-green-500/30 pl-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <TrendingUp className="w-4 h-4 text-green-500" />
-                  <h4 className="font-semibold text-white text-base">Sector Performance</h4>
+                  <span className="text-lg">📊</span>
+                  <h4 className="font-semibold text-white text-base">Market Setup</h4>
                 </div>
-                <div className="space-y-3">
-                  {(() => {
-                    // Calculate sector performance metrics
-                    const sectorPerformance = sectors
-                      .filter(s => s.symbol !== 'SPY')
-                      .sort((a, b) => b.changePercent - a.changePercent);
-                    
-                    const topSector = sectorPerformance[0];
-                    const bottomSector = sectorPerformance[sectorPerformance.length - 1];
-                    const upSectors = sectorPerformance.filter(s => s.changePercent > 0).length;
-                    const totalSectors = sectorPerformance.length;
-                    const advanceRatio = Math.round((upSectors / totalSectors) * 100);
-
-                    return (
-                      <>
-                        <p className="text-gray-300 leading-relaxed">
-                          Today's sector performance reveals interesting underlying trends:
-                        </p>
-                        <p className="text-gray-300">
-                          <span className="font-semibold text-gain-green">{topSector?.name}</span> led the charge with 
-                          <span className="font-semibold text-gain-green"> {topSector?.changePercent >= 0 ? '+' : ''}{(topSector?.changePercent || 0).toFixed(2)}%</span> gain, 
-                          showing {(topSector?.changePercent || 0) > 1 ? 'strong momentum in growth sectors' : 'modest strength in defensive positioning'}.
-                        </p>
-                        <p className="text-gray-300">
-                          <span className="font-semibold text-loss-red">{bottomSector?.name}</span> was today's laggard at 
-                          <span className="font-semibold text-loss-red"> {(bottomSector?.changePercent || 0).toFixed(2)}%</span>, 
-                          though sector rotation remains healthy overall.
-                        </p>
-                        <p className="text-gray-300">
-                          The <span className="font-semibold text-white">{advanceRatio}% advance ratio</span> ({upSectors} sectors up, {totalSectors - upSectors} down) 
-                          shows {advanceRatio > 70 ? 'broad market participation, a positive sign for market health' : 'mixed sector performance with selective strength'}.
-                        </p>
-                        
-                        <div className="bg-financial-gray bg-opacity-30 rounded-lg p-3">
-                          <div className="grid grid-cols-3 gap-3 text-xs">
-                            <div className="text-center">
-                              <span className="text-gray-400">Top Performer</span>
-                              <div className="text-gain-green font-medium">{topSector?.name === 'Health Care Select Sector SPDR Fund' ? 'Health Care' : topSector?.name?.split(' ')[0] || 'N/A'}</div>
-                            </div>
-                            <div className="text-center">
-                              <span className="text-gray-400">5 Day Advance Ratio</span>
-                              <div className={`font-medium ${(() => {
-                                const fiveDayUp = sectorPerformance.filter(s => (s.fiveDayChange || 0) > 0).length;
-                                const fiveDayRatio = Math.round((fiveDayUp / totalSectors) * 100);
-                                return fiveDayRatio > 70 ? 'text-gain-green' : fiveDayRatio > 50 ? 'text-warning-yellow' : 'text-loss-red';
-                              })()}`}>
-                                {(() => {
-                                  const fiveDayUp = sectorPerformance.filter(s => (s.fiveDayChange || 0) > 0).length;
-                                  return Math.round((fiveDayUp / totalSectors) * 100);
-                                })()}%
-                              </div>
-                            </div>
-                            <div className="text-center">
-                              <span className="text-gray-400">Advance Ratio (1 Day)</span>
-                              <div className={`font-medium ${advanceRatio > 70 ? 'text-gain-green' : advanceRatio > 50 ? 'text-warning-yellow' : 'text-loss-red'}`}>
-                                {advanceRatio}%
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
+                <p className="text-gray-300 leading-relaxed">{analysis.setup}</p>
               </div>
 
-              {/* Market Sentiment Analysis */}
-              <div className="border-l-4 border-blue-500 pl-4">
+              {/* Evidence */}
+              <div className="border-l-4 border-blue-500/30 pl-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <AlertTriangle className="w-4 h-4 text-blue-500" />
-                  <h4 className="font-semibold text-white text-base">Market Sentiment Analysis</h4>
+                  <span className="text-lg">🔍</span>
+                  <h4 className="font-semibold text-white text-base">Evidence</h4>
                 </div>
-                <div className="space-y-3">
-                  <p className="text-gray-300">
-                    {sentiment ? (
-                      <>
-                        <span className="font-semibold text-white">VIX at {parseFloat(sentiment.vix).toFixed(1)}</span> indicates 
-                        {parseFloat(sentiment.vix) > 30 ? (
-                          <span className="text-loss-red"> high fear and uncertainty in the market.</span>
-                        ) : parseFloat(sentiment.vix) > 20 ? (
-                          <span className="text-warning-yellow"> moderate concern among investors.</span>
-                        ) : (
-                          <span className="text-gain-green"> low volatility and market complacency.</span>
-                        )}
-                      </>
-                    ) : (
-                      "Loading VIX sentiment data..."
-                    )}
-                  </p>
-                  
-                  <p className="text-gray-300">
-                    {sentiment ? (
-                      <>
-                        AAII sentiment shows <span className="font-semibold text-gain-green">{parseFloat(sentiment.aaiiBullish).toFixed(1)}% bullish</span> vs 
-                        <span className="font-semibold text-loss-red"> {parseFloat(sentiment.aaiiBearish).toFixed(1)}% bearish</span> - 
-                        {parseFloat(sentiment.aaiiBullish) > parseFloat(sentiment.aaiiBearish) ? (
-                          <span className="text-gain-green"> indicating net positive retail sentiment.</span>
-                        ) : (
-                          <span className="text-loss-red"> showing bearish retail positioning.</span>
-                        )}
-                      </>
-                    ) : (
-                      "Loading AAII sentiment data..."
-                    )}
-                  </p>
-
-                  <div className="bg-financial-gray bg-opacity-30 rounded-lg p-3">
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div className="text-center">
-                        <span className="text-gray-400">Fear Level</span>
-                        <div className={`font-medium ${sentiment && parseFloat(sentiment.vix) > 30 ? 'text-loss-red' : sentiment && parseFloat(sentiment.vix) > 20 ? 'text-warning-yellow' : 'text-gain-green'}`}>
-                          {sentiment ? (parseFloat(sentiment.vix) > 30 ? 'High' : parseFloat(sentiment.vix) > 20 ? 'Moderate' : 'Low') : '---'}
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <span className="text-gray-400">Put/Call Ratio</span>
-                        <div className="text-white font-medium">
-                          {sentiment ? parseFloat(sentiment.putCallRatio).toFixed(2) : '---'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <p className="text-gray-300 leading-relaxed">{analysis.evidence}</p>
               </div>
 
-              {/* AI Market Commentary - Full Width */}
-              <div className="lg:col-span-3 border-l-4 border-purple-500 pl-4">
+              {/* Implications */}
+              <div className="border-l-4 border-yellow-500/30 pl-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <RefreshCw className="w-4 h-4 text-purple-500" />
-                  <h4 className="font-semibold text-white text-base">Market Commentary - {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</h4>
+                  <span className="text-lg">💡</span>
+                  <h4 className="font-semibold text-white text-base">Implications</h4>
                 </div>
-                <div className="space-y-4 text-gray-300 text-sm leading-relaxed">
-                  {/* Bottom Line */}
-                  <div>
-                    <span className="text-gray-300">
-                      <span className="font-semibold">Bottom Line:</span> {analysis.marketConditions.replace(/^\w+\s*\w+:\s*/, '')}
-                    </span>
-                  </div>
-                  
-                  {/* Technical Analysis */}
-                  <div>
-                    <h5 className="text-white font-bold underline mb-2 mt-4">TECHNICAL ANALYSIS</h5>
-                    <div className="text-gray-300" dangerouslySetInnerHTML={{
-                      __html: analysis.technicalOutlook.replace(/(\+?\d+\.\d+%?|\d+\.\d+)/g, '<span class="text-blue-400 font-bold">$1</span>')
-                    }} />
-                  </div>
-                  
-                  {/* Economic Analysis */}
-                  <div>
-                    <h5 className="text-white font-bold underline mb-2 mt-4">ECONOMIC ANALYSIS</h5>
-                    <div className="text-gray-300" dangerouslySetInnerHTML={{
-                      __html: analysis.riskAssessment.split('\n\n')[0]
-                        .replace(/(\d+,?\d*K?|\d+\.\d+%?|\d+%)/g, '<span class="text-blue-400 font-bold">$1</span>')
-                    }} />
-                  </div>
-                  
-                  {/* Sector Rotation Analysis */}
-                  <div>
-                    <h5 className="text-white font-bold underline mb-2 mt-4">SECTOR ROTATION ANALYSIS</h5>
-                    <div className="text-gray-300" dangerouslySetInnerHTML={{
-                      __html: ((analysis as any).sectorRotation?.replace(/^SECTOR ROTATION ANALYSIS:\s*/, '') || 'Loading sector rotation analysis...').replace(/(\+?\d+\.\d+%?|\d+%)/g, '<span class="text-blue-400 font-bold">$1</span>')
-                    }} />
-                  </div>
-
-                  <div className="bg-financial-gray bg-opacity-30 rounded-lg p-3 mt-4">
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div className="text-center">
-                        <span className="text-gray-400">AI Confidence</span>
-                        <div className="text-white font-bold">{(parseFloat(analysis.confidence) * 100).toFixed(0)}%</div>
-                      </div>
-                      <div className="text-center">
-                        <span className="text-gray-400">Risk Level</span>
-                        <div className={`font-medium ${technical?.rsi && parseFloat(technical.rsi) > 65 ? 'text-warning-yellow' : 'text-gain-green'}`}>
-                          {technical?.rsi && parseFloat(technical.rsi) > 65 ? 'Elevated' : 'Moderate'}
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <span className="text-gray-400">Trend Status</span>
-                        <div className={`font-medium ${(technical?.macdSignal && technical?.macd && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'text-gain-green' : 'text-loss-red'}`}>
-                          {(technical?.macdSignal && technical?.macd && parseFloat(technical.macd) > parseFloat(technical.macdSignal)) ? 'Bullish' : 'Bearish'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Update Info */}
-              <div className="lg:col-span-3 mt-4 text-xs text-gray-400 border-t border-financial-border pt-4">
-                <div className="flex justify-between items-center">
-                  <span>Last Updated: {new Date().toLocaleTimeString()}</span>
-                  <span>Powered by GPT-4o • Real Market Data</span>
-                </div>
+                <p className="text-gray-300 leading-relaxed">{analysis.implications}</p>
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-center h-full text-gray-400">
-              No analysis available
-            </div>
+            <div className="text-gray-400 text-center py-12">No analysis data available</div>
           )}
         </div>
-        <Button
-          className="w-full mt-4 bg-gain-green hover:bg-green-600 text-white transition-colors"
-          onClick={() => refreshMutation.mutate()}
-          disabled={refreshMutation.isPending}
-        >
-          {refreshMutation.isPending ? (
-            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <RefreshCw className="w-4 h-4 mr-2" />
-          )}
-          Refresh Analysis
-        </Button>
       </CardContent>
     </Card>
   );

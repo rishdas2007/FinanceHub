@@ -1,7 +1,6 @@
 
 
 import { AIAnalysisComponent } from "@/components/ai-analysis";
-import { ThematicAIAnalysis } from "@/components/ThematicAIAnalysis";
 import { MarketBreadth } from "@/components/market-breadth";
 import { SectorTracker } from "@/components/sector-tracker";
 import { AAIISentiment } from "@/components/aaii-sentiment";
@@ -10,15 +9,11 @@ import { EconomicCalendar } from "@/components/economic-calendar";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
 import { EmailSubscription } from "@/components/email-subscription";
 
-import { TrendingUp, MessageSquare, BookOpen } from "lucide-react";
+import { TrendingUp, MessageSquare } from "lucide-react";
 import { useApiTracker } from "@/hooks/useApiTracker";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
 
 export default function Dashboard() {
   const apiTracker = useApiTracker();
-  const [showThematicAnalysis, setShowThematicAnalysis] = useState(false);
   
   return (
     <div className="min-h-screen bg-financial-dark text-gray-100">
@@ -63,44 +58,8 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto p-4 space-y-6">
 
 
-        {/* AI Market Commentary - Enhanced with Toggle */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-white flex items-center space-x-2">
-              <MessageSquare className="h-5 w-5 text-blue-400" />
-              <span>AI Market Commentary</span>
-            </h2>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant={!showThematicAnalysis ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowThematicAnalysis(false)}
-                className="flex items-center space-x-1"
-              >
-                <MessageSquare className="h-4 w-4" />
-                <span>Standard</span>
-              </Button>
-              <Button
-                variant={showThematicAnalysis ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowThematicAnalysis(true)}
-                className="flex items-center space-x-1"
-              >
-                <BookOpen className="h-4 w-4" />
-                <span>Thematic</span>
-                <Badge variant="secondary" className="bg-purple-500/20 text-purple-300">
-                  New
-                </Badge>
-              </Button>
-            </div>
-          </div>
-          
-          {showThematicAnalysis ? (
-            <ThematicAIAnalysis />
-          ) : (
-            <AIAnalysisComponent />
-          )}
-        </div>
+        {/* AI Market Commentary */}
+        <AIAnalysisComponent />
 
         {/* Market Breadth Indicators */}
         <MarketBreadth />
