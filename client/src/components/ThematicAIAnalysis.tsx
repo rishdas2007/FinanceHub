@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -23,16 +23,20 @@ interface ThematicAnalysisData {
 
 export function ThematicAIAnalysis() {
   const [isStandardMode, setIsStandardMode] = useState(true);
+  const queryClient = useQueryClient();
   
-  const { data: analysis, isLoading, error } = useQuery<ThematicAnalysisData>({
+  const { data: analysis, isLoading, error, refetch } = useQuery<ThematicAnalysisData>({
     queryKey: ['/api/thematic-analysis'],
     refetchInterval: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Always consider data stale to force fresh fetches
+    refetchOnMount: true, // Always refetch when component mounts
     retry: 1,
   });
 
   const { data: patterns } = useQuery<{patterns: any[]}>({
     queryKey: ['/api/pattern-recognition'],
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: true,
     enabled: !isStandardMode,
   });
 
@@ -73,6 +77,17 @@ export function ThematicAIAnalysis() {
           <span>🎭 Thematic Market Analysis</span>
         </h2>
         <div className="flex items-center space-x-2">
+          <Button 
+            size="sm" 
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ['/api/thematic-analysis'] });
+              refetch();
+            }}
+            variant="outline"
+            className="font-medium bg-gray-800 hover:bg-gray-700 text-white border-gray-600"
+          >
+            Refresh
+          </Button>
           <Button 
             size="sm" 
             onClick={() => setIsStandardMode(!isStandardMode)}
