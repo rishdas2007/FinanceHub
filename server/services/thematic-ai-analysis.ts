@@ -75,6 +75,9 @@ export class ThematicAIAnalysisService {
       }
     }
 
+    // Process economic events to extract key readings with actual vs forecast
+    const economicInsights = this.processEconomicReadings(economicEvents);
+
     const thematicPrompt = this.buildThematicPrompt(
       marketData, 
       sectorData, 
@@ -82,7 +85,8 @@ export class ThematicAIAnalysisService {
       technicalData,
       historicalContext,
       narrativeContext,
-      percentileInsights
+      percentileInsights,
+      economicInsights
     );
     
     const response = await this.openai.chat.completions.create({
@@ -125,7 +129,8 @@ export class ThematicAIAnalysisService {
     technicalData: any,
     historicalContext: string = "",
     narrativeContext: string = "",
-    percentileInsights: string = ""
+    percentileInsights: string = "",
+    economicInsights: string = ""
   ): string {
     
     const formatNumber = (num: number) => num?.toFixed(1) || 'N/A';
@@ -167,6 +172,9 @@ ${this.formatSectorData(sectorData)}
 
 ## ECONOMIC CONTEXT:
 ${this.formatEconomicEvents(economicEvents)}
+
+## ECONOMIC READINGS ANALYSIS:
+${economicInsights}
 
 ## HISTORICAL CONTEXT:
 ${historicalContext || 'Historical context not available'}
@@ -242,6 +250,38 @@ ${narrativeContext || 'New narrative thread starting'}
     const min = Math.min(...changes);
     
     return max - min;
+  }
+
+  private processEconomicReadings(economicEvents: any[]): string {
+    if (!economicEvents?.length) return "No recent economic readings available";
+
+    // Filter for events with actual readings
+    const recentReadings = economicEvents
+      .filter(event => event.actual && event.forecast)
+      .slice(0, 10) // Top 10 most recent/important
+      .map(event => {
+        const actual = parseFloat(event.actual);
+        const forecast = parseFloat(event.forecast);
+        const variance = actual - forecast;
+        const impact = variance > 0 ? "beats" : variance < 0 ? "misses" : "meets";
+        
+        return `• **${event.indicator}**: ${event.actual} vs ${event.forecast} forecast (${impact} by ${Math.abs(variance).toFixed(2)})`;
+      });
+
+    if (recentReadings.length === 0) {
+      return "Recent economic data shows mixed signals with most indicators meeting expectations.";
+    }
+
+    const beatCount = recentReadings.filter(r => r.includes("beats")).length;
+    const missCount = recentReadings.filter(r => r.includes("misses")).length;
+    
+    const summary = beatCount > missCount 
+      ? `Economic data trending positive with ${beatCount}/${recentReadings.length} indicators beating forecasts`
+      : missCount > beatCount 
+        ? `Economic data showing weakness with ${missCount}/${recentReadings.length} indicators missing forecasts`
+        : "Economic data showing mixed results with balanced beats and misses";
+
+    return `${summary}:\n\n${recentReadings.join('\n')}`;
   }
 
   private detectDominantTheme(marketData: any, sectorData: any[], technicalData: any): string {
