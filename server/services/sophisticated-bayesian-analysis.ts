@@ -1,5 +1,4 @@
 import OpenAI from 'openai';
-import { optimizedBayesianCache } from './optimized-bayesian-cache.js';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -16,51 +15,57 @@ export class SophisticatedBayesianAnalysisService {
   }
 
   async generateAnalysisWithHistoricalContext(marketData: any): Promise<any> {
-    console.log('🧠 Generating optimized Bayesian analysis...');
+    console.log('🧠 Generating sophisticated Bayesian analysis with rich historical context...');
     
-    // Use smart caching to improve performance
-    return await optimizedBayesianCache.getCachedOrGenerate(marketData, async () => {
-      try {
-        // Force deeper analysis by adjusting significance scoring
-        const significanceScore = this.calculateEnhancedSignificanceScore(marketData);
-        console.log(`📊 Enhanced significance score: ${significanceScore}/10`);
-        
-        // Get comprehensive data for analysis (parallel execution)
-        const [historicalContext, economicContext, percentileData] = await Promise.all([
-          this.getHistoricalContextData(marketData),
-          this.getEconomicEventsContext(),
-          this.calculatePercentileRankings(marketData)
-        ]);
-        
-        // Generate analysis with optimized prompts
-        const analysis = await this.generateSophisticatedBayesianAnalysis({
-          marketData,
-          historicalContext,
-          economicContext,
-          percentileData,
-          significanceScore
-        });
-        
-        return {
-          ...analysis,
-          timestamp: new Date().toISOString(),
-          analysisType: 'sophisticated',
-          confidence: analysis.confidence || 85,
-          metadata: {
-            generatedAt: new Date().toISOString(),
-            significanceScore,
-            analysisDepth: 'sophisticated',
-            historicalDataUsed: true,
-            economicDataUsed: true,
-            tokenEfficiency: 'optimized'
+    try {
+      // Force deeper analysis by adjusting significance scoring
+      const significanceScore = this.calculateEnhancedSignificanceScore(marketData);
+      console.log(`📊 Enhanced significance score: ${significanceScore}/10`);
+      
+      // Get comprehensive data for analysis
+      const [historicalContext, economicContext, percentileData] = await Promise.all([
+        this.getHistoricalContextData(marketData),
+        this.getEconomicEventsContext(),
+        this.calculatePercentileRankings(marketData)
+      ]);
+      
+      console.log('📊 Historical Context:', historicalContext);
+      console.log('💰 Economic Context:', economicContext);
+      console.log('📈 Percentile Data:', percentileData);
+      
+      // Always use sophisticated analysis (ignore light analysis)
+      const analysis = await this.generateSophisticatedBayesianAnalysis({
+        marketData,
+        historicalContext,
+        economicContext,
+        percentileData,
+        significanceScore
+      });
+      
+      return {
+        ...analysis,
+        timestamp: new Date().toISOString(),
+        analysisType: 'sophisticated',
+        fromCache: false,
+        confidence: analysis.confidence || 85,
+        metadata: {
+          generatedAt: new Date().toISOString(),
+          significanceScore,
+          analysisDepth: 'sophisticated',
+          historicalDataUsed: true,
+          economicDataUsed: true,
+          tokenEfficiency: 'generated',
+          cacheStats: {
+            validEntries: 1,
+            totalEntries: 1
           }
-        };
-        
-      } catch (error) {
-        console.error('❌ Sophisticated Bayesian analysis failed:', error);
-        throw error;
-      }
-    });
+        }
+      };
+      
+    } catch (error) {
+      console.error('❌ Sophisticated Bayesian analysis failed:', error);
+      throw error;
+    }
   }
 
   private calculateEnhancedSignificanceScore(marketData: any): number {
@@ -193,28 +198,42 @@ export class SophisticatedBayesianAnalysisService {
   private async generateSophisticatedBayesianAnalysis(data: any): Promise<any> {
     const { marketData, historicalContext, economicContext, percentileData } = data;
     
-    // Streamlined prompt for faster response while maintaining quality
-    const prompt = `As a quantitative analyst, provide Bayesian market analysis with historical context.
+    const prompt = `You are a senior quantitative analyst performing sophisticated Bayesian market analysis. Use prior probabilities from historical data and update beliefs based on current evidence.
 
-CURRENT STATE: SPY $${marketData.price || marketData.spy_close} (${marketData.changePercent || marketData.spy_change}%), RSI ${marketData.rsi}, VIX ${marketData.vix}, AAII ${marketData.aaiiBullish}%
+CURRENT MARKET STATE:
+SPY: $${marketData.price || marketData.spy_close} (${marketData.changePercent || marketData.spy_change}%)
+VIX: ${marketData.vix}
+RSI: ${marketData.rsi}  
+AAII Bullish: ${marketData.aaiiBullish}%
 
-CONTEXT: ${percentileData} ${historicalContext}
+HISTORICAL CONTEXT & PERCENTILES:
+${percentileData}
+${historicalContext}
 
-ECONOMICS: ${economicContext}
+RECENT ECONOMIC READINGS:
+${economicContext}
 
-Provide concise JSON with Bayesian reasoning:
+BAYESIAN ANALYSIS REQUIREMENTS:
+1. Start with base rates (what usually happens in these conditions)
+2. Update priors based on current evidence
+3. Provide specific percentile rankings
+4. Reference historical precedents with dates and outcomes
+5. Calculate probability-weighted scenarios
+
+Generate sophisticated JSON analysis with rich historical context:
+
 {
-  "bottomLine": "Market assessment with percentile rankings and base rates",
-  "dominantTheme": "Primary theme with prior probabilities", 
-  "setup": "Current positioning with historical precedents",
-  "evidence": "Technical percentiles + economic readings",
-  "implications": "Probability scenarios with historical outcomes",
+  "bottomLine": "Bayesian assessment with specific percentile rankings and base rate analysis - mention exact percentiles",
+  "dominantTheme": "Primary theme considering prior probabilities and historical precedents",
+  "setup": "Market positioning with historical context - mention specific percentiles, dates, and precedents",
+  "evidence": "Technical indicators with percentile rankings + economic readings analysis - be specific about percentiles",
+  "implications": "Probability-weighted scenarios based on historical outcomes when similar conditions occurred - include specific dates and outcomes",
   "confidence": 85,
-  "historicalPrecedent": "Last time similar conditions: outcome",
-  "bayesianUpdate": "How evidence updates priors"
+  "historicalPrecedent": "Specific example: 'Last time RSI was at Xth percentile in YEAR, markets moved Y% over Z weeks'",
+  "bayesianUpdate": "How current evidence updates our prior beliefs about market direction"
 }
 
-Be specific with percentiles, dates, and outcomes but keep responses concise.`;
+CRITICAL: Include specific percentiles (e.g., "78th percentile"), historical dates (e.g., "March 2024"), and quantified outcomes (e.g., "8% correction over 6 weeks"). Reference the economic readings in your evidence section.`;
 
     try {
       const response = await openai.chat.completions.create({
@@ -222,7 +241,7 @@ Be specific with percentiles, dates, and outcomes but keep responses concise.`;
         messages: [
           {
             role: "system",
-            content: "Provide concise Bayesian analysis with specific percentiles and historical precedents."
+            content: "You are a Bayesian market analyst with access to comprehensive historical data. Always include specific percentile rankings, historical precedents with dates, and quantified outcomes. Use economic data in your analysis."
           },
           {
             role: "user",
@@ -230,12 +249,12 @@ Be specific with percentiles, dates, and outcomes but keep responses concise.`;
           }
         ],
         response_format: { type: "json_object" },
-        max_tokens: 1200,
-        temperature: 0.6
+        max_tokens: 2500,
+        temperature: 0.7
       });
 
       const result = JSON.parse(response.choices[0].message.content || '{}');
-      console.log('✅ Optimized Bayesian analysis generated');
+      console.log('✅ Sophisticated Bayesian analysis generated with historical context');
       return result;
     } catch (error) {
       console.error('OpenAI API error:', error);
@@ -245,8 +264,3 @@ Be specific with percentiles, dates, and outcomes but keep responses concise.`;
 }
 
 export const sophisticatedBayesianAnalysisService = SophisticatedBayesianAnalysisService.getInstance();
-
-// Add method to get cache stats
-sophisticatedBayesianAnalysisService.getCacheStats = () => {
-  return optimizedBayesianCache.getCacheStats();
-};
