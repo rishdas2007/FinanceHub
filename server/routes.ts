@@ -413,8 +413,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bypassCache = req.headers['x-bypass-cache'] === 'true';
       let cachedData = null;
       if (!bypassCache) {
-        cachedData = cacheManager.get(cacheKey);
-        if (cachedData) {
+        cachedData = cacheManager.get(cacheKey) as any;
+        if (cachedData && cachedData.analysisResult) {
           console.log('✅ Using cached AI analysis data');
           return res.json(cachedData.analysisResult);
         }
@@ -570,7 +570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('📊 Market data for AI analysis:', marketData);
       
       // Get economic events from simplified reliable calendar for comprehensive analysis
-      let economicEvents = [];
+      let economicEvents: any[] = [];
       try {
         console.log('Fetching economic events from reliable calendar...');
         const { simplifiedEconomicCalendarService } = await import('./services/simplified-economic-calendar');
@@ -596,7 +596,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate enhanced AI analysis with trader-style formatting and economic integration
       const { EnhancedAIAnalysisService } = await import('./services/enhanced-ai-analysis');
       const enhancedAiService = EnhancedAIAnalysisService.getInstance();
-      const aiResult = await enhancedAiService.generateRobustMarketAnalysis(enhancedMarketData, finalSectors, economicEvents);
+      const aiResult = await enhancedAiService.generateAnalysis(enhancedMarketData, finalSectors, economicEvents);
       console.log('✅ Enhanced AI analysis generated with trader-style insights');
       
       const analysisData = await storage.createAiAnalysis({
@@ -738,7 +738,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           decliningVolume: breadthData.decliningVolume.toString(),
           newHighs: breadthData.newHighs,
           newLows: breadthData.newLows,
-          mcclellanOscillator: breadthData.mcclellanOscillator,
+          mcclellanOscillator: breadthData.mcclellanOscillator?.toString() || '0',
         });
       }
       
@@ -999,7 +999,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('Error subscribing to email:', error);
-      res.status(500).json({ message: error.message || 'Failed to subscribe to daily emails' });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to subscribe to daily emails';
+      res.status(500).json({ message: errorMessage });
     }
   });
 
@@ -1135,7 +1136,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get economic events data first (needed for thematic analysis)
-      let finalEconomicEvents;
+      let finalEconomicEvents: any[] = [];
       try {
         const { EconomicDataService } = await import('./services/economic-data');
         const economicService = EconomicDataService.getInstance();
@@ -1201,9 +1202,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('Error sending test email:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ 
         message: 'Failed to send test email', 
-        error: error.message,
+        error: errorMessage,
         status: 'error'
       });
     }
@@ -1213,23 +1215,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   async function gatherMarketDataForAI() {
     try {
       // Use existing market data fetching patterns from the codebase
-      const { stockDataService } = await import('./services/stock-data.js');
-      const { marketSentimentService } = await import('./services/market-sentiment.js');
-      const { technicalIndicatorService } = await import('./services/technical-indicators.js');
+      const { financialDataService } = await import('./services/financial-data');
       
-      const stockData = await stockDataService.getLatestStockData('SPY');
-      const sentiment = await marketSentimentService.getLatestMarketSentiment();
-      const technical = await technicalIndicatorService.getTechnicalIndicators('SPY');
+      const stockData = await financialDataService.getStockQuote('SPY');
+      const sentimentData = await financialDataService.getMarketSentiment();
+      const technicalData = await financialDataService.getTechnicalIndicators('SPY');
       
       return {
         spyPrice: stockData?.price || 627.41,
         spyChange: stockData?.changePercent || 0.33,
-        vix: sentiment?.vix || 17.16,
-        vixChange: sentiment?.vixChange || 0,
-        rsi: technical?.rsi || 68.16,
-        macd: technical?.macd || 8.244,
-        aaiiBullish: sentiment?.aaiiBullish || 41.4,
-        aaiiBearish: sentiment?.aaiiBearish || 35.6
+        vix: sentimentData?.vix || 17.16,
+        vixChange: sentimentData?.vixChange || 0,
+        rsi: technicalData?.rsi || 68.16,
+        macd: technicalData?.macd || 8.244,
+        aaiiBullish: sentimentData?.aaiiBullish || 41.4,
+        aaiiBearish: sentimentData?.aaiiBearish || 35.6
       };
     } catch (error) {
       console.error('Error gathering market data for AI:', error);
@@ -1281,10 +1281,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('❌ Historical data accumulation failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ 
         success: false, 
         error: 'Failed to accumulate historical data',
-        message: error.message 
+        message: errorMessage 
       });
     }
   });
