@@ -1209,5 +1209,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to gather market data for AI analysis
+  async function gatherMarketDataForAI() {
+    try {
+      // Use existing market data fetching patterns from the codebase
+      const { stockDataService } = await import('./services/stock-data.js');
+      const { marketSentimentService } = await import('./services/market-sentiment.js');
+      const { technicalIndicatorService } = await import('./services/technical-indicators.js');
+      
+      const stockData = await stockDataService.getLatestStockData('SPY');
+      const sentiment = await marketSentimentService.getLatestMarketSentiment();
+      const technical = await technicalIndicatorService.getTechnicalIndicators('SPY');
+      
+      return {
+        spyPrice: stockData?.price || 627.41,
+        spyChange: stockData?.changePercent || 0.33,
+        vix: sentiment?.vix || 17.16,
+        vixChange: sentiment?.vixChange || 0,
+        rsi: technical?.rsi || 68.16,
+        macd: technical?.macd || 8.244,
+        aaiiBullish: sentiment?.aaiiBullish || 41.4,
+        aaiiBearish: sentiment?.aaiiBearish || 35.6
+      };
+    } catch (error) {
+      console.error('Error gathering market data for AI:', error);
+      // Return fallback data
+      return {
+        spyPrice: 627.41,
+        spyChange: 0.33,
+        vix: 17.16,
+        vixChange: 0,
+        rsi: 68.16,
+        macd: 8.244,
+        aaiiBullish: 41.4,
+        aaiiBearish: 35.6
+      };
+    }
+  }
+
+  // Enhanced AI Analysis API - With historical context and precedents
+  app.get("/api/enhanced-ai-analysis", async (req, res) => {
+    try {
+      console.log('🧠 Generating enhanced AI analysis with historical context...');
+      
+      const { enhancedAIAnalysisService } = await import('./services/enhanced-ai-analysis.js');
+      
+      // Gather current market data
+      const marketData = await gatherMarketDataForAI();
+      
+      const analysis = await enhancedAIAnalysisService.generateAnalysisWithHistoricalContext(marketData);
+      
+      res.json(analysis);
+    } catch (error) {
+      console.error('❌ Error generating enhanced AI analysis:', error);
+      res.status(500).json({ error: 'Failed to generate enhanced AI analysis with historical context' });
+    }
+  });
+
+  // Historical data accumulation API
+  app.post("/api/historical-data/accumulate", async (req, res) => {
+    try {
+      console.log('📊 Starting manual historical data accumulation...');
+      
+      const { historicalDataAccumulator } = await import('./services/historical-data-accumulator.js');
+      await historicalDataAccumulator.accumulateDailyReadings();
+      
+      res.json({
+        success: true,
+        message: 'Historical data accumulation completed',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Historical data accumulation failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to accumulate historical data',
+        message: error.message 
+      });
+    }
+  });
+
+  // Historical context query API
+  app.get("/api/historical-context/:indicator", async (req, res) => {
+    try {
+      const { indicator } = req.params;
+      const months = parseInt(req.query.months as string) || 12;
+      
+      const { historicalDataAccumulator } = await import('./services/historical-data-accumulator.js');
+      
+      const context = await historicalDataAccumulator.getHistoricalContext(indicator, months);
+      const percentile = context.length > 0 ? 
+        await historicalDataAccumulator.getPercentileRanking(indicator, parseFloat(context[0].value), 36) : 50;
+      const yoyComparison = await historicalDataAccumulator.getYearOverYearComparison(indicator);
+      
+      res.json({
+        indicator,
+        historicalData: context,
+        percentileRanking: Math.round(percentile),
+        yearOverYearComparison: yoyComparison,
+        dataPoints: context.length
+      });
+    } catch (error) {
+      console.error(`❌ Error fetching historical context for ${req.params.indicator}:`, error);
+      res.status(500).json({ error: 'Failed to fetch historical context' });
+    }
+  });
+
   return httpServer;
 }

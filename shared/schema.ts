@@ -308,3 +308,70 @@ export type SectorData = typeof sectorData.$inferSelect;
 export type EmailSubscription = typeof emailSubscriptions.$inferSelect;
 export type InsertEmailSubscription = z.infer<typeof insertEmailSubscriptionSchema>;
 export type InsertSectorData = z.infer<typeof insertSectorDataSchema>;
+
+// Enhanced historical economic data table for proper time series accumulation
+export const economicTimeSeries = pgTable("economic_time_series", {
+  id: serial("id").primaryKey(),
+  seriesId: text("series_id").notNull(), // FRED series ID (CPIAUCSL, PAYEMS, etc.)
+  indicator: text("indicator").notNull(), // Human readable name
+  value: decimal("value", { precision: 15, scale: 4 }).notNull(),
+  valueFormatted: text("value_formatted").notNull(), // "2.9%", "221K", etc.
+  category: text("category").notNull(), // employment, inflation, etc.
+  importance: text("importance").notNull(), // high, medium, low
+  frequency: text("frequency").notNull(), // weekly, monthly, quarterly
+  units: text("units").notNull(), // Percent, Thousands, etc.
+  releaseDate: timestamp("release_date").notNull(), // When data was released
+  periodDate: timestamp("period_date").notNull(), // What period data represents
+  previousValue: decimal("previous_value", { precision: 15, scale: 4 }),
+  monthlyChange: decimal("monthly_change", { precision: 8, scale: 4 }),
+  annualChange: decimal("annual_change", { precision: 8, scale: 4 }),
+  dataSource: text("data_source").notNull().default('fred'),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Historical context snapshots for AI analysis
+export const historicalContextSnapshots = pgTable("historical_context_snapshots", {
+  id: serial("id").primaryKey(),
+  snapshotDate: timestamp("snapshot_date").notNull(),
+  
+  // Key economic indicators snapshot
+  cpi: decimal("cpi", { precision: 8, scale: 4 }),
+  cpiChange: decimal("cpi_change", { precision: 8, scale: 4 }),
+  coreCpi: decimal("core_cpi", { precision: 8, scale: 4 }),
+  unemployment: decimal("unemployment", { precision: 5, scale: 2 }),
+  payrolls: integer("payrolls"), // in thousands
+  retailSales: decimal("retail_sales", { precision: 8, scale: 4 }),
+  housingStarts: decimal("housing_starts", { precision: 8, scale: 4 }),
+  fedFunds: decimal("fed_funds", { precision: 5, scale: 2 }),
+  
+  // Composite scores for AI context
+  inflationTrend: text("inflation_trend"), // "rising", "falling", "stable"
+  employmentTrend: text("employment_trend"),
+  housingTrend: text("housing_trend"),
+  overallSentiment: text("overall_sentiment"),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Data quality tracking for historical accumulation
+export const dataQualityLog = pgTable("data_quality_log", {
+  id: serial("id").primaryKey(),
+  operation: text("operation").notNull(), // "store", "backfill", "update"
+  seriesId: text("series_id").notNull(),
+  recordsProcessed: integer("records_processed").notNull(),
+  recordsStored: integer("records_stored").notNull(),
+  recordsSkipped: integer("records_skipped").notNull(),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  executionTime: integer("execution_time"), // milliseconds
+  status: text("status").notNull(), // "success", "partial", "failed"
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type EconomicTimeSeries = typeof economicTimeSeries.$inferSelect;
+export type InsertEconomicTimeSeries = typeof economicTimeSeries.$inferInsert;
+export type HistoricalContextSnapshot = typeof historicalContextSnapshots.$inferSelect;
+export type InsertHistoricalContextSnapshot = typeof historicalContextSnapshots.$inferInsert;
+export type DataQualityLog = typeof dataQualityLog.$inferSelect;
+export type InsertDataQualityLog = typeof dataQualityLog.$inferInsert;

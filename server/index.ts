@@ -124,13 +124,24 @@ app.use((req, res, next) => {
         await dataScheduler.startScheduler();
         log('✅ Data scheduler started successfully with 8 AM email cron job');
         
+        // Initialize enhanced cron scheduler for historical data accumulation
+        log('🕐 Initializing enhanced historical data accumulation...');
+        const { enhancedCronScheduler } = await import('./services/enhanced-cron-scheduler.js');
+        enhancedCronScheduler.initialize();
+        log('✅ Enhanced cron scheduler initialized with historical data accumulation');
+        
+        // Trigger initial data accumulation
+        log('📊 Starting initial historical data accumulation...');
+        await enhancedCronScheduler.triggerDataAccumulation();
+        log('✅ Initial historical data accumulation completed');
+        
         // Verify the scheduler is working by checking its status
         log('📧 Daily email scheduled for 8:00 AM EST (Monday-Friday)');
         log(`📅 Current EST time: ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}`);
         log('🔄 All scheduled tasks initialized and ready');
         
       } catch (error) {
-        log('❌ CRITICAL: Failed to start data scheduler:', error);
+        log('❌ CRITICAL: Failed to start data scheduler:', (error as Error).message || 'Unknown error');
         console.error('Scheduler initialization error:', error);
       }
     }, 3000); // 3 second delay to ensure full server initialization

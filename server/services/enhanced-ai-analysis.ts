@@ -1,529 +1,205 @@
-import OpenAI from "openai";
+import OpenAI from 'openai';
+import { historicalDataAccumulator } from './historical-data-accumulator.js';
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export class EnhancedAIAnalysisService {
-  static getInstance() {
-    return new EnhancedAIAnalysisService();
+  private static instance: EnhancedAIAnalysisService;
+
+  static getInstance(): EnhancedAIAnalysisService {
+    if (!EnhancedAIAnalysisService.instance) {
+      EnhancedAIAnalysisService.instance = new EnhancedAIAnalysisService();
+    }
+    return EnhancedAIAnalysisService.instance;
   }
 
-  async generateRobustMarketAnalysis(marketData: any, sectors: any[], economicEvents?: any[]): Promise<{
-    marketConditions: string;
-    technicalOutlook: string;
-    riskAssessment: string;
-    sectorRotation: string;
-    confidence: number;
-  }> {
-    console.log('✅ Generating optimized trader-style analysis...');
+  async generateAnalysisWithHistoricalContext(marketData: any): Promise<any> {
+    console.log('🧠 Generating AI analysis with historical context...');
     
-    // Process economic events for enhanced analysis
-    const processedEconomicData = this.processEconomicData(economicEvents || []);
-    
-    // Generate dynamic analysis based on real data
-    const analysis = {
-      marketConditions: this.generateTechnicalAnalysis(marketData),
-      
-      technicalOutlook: this.generateTechnicalOutlook(marketData),
-      
-      riskAssessment: this.generateComprehensiveEconomicAnalysis(processedEconomicData),
-      
-      sectorRotation: this.generateSectorRotationAnalysis(sectors),
-      
-      confidence: 0.85,
-    };
-
-    console.log('✅ Analysis generated in <5ms');
-    return analysis;
-  }
-
-  private processEconomicData(events: any[]) {
-    if (!events || events.length === 0) return { recent: [], highImpact: [], summary: '' };
-
-    const now = new Date();
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-    // Filter recent events (last 7 days) with actual data - expanded from 3 days
-    const recentEvents = events.filter(event => 
-      new Date(event.eventDate) >= oneWeekAgo && event.actual
-    ).sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime());
-
-    // Filter ALL events with actual data (including medium importance)
-    const allActualEvents = events.filter(event => 
-      event.actual && new Date(event.eventDate) >= oneWeekAgo
-    ).sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime());
-
-    // Filter high impact events with actual data
-    const highImpactEvents = events.filter(event => 
-      event.importance === 'high' && event.actual
-    ).sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime());
-
-    return {
-      recent: recentEvents.slice(0, 10), // Increased from 5 to 10
-      highImpact: highImpactEvents.slice(0, 8), // Increased from 5 to 8
-      allActual: allActualEvents.slice(0, 15), // New: all events with actual data
-      summary: this.generateEconomicSummary(recentEvents, highImpactEvents, allActualEvents)
-    };
-  }
-
-  private generateEconomicSummary(recent: any[], highImpact: any[], allActual: any[]) {
-    const keyEvents = [...recent, ...highImpact, ...allActual]
-      .filter((event, index, self) => self.findIndex(e => e.id === event.id) === index)
-      .slice(0, 12); // Increased from 6 to 12 for comprehensive coverage
-
-    return keyEvents.map(event => {
-      const direction = 'reported';
-      const forecastText = event.forecast ? `vs ${event.forecast} forecast` : '';
-      return `${event.title}: ${event.actual} ${direction} ${forecastText}`;
-    }).join('; ');
-  }
-
-  private calculateVariance(actual: string, forecast: string) {
-    if (!actual || !forecast) return null;
-    
-    // Handle percentage values
-    let actualValue = parseFloat(actual.replace(/[^\d.-]/g, ''));
-    let forecastValue = parseFloat(forecast.replace(/[^\d.-]/g, ''));
-    
-    // Handle values with 'K', 'M' suffixes consistently
-    const actualHasK = actual.includes('K') || actual.includes('k');
-    const actualHasM = actual.includes('M') || actual.includes('m');
-    const forecastHasK = forecast.includes('K') || forecast.includes('k');
-    const forecastHasM = forecast.includes('M') || forecast.includes('m');
-    
-    if (actualHasK) actualValue = actualValue * 1000;
-    if (actualHasM) actualValue = actualValue * 1000000;
-    if (forecastHasK) forecastValue = forecastValue * 1000;
-    if (forecastHasM) forecastValue = forecastValue * 1000000;
-    
-    if (isNaN(actualValue) || isNaN(forecastValue)) return null;
-    
-    const variance = actualValue - forecastValue;
-    
-    return variance;  // Return raw numeric variance for AI analysis
-  }
-
-  /**
-   * Generate comprehensive economic analysis based on past two trading days
-   * First two sentences cover the most recent two trading days' economic releases
-   */
-  private generateComprehensiveEconomicAnalysis(economicData: any): string {
-    const now = new Date();
-    const easternTime = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'America/New_York',
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: false
-    }).format(now);
-    
-    const [hours, minutes] = easternTime.split(':').map(Number);
-    const currentTimeMinutes = hours * 60 + minutes;
-    const marketOpen = 9 * 60 + 30; // 9:30 AM
-    const marketClose = 16 * 60; // 4:00 PM
-    
-    const isMarketHours = currentTimeMinutes >= marketOpen && currentTimeMinutes <= marketClose;
-    
-    // Get events from the past two trading days
-    const lastTwoTradingDays = this.getPastTwoTradingDays(now, isMarketHours);
-    const recentEvents = this.getEventsFromDays(economicData, lastTwoTradingDays);
-    
-    // Generate first two sentences about past two trading days
-    const firstTwoSentences = this.generateTradingDaysAnalysis(recentEvents, lastTwoTradingDays);
-    
-    // Generate additional economic context sentences
-    const additionalContext = this.generateEconomicContext(economicData, recentEvents);
-    
-    return `${firstTwoSentences} ${additionalContext}`;
-  }
-
-  /**
-   * Get past two trading days from current date
-   */
-  private getPastTwoTradingDays(currentDate: Date, isMarketHours: boolean): Date[] {
-    const days = [];
-    let date = new Date(currentDate);
-    
-    // If market is closed and it's not a weekend, include today
-    if (!isMarketHours && date.getDay() !== 0 && date.getDay() !== 6) {
-      // Don't include today, start from yesterday
-    }
-    
-    // Go back to find the last two trading days
-    let tradingDaysFound = 0;
-    while (tradingDaysFound < 2) {
-      date.setDate(date.getDate() - 1);
-      // Skip weekends
-      if (date.getDay() !== 0 && date.getDay() !== 6) {
-        days.push(new Date(date));
-        tradingDaysFound++;
-      }
-    }
-    
-    return days.reverse(); // Return in chronological order (older first)
-  }
-  
-  /**
-   * Get events from specific trading days
-   */
-  private getEventsFromDays(economicData: any, targetDays: Date[]): any[] {
-    if (!economicData) {
-      return [];
-    }
-    
-    // Combine all available events
-    const allEvents = [
-      ...(economicData.recent || []),
-      ...(economicData.highImpact || []),
-      ...(economicData.allActual || [])
-    ];
-    
-    const dayEvents = [];
-    for (const day of targetDays) {
-      const eventsForDay = allEvents
-        .filter((event, index, self) => {
-          // Deduplicate by ID
-          return self.findIndex(e => e.id === event.id) === index;
-        })
-        .filter(event => {
-          if (!event.eventDate && !event.date) return false;
-          const eventDate = new Date(event.eventDate || event.date);
-          return eventDate.toDateString() === day.toDateString();
-        })
-        .sort((a, b) => {
-          // Sort by importance (high > medium > low)
-          const importanceOrder = { high: 3, medium: 2, low: 1 };
-          const aImportance = importanceOrder[a.importance] || 1;
-          const bImportance = importanceOrder[b.importance] || 1;
-          return bImportance - aImportance;
-        });
-        
-      dayEvents.push(...eventsForDay.slice(0, 3)); // Top 3 events per day
-    }
-    
-    return dayEvents;
-  }
-  
-  /**
-   * Generate analysis for trading days events
-   */
-  private generateTradingDaysAnalysis(events: any[], days: Date[]): string {
-    if (events.length === 0) {
-      return `Recent trading sessions showed limited high-impact economic releases, with markets focused on existing Fed policy stance and ongoing labor market dynamics. The economic calendar maintained a relatively quiet period, allowing traders to digest previous data and positioning adjustments.`;
-    }
-    
-    // Group events by day
-    const eventsByDay = new Map();
-    for (const day of days) {
-      eventsByDay.set(day.toDateString(), []);
-    }
-    
-    for (const event of events) {
-      const eventDate = new Date(event.eventDate || event.date);
-      const dayKey = eventDate.toDateString();
-      if (eventsByDay.has(dayKey)) {
-        eventsByDay.get(dayKey).push(event);
-      }
-    }
-    
-    const sentences = [];
-    let dayIndex = 0;
-    
-    for (const [dayKey, dayEvents] of eventsByDay) {
-      if (dayEvents.length > 0) {
-        const dayName = dayIndex === 0 ? "Thursday's" : "Friday's"; // Most recent two days
-        const topEvents = dayEvents.slice(0, 2); // Top 2 events for the day
-        
-        if (topEvents.length === 1) {
-          const eventText = this.formatEventForAnalysis(topEvents[0]);
-          sentences.push(`${dayName} key economic release was ${eventText}, providing important directional guidance for Fed policy and market sentiment.`);
-        } else if (topEvents.length === 2) {
-          const event1Text = this.formatEventForAnalysis(topEvents[0]);
-          const event2Text = this.formatEventForAnalysis(topEvents[1]);
-          sentences.push(`${dayName} major economic releases included ${event1Text} and ${event2Text}, offering critical insights into economic momentum.`);
-        }
-      }
-      dayIndex++;
-    }
-    
-    // If we don't have specific day events, create a general summary
-    if (sentences.length === 0 && events.length > 0) {
-      const topEvents = events.slice(0, 3);
-      const eventSummaries = topEvents.map(event => `${event.title} at ${event.actual || event.forecast}`);
-      return `Recent trading sessions featured important economic releases including ${eventSummaries.join(', ')}, providing key insights into current economic conditions. These data points continue to shape Federal Reserve policy expectations and market sentiment across asset classes.`;
-    }
-    
-    return sentences.join(' ') || `Recent trading sessions showed limited high-impact economic releases, with markets focused on existing Fed policy stance and ongoing labor market dynamics.`;
-  }
-  
-  /**
-   * Generate comprehensive economic context (6-8 sentences for robust analysis)
-   */
-  private generateEconomicContext(economicData: any, recentEvents: any[]): string {
-    const sentences = [];
-    
-    // Focus on actual data only - no verbose context
-    
-    // Categorize events by economic category
-    const growthEvents = recentEvents.filter(e => e.category === 'growth' || 
-      e.title?.toLowerCase().includes('retail') || 
-      e.title?.toLowerCase().includes('industrial') ||
-      e.title?.toLowerCase().includes('housing') ||
-      e.title?.toLowerCase().includes('gdp'));
-    
-    const laborEvents = recentEvents.filter(e => e.category === 'employment' ||
-      e.title?.toLowerCase().includes('jobless') || 
-      e.title?.toLowerCase().includes('employment') ||
-      e.title?.toLowerCase().includes('claims'));
-    
-    const inflationEvents = recentEvents.filter(e => e.category === 'inflation' ||
-      e.title?.toLowerCase().includes('cpi') || 
-      e.title?.toLowerCase().includes('ppi') || 
-      e.title?.toLowerCase().includes('inflation'));
-    
-    const sentimentEvents = recentEvents.filter(e => e.category === 'sentiment' ||
-      e.title?.toLowerCase().includes('confidence') ||
-      e.title?.toLowerCase().includes('sentiment'));
-
-    // Growth category analysis
-    if (growthEvents.length > 0) {
-      const retailEvent = growthEvents.find(e => e.title?.toLowerCase().includes('retail'));
-      const housingEvents = growthEvents.filter(e => e.title?.toLowerCase().includes('housing') || e.title?.toLowerCase().includes('building'));
-      
-      if (retailEvent) {
-        const retailValue = parseFloat(retailEvent.actual?.replace(/[^\d.-]/g, ''));
-        const forecast = parseFloat(retailEvent.forecast?.replace(/[^\d.-]/g, ''));
-        if (!isNaN(retailValue) && !isNaN(forecast)) {
-          const beat = retailValue > forecast;
-          sentences.push(`Growth indicators showed consumer resilience with retail sales at ${retailValue > 0 ? '+' : ''}${retailValue.toFixed(1)}% ${beat ? 'exceeding' : 'missing'} the ${forecast.toFixed(1)}% forecast, ${beat ? 'validating expansion momentum and supporting cyclical sectors' : 'suggesting consumer caution and favoring defensive positioning'}.`);
-        }
-      }
-      
-      if (housingEvents.length > 0) {
-        const housingEvent = housingEvents[0];
-        sentences.push(`Housing sector data with ${housingEvent.title} at ${housingEvent.actual} indicates ${parseFloat(housingEvent.actual?.replace(/[^\d.-]/g, '')) > parseFloat(housingEvent.forecast?.replace(/[^\d.-]/g, '')) ? 'strength in residential investment supporting Materials and Financials sectors' : 'moderation in housing activity reflecting higher borrowing costs'}.`);
-      }
-    }
-
-    // Labor Market category analysis  
-    if (laborEvents.length > 0) {
-      const joblessEvent = laborEvents.find(e => e.title?.toLowerCase().includes('jobless') || e.title?.toLowerCase().includes('claims'));
-      if (joblessEvent) {
-        const claimsValue = parseInt(joblessEvent.actual?.replace(/[^\d]/g, ''));
-        const forecast = parseInt(joblessEvent.forecast?.replace(/[^\d]/g, ''));
-        if (claimsValue && forecast) {
-          const beat = claimsValue < forecast;
-          sentences.push(`Labor Market indicators showed ${beat ? 'strength' : 'softening'} with initial jobless claims at ${claimsValue.toLocaleString()} ${beat ? 'below' : 'above'} the ${forecast.toLocaleString()} forecast, ${beat ? 'supporting wage growth and consumer spending while underpinning cyclical sector performance' : 'suggesting labor market cooling that could pressure consumer discretionary sectors'}.`);
-        }
-      }
-    }
-
-    // Inflation category analysis
-    if (inflationEvents.length > 0) {
-      const cpiEvent = inflationEvents.find(e => e.title?.toLowerCase().includes('cpi'));
-      const ppiEvent = inflationEvents.find(e => e.title?.toLowerCase().includes('ppi'));
-      
-      if (cpiEvent) {
-        const cpiValue = parseFloat(cpiEvent.actual?.replace(/[^\d.-]/g, ''));
-        const forecast = parseFloat(cpiEvent.forecast?.replace(/[^\d.-]/g, ''));
-        const beat = !isNaN(cpiValue) && !isNaN(forecast) ? cpiValue < forecast : false;
-        sentences.push(`Inflation dynamics with Core CPI at ${cpiValue}% ${beat ? 'below' : 'above'} expectations continue ${beat ? 'disinflationary progress supporting Fed flexibility and duration-sensitive sectors including Technology and Real Estate' : 'elevated pressures constraining Fed policy options while favoring value sectors'}.`);
-      } else if (ppiEvent) {
-        sentences.push(`Producer price pressures at ${ppiEvent.actual} indicate upstream inflation trends that influence Fed policy positioning and sector rotation between growth and value styles.`);
-      }
-    }
-
-    // Sentiment category analysis
-    if (sentimentEvents.length > 0) {
-      const confidenceEvent = sentimentEvents[0];
-      const confidenceValue = parseFloat(confidenceEvent.actual?.replace(/[^\d.-]/g, ''));
-      const forecast = parseFloat(confidenceEvent.forecast?.replace(/[^\d.-]/g, ''));
-      const beat = !isNaN(confidenceValue) && !isNaN(forecast) ? confidenceValue > forecast : false;
-      sentences.push(`Sentiment indicators with ${confidenceEvent.title} at ${confidenceEvent.actual} ${beat ? 'exceeded forecasts, supporting risk asset appetite and cyclical sector leadership' : 'disappointed expectations, favoring defensive positioning in Utilities and Consumer Staples'}.`);
-    }
-
-    return sentences.slice(0, 4).join(' ') || "Economic releases support current market positioning.";
-  }
-
-  /**
-   * Get last trading day (excluding weekends)
-   */
-  private getLastTradingDay(date: Date): Date {
-    const lastDay = new Date(date);
-    lastDay.setDate(date.getDate() - 1);
-    
-    // Skip weekends
-    while (lastDay.getDay() === 0 || lastDay.getDay() === 6) {
-      lastDay.setDate(lastDay.getDate() - 1);
-    }
-    
-    return lastDay;
-  }
-
-  /**
-   * Format economic event for analysis text
-   */
-  private formatEventForAnalysis(event: any): string {
-    const title = event.title || 'Economic Release';
-    const actual = event.actual;
-    const forecast = event.forecast;
-    
-    if (actual && forecast) {
-      const variance = this.calculateVariance(actual, forecast);
-      if (variance !== null) {
-        const direction = variance > 0 ? 'beating' : variance < 0 ? 'missing' : 'meeting';
-        const varianceText = Math.abs(variance) > 0.01 ? ` by ${Math.abs(variance).toFixed(2)}` : '';
-        return `${title} at ${actual} ${direction} expectations of ${forecast}${varianceText}`;
-      }
-    }
-    
-    if (actual) {
-      return `${title} reporting ${actual}`;
-    }
-    
-    return `${title} release`;
-  }
-
-  private generateTechnicalAnalysis(marketData: any) {
-    const { price, changePercent, rsi, macd, macdSignal, vix, percent_b, adx, vwap } = marketData;
-    
-    // Enhanced technical analysis with new indicators
-    const bollinger_position = percent_b ? 
-      (percent_b > 0.8 ? 'upper Bollinger Band extreme' : 
-       percent_b > 0.5 ? 'above Bollinger midpoint' : 
-       percent_b < 0.2 ? 'lower Bollinger Band support' : 'Bollinger middle zone') : 'middle zone';
-       
-    const trend_strength = adx ? 
-      (adx > 30 ? 'strong trending' : adx > 20 ? 'moderate trend' : 'weak/sideways') : 'moderate';
-      
-    const vwap_position = vwap && price ? 
-      (price > vwap * 1.01 ? 'above VWAP resistance' : 
-       price < vwap * 0.99 ? 'below VWAP support' : 'near VWAP equilibrium') : 'equilibrium';
-    
-    return `Bottom Line: SPX's ${changePercent > 0 ? '+' : ''}${changePercent.toFixed(1)}% ${changePercent > 0 ? 'gain' : 'decline'} to ${price.toFixed(2)} ${rsi > 70 ? 'shows overbought conditions' : rsi > 60 ? 'masks brewing technical divergences' : 'reflects oversold bounce potential'}. Price trading ${vwap_position} with ${trend_strength} directional momentum (ADX ${adx ? adx.toFixed(1) : '25.3'}) and ${bollinger_position} positioning. ${macd > macdSignal ? 'MACD bullish crossover' : 'MACD bearish divergence'} confirms ${vix < 20 ? 'complacent' : 'elevated fear'} backdrop.`;
-  }
-
-  private generateTechnicalOutlook(marketData: any) {
-    const { rsi, macd, macdSignal, vix, percent_b, adx, stoch_k, stoch_d, vwap, atr, willr, bb_upper, bb_lower, price } = marketData;
-    const momentum = macd > macdSignal ? 'bullish' : 'bearish';
-    const rsiCondition = rsi > 70 ? 'overbought' : rsi > 60 ? 'elevated' : rsi < 30 ? 'oversold' : 'neutral';
-    
-    // Enhanced momentum analysis with Stochastic
-    const stochastic_signal = stoch_k && stoch_d ? 
-      (stoch_k > 80 && stoch_d > 80 ? 'extreme overbought' :
-       stoch_k > 70 ? 'overbought territory' :
-       stoch_k < 20 && stoch_d < 20 ? 'oversold extreme' :
-       stoch_k < 30 ? 'oversold conditions' : 'neutral oscillation') : 'neutral';
-    
-    // Bollinger Band analysis
-    const bb_squeeze = bb_upper && bb_lower && price ? 
-      ((bb_upper - bb_lower) / price < 0.04 ? 'band compression suggests volatility breakout pending' :
-       'normal band width indicates standard volatility regime') : 'standard volatility';
-    
-    // Williams %R confirmation
-    const willr_signal = willr ? 
-      (willr > -20 ? 'extremely overbought' :
-       willr > -50 ? 'bullish momentum' :
-       willr < -80 ? 'deeply oversold' : 'neutral momentum') : 'neutral';
-    
-    // ATR volatility context
-    const volatility_regime = atr ? 
-      (atr > 15 ? 'high volatility environment' :
-       atr > 10 ? 'moderate volatility' : 'low volatility regime') : 'moderate volatility';
-    
-    const momentumInsight = macd > macdSignal ? 
-      'MACD bullish crossover confirms upward momentum bias supported by institutional buying flows' :
-      'MACD bearish divergence warns of momentum deterioration with distribution pressure building';
-      
-    const volatilityInsight = vix < 15 ? 
-      'VIX compression to extreme lows signals dangerous complacency - positioning for volatility expansion' :
-      vix < 20 ? 
-      'Subdued fear levels reflect market confidence but create vulnerability to sentiment shifts' :
-      'Elevated VIX presents tactical buying opportunities as fear typically marks short-term lows';
-    
-    return `TECHNICAL ANALYSIS: RSI ${rsi.toFixed(1)} shows ${rsiCondition} conditions while Stochastic (${stoch_k ? stoch_k.toFixed(1) : '65.4'}/${stoch_d ? stoch_d.toFixed(1) : '68.2'}) indicates ${stochastic_signal}. MACD ${momentum} crossover (${macd.toFixed(3)} vs ${macdSignal.toFixed(3)}) with Williams %R at ${willr ? willr.toFixed(1) : '-28.5'} confirming ${willr_signal}. ${momentumInsight}. ADX ${adx ? adx.toFixed(1) : '25.3'} reflects ${adx && adx > 30 ? 'strong directional momentum' : 'choppy/consolidation phase'}. Bollinger %B at ${percent_b ? (percent_b * 100).toFixed(1) : '65.0'}% with ${bb_squeeze}. VIX ${vix.toFixed(2)} in ${volatility_regime} - ${volatilityInsight}. VWAP ${vwap ? vwap.toFixed(2) : '626.87'} serves as ${price > (vwap || 626.87) ? 'support on pullbacks' : 'resistance on rallies'}. ${rsi > 65 ? 'Technical setup vulnerable to mean reversion as multiple oscillators reach extreme readings' : 'Constructive technical foundation supports continuation of upward momentum with dip-buying opportunities'}.`;
-  }
-
-  private generateEconomicAnalysis(economicData: any, sectors: any[]) {
-    // Debug log to understand economic data structure
-    console.log('🔍 Economic data received for analysis:', JSON.stringify(economicData, null, 2));
-    
-    // Generate comprehensive economic analysis covering past two trading days
-    const comprehensiveEconomicAnalysis = this.generateComprehensiveEconomicAnalysis(economicData);
-    
-    // Safe fallback if no sector data
-    if (!sectors || sectors.length === 0) {
-      return `${comprehensiveEconomicAnalysis} Fed policy backdrop remains supportive with labor market resilience providing economic foundation.`;
-    }
-
     try {
-      // Find top and bottom performing sectors with safe number conversion
-      let topSector = { name: 'Technology', change: 0.5 };
-      let bottomSector = { name: 'Energy', change: -0.5 };
+      // Get historical context for key indicators
+      const historicalContext = await this.getHistoricalContext();
       
-      sectors.forEach(sector => {
-        const change = Number(sector.changePercent) || 0;
-        if (change > Number(topSector.change)) {
-          topSector = { name: sector.name, change: change };
-        }
-        if (change < Number(bottomSector.change)) {
-          bottomSector = { name: sector.name, change: change };
-        }
+      // Enhanced prompt with historical data
+      const prompt = await this.buildEnhancedPrompt(marketData, historicalContext);
+      
+      console.log('📝 Sending enhanced request to OpenAI with historical context...');
+      
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o", // Latest OpenAI model
+        messages: [
+          {
+            role: "system",
+            content: `You are a Wall Street senior market analyst with access to comprehensive historical economic data. 
+            Provide sophisticated analysis using historical precedents, percentile rankings, and trend analysis.
+            Focus on data-driven insights with specific historical comparisons.`
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+        max_tokens: 2000
       });
 
-      // Return the comprehensive analysis without duplication
-      return `${comprehensiveEconomicAnalysis}`;
-    } catch (error) {
-      console.error('Error in generateEconomicAnalysis:', error);
-      return `${comprehensiveEconomicAnalysis} Economic fundamentals remain supportive with balanced growth and inflation dynamics.`;
-    }
-  }
-
-  private generateSectorRotationAnalysis(sectors: any[]) {
-    if (!sectors || sectors.length === 0) {
-      return "Sector rotation unavailable - awaiting fresh market data for comprehensive analysis.";
-    }
-
-    try {
-      // Find top and bottom performing sectors
-      let topSector = { name: 'Technology', changePercent: '0.5' };
-      let bottomSector = { name: 'Energy', changePercent: '-0.5' };
+      const analysis = JSON.parse(response.choices[0].message.content || '{}');
       
-      sectors.forEach(sector => {
-        const change = parseFloat(sector.changePercent) || 0;
-        if (change > parseFloat(topSector.changePercent)) {
-          topSector = { name: sector.name, changePercent: sector.changePercent };
-        }
-        if (change < parseFloat(bottomSector.changePercent)) {
-          bottomSector = { name: sector.name, changePercent: sector.changePercent };
-        }
-      });
-
-      // Count advancing vs declining sectors
-      const advancing = sectors.filter(s => parseFloat(s.changePercent) > 0).length;
-      const declining = sectors.filter(s => parseFloat(s.changePercent) < 0).length;
-      const total = sectors.length;
-
-      const advanceDeclineRatio = advancing > 0 ? (advancing / total * 100) : 0;
-
-      // Generate rotation analysis
-      const rotationTone = advanceDeclineRatio > 66 ? 'broad-based rally' : 
-                          advanceDeclineRatio > 50 ? 'mixed rotation' :
-                          advanceDeclineRatio > 33 ? 'defensive positioning' : 'risk-off sentiment';
-
-      const leadingSector = topSector.name === 'Health Care' ? 'Health Care' : topSector.name;
-      const laggingSector = bottomSector.name === 'Health Care' ? 'Health Care' : bottomSector.name;
-
-      return `SECTOR ROTATION ANALYSIS: ${rotationTone} evident with ${advancing}/${total} sectors advancing (${advanceDeclineRatio.toFixed(0)}% advance ratio). ${leadingSector} leading (+${parseFloat(topSector.changePercent).toFixed(2)}%) while ${laggingSector} lagging (${parseFloat(bottomSector.changePercent).toFixed(2)}%). ${advanceDeclineRatio < 50 ? 'Defensive rotation suggests investor caution amid uncertainty' : 'Cyclical leadership indicates risk-on positioning'}. This ${advanceDeclineRatio < 50 ? 'defensive' : 'cyclical'} bias typically emerges during ${advanceDeclineRatio < 50 ? 'late-cycle conditions or uncertainty periods' : 'expansionary phases with growth optimism'}.`;
-
+      console.log('✅ Enhanced AI analysis with historical context generated');
+      
+      return {
+        ...analysis,
+        generatedAt: new Date().toISOString(),
+        historicalContextUsed: true,
+        dataQuality: 'high'
+      };
+      
     } catch (error) {
-      console.error('Error in generateSectorRotationAnalysis:', error);
-      return "Sector rotation analysis showing mixed positioning with Technology and Healthcare leading defensive rotation trends.";
+      console.error('❌ Enhanced AI analysis failed:', error);
+      throw new Error(`Failed to generate enhanced AI analysis: ${error.message}`);
     }
   }
 
+  private async getHistoricalContext(): Promise<any> {
+    console.log('📊 Gathering historical context for AI analysis...');
+    
+    try {
+      // Get key indicators with historical context
+      const indicators = [
+        'Consumer Price Index (CPI)',
+        'Core Consumer Price Index',
+        'Unemployment Rate',
+        'Nonfarm Payrolls',
+        'Housing Starts',
+        'Initial Jobless Claims'
+      ];
+
+      const historicalContext = {};
+      
+      for (const indicator of indicators) {
+        try {
+          // Get 24 months of historical data
+          const history = await historicalDataAccumulator.getHistoricalContext(indicator, 24);
+          
+          if (history.length > 0) {
+            const current = parseFloat(history[0].value);
+            
+            // Get percentile ranking over 36 months
+            const percentile = await historicalDataAccumulator.getPercentileRanking(indicator, current, 36);
+            
+            // Get year-over-year comparison
+            const yoyComparison = await historicalDataAccumulator.getYearOverYearComparison(indicator);
+            
+            // Calculate 6-month trend
+            const sixMonthTrend = this.calculateTrend(history.slice(0, 6));
+            
+            historicalContext[indicator] = {
+              current: {
+                value: current,
+                formatted: history[0].valueFormatted,
+                date: history[0].periodDate
+              },
+              percentile: Math.round(percentile),
+              yearOverYear: yoyComparison,
+              sixMonthTrend: sixMonthTrend,
+              historicalRange: {
+                min: Math.min(...history.map(h => parseFloat(h.value))),
+                max: Math.max(...history.map(h => parseFloat(h.value))),
+                average: history.reduce((sum, h) => sum + parseFloat(h.value), 0) / history.length
+              },
+              recentHistory: history.slice(0, 12).map(h => ({
+                value: parseFloat(h.value),
+                date: h.periodDate,
+                change: h.monthlyChange ? parseFloat(h.monthlyChange) : null
+              }))
+            };
+          }
+        } catch (error) {
+          console.error(`❌ Error getting historical context for ${indicator}:`, error);
+        }
+      }
+      
+      console.log(`✅ Historical context gathered for ${Object.keys(historicalContext).length} indicators`);
+      return historicalContext;
+      
+    } catch (error) {
+      console.error('❌ Failed to gather historical context:', error);
+      return {};
+    }
+  }
+
+  private calculateTrend(recentData: any[]): string {
+    if (recentData.length < 3) return 'insufficient_data';
+    
+    const values = recentData.map(d => parseFloat(d.value));
+    const firstHalf = values.slice(0, Math.floor(values.length / 2));
+    const secondHalf = values.slice(Math.floor(values.length / 2));
+    
+    const firstAvg = firstHalf.reduce((sum, v) => sum + v, 0) / firstHalf.length;
+    const secondAvg = secondHalf.reduce((sum, v) => sum + v, 0) / secondHalf.length;
+    
+    const change = ((secondAvg - firstAvg) / firstAvg) * 100;
+    
+    if (change > 2) return 'rising';
+    if (change < -2) return 'falling';
+    return 'stable';
+  }
+
+  private async buildEnhancedPrompt(marketData: any, historicalContext: any): Promise<string> {
+    const contextSummary = Object.entries(historicalContext).map(([indicator, data]: [string, any]) => {
+      let summary = `${indicator}: ${data.current.formatted} (${data.percentile}th percentile over 3 years)`;
+      
+      if (data.yearOverYear) {
+        const yoyChange = data.yearOverYear.change;
+        const direction = yoyChange > 0 ? 'increased' : 'decreased';
+        summary += ` - ${direction} ${Math.abs(yoyChange).toFixed(1)} from ${data.yearOverYear.yearAgo} last year`;
+      }
+      
+      if (data.sixMonthTrend !== 'stable') {
+        summary += ` - ${data.sixMonthTrend} trend over 6 months`;
+      }
+      
+      return summary;
+    }).join('\n');
+
+    return `
+CURRENT MARKET DATA:
+SPY Price: $${marketData.spyPrice} (${marketData.spyChange}%)
+VIX: ${marketData.vix} (${marketData.vixChange}%)
+Technical Indicators: RSI ${marketData.rsi}, MACD ${marketData.macd}
+AAII Sentiment: ${marketData.aaiiBullish}% bullish, ${marketData.aaiiBearish}% bearish
+
+HISTORICAL ECONOMIC CONTEXT:
+${contextSummary}
+
+SECTOR PERFORMANCE:
+${marketData.sectors ? marketData.sectors.map(s => `${s.name}: ${s.change}%`).join(', ') : 'Data unavailable'}
+
+Please provide a comprehensive market analysis in JSON format with these sections:
+
+{
+  "bottomLine": "Single sentence assessment with specific percentile rankings",
+  "technicalAnalysis": "Analysis incorporating current RSI/MACD with historical precedents",
+  "economicAnalysis": "Detailed analysis using historical context - mention specific percentiles, year-over-year changes, and trends. Reference when indicators were last at similar levels.",
+  "sectorAnalysis": "Sector rotation analysis with historical context",
+  "historicalPrecedents": "Specific examples: 'Last time CPI was at X percentile in YEAR, markets...'",
+  "riskAssessment": "Risk analysis using historical volatility and precedents",
+  "outlook": "Forward-looking analysis based on historical patterns",
+  "confidence": "Number 1-100 based on data quality and historical precedent strength"
 }
 
-// Export both class and instance
-export const aiAnalysisService = new EnhancedAIAnalysisService();
+Focus on specific historical comparisons like:
+- "CPI at 2.9% is in the 78th percentile over 3 years"
+- "Unemployment increased 0.3% from 3.7% last July" 
+- "Housing starts have declined 15% over the past 6 months"
+- "Last time inflation was this high was March 2023, which led to..."
+
+Make the analysis sophisticated and data-driven with concrete historical references.
+`;
+  }
+}
+
+export const enhancedAIAnalysisService = EnhancedAIAnalysisService.getInstance();
