@@ -7,14 +7,15 @@ import { getMarketHoursInfo } from '@shared/utils/marketHours';
 import { CACHE_DURATIONS } from '@shared/constants';
 
 import { apiLogger, getApiStats } from "./middleware/apiLogger";
-import { registerEnhancedEconomicRoutes } from "./routes/enhanced-economic-routes.js";
+import { registerComprehensiveFredRoutes } from "./routes/comprehensive-fred-routes.js";
+
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add API logging middleware
   app.use('/api', apiLogger);
   
-  // Register enhanced economic routes
-  registerEnhancedEconomicRoutes(app);
+  // Register comprehensive FRED routes
+  registerComprehensiveFredRoutes(app);
 
   // API stats endpoint
   app.get("/api/stats", (req, res) => {
@@ -668,43 +669,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Enhanced Economic Events API - Comprehensive data from multiple sources
+  // Enhanced Economic Events API - Comprehensive FRED data (50+ indicators)
   app.get("/api/economic-events-enhanced", async (req, res) => {
     try {
-      console.log('🔍 Fetching comprehensive economic data from multiple sources...');
+      console.log('🔍 Fetching comprehensive FRED economic data (50+ indicators)...');
       
-      const { ComprehensiveEconomicDataService } = await import('./services/comprehensive-economic-data');
-      const comprehensiveService = ComprehensiveEconomicDataService.getInstance();
+      const { comprehensiveFredApiService } = await import('./services/comprehensive-fred-api.js');
       
-      // Get comprehensive economic data from enhanced scrapers
-      const comprehensiveData = await comprehensiveService.getComprehensiveEconomicData();
+      // Get comprehensive economic indicators from FRED API
+      const indicators = await comprehensiveFredApiService.getComprehensiveEconomicIndicators();
       
-      // Transform to API response format for compatibility
-      const events = comprehensiveData.map((event, index) => ({
-        id: event.id,
-        title: event.title,
-        description: event.description,
-        importance: event.importance,
-        eventDate: event.date,
-        forecast: event.forecast,
-        previous: event.previous,
-        actual: event.actual,
-        country: event.country,
-        category: event.category,
-        source: event.source,
-        impact: event.impact,
-        timestamp: new Date()
+      // Transform to economic events format for compatibility
+      const events = indicators.map((indicator, index) => ({
+        id: `fred-${indicator.seriesId}`,
+        title: indicator.title,
+        description: `${indicator.title} - ${indicator.frequency} data from Federal Reserve`,
+        importance: indicator.importance,
+        eventDate: new Date(indicator.latestDate),
+        forecast: null, // FRED doesn't provide forecasts
+        previous: indicator.previousValue,
+        actual: indicator.latestValue,
+        country: 'US',
+        category: indicator.category,
+        source: 'fred_api',
+        impact: indicator.monthlyChange ? (indicator.monthlyChange.startsWith('-') ? 'negative' : 'positive') : null,
+        timestamp: new Date(),
+        monthlyChange: indicator.monthlyChange,
+        annualChange: indicator.annualChange,
+        units: indicator.units,
+        frequency: indicator.frequency
       }));
       
-      console.log(`✅ Enhanced Economic Events: ${events.length} events from multiple sources`);
-      console.log(`📊 With actual readings: ${events.filter(e => e.actual).length}`);
+      console.log(`✅ Enhanced FRED Economic Events: ${events.length} indicators from official U.S. government data`);
+      console.log(`📊 With actual readings: ${events.filter(e => e.actual && e.actual !== 'N/A').length}`);
       console.log(`📈 High importance: ${events.filter(e => e.importance === 'high').length}`);
-      console.log(`🔍 Sources: ${[...new Set(events.map(e => e.source))].join(', ')}`);
+      console.log(`🏛️ Categories: ${Array.from(new Set(events.map(e => e.category))).join(', ')}`);
       
       res.json(events);
     } catch (error) {
-      console.error('❌ Error fetching enhanced economic events:', error);
-      res.status(500).json({ message: 'Failed to fetch enhanced economic events' });
+      console.error('❌ Error fetching enhanced FRED economic events:', error);
+      res.status(500).json({ message: 'Failed to fetch enhanced FRED economic events' });
     }
   });
 
