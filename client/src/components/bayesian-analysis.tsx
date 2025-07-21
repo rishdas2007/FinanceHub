@@ -55,7 +55,10 @@ export function BayesianAnalysis() {
       
       // Try to parse as JSON
       try {
-        return JSON.parse(textResponse);
+        const parsed = JSON.parse(textResponse);
+        console.log('✅ Successfully parsed JSON:', Object.keys(parsed));
+        console.log('📊 Analysis data:', parsed);
+        return parsed;
       } catch (e) {
         console.error('❌ Failed to parse JSON:', e);
         console.error('📄 Full response:', textResponse);
