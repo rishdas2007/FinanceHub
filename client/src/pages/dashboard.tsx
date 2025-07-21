@@ -1,7 +1,6 @@
 
 
 import { AIAnalysisComponent } from "@/components/ai-analysis";
-import { EnhancedAIAnalysis } from "@/components/enhanced-ai-analysis";
 import { MarketBreadth } from "@/components/market-breadth";
 import { SectorTracker } from "@/components/sector-tracker";
 import { AAIISentiment } from "@/components/aaii-sentiment";
@@ -59,10 +58,7 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto p-4 space-y-6">
 
 
-        {/* Enhanced AI Market Commentary with Historical Context */}
-        <EnhancedAIAnalysis />
-        
-        {/* Standard AI Market Commentary */}
+        {/* AI Market Commentary */}
         <AIAnalysisComponent />
 
         {/* Market Breadth Indicators */}
