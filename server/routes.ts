@@ -1137,16 +1137,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ];
       }
       
-      // Get economic events data first (needed for thematic analysis)
+      // Get enhanced economic events with actual readings
       let finalEconomicEvents: any[] = [];
       try {
-        const { EconomicDataService } = await import('./services/economic-data');
-        const economicService = EconomicDataService.getInstance();
-        finalEconomicEvents = await economicService.getEconomicEvents();
-        console.log(`📅 Email economic events: ${finalEconomicEvents.length} events`);
+        // Use the working enhanced economic events service directly 
+        const { economicDataEnhancedService } = await import('./services/economic-data-enhanced');
+        finalEconomicEvents = await economicDataEnhancedService.getEnhancedEconomicEvents();
+        const eventsWithActual = finalEconomicEvents.filter(e => e.actual && e.actual !== 'N/A');
+        console.log(`📅 Enhanced email economic events: ${finalEconomicEvents.length} events (${eventsWithActual.length} with actual data)`);
+        console.log(`📊 Sample events with actual data:`, eventsWithActual.slice(0, 3).map(e => ({ title: e.title, actual: e.actual })));
       } catch (error) {
-        console.error('Error fetching economic events for email:', error);
-        finalEconomicEvents = [];
+        console.error('Error fetching enhanced economic events for email:', error);
+        // Fallback to basic economic events if enhanced fails
+        try {
+          const { EconomicDataService } = await import('./services/economic-data');
+          const economicService = EconomicDataService.getInstance();
+          finalEconomicEvents = await economicService.getEconomicEvents();
+          console.log(`📅 Fallback email economic events: ${finalEconomicEvents.length} events`);
+        } catch (fallbackError) {
+          console.error('Error with fallback economic events:', fallbackError);
+          finalEconomicEvents = [];
+        }
       }
       
       // Generate streamlined analysis for email reliability

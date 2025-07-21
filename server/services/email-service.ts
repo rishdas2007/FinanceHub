@@ -207,6 +207,19 @@ export class EmailService {
   private generateComprehensiveEmailTemplate(analysisData: any): string {
     const { analysis, currentStock, sentiment, technical, sectors, economicEvents } = analysisData;
     
+    // DEBUG: Log the actual structure of economic events
+    console.log('📊 EMAIL DEBUG - Economic Events Structure:', {
+      totalEvents: economicEvents?.length || 0,
+      firstEvent: economicEvents?.[0] ? {
+        title: economicEvents[0].title,
+        actual: economicEvents[0].actual,
+        forecast: economicEvents[0].forecast,
+        date: economicEvents[0].date,
+        eventDate: economicEvents[0].eventDate, // Check both possible field names
+        hasActual: !!economicEvents[0].actual
+      } : 'No events'
+    });
+    
     // Transform data to match the new template interface
     const emailData: EmailAnalysisData = {
       analysis: {
@@ -234,22 +247,73 @@ export class EmailService {
         fiveDayChange: parseFloat(sector.fiveDayChange || '0'),
         oneMonthChange: parseFloat(sector.oneMonthChange || '0')
       })),
-      economicEvents: (economicEvents || []).slice(0, 10).map((event: any) => ({
-        title: event.title || 'Economic Event',
-        category: this.getCategoryDisplay(event.category || 'Other'),
-        actual: event.actual || 'N/A',
-        forecast: event.forecast || '-',
-        variance: event.variance || '-',
-        previous: event.previous || '-',
-        date: new Date(event.eventDate || Date.now()).toLocaleDateString('en-US', { 
-          month: 'short', 
-          day: 'numeric' 
-        }).toUpperCase(),
-        importance: event.importance || 'medium'
-      }))
+      // FIX: Handle both possible field names and filter properly
+      economicEvents: (economicEvents || [])
+        .filter((event: any) => {
+          // Check if event has actual data
+          const hasActual = event.actual && event.actual !== 'N/A' && event.actual.trim() !== '';
+          console.log(`Event ${event.title}: actual=${event.actual}, hasActual=${hasActual}`);
+          return hasActual;
+        })
+        .slice(0, 10)
+        .map((event: any) => {
+          // Handle both 'eventDate' and 'date' field names
+          const eventDate = event.eventDate || event.date;
+          const formattedDate = new Date(eventDate).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric' 
+          }).toUpperCase();
+          
+          return {
+            title: event.title || 'Economic Event',
+            category: this.getCategoryDisplay(event.category || 'Other'),
+            actual: event.actual || 'N/A',
+            forecast: event.forecast || '-',
+            variance: this.calculateVarianceForEmail(event.actual, event.forecast),
+            previous: event.previous || '-',
+            date: formattedDate,
+            importance: event.importance || 'medium'
+          };
+        })
     };
 
     return generateDashboardMatchingEmailTemplate(emailData);
+  }
+
+  // Add helper method for variance calculation
+  private calculateVarianceForEmail(actual: string, forecast: string): string {
+    if (!actual || !forecast || actual === 'N/A' || forecast === '-') return '-';
+    
+    try {
+      // Handle different formats (K, M, %)
+      let actualValue = parseFloat(actual.replace(/[^\d.-]/g, ''));
+      let forecastValue = parseFloat(forecast.replace(/[^\d.-]/g, ''));
+      
+      // Handle K/M suffixes
+      if (actual.includes('K')) actualValue *= 1000;
+      if (actual.includes('M')) actualValue *= 1000000;
+      if (forecast.includes('K')) forecastValue *= 1000;
+      if (forecast.includes('M')) forecastValue *= 1000000;
+      
+      if (isNaN(actualValue) || isNaN(forecastValue)) return '-';
+      
+      const variance = actualValue - forecastValue;
+      
+      // Format variance to match original format
+      if (actual.includes('K')) {
+        const formattedValue = Math.abs(variance / 1000).toFixed(0);
+        return variance > 0 ? `+${formattedValue}K` : `-${formattedValue}K`;
+      } else if (actual.includes('M')) {
+        return variance > 0 ? `+${(variance/1000000).toFixed(2)}M` : `${(variance/1000000).toFixed(2)}M`;
+      } else if (actual.includes('%')) {
+        return variance > 0 ? `+${variance.toFixed(1)}%` : `${variance.toFixed(1)}%`;
+      } else {
+        return variance > 0 ? `+${variance.toFixed(1)}` : `${variance.toFixed(1)}`;
+      }
+    } catch (error) {
+      console.error('Error calculating variance:', error);
+      return '-';
+    }
   }
 
   // Add helper method for category display
