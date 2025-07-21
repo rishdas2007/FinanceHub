@@ -35,7 +35,7 @@ interface CacheStats {
 export function BayesianAnalysis() {
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Query for Bayesian analysis with better error handling
+  // Query for Bayesian analysis with debugging
   const {
     data: analysis,
     isLoading,
@@ -43,10 +43,29 @@ export function BayesianAnalysis() {
     refetch: refetchAnalysis
   } = useQuery<BayesianAnalysis>({
     queryKey: ['/api/bayesian-analysis', refreshKey],
-    staleTime: 30000, // Cache for 30 seconds to reduce API calls
+    queryFn: async () => {
+      console.log('🔍 Making request to:', window.location.origin + '/api/bayesian-analysis');
+      
+      const response = await fetch('/api/bayesian-analysis');
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      const textResponse = await response.text();
+      console.log('📄 Raw response (first 200 chars):', textResponse.substring(0, 200));
+      
+      // Try to parse as JSON
+      try {
+        return JSON.parse(textResponse);
+      } catch (e) {
+        console.error('❌ Failed to parse JSON:', e);
+        console.error('📄 Full response:', textResponse);
+        throw new Error(`Received HTML instead of JSON: ${textResponse.substring(0, 100)}`);
+      }
+    },
+    staleTime: 30000,
     refetchOnMount: true,
-    retry: 2, // Retry twice on failure
-    retryDelay: 1000, // Wait 1 second between retries
+    retry: 2,
+    retryDelay: 1000,
   });
 
   // Query for cache statistics

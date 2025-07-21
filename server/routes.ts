@@ -14,6 +14,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add API logging middleware
   app.use('/api', apiLogger);
   
+  // Add route debugging middleware
+  app.use('/api/*', (req, res, next) => {
+    console.log(`🔍 API Request: ${req.method} ${req.path}`);
+    console.log(`🔍 Full URL: ${req.originalUrl}`);
+    next();
+  });
+  
   // Register comprehensive FRED routes
   registerComprehensiveFredRoutes(app);
 
