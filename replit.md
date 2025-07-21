@@ -4,9 +4,27 @@
 
 FinanceHub Pro is a comprehensive financial dashboard application built as a full-stack TypeScript application. It provides real-time market data, technical analysis, AI-powered market insights, and comprehensive financial tracking capabilities. The application features a modern React frontend with shadcn/ui components and an Express.js backend with PostgreSQL database integration.
 
+## Recent Changes (July 21, 2025)
+
+### ENHANCED ECONOMIC DATA SCRAPING SYSTEM IMPLEMENTED (July 21, 2025 - Latest Update)
+- **COMPREHENSIVE SCRAPING ARCHITECTURE**: Successfully implemented enhanced economic data scraping system with two new powerful scrapers
+- **ENHANCED MARKETWATCH SCRAPER**: Created `enhanced-marketwatch-scraper.ts` with advanced actual readings capture and multi-layout parsing
+- **INVESTING.COM INTEGRATION**: Implemented `investing-scraper.ts` for comprehensive US economic events with medium/high importance filtering
+- **COMPREHENSIVE DATA SERVICE**: Built `comprehensive-economic-data.ts` that integrates all sources (enhanced scrapers + FRED API + reliable calendar)
+- **INTELLIGENT DATA MERGING**: Advanced deduplication and merging system combines data from multiple sources prioritizing actual readings
+- **NEW API ENDPOINTS**: Added `/api/economic-events-enhanced` and `/api/economic-data/hybrid` for comprehensive economic data access
+- **ENHANCED ROUTES SYSTEM**: Created `enhanced-economic-routes.ts` with test endpoints for individual scraper validation
+- **US-ONLY FILTERING**: System automatically filters for US events and medium/high importance only for focused economic analysis
+- **MULTI-SOURCE RELIABILITY**: Combines enhanced MarketWatch scraping, Investing.com data, FRED API, and reliable calendar fallback
+- **ACTUAL READINGS PRIORITY**: System prioritizes events with actual economic readings over forecast-only events
+- **COMPREHENSIVE TESTING**: Added test endpoints for validating enhanced MarketWatch scraper and Investing.com scraper individually
+- **FALLBACK INTEGRATION**: Seamless fallback to reliable calendar when enhanced scraping encounters issues
+- **CACHE OPTIMIZATION**: 2-hour caching for comprehensive data with manual cache clearing capabilities
+- **STATUS**: Enhanced economic data scraping system fully operational with comprehensive multi-source data integration
+
 ## Recent Changes (July 20, 2025)
 
-### EMAIL SYSTEM CONSOLIDATED COMMENTARY UPDATE COMPLETED (July 20, 2025 - Latest Update)
+### EMAIL SYSTEM CONSOLIDATED COMMENTARY UPDATE COMPLETED (July 20, 2025)
 - **EMAIL ANALYSIS GENERATION FIXED**: Resolved critical issue where thematic analysis was timing out/failing, causing empty email sections
 - **RELIABLE EMAIL ANALYSIS**: Implemented streamlined analysis generation specifically optimized for email delivery reliability
 - **CONTENT VALIDATION CONFIRMED**: Email logs now show successful analysis generation with proper content lengths (96-310 characters per section)

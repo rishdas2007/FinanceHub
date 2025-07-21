@@ -7,10 +7,14 @@ import { getMarketHoursInfo } from '@shared/utils/marketHours';
 import { CACHE_DURATIONS } from '@shared/constants';
 
 import { apiLogger, getApiStats } from "./middleware/apiLogger";
+import { registerEnhancedEconomicRoutes } from "./routes/enhanced-economic-routes.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add API logging middleware
   app.use('/api', apiLogger);
+  
+  // Register enhanced economic routes
+  registerEnhancedEconomicRoutes(app);
 
   // API stats endpoint
   app.get("/api/stats", (req, res) => {
@@ -661,6 +665,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching economic events:', error);
       res.status(500).json({ message: 'Failed to fetch economic events' });
+    }
+  });
+
+  // Enhanced Economic Events API - Comprehensive data from multiple sources
+  app.get("/api/economic-events-enhanced", async (req, res) => {
+    try {
+      console.log('🔍 Fetching comprehensive economic data from multiple sources...');
+      
+      const { ComprehensiveEconomicDataService } = await import('./services/comprehensive-economic-data');
+      const comprehensiveService = ComprehensiveEconomicDataService.getInstance();
+      
+      // Get comprehensive economic data from enhanced scrapers
+      const comprehensiveData = await comprehensiveService.getComprehensiveEconomicData();
+      
+      // Transform to API response format for compatibility
+      const events = comprehensiveData.map((event, index) => ({
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        importance: event.importance,
+        eventDate: event.date,
+        forecast: event.forecast,
+        previous: event.previous,
+        actual: event.actual,
+        country: event.country,
+        category: event.category,
+        source: event.source,
+        impact: event.impact,
+        timestamp: new Date()
+      }));
+      
+      console.log(`✅ Enhanced Economic Events: ${events.length} events from multiple sources`);
+      console.log(`📊 With actual readings: ${events.filter(e => e.actual).length}`);
+      console.log(`📈 High importance: ${events.filter(e => e.importance === 'high').length}`);
+      console.log(`🔍 Sources: ${[...new Set(events.map(e => e.source))].join(', ')}`);
+      
+      res.json(events);
+    } catch (error) {
+      console.error('❌ Error fetching enhanced economic events:', error);
+      res.status(500).json({ message: 'Failed to fetch enhanced economic events' });
     }
   });
 
