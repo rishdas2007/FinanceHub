@@ -35,7 +35,7 @@ interface CacheStats {
 export function BayesianAnalysis() {
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Query for Bayesian analysis
+  // Query for Bayesian analysis with better error handling
   const {
     data: analysis,
     isLoading,
@@ -43,8 +43,10 @@ export function BayesianAnalysis() {
     refetch: refetchAnalysis
   } = useQuery<BayesianAnalysis>({
     queryKey: ['/api/bayesian-analysis', refreshKey],
-    staleTime: 0, // Always fetch fresh data
-    refetchOnMount: true
+    staleTime: 30000, // Cache for 30 seconds to reduce API calls
+    refetchOnMount: true,
+    retry: 2, // Retry twice on failure
+    retryDelay: 1000, // Wait 1 second between retries
   });
 
   // Query for cache statistics
@@ -111,8 +113,11 @@ export function BayesianAnalysis() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-red-300 text-sm">
+          <p className="text-red-300 text-sm mb-2">
             Failed to load Bayesian analysis. Please try again.
+          </p>
+          <p className="text-red-400 text-xs mb-3 font-mono">
+            {error instanceof Error ? error.message : 'Network error occurred'}
           </p>
           <Button 
             onClick={handleRefresh}
