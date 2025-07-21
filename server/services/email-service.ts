@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { FinancialDataService } from './financial-data';
 import { EnhancedAIAnalysisService } from './enhanced-ai-analysis';
 import { generateRichEmailTemplate } from './rich-email-template';
+import { generateDashboardMatchingEmailTemplate, EmailAnalysisData } from './dashboard-email-template.js';
 
 const SENDGRID_ENABLED = !!process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.length > 10;
 
@@ -117,7 +118,7 @@ export class EmailService {
         return;
       }
 
-      const emailTemplate = this.generateDailyEmailTemplate(analysisData);
+      const emailTemplate = this.generateComprehensiveEmailTemplate(analysisData);
 
       // Send emails in batches to avoid rate limits
       const batchSize = 10;
@@ -203,139 +204,73 @@ export class EmailService {
     }
   }
 
-  private generateDailyEmailTemplate(analysisData: any): string {
+  private generateComprehensiveEmailTemplate(analysisData: any): string {
     const { analysis, currentStock, sentiment, technical, sectors, economicEvents } = analysisData;
     
-    const date = new Date().toLocaleDateString('en-US', { 
-      weekday: 'long',
-      month: 'long', 
-      day: 'numeric', 
-      year: 'numeric' 
-    });
+    // Transform data to match the new template interface
+    const emailData: EmailAnalysisData = {
+      analysis: {
+        bottomLine: analysis?.bottomLine || 'Market analysis in progress...',
+        dominantTheme: analysis?.dominantTheme || 'Mixed signals',
+        setup: analysis?.setup || 'Current market conditions are developing...',
+        evidence: analysis?.evidence || 'Technical indicators show neutral readings...',
+        implications: analysis?.implications || 'Continue monitoring key levels...',
+        confidence: analysis?.confidence || 0.7,
+        timestamp: analysis?.timestamp || new Date().toISOString()
+      },
+      currentStock: {
+        price: parseFloat(currentStock?.price || '0').toFixed(2),
+        changePercent: parseFloat(currentStock?.changePercent || '0').toFixed(2)
+      },
+      sentiment: {
+        vix: parseFloat(sentiment?.vix || '0').toFixed(1),
+        aaiiBullish: parseFloat(sentiment?.aaiiBullish || '0').toFixed(1)
+      },
+      sectorData: (sectors || []).map((sector: any) => ({
+        name: sector.name || sector.symbol,
+        symbol: sector.symbol || 'N/A',
+        price: parseFloat(sector.price || '0'),
+        changePercent: parseFloat(sector.changePercent || '0'),
+        fiveDayChange: parseFloat(sector.fiveDayChange || '0'),
+        oneMonthChange: parseFloat(sector.oneMonthChange || '0')
+      })),
+      economicEvents: (economicEvents || []).slice(0, 10).map((event: any) => ({
+        title: event.title || 'Economic Event',
+        category: this.getCategoryDisplay(event.category || 'Other'),
+        actual: event.actual || 'N/A',
+        forecast: event.forecast || '-',
+        variance: event.variance || '-',
+        previous: event.previous || '-',
+        date: new Date(event.eventDate || Date.now()).toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric' 
+        }).toUpperCase(),
+        importance: event.importance || 'medium'
+      }))
+    };
 
-    return `
-      <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; background: #f8f9fa;">
-        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 20px;">
-          <h1 style="color: #4ade80; margin: 0 0 10px 0; font-size: 28px;">FinanceHub Pro</h1>
-          <h2 style="color: #e5e7eb; margin: 0 0 20px 0; font-size: 18px; font-weight: normal;">Daily Market Commentary - ${date}</h2>
-          
-          <!-- Market Overview -->
-          <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; text-align: center;">
-              <div>
-                <div style="color: #9ca3af; font-size: 12px;">S&P 500</div>
-                <div style="color: ${parseFloat(currentStock?.changePercent || '0') >= 0 ? '#4ade80' : '#ef4444'}; font-size: 18px; font-weight: bold;">
-                  $${parseFloat(currentStock?.price || '0').toFixed(2)}
-                </div>
-                <div style="color: ${parseFloat(currentStock?.changePercent || '0') >= 0 ? '#4ade80' : '#ef4444'}; font-size: 14px;">
-                  ${parseFloat(currentStock?.changePercent || '0') >= 0 ? '+' : ''}${parseFloat(currentStock?.changePercent || '0').toFixed(2)}%
-                </div>
-              </div>
-              <div>
-                <div style="color: #9ca3af; font-size: 12px;">VIX</div>
-                <div style="color: #fbbf24; font-size: 18px; font-weight: bold;">
-                  ${parseFloat(sentiment?.vix || '0').toFixed(1)}
-                </div>
-              </div>
-              <div>
-                <div style="color: #9ca3af; font-size: 12px;">RSI</div>
-                <div style="color: ${parseFloat(technical?.rsi || '0') > 70 ? '#fbbf24' : '#4ade80'}; font-size: 18px; font-weight: bold;">
-                  ${parseFloat(technical?.rsi || '0').toFixed(1)}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+    return generateDashboardMatchingEmailTemplate(emailData);
+  }
 
-        <!-- Analysis Content -->
-        <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-          <!-- Bottom Line -->
-          <div style="border-left: 4px solid #4ade80; padding-left: 20px; margin-bottom: 25px;">
-            <h3 style="color: #1f2937; margin: 0 0 10px 0; font-size: 16px;">Bottom Line</h3>
-            <p style="color: #374151; line-height: 1.6; margin: 0; font-size: 15px;">
-              ${this.formatMetricsInHTML(analysis?.bottomLine || 'Market analysis unavailable')}
-            </p>
-            <div style="margin-top: 10px; font-size: 12px; color: #6b7280;">
-              Theme: <strong>${analysis?.dominantTheme || 'N/A'}</strong> • ${Math.round((analysis?.confidence || 0) * 100)}% Confidence
-            </div>
-          </div>
+  // Add helper method for category display
+  private getCategoryDisplay(category: string): string {
+    const categoryMap: Record<string, string> = {
+      'employment': 'Labor Market',
+      'inflation': 'Inflation',
+      'growth': 'Growth',
+      'consumer_spending': 'Growth',
+      'housing': 'Growth',
+      'manufacturing': 'Growth',
+      'services': 'Growth',
+      'sentiment': 'Sentiment',
+      'monetary_policy': 'Monetary Policy'
+    };
+    return categoryMap[category] || 'Other';
+  }
 
-          <!-- Market Setup -->
-          <div style="border-left: 4px solid #10b981; padding-left: 20px; margin-bottom: 25px;">
-            <h3 style="color: #1f2937; margin: 0 0 10px 0; font-size: 16px;">📊 Market Setup</h3>
-            <p style="color: #374151; line-height: 1.6; margin: 0; font-size: 14px;">
-              ${this.formatMetricsInHTML(analysis?.setup || 'Market setup unavailable')}
-            </p>
-          </div>
-
-          <!-- Evidence -->
-          <div style="border-left: 4px solid #3b82f6; padding-left: 20px; margin-bottom: 25px;">
-            <h3 style="color: #1f2937; margin: 0 0 10px 0; font-size: 16px;">🔍 Evidence</h3>
-            <p style="color: #374151; line-height: 1.6; margin: 0 15px 0 0; font-size: 14px;">
-              ${this.formatMetricsInHTML(analysis?.evidence || 'Evidence unavailable')}
-            </p>
-            
-            <!-- Recent Economic Readings -->
-            ${economicEvents && economicEvents.length > 0 ? `
-              <div style="background: #f3f4f6; padding: 15px; border-radius: 6px; margin-top: 15px; border-left: 3px solid #3b82f6;">
-                <h4 style="color: #3b82f6; margin: 0 0 10px 0; font-size: 13px; font-weight: bold;">Recent Economic Readings</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
-                  ${economicEvents
-                    .filter((event: any) => event.actual && event.forecast)
-                    .slice(0, 4)
-                    .map((event: any) => `
-                      <div style="color: #374151;">
-                        • ${event.title}: <strong style="color: #3b82f6;">${event.actual}</strong> vs <span style="color: #6b7280;">${event.forecast}</span> forecast
-                      </div>
-                    `).join('')}
-                </div>
-              </div>
-            ` : ''}
-          </div>
-
-          <!-- Implications -->
-          <div style="border-left: 4px solid #f59e0b; padding-left: 20px; margin-bottom: 25px;">
-            <h3 style="color: #1f2937; margin: 0 0 10px 0; font-size: 16px;">💡 Implications</h3>
-            <p style="color: #374151; line-height: 1.6; margin: 0; font-size: 14px;">
-              ${this.formatMetricsInHTML(analysis?.implications || 'Implications unavailable')}
-            </p>
-          </div>
-
-          <!-- Key Metrics -->
-          <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h4 style="color: #1f2937; margin: 0 0 15px 0; font-size: 14px;">Key Market Metrics</h4>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; font-size: 12px;">
-              <div style="text-align: center;">
-                <div style="color: #6b7280;">MACD</div>
-                <div style="color: #1f2937; font-weight: bold;">${parseFloat(technical?.macd || '0').toFixed(3)}</div>
-              </div>
-              <div style="text-align: center;">
-                <div style="color: #6b7280;">Put/Call</div>
-                <div style="color: #1f2937; font-weight: bold;">${parseFloat(sentiment?.putCallRatio || '0').toFixed(2)}</div>
-              </div>
-              <div style="text-align: center;">
-                <div style="color: #6b7280;">AAII Bull%</div>
-                <div style="color: #1f2937; font-weight: bold;">${parseFloat(sentiment?.aaiiBullish || '0').toFixed(1)}%</div>
-              </div>
-              <div style="text-align: center;">
-                <div style="color: #6b7280;">Confidence</div>
-                <div style="color: #1f2937; font-weight: bold;">${Math.round((analysis?.confidence || 0) * 100)}%</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Footer -->
-        <div style="text-align: center; padding: 20px; color: #6b7280; font-size: 12px;">
-          <p style="margin: 0 0 10px 0;">Powered by GPT-4o • Real Market Data • Professional Analysis</p>
-          <p style="margin: 0;">
-            <a href="${process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` : 'http://localhost:5000'}/api/email/unsubscribe/{{UNSUBSCRIBE_TOKEN}}" style="color: #6b7280; text-decoration: underline;">
-              Unsubscribe from daily emails
-            </a>
-          </p>
-        </div>
-      </div>
-    `;
+  // Legacy method maintained for compatibility
+  private generateDailyEmailTemplate(analysisData: any): string {
+    return this.generateComprehensiveEmailTemplate(analysisData);
   }
 
   private formatMetricsInHTML(text: string): string {
@@ -345,7 +280,7 @@ export class EmailService {
 
   // Public method to generate email template for testing
   public generateTestEmailTemplate(analysisData: any): string {
-    return this.generateDailyEmailTemplate(analysisData);
+    return this.generateComprehensiveEmailTemplate(analysisData);
   }
 }
 
