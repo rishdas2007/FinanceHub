@@ -128,6 +128,60 @@ export function registerComprehensiveFredRoutes(app: Express): void {
     }
   });
 
+  // Test deduplication system
+  app.get("/api/test/deduplication", async (req, res) => {
+    try {
+      console.log('🧪 Testing deduplication system...');
+      
+      const { economicDataEnhancedService } = await import('../services/economic-data-enhanced.js');
+      
+      const enhancedEvents = await economicDataEnhancedService.getEnhancedEconomicEvents();
+      
+      // Analyze duplicates by title
+      const titleAnalysis = enhancedEvents.reduce((acc, event) => {
+        const normalizedTitle = event.title.toLowerCase().replace(/[\s\-_]+/g, ' ').trim();
+        if (!acc[normalizedTitle]) {
+          acc[normalizedTitle] = [];
+        }
+        acc[normalizedTitle].push({
+          source: event.source,
+          actual: event.actual,
+          forecast: event.forecast,
+          importance: event.importance
+        });
+        return acc;
+      }, {} as Record<string, any[]>);
+
+      const duplicateAnalysis = Object.entries(titleAnalysis)
+        .filter(([_, events]) => events.length > 1)
+        .map(([title, events]) => ({ title, count: events.length, events }));
+
+      res.json({
+        success: true,
+        totalEvents: enhancedEvents.length,
+        fredSources: enhancedEvents.filter(e => e.source === 'fred_api').length,
+        reliableSources: enhancedEvents.filter(e => e.source.includes('reliable')).length,
+        eventsWithActual: enhancedEvents.filter(e => e.actual && e.actual !== 'N/A').length,
+        duplicatesFound: duplicateAnalysis.length,
+        duplicateDetails: duplicateAnalysis.slice(0, 5), // Show first 5 examples
+        deduplicationSuccess: duplicateAnalysis.length === 0,
+        sampleEvents: enhancedEvents.slice(0, 10).map(e => ({
+          title: e.title,
+          source: e.source,
+          actual: e.actual,
+          importance: e.importance
+        }))
+      });
+    } catch (error) {
+      console.error('❌ Deduplication test failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Deduplication test failed' 
+      });
+    }
+  });
+
   // Hybrid economic data with FRED priority
   app.get("/api/economic-data/fred-hybrid", async (req, res) => {
     try {

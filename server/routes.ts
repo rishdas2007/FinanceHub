@@ -617,25 +617,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Economic events API - Now powered by reliable calendar service
+  // Economic events API - Enhanced with FRED priority and deduplication
   app.get("/api/economic-events", async (req, res) => {
     try {
-      console.log('Fetching economic calendar events from reliable calendar...');
+      console.log('🔄 Fetching enhanced economic events with FRED API priority and deduplication...');
+      
+      const { economicDataEnhancedService } = await import('./services/economic-data-enhanced.js');
+      
+      const enhancedEvents = await economicDataEnhancedService.getEnhancedEconomicEvents();
       
       // Parse query parameters for filtering
-      const { start_date, end_date, importance, category } = req.query;
-      
-      // Get economic events from reliable calendar service
-      const { simplifiedEconomicCalendarService } = await import('./services/simplified-economic-calendar');
-      
-      // Get calendar events optimized for display
-      const economicData = await simplifiedEconomicCalendarService.getCalendarEvents();
-      
-      console.log(`Raw events from reliable calendar: ${economicData.length}`);
-      console.log('Debug - First few events:', economicData.slice(0, 2));
+      const { importance, category } = req.query;
       
       // Apply filters if provided
-      let filteredEvents = economicData;
+      let filteredEvents = enhancedEvents;
       
       if (importance) {
         filteredEvents = filteredEvents.filter(e => e.importance === importance);
@@ -647,7 +642,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Transform to API response format
       const events = filteredEvents.map((event, index) => ({
-        id: Math.floor(Math.random() * 1000000) + index,
+        id: event.id,
         title: event.title,
         description: event.description,
         importance: event.importance,
@@ -658,14 +653,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         country: event.country,
         category: event.category,
         source: event.source,
+        impact: event.impact,
         timestamp: new Date()
       }));
       
-      console.log(`Returning ${events.length} reliable economic events (US medium/high importance events)`);
-      res.json(events); // Keep simple for frontend compatibility
+      console.log(`✅ Enhanced Economic Events: ${events.length} deduplicated events`);
+      console.log(`🏛️ FRED API sources: ${events.filter(e => e.source === 'fred_api').length}`);
+      console.log(`📋 Reliable calendar sources: ${events.filter(e => e.source.includes('reliable')).length}`);
+      console.log(`📊 With actual readings: ${events.filter(e => e.actual && e.actual !== 'N/A').length}`);
+      
+      res.json(events);
     } catch (error) {
-      console.error('Error fetching economic events:', error);
-      res.status(500).json({ message: 'Failed to fetch economic events' });
+      console.error('❌ Enhanced economic events error:', error);
+      res.status(500).json({ message: 'Failed to fetch enhanced economic events' });
     }
   });
 
