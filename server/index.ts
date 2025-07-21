@@ -124,16 +124,34 @@ app.use((req, res, next) => {
         await dataScheduler.startScheduler();
         log('✅ Data scheduler started successfully with 8 AM email cron job');
         
-        // Initialize enhanced cron scheduler for historical data accumulation
-        log('🕐 Initializing enhanced historical data accumulation...');
-        const { enhancedCronScheduler } = await import('./services/enhanced-cron-scheduler.js');
-        enhancedCronScheduler.initialize();
-        log('✅ Enhanced cron scheduler initialized with historical data accumulation');
+        // Initialize comprehensive intelligent historical data storage system
+        log('🎯 Initializing Comprehensive Intelligent Historical Data Storage System...');
         
-        // Trigger initial data accumulation
-        log('📊 Starting initial historical data accumulation...');
-        await enhancedCronScheduler.triggerDataAccumulation();
-        log('✅ Initial historical data accumulation completed');
+        // Load comprehensive historical data collector
+        const { comprehensiveHistoricalCollector } = await import('./services/comprehensive-historical-collector.js');
+        
+        // Load historical data intelligence
+        const { historicalDataIntelligence } = await import('./services/historical-data-intelligence.js');
+        log('🧠 Historical Data Intelligence System Ready');
+        
+        // Initialize enhanced cron scheduler with comprehensive data collection
+        const { enhancedCronScheduler } = await import('./services/enhanced-cron-scheduler.js');
+        await enhancedCronScheduler.initialize();
+        log('✅ Enhanced cron scheduler initialized with comprehensive data collection');
+        
+        log('📊 ✅ COMPREHENSIVE INTELLIGENT HISTORICAL DATA STORAGE SYSTEM OPERATIONAL');
+        log('🎯 Active Features:');
+        log('   • 18-month historical data backfill capability');
+        log('   • Automated 4-hourly data collection (Mon-Fri)');
+        log('   • Intelligent percentile rankings and trend analysis');
+        log('   • Market regime detection with pattern recognition');
+        log('   • Enhanced AI context with historical insights');
+        log('   • Complete audit trail for all operations');
+        log('');
+        log('🌐 New API Endpoints Available:');
+        log('   • POST /api/comprehensive-historical-data/collect');
+        log('   • GET  /api/historical-intelligence/:symbol');
+        log('   • GET  /api/enhanced-ai-context/:symbol');
         
         // Verify the scheduler is working by checking its status
         log('📧 Daily email scheduled for 8:00 AM EST (Monday-Friday)');

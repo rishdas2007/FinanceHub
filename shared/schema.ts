@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, jsonb, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, jsonb, unique, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -223,12 +223,98 @@ export const narrativeMemory = pgTable("narrative_memory", {
   themeGroup: text("theme_group").notNull(), // risk_on_off, inflation_cycle, etc.
   narrativeThread: text("narrative_thread").notNull(), // The ongoing story
   keyEvents: jsonb("key_events"), // Timeline of supporting events
-  themeStrength: decimal("theme_strength", { precision: 3, scale: 2 }).notNull(),
-  lastMentioned: timestamp("last_mentioned").notNull(),
-  themeStart: timestamp("theme_start").notNull(),
-  isActive: boolean("is_active").default(true),
-  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  lastUpdated: timestamp("last_updated").notNull().defaultNow(),
+  confidence: decimal("confidence", { precision: 3, scale: 2 }).notNull().default('0.5'),
 });
+
+// Enhanced Historical Tables for Twelve Data Metrics
+export const historicalTechnicalIndicators = pgTable("historical_technical_indicators", {
+  id: serial("id").primaryKey(),
+  symbol: text("symbol").notNull(),
+  date: timestamp("date").notNull(),
+  rsi: decimal("rsi", { precision: 5, scale: 2 }),
+  macd: decimal("macd", { precision: 8, scale: 4 }),
+  macdSignal: decimal("macd_signal", { precision: 8, scale: 4 }),
+  macdHistogram: decimal("macd_histogram", { precision: 8, scale: 4 }),
+  vwap: decimal("vwap", { precision: 10, scale: 2 }),
+  bollingerUpper: decimal("bollinger_upper", { precision: 10, scale: 2 }),
+  bollingerMiddle: decimal("bollinger_middle", { precision: 10, scale: 2 }),
+  bollingerLower: decimal("bollinger_lower", { precision: 10, scale: 2 }),
+  atr: decimal("atr", { precision: 8, scale: 4 }),
+  adx: decimal("adx", { precision: 5, scale: 2 }),
+  stochK: decimal("stoch_k", { precision: 5, scale: 2 }),
+  stochD: decimal("stoch_d", { precision: 5, scale: 2 }),
+  williamsR: decimal("williams_r", { precision: 5, scale: 2 }),
+  dataSource: text("data_source").notNull().default("twelve_data"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueSymbolDate: unique().on(table.symbol, table.date),
+  symbolIndex: index("idx_historical_tech_symbol").on(table.symbol),
+  dateIndex: index("idx_historical_tech_date").on(table.date),
+}));
+
+export const historicalSectorData = pgTable("historical_sector_data", {
+  id: serial("id").primaryKey(),
+  symbol: text("symbol").notNull(),
+  date: timestamp("date").notNull(),
+  open: decimal("open", { precision: 10, scale: 2 }).notNull(),
+  high: decimal("high", { precision: 10, scale: 2 }).notNull(),
+  low: decimal("low", { precision: 10, scale: 2 }).notNull(),
+  close: decimal("close", { precision: 10, scale: 2 }).notNull(),
+  volume: integer("volume").notNull(),
+  changePercent: decimal("change_percent", { precision: 5, scale: 2 }),
+  dataSource: text("data_source").notNull().default("twelve_data"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueSymbolDate: unique().on(table.symbol, table.date),
+  symbolIndex: index("idx_historical_sector_symbol").on(table.symbol),
+  dateIndex: index("idx_historical_sector_date").on(table.date),
+}));
+
+export const historicalMarketSentiment = pgTable("historical_market_sentiment", {
+  id: serial("id").primaryKey(),
+  date: timestamp("date").notNull(),
+  vix: decimal("vix", { precision: 5, scale: 2 }),
+  vixChange: decimal("vix_change", { precision: 5, scale: 2 }),
+  putCallRatio: decimal("put_call_ratio", { precision: 5, scale: 4 }),
+  fearGreedIndex: integer("fear_greed_index"),
+  aaiiBullish: decimal("aaii_bullish", { precision: 5, scale: 2 }),
+  aaiiBearish: decimal("aaii_bearish", { precision: 5, scale: 2 }),
+  dataSource: text("data_source").notNull().default("twelve_data"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueDate: unique().on(table.date),
+  dateIndex: index("idx_historical_sentiment_date").on(table.date),
+}));
+
+// Data Collection Audit Trail
+export const dataCollectionAudit = pgTable("data_collection_audit", {
+  id: serial("id").primaryKey(),
+  dataType: text("data_type").notNull(), // 'stock_data', 'technical_indicators', 'sector_data'
+  symbol: text("symbol"), // NULL for market-wide data
+  collectionDate: timestamp("collection_date").notNull(),
+  recordsProcessed: integer("records_processed").notNull(),
+  apiCallsUsed: integer("api_calls_used").notNull(),
+  status: text("status").notNull(), // 'success', 'partial', 'failed'
+  errorMessage: text("error_message"),
+  dataRangeStart: timestamp("data_range_start"),
+  dataRangeEnd: timestamp("data_range_end"),
+  processingTimeMs: integer("processing_time_ms"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  dataTypeIndex: index("idx_audit_data_type").on(table.dataType),
+  collectionDateIndex: index("idx_audit_collection_date").on(table.collectionDate),
+}));
+
+// Export type definitions for the new historical tables
+export type HistoricalTechnicalIndicator = typeof historicalTechnicalIndicators.$inferSelect;
+export type InsertHistoricalTechnicalIndicator = typeof historicalTechnicalIndicators.$inferInsert;
+export type HistoricalSectorData = typeof historicalSectorData.$inferSelect;
+export type InsertHistoricalSectorData = typeof historicalSectorData.$inferInsert;
+export type HistoricalMarketSentiment = typeof historicalMarketSentiment.$inferSelect;
+export type InsertHistoricalMarketSentiment = typeof historicalMarketSentiment.$inferInsert;
+export type DataCollectionAudit = typeof dataCollectionAudit.$inferSelect;
+export type InsertDataCollectionAudit = typeof dataCollectionAudit.$inferInsert;
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,

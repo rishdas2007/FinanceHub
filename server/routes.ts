@@ -596,7 +596,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate enhanced AI analysis with trader-style formatting and economic integration
       const { EnhancedAIAnalysisService } = await import('./services/enhanced-ai-analysis');
       const enhancedAiService = EnhancedAIAnalysisService.getInstance();
-      const aiResult = await enhancedAiService.generateAnalysis(enhancedMarketData, finalSectors, economicEvents);
+      const aiResult = await enhancedAiService.generateRobustMarketAnalysis ? 
+        await enhancedAiService.generateRobustMarketAnalysis(enhancedMarketData, finalSectors, economicEvents) :
+        await enhancedAiService.generateAnalysisWithHistoricalContext(enhancedMarketData, finalSectors, economicEvents);
       console.log('✅ Enhanced AI analysis generated with trader-style insights');
       
       const analysisData = await storage.createAiAnalysis({
@@ -1218,7 +1220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { financialDataService } = await import('./services/financial-data');
       
       const stockData = await financialDataService.getStockQuote('SPY');
-      const sentimentData = await financialDataService.getMarketSentiment();
+      const sentimentData = await financialDataService.getRealMarketSentiment();
       const technicalData = await financialDataService.getTechnicalIndicators('SPY');
       
       return {
@@ -1285,6 +1287,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         success: false, 
         error: 'Failed to accumulate historical data',
+        message: errorMessage 
+      });
+    }
+  });
+
+  // Comprehensive Historical Data Collection API
+  app.post("/api/comprehensive-historical-data/collect", async (req, res) => {
+    try {
+      console.log('🎯 Starting comprehensive historical data collection...');
+      
+      const { comprehensiveHistoricalCollector } = await import('./services/comprehensive-historical-collector.js');
+      const { lookbackMonths = 18, symbolList } = req.body;
+      
+      await comprehensiveHistoricalCollector.collectComprehensiveHistory(symbolList, lookbackMonths);
+      
+      res.json({
+        success: true,
+        message: 'Comprehensive historical data collection completed',
+        lookbackMonths,
+        symbolCount: symbolList?.length || 'default',
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('❌ Comprehensive historical collection failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to collect comprehensive historical data',
+        message: errorMessage 
+      });
+    }
+  });
+
+  // Daily Historical Update API  
+  app.post("/api/comprehensive-historical-data/daily-update", async (req, res) => {
+    try {
+      console.log('🌅 Starting daily historical data update...');
+      
+      const { comprehensiveHistoricalCollector } = await import('./services/comprehensive-historical-collector.js');
+      await comprehensiveHistoricalCollector.performDailyUpdate();
+      
+      res.json({
+        success: true,
+        message: 'Daily historical data update completed',
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('❌ Daily historical update failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to update daily historical data',
+        message: errorMessage 
+      });
+    }
+  });
+
+  // Historical Analysis Intelligence API
+  app.get("/api/historical-intelligence/:symbol?", async (req, res) => {
+    try {
+      const symbol = req.params.symbol || 'SPY';
+      console.log(`🧠 Generating historical intelligence for ${symbol}...`);
+      
+      const { historicalDataIntelligence } = await import('./services/historical-data-intelligence.js');
+      const insights = await historicalDataIntelligence.generateIntelligentInsights(symbol);
+      
+      res.json({
+        success: true,
+        symbol,
+        insights,
+        generatedAt: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('❌ Historical intelligence generation failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to generate historical intelligence',
+        message: errorMessage 
+      });
+    }
+  });
+
+  // Enhanced AI Context API with Historical Intelligence
+  app.get("/api/enhanced-ai-context/:symbol?", async (req, res) => {
+    try {
+      const symbol = req.params.symbol || 'SPY';
+      console.log(`🤖 Generating enhanced AI context for ${symbol}...`);
+      
+      const { historicalDataIntelligence } = await import('./services/historical-data-intelligence.js');
+      const context = await historicalDataIntelligence.generateEnhancedAIContext(symbol);
+      
+      res.json({
+        success: true,
+        symbol,
+        context,
+        generatedAt: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('❌ Enhanced AI context generation failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to generate enhanced AI context',
         message: errorMessage 
       });
     }
