@@ -1,6 +1,7 @@
 
 
 import { AIAnalysisComponent } from "@/components/ai-analysis";
+import { BayesianAnalysis } from "@/components/bayesian-analysis";
 import { MarketBreadth } from "@/components/market-breadth";
 import { SectorTracker } from "@/components/sector-tracker";
 import { AAIISentiment } from "@/components/aaii-sentiment";
@@ -60,6 +61,9 @@ export default function Dashboard() {
 
         {/* AI Market Commentary */}
         <AIAnalysisComponent />
+
+        {/* Sophisticated Bayesian Analysis */}
+        <BayesianAnalysis />
 
         {/* Market Breadth Indicators */}
         <MarketBreadth />

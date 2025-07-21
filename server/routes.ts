@@ -1426,5 +1426,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bayesian AI Analysis Route - Sophisticated analysis with adaptive depth and cost management
+  app.get('/api/bayesian-analysis', async (req, res) => {
+    try {
+      console.log('🎯 Generating sophisticated Bayesian analysis with adaptive depth...');
+      
+      // Get comprehensive market data using financial data service
+      const [marketData, sectors, economicEvents] = await Promise.all([
+        (async () => {
+          // Use financial data service for real-time data
+          try {
+            const spyQuote = await financialDataService.getStockQuote('SPY');
+            const sentiment = await financialDataService.getRealMarketSentiment();
+            const technical = await financialDataService.getTechnicalIndicators('SPY');
+            
+            return {
+              spy_close: spyQuote.price,
+              spy_change: spyQuote.changePercent,
+              price: spyQuote.price,
+              changePercent: spyQuote.changePercent,
+              vix: sentiment.vix,
+              spy_rsi: technical.rsi || 50,
+              rsi: technical.rsi || 50,
+              aaiiBullish: sentiment.aaiiBullish,
+              spy_macd: technical.macd || 0,
+              macd: technical.macd || 0
+            };
+          } catch (error) {
+            // Fallback to database storage
+            const latestSpy = await storage.getLatestStockData('SPY');
+            const latestSentiment = await storage.getLatestMarketSentiment();
+            const latestTech = await storage.getLatestTechnicalIndicators('SPY');
+            
+            return {
+              spy_close: latestSpy ? parseFloat(latestSpy.price) : 620,
+              spy_change: latestSpy ? parseFloat(latestSpy.changePercent) : 0,
+              price: latestSpy ? parseFloat(latestSpy.price) : 620,
+              changePercent: latestSpy ? parseFloat(latestSpy.changePercent) : 0,
+              vix: latestSentiment ? parseFloat(latestSentiment.vix) : 20,
+              spy_rsi: latestTech ? parseFloat(latestTech.rsi || '50') : 50,
+              rsi: latestTech ? parseFloat(latestTech.rsi || '50') : 50,
+              aaiiBullish: latestSentiment ? parseFloat(latestSentiment.aaiiBullish || '40') : 40,
+              spy_macd: latestTech ? parseFloat(latestTech.macd || '0') : 0,
+              macd: latestTech ? parseFloat(latestTech.macd || '0') : 0
+            };
+          }
+        })(),
+        (async () => {
+          try {
+            return await financialDataService.getSectorETFs();
+          } catch (error) {
+            return await storage.getSectorData ? storage.getSectorData() : [];
+          }
+        })(),
+        (async () => {
+          try {
+            return await storage.getEconomicEvents();
+          } catch (error) {
+            console.log('Using empty economic events array for Bayesian analysis');
+            return [];
+          }
+        })()
+      ]);
+
+      // Generate Bayesian analysis with adaptive depth and smart caching
+      const { EnhancedAIAnalysisService } = await import('./services/enhanced-ai-analysis');
+      const aiService = EnhancedAIAnalysisService.getInstance();
+      const analysis = await aiService.generateBayesianAnalysisWithContext(
+        marketData,
+        sectors,
+        economicEvents
+      );
+
+      // Add performance metadata
+      const cacheStats = aiService.getCacheStats();
+      
+      console.log(`💰 Bayesian analysis completed (${analysis.fromCache ? 'cached' : 'generated'}, confidence: ${analysis.confidence}%)`);
+      
+      res.json({
+        ...analysis,
+        metadata: {
+          generatedAt: new Date().toISOString(),
+          cacheStats: cacheStats,
+          analysisType: analysis.analysisType || 'adaptive',
+          tokenEfficiency: analysis.fromCache ? 'cached' : 'generated',
+          significanceScore: analysis.significanceScore || 'calculated'
+        }
+      });
+      
+    } catch (error) {
+      console.error('❌ Error generating Bayesian analysis:', error);
+      res.status(500).json({ 
+        error: 'Bayesian analysis temporarily unavailable',
+        bottomLine: 'Analysis system processing market conditions with historical context',
+        dominantTheme: 'System maintenance',
+        setup: 'Bayesian analysis system operational with smart caching',
+        evidence: 'Historical percentile system active',
+        implications: 'Comprehensive probability-weighted analysis available shortly',
+        confidence: 50,
+        analysisType: 'fallback'
+      });
+    }
+  });
+
+  // Bayesian Cache Stats Route - For monitoring token efficiency
+  app.get('/api/bayesian-cache-stats', async (req, res) => {
+    try {
+      const { EnhancedAIAnalysisService } = await import('./services/enhanced-ai-analysis');
+      const aiService = EnhancedAIAnalysisService.getInstance();
+      const cacheStats = aiService.getCacheStats();
+      
+      res.json({
+        ...cacheStats,
+        timestamp: new Date().toISOString(),
+        costEfficiency: `${Math.round(cacheStats.validEntries / Math.max(cacheStats.totalEntries, 1) * 100)}% cache hit rate`
+      });
+    } catch (error) {
+      console.error('❌ Error fetching cache stats:', error);
+      res.status(500).json({ error: 'Cache stats unavailable' });
+    }
+  });
+
   return httpServer;
 }

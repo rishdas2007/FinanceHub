@@ -1,11 +1,15 @@
 import { FinancialDataService } from './financial-data.js';
 import { historicalDataIntelligence } from './historical-data-intelligence.js';
+import { SmartCacheService } from './smart-cache-service.js';
+import { AdaptiveAIService } from './adaptive-ai-service.js';
 import OpenAI from 'openai';
 
 export class EnhancedAIAnalysisService {
   private static instance: EnhancedAIAnalysisService;
   private openai: OpenAI;
   private financialDataService: FinancialDataService;
+  private cacheService: SmartCacheService;
+  private adaptiveAI: AdaptiveAIService;
 
   static getInstance(): EnhancedAIAnalysisService {
     if (!EnhancedAIAnalysisService.instance) {
@@ -17,10 +21,56 @@ export class EnhancedAIAnalysisService {
   constructor() {
     this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     this.financialDataService = FinancialDataService.getInstance();
+    this.cacheService = new SmartCacheService();
+    this.adaptiveAI = new AdaptiveAIService();
   }
 
   /**
-   * Generate enhanced market analysis with comprehensive historical context
+   * Generate sophisticated Bayesian analysis with cost-effective token management
+   */
+  async generateBayesianAnalysisWithContext(
+    marketData: any,
+    sectors: any[],
+    economicEvents: any[]
+  ): Promise<any> {
+    try {
+      console.log('🎯 Generating Bayesian analysis with adaptive depth...');
+
+      // Prepare comprehensive market data for Bayesian analysis
+      const enhancedMarketData = {
+        spyPrice: marketData.spy_close || marketData.price || 620,
+        spyChange: marketData.spy_change || marketData.changePercent || 0,
+        vix: marketData.vix || 20,
+        rsi: marketData.spy_rsi || marketData.rsi || 50,
+        aaiiBullish: marketData.aaii_bullish || 40,
+        macd: marketData.spy_macd || marketData.macd || 0,
+        sectors: sectors || [],
+        economicEvents: economicEvents || []
+      };
+
+      // Use smart caching and adaptive analysis
+      const analysis = await this.cacheService.getCachedAnalysisOrGenerate(enhancedMarketData);
+
+      // Add cost tracking information
+      const cacheStats = this.cacheService.getCacheStats();
+      console.log(`💰 Analysis generated (Cache stats: ${cacheStats.validEntries}/${cacheStats.totalEntries} valid entries)`);
+
+      return {
+        ...analysis,
+        cacheStats: cacheStats,
+        timestamp: new Date().toISOString()
+      };
+
+    } catch (error) {
+      console.error('❌ Bayesian analysis failed:', error);
+      
+      // Fallback to simple analysis
+      return this.generateFallbackAnalysis(marketData);
+    }
+  }
+
+  /**
+   * Legacy method maintained for compatibility with existing routes
    */
   async generateAnalysisWithHistoricalContext(
     marketData: any,
@@ -28,49 +78,16 @@ export class EnhancedAIAnalysisService {
     economicEvents: any[]
   ): Promise<{ marketConditions: string; technicalAnalysis: string; economicAnalysis: string; }> {
     try {
-      console.log('🧠 Generating enhanced AI analysis with historical context...');
+      console.log('🧠 Generating enhanced AI analysis (legacy method)...');
 
-      // Get historical intelligence insights
-      const historicalInsights = await historicalDataIntelligence.generateIntelligentInsights('SPY');
-      const historicalContext = await historicalDataIntelligence.generateEnhancedAIContext('SPY');
+      // Use new Bayesian system but return in legacy format
+      const bayesianAnalysis = await this.generateBayesianAnalysisWithContext(marketData, sectors, economicEvents);
 
-      // Build comprehensive analysis prompt with historical data
-      const analysisPrompt = this.buildEnhancedAnalysisPrompt(
-        marketData,
-        sectors,
-        economicEvents,
-        historicalInsights,
-        historicalContext
-      );
-
-      // Generate AI analysis
-      const response = await this.openai.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert Wall Street analyst with access to comprehensive historical market data. Provide professional, data-driven market analysis incorporating historical context and percentile rankings."
-          },
-          {
-            role: "user",
-            content: analysisPrompt
-          }
-        ],
-        max_tokens: 1200,
-        temperature: 0.3
-      });
-
-      const fullAnalysis = response.choices[0].message.content || 'Analysis unavailable';
-
-      // Split analysis into sections
-      const sections = this.parseEnhancedAnalysis(fullAnalysis);
-
-      console.log('✅ Enhanced AI analysis with historical context completed');
-
+      // Convert to legacy format
       return {
-        marketConditions: sections.marketConditions,
-        technicalAnalysis: sections.technicalAnalysis,
-        economicAnalysis: sections.economicAnalysis
+        marketConditions: bayesianAnalysis.bottomLine || 'Market conditions being assessed',
+        technicalAnalysis: `${bayesianAnalysis.setup || 'Technical setup in progress'} ${bayesianAnalysis.evidence || ''}`,
+        economicAnalysis: bayesianAnalysis.implications || 'Economic analysis in progress'
       };
 
     } catch (error) {
@@ -179,7 +196,30 @@ Provide professional Wall Street-style analysis incorporating the historical per
   }
 
   /**
-   * Fallback analysis when AI generation fails
+   * Fallback analysis for Bayesian system failures
+   */
+  private generateFallbackAnalysis(marketData: any): any {
+    console.log('🔄 Generating fallback analysis...');
+    
+    const spyPrice = marketData.spy_close || marketData.price || 620;
+    const spyChange = marketData.spy_change || marketData.changePercent || 0;
+    const vix = marketData.vix || 20;
+    const rsi = marketData.spy_rsi || marketData.rsi || 50;
+
+    return {
+      bottomLine: `Markets ${spyChange >= 0 ? 'advancing' : 'declining'} with SPY at $${spyPrice.toFixed(2)}, showing ${Math.abs(spyChange).toFixed(2)}% movement.`,
+      dominantTheme: spyChange >= 0 ? 'Risk-on sentiment' : 'Cautious positioning',
+      setup: `Current positioning with SPY at $${spyPrice.toFixed(2)}, VIX at ${vix.toFixed(1)} indicating ${vix > 25 ? 'elevated' : vix < 15 ? 'low' : 'moderate'} volatility.`,
+      evidence: `RSI at ${rsi.toFixed(1)} suggests ${rsi > 70 ? 'overbought' : rsi < 30 ? 'oversold' : 'neutral'} conditions. VIX at ${vix.toFixed(1)} shows ${vix > 20 ? 'elevated fear' : 'complacency'}.`,
+      implications: `Monitor key support/resistance levels. ${vix > 25 ? 'High volatility suggests caution.' : 'Moderate volatility allows for selective opportunities.'}`,
+      confidence: 65,
+      timestamp: new Date().toISOString(),
+      analysisType: 'fallback'
+    };
+  }
+
+  /**
+   * Fallback analysis when AI generation fails (legacy format)
    */
   private getFallbackAnalysis(): {
     marketConditions: string;
@@ -202,6 +242,20 @@ Provide professional Wall Street-style analysis incorporating the historical per
     economicEvents: any[]
   ): Promise<{ marketConditions: string; technicalAnalysis: string; economicAnalysis: string; }> {
     return this.generateAnalysisWithHistoricalContext(marketData, sectors, economicEvents);
+  }
+
+  /**
+   * Get cache statistics for monitoring
+   */
+  getCacheStats(): any {
+    if (this.cacheService && this.cacheService.getCacheStats) {
+      return this.cacheService.getCacheStats();
+    }
+    return {
+      validEntries: 0,
+      totalEntries: 0,
+      hitRate: '0%'
+    };
   }
 }
 
