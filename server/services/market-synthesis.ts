@@ -1,6 +1,5 @@
 import OpenAI from 'openai';
 import { logger } from '../utils/logger';
-import { marketDataUnifiedService } from './market-data-unified';
 import { cacheService } from './cache-unified';
 
 const openai = new OpenAI({
@@ -16,7 +15,7 @@ interface MarketSynthesis {
 }
 
 class MarketSynthesisService {
-  private readonly CACHE_KEY = 'market-synthesis';
+  private readonly CACHE_KEY = 'market-synthesis-v3';
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes during market hours
 
   async generateMarketSynthesis(): Promise<MarketSynthesis> {
@@ -35,6 +34,13 @@ class MarketSynthesisService {
       
       // Gather comprehensive market data
       const marketData = await this.gatherMarketData();
+      
+      console.log('🔍 Market data gathered:', {
+        hasEconomic: !!marketData.economic,
+        hasSectors: !!marketData.sectors,
+        hasTechnical: !!marketData.technical,
+        hasSentiment: !!marketData.sentiment
+      });
       
       // Generate synthesis using sophisticated prompting with AI summary context
       const synthesis = await this.generateSynthesisWithAI(marketData, aiSummaryData);
@@ -113,8 +119,8 @@ class MarketSynthesisService {
   private async getAIMarketSummary() {
     try {
       // Import AI analysis service to get existing summary
-      const { aiAnalysisService } = await import('./ai-analysis-unified');
-      const aiSummary = await aiAnalysisService.generateMarketSummary();
+      const { aiSummaryService } = await import('./ai-summary');
+      const aiSummary = await aiSummaryService.generateAISummary();
       return aiSummary;
     } catch (error) {
       logger.error('Failed to get AI market summary', { error });
@@ -123,6 +129,12 @@ class MarketSynthesisService {
   }
 
   private async generateSynthesisWithAI(marketData: any, aiSummaryData?: any): Promise<MarketSynthesis> {
+    console.log('🤖 Starting OpenAI synthesis generation...');
+    console.log('🔍 Input data check:', {
+      hasMarketData: !!marketData,
+      hasAISummary: !!aiSummaryData,
+      sectorCount: marketData?.sectors?.momentumStrategies?.length || 0
+    });
     // Count bullish/bearish/neutral sectors
     const sectorSignals = marketData.sectors?.momentumStrategies || [];
     const bullishCount = sectorSignals.filter((s: any) => 
@@ -188,6 +200,8 @@ ACTION ITEMS
 
 Use the writing style of the example provided. Be specific with ticker symbols, RSI levels, and economic data points.`;
 
+    console.log('🚀 Sending request to OpenAI with prompt length:', prompt.length);
+    
     const response = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [{ role: "user", content: prompt }],
@@ -197,15 +211,40 @@ Use the writing style of the example provided. Be specific with ticker symbols, 
 
     const content = response.choices[0]?.message?.content || '';
     
+    console.log('✅ OpenAI response received, length:', content.length);
+    console.log('📝 OpenAI content preview:', content.substring(0, 200) + '...');
+    
     return this.parseSynthesisResponse(content);
   }
 
   private parseSynthesisResponse(content: string): MarketSynthesis {
     try {
-      // Extract sections using regex patterns
-      const marketPulseMatch = content.match(/MARKET PULSE:\s*(.*?)(?=CRITICAL CATALYSTS:|$)/s);
-      const catalystsMatch = content.match(/CRITICAL CATALYSTS:\s*(.*?)(?=ACTION ITEMS:|$)/s);
-      const actionItemsMatch = content.match(/ACTION ITEMS:\s*(.*?)$/s);
+      console.log('🔍 Parsing synthesis response, content length:', content.length);
+      console.log('📝 Content preview:', content.substring(0, 300));
+      
+      // Handle both markdown formatting (**SECTION**) and plain text (SECTION:)
+      const cleanContent = content.replace(/\*\*([^*]+)\*\*/g, '$1').trim();
+      
+      console.log('🔍 Searching for sections in cleaned content...');
+      console.log('📋 First 200 chars:', cleanContent.substring(0, 200));
+      
+      // Extract sections using more flexible regex patterns with case-insensitive matching
+      const marketPulseMatch = cleanContent.match(/MARKET PULSE[\s:]*\n*(.*?)(?=CRITICAL CATALYSTS|$)/si);
+      const catalystsMatch = cleanContent.match(/CRITICAL CATALYSTS[\s:]*\n*(.*?)(?=ACTION ITEMS|$)/si);
+      const actionItemsMatch = cleanContent.match(/ACTION ITEMS[\s:]*\n*(.*?)$/si);
+      
+      console.log('🎯 Section matches found:', {
+        marketPulse: !!marketPulseMatch,
+        catalysts: !!catalystsMatch,
+        actionItems: !!actionItemsMatch
+      });
+      
+      if (marketPulseMatch) {
+        console.log('📊 Market Pulse extracted:', marketPulseMatch[1]?.trim().substring(0, 150));
+      }
+      if (catalystsMatch) {
+        console.log('⚡ Critical Catalysts extracted:', catalystsMatch[1]?.trim().substring(0, 150));
+      }
 
       const marketPulse = marketPulseMatch?.[1]?.trim() || 
         'Market conditions remain mixed with competing forces at play.';
