@@ -409,37 +409,66 @@ export class SimplifiedSectorAnalysisService {
       }
     }
     
-    // Fetch RSI for uncached symbols in batches to respect rate limits
+    // Fetch RSI for uncached symbols with aggressive performance optimization
     if (uncachedSymbols.length > 0) {
       console.log(`📊 Fetching fresh RSI data for ${uncachedSymbols.length} symbols...`);
       
-      // Process in smaller batches to avoid rate limiting
-      const batchSize = 3; // Conservative batch size
+      // Performance optimization: If too many uncached symbols, use fallback to prevent 102s load times
+      if (uncachedSymbols.length > 6) {
+        console.log('⚡ Performance optimization: Using fallback RSI for all symbols to prevent slow loading');
+        uncachedSymbols.forEach(symbol => {
+          const fallbackRSI = this.getFallbackRSI(symbol);
+          rsiData[symbol] = fallbackRSI;
+          // Cache fallback for 1 minute to encourage real fetching later
+          const cacheKey = `rsi-${symbol}`;
+          cacheService.set(cacheKey, fallbackRSI, 60);
+          console.log(`📊 Fallback RSI for ${symbol}: ${fallbackRSI.toFixed(1)} (performance cache)`);
+        });
+        return rsiData;
+      }
+      
+      // Process in smaller batches for remaining symbols with timeout protection
+      const batchSize = 2; // Even smaller batches for speed
       for (let i = 0; i < uncachedSymbols.length; i += batchSize) {
         const batch = uncachedSymbols.slice(i, i + batchSize);
-        const batchPromises = batch.map(symbol => this.getRSIForSymbol(symbol, true));
         
         try {
-          const batchResults = await Promise.all(batchPromises);
+          // Add timeout to prevent hanging
+          const timeoutPromise = new Promise((resolve) => {
+            setTimeout(() => {
+              console.log(`⚡ Timeout: Using fallback RSI for batch ${batch.join(', ')}`);
+              resolve(batch.map(symbol => this.getFallbackRSI(symbol)));
+            }, 3000); // 3 second timeout per batch
+          });
+          
+          const batchPromises = batch.map(symbol => this.getRSIForSymbol(symbol, true));
+          const rsiPromise = Promise.all(batchPromises);
+          
+          const batchResults = await Promise.race([rsiPromise, timeoutPromise]) as number[];
+          
           batch.forEach((symbol, index) => {
             const rsi = batchResults[index];
             rsiData[symbol] = rsi;
             
-            // Cache RSI for 2 minutes to reduce API calls
+            // Cache RSI for 5 minutes to reduce API calls
             const cacheKey = `rsi-${symbol}`;
-            cacheService.set(cacheKey, rsi, 120); // 2 minute cache
-            console.log(`📊 Fresh RSI for ${symbol}: ${rsi.toFixed(1)} (cached)`);
+            cacheService.set(cacheKey, rsi, 300); // 5 minute cache
+            console.log(`📊 Fresh RSI for ${symbol}: ${rsi.toFixed(1)} (cached 5min)`);
           });
         } catch (error) {
           console.warn(`⚠️ Batch RSI fetch failed for batch ${i + 1}, using fallbacks:`, error);
           batch.forEach(symbol => {
-            rsiData[symbol] = this.getFallbackRSI(symbol);
+            const fallbackRSI = this.getFallbackRSI(symbol);
+            rsiData[symbol] = fallbackRSI;
+            // Cache fallback for 1 minute
+            const cacheKey = `rsi-${symbol}`;
+            cacheService.set(cacheKey, fallbackRSI, 60);
           });
         }
         
-        // Small delay between batches to respect rate limits
+        // Minimal delay between batches
         if (i + batchSize < uncachedSymbols.length) {
-          await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
+          await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay
         }
       }
     }

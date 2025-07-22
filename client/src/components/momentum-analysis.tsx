@@ -60,8 +60,8 @@ const MomentumAnalysis = () => {
       return res.json();
     }),
     refetchInterval: 0,
-    staleTime: 1 * 60 * 1000, // 1 minute cache for cost optimization
-    gcTime: 2 * 60 * 1000, // Keep in cache for 2 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes cache for cost optimization  
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
   });
 
   const handleRefresh = () => {
