@@ -963,6 +963,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Historical Data Import Routes - Import CSV data for authentic analysis
+  app.post("/api/historical-data/import", async (req, res) => {
+    try {
+      console.log('📥 Starting historical data import from CSV files...');
+      
+      const { historicalDataImporter } = await import('./services/historical-data-importer');
+      const results = await historicalDataImporter.importAllData();
+      
+      console.log('✅ Historical data import completed successfully');
+      res.json({
+        message: 'Historical data imported successfully',
+        results,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error importing historical data:', error);
+      res.status(500).json({ 
+        message: 'Failed to import historical data',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  app.get("/api/historical-data/status", async (req, res) => {
+    try {
+      const { historicalDataImporter } = await import('./services/historical-data-importer');
+      const availability = await historicalDataImporter.getDataAvailability();
+      
+      res.json({
+        message: 'Historical data availability report',
+        availability,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Error getting data availability:', error);
+      res.status(500).json({ 
+        message: 'Failed to get data availability',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Force refresh endpoint for immediate data updates
   app.post("/api/force-refresh", async (req, res) => {
     try {
