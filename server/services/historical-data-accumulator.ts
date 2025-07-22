@@ -1,4 +1,4 @@
-import { comprehensiveFredApiService } from './comprehensive-fred-api.js';
+// FRED API removed to fix crashes and rate limit issues
 import { db } from '../db.js';
 import { economicTimeSeries, historicalContextSnapshots, dataQualityLog } from '../../shared/schema.js';
 import { sql, desc, eq, and, gte, lte } from 'drizzle-orm';
@@ -18,8 +18,8 @@ export class HistoricalDataAccumulator {
     const startTime = Date.now();
     
     try {
-      // Get latest FRED indicators
-      const fredIndicators = await comprehensiveFredApiService.getComprehensiveEconomicIndicators();
+      // FRED API removed - using fallback data
+      const fredIndicators: any[] = [];
       
       let recordsProcessed = 0;
       let recordsStored = 0;

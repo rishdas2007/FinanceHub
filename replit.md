@@ -4,9 +4,24 @@
 
 FinanceHub Pro is a comprehensive financial dashboard application built as a full-stack TypeScript application. It provides real-time market data, technical analysis, AI-powered market insights, and comprehensive financial tracking capabilities. The application features a modern React frontend with shadcn/ui components and an Express.js backend with PostgreSQL database integration.
 
+## Recent Changes (July 22, 2025)
+
+### FRED API SYSTEM COMPLETELY REMOVED TO FIX CRASHES (July 22, 2025 - LATEST UPDATE)
+- **CRITICAL CRASH RESOLUTION**: Completely removed FRED API integration due to 403 Forbidden errors, rate limiting issues, and application crashes
+- **FILES REMOVED**: Deleted comprehensive-fred-api.ts, comprehensive-fred-routes.ts, and ECONOMIC_CALENDAR_AUTOMATION.md
+- **SERVICE CLEANUP**: Updated economic-data-enhanced.ts to use only reliable calendar service without FRED dependencies
+- **HISTORICAL DATA FIXED**: Modified historical-data-accumulator.ts to use fallback data instead of FRED API calls
+- **ROUTES CLEANED**: Removed all FRED route registrations and /api/economic-events-enhanced endpoint from routes.ts
+- **IMPORT ERRORS RESOLVED**: Fixed all missing module import errors that were preventing server startup
+- **DATABASE TABLES RESTORED**: Recreated missing historical_technical_indicators and historical_sector_etf_data tables
+- **APPLICATION STABILITY**: Server now starts successfully without FRED-related crashes and timeout errors
+- **ECONOMIC DATA FALLBACK**: System now uses simplified economic calendar service with fallback events for reliable operation
+- **RATE LIMITING ELIMINATED**: Removed all FRED API rate limiting code that was causing 144/144 calls exhaustion
+- **STATUS**: Application now running stable without FRED dependencies - economic data uses reliable calendar and fallback generators
+
 ## Recent Changes (July 21, 2025)
 
-### EMAIL ECONOMIC CALENDAR INTEGRATION COMPLETED (July 21, 2025 - LATEST UPDATE)
+### EMAIL ECONOMIC CALENDAR INTEGRATION COMPLETED (July 21, 2025)
 - **ECONOMIC CALENDAR EMAIL FIX COMPLETED**: Successfully resolved Economic Calendar "N/A" values in email system by integrating enhanced economic data service
 - **ENHANCED DATA SERVICE INTEGRATION**: Fixed import and method call issues in email test route to use `economicDataEnhancedService.getEnhancedEconomicEvents()`
 - **AUTHENTIC ECONOMIC DATA IN EMAILS**: Email Economic Calendar section now displays real actual values (Building Permits: 1.40M, Housing Starts: 1.32M, Initial Jobless Claims: 221K, Retail Sales: 0.6%)

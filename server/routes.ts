@@ -7,7 +7,7 @@ import { getMarketHoursInfo } from '@shared/utils/marketHours';
 import { CACHE_DURATIONS } from '@shared/constants';
 
 import { apiLogger, getApiStats } from "./middleware/apiLogger";
-import { registerComprehensiveFredRoutes } from "./routes/comprehensive-fred-routes";
+// FRED routes removed to fix crashes
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -21,8 +21,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
   
-  // Register comprehensive FRED routes
-  registerComprehensiveFredRoutes(app);
+  // FRED routes removed to fix crashes
 
   // API stats endpoint
   app.get("/api/stats", (req, res) => {
@@ -701,48 +700,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Enhanced Economic Events API - Comprehensive FRED data (50+ indicators)
-  app.get("/api/economic-events-enhanced", async (req, res) => {
-    try {
-      console.log('🔍 Fetching comprehensive FRED economic data (50+ indicators)...');
-      
-      const { comprehensiveFredApiService } = await import('./services/comprehensive-fred-api.js');
-      
-      // Get comprehensive economic indicators from FRED API
-      const indicators = await comprehensiveFredApiService.getComprehensiveEconomicIndicators();
-      
-      // Transform to economic events format for compatibility
-      const events = indicators.map((indicator, index) => ({
-        id: `fred-${indicator.seriesId}`,
-        title: indicator.title,
-        description: `${indicator.title} - ${indicator.frequency} data from Federal Reserve`,
-        importance: indicator.importance,
-        eventDate: new Date(indicator.latestDate),
-        forecast: null, // FRED doesn't provide forecasts
-        previous: indicator.previousValue,
-        actual: indicator.latestValue,
-        country: 'US',
-        category: indicator.category,
-        source: 'fred_api',
-        impact: indicator.monthlyChange ? (indicator.monthlyChange.startsWith('-') ? 'negative' : 'positive') : null,
-        timestamp: new Date(),
-        monthlyChange: indicator.monthlyChange,
-        annualChange: indicator.annualChange,
-        units: indicator.units,
-        frequency: indicator.frequency
-      }));
-      
-      console.log(`✅ Enhanced FRED Economic Events: ${events.length} indicators from official U.S. government data`);
-      console.log(`📊 With actual readings: ${events.filter(e => e.actual && e.actual !== 'N/A').length}`);
-      console.log(`📈 High importance: ${events.filter(e => e.importance === 'high').length}`);
-      console.log(`🏛️ Categories: ${Array.from(new Set(events.map(e => e.category))).join(', ')}`);
-      
-      res.json(events);
-    } catch (error) {
-      console.error('❌ Error fetching enhanced FRED economic events:', error);
-      res.status(500).json({ message: 'Failed to fetch enhanced FRED economic events' });
-    }
-  });
+  // FRED API endpoint removed to fix crashes and rate limiting issues
 
   app.get("/api/market-news", async (req, res) => {
     try {
