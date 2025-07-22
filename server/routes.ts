@@ -1510,7 +1510,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Summary endpoint
+  app.get("/api/ai-summary", async (req, res) => {
+    try {
+      const { cacheService } = await import('./services/cache-unified');
+      const cacheKey = "ai-summary";
+      
+      // Check cache first (5 minute TTL for cost optimization)
+      const cachedSummary = cacheService.get(cacheKey);
+      if (cachedSummary) {
+        console.log('🤖 Serving AI summary from cache');
+        return res.json(cachedSummary);
+      }
 
+      console.log('🤖 Generating fresh AI market summary...');
+      const { aiSummaryService } = await import('./services/ai-summary');
+      const summary = await aiSummaryService.generateMarketSummary();
+      
+      // Cache for 5 minutes to optimize costs
+      cacheService.set(cacheKey, summary, 300); // 5 minutes
+      console.log('🤖 AI summary cached for 5 minutes');
+      
+      res.json(summary);
+    } catch (error) {
+      console.error('❌ Error generating AI summary:', error);
+      res.status(500).json({ 
+        error: 'Failed to generate AI summary',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
 
   return httpServer;
 }

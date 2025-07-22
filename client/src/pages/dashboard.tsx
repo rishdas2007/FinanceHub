@@ -1,14 +1,11 @@
 
 
-// AI Analysis component removed to fix crashes
 import MomentumAnalysis from "@/components/momentum-analysis";
-import { MarketBreadth } from "@/components/market-breadth";
 import { SectorTracker } from "@/components/sector-tracker";
 import { AAIISentiment } from "@/components/aaii-sentiment";
-// MarketHeatMap component not available
-import { EconomicCalendar } from "@/components/economic-calendar";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
 import { EmailSubscription } from "@/components/email-subscription";
+import { AISummary } from "@/components/ai-summary";
 
 import { TrendingUp, MessageSquare } from "lucide-react";
 import { useApiTracker } from "@/hooks/useApiTracker";
@@ -58,22 +55,14 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
 
-
-        {/* AI Market Commentary removed to fix crashes */}
+        {/* AI Summary Box */}
+        <AISummary />
 
         {/* Simplified Momentum Analysis with Verified Calculations */}
         <MomentumAnalysis />
 
-        {/* Market Breadth Indicators */}
-        <MarketBreadth />
-
         {/* Sector Performance Section */}
         <SectorTracker />
-
-
-
-        {/* Economic Calendar - Full Width */}
-        <EconomicCalendar />
 
         {/* Email Subscription - Full Width */}
         <EmailSubscription />
