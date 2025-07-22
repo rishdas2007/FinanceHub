@@ -6,6 +6,7 @@ import { AAIISentiment } from "@/components/aaii-sentiment";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
 import { EmailSubscription } from "@/components/email-subscription";
 import { AISummary } from "@/components/ai-summary";
+import MarketSynthesis from "@/components/MarketSynthesis";
 
 import { TrendingUp, MessageSquare } from "lucide-react";
 import { useApiTracker } from "@/hooks/useApiTracker";
@@ -57,6 +58,9 @@ export default function Dashboard() {
 
         {/* AI Summary Box */}
         <AISummary />
+
+        {/* Market Synthesis - Advanced AI Analysis */}
+        <MarketSynthesis />
 
         {/* Simplified Momentum Analysis with Verified Calculations */}
         <MomentumAnalysis />

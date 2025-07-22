@@ -27,6 +27,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/stats", (req, res) => {
     res.json(getApiStats());
   });
+
+  // Market Synthesis endpoint
+  app.get("/api/market-synthesis", async (req, res) => {
+    try {
+      console.log('🎯 Generating market synthesis...');
+      const { marketSynthesisService } = await import('./services/market-synthesis');
+      
+      const synthesis = await marketSynthesisService.generateMarketSynthesis();
+      
+      console.log(`🎯 Market synthesis generated with ${synthesis.confidence}% confidence`);
+      res.json(synthesis);
+    } catch (error) {
+      console.error('❌ Market synthesis error:', error);
+      res.status(500).json({ 
+        error: 'Market synthesis temporarily unavailable',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
   // Stock data endpoints with caching
   app.get("/api/stocks/:symbol", async (req, res) => {
     try {
