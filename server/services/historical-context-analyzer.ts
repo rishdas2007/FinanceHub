@@ -39,7 +39,7 @@ export class HistoricalContextAnalyzer {
   }
 
   /**
-   * Main analysis method - calculates comprehensive historical context for all metrics
+   * CRITICAL: Verify actual historical data availability before calculating percentiles
    */
   async analyzeHistoricalContext(currentMetrics: {
     rsi?: number;
@@ -48,30 +48,50 @@ export class HistoricalContextAnalyzer {
     aaiiBullish?: number;
     macd?: number;
   }): Promise<MetricAnalysis[]> {
-    console.log('📊 Analyzing comprehensive historical context for metrics...');
+    console.log('📊 Verifying actual historical data availability...');
+    
+    // First, check actual data availability in database
+    const dataAvailability = await this.verifyDataAvailability();
+    console.log('📋 Historical data status:', dataAvailability);
     
     const analyses: MetricAnalysis[] = [];
     
+    // Only analyze metrics that have sufficient historical data (minimum 6 months)
+    if (dataAvailability.insufficient) {
+      console.log('⚠️  Insufficient historical data for legitimate percentile calculations');
+      const insufficientContext = this.createInsufficientDataContext();
+      console.log('📊 Insufficient data context:', insufficientContext);
+      return [{
+        name: 'Data Collection Status',
+        currentValue: 0,
+        context: insufficientContext,
+        narrative: `Historical data collection in progress. VIX: ${dataAvailability.vixDays} days, MACD: ${dataAvailability.macdDays} days, Economic: ${dataAvailability.economicRecords} records. Minimum 180 days required for legitimate percentile calculations.`
+      }];
+    }
+    
     try {
-      // Define metrics to analyze with their data sources
+      // Only proceed if we have legitimate historical data
       const metricsConfig = [
         { 
           name: 'RSI', 
           value: currentMetrics.rsi, 
           dataSource: 'technical',
-          field: 'rsi'
+          field: 'rsi',
+          available: dataAvailability.rsiDays >= 180
         },
         { 
           name: 'VIX', 
           value: currentMetrics.vix, 
           dataSource: 'sentiment',
-          field: 'vix'
+          field: 'vix',
+          available: dataAvailability.vixDays >= 180
         },
         { 
           name: 'SPY Price', 
           value: currentMetrics.spyPrice, 
           dataSource: 'stock',
-          field: 'price'
+          field: 'price',
+          available: dataAvailability.stockDays >= 180
         },
         { 
           name: 'AAII Bullish', 
@@ -554,6 +574,11 @@ export class HistoricalContextAnalyzer {
   ): string {
     const { percentileRank, zScore, regimeClassification, anomalyFlag, lastSimilarOccurrence } = context;
     
+    // Handle insufficient data case
+    if (percentileRank === -1) {
+      return `${metricName} at ${currentValue.toFixed(2)} - historical percentile ranking pending (building 6-month database)`;
+    }
+    
     let narrative = `${metricName} at ${currentValue.toFixed(2)} is at the ${percentileRank}th percentile`;
     
     // Add regime context
@@ -589,7 +614,22 @@ export class HistoricalContextAnalyzer {
    * Get summary of most significant findings
    */
   async getSummaryFindings(analyses: MetricAnalysis[]): Promise<string> {
-    const significantFindings = analyses.filter(analysis => 
+    console.log('🔍 getSummaryFindings input:', analyses.map(a => ({ name: a.name, percentileRank: a.context.percentileRank })));
+    
+    // Filter out insufficient data entries
+    const legitimateAnalyses = analyses.filter(analysis => 
+      analysis.context.percentileRank >= 0 // Exclude -1 (insufficient data)
+    );
+    
+    console.log('🔍 After filtering insufficient data:', legitimateAnalyses.map(a => ({ name: a.name, percentileRank: a.context.percentileRank })));
+    
+    // Handle insufficient data case first
+    if (legitimateAnalyses.length === 0) {
+      console.log('✅ Returning insufficient data message');
+      return "Building historical database - percentile rankings pending sufficient data collection";
+    }
+    
+    const significantFindings = legitimateAnalyses.filter(analysis => 
       analysis.context.anomalyFlag || 
       analysis.context.percentileRank >= 85 || 
       analysis.context.percentileRank <= 15
@@ -611,5 +651,84 @@ export class HistoricalContextAnalyzer {
     });
 
     return summaries.join(' • ');
+  }
+
+  /**
+   * Verify actual data availability in database
+   */
+  private async verifyDataAvailability() {
+    try {
+      // Check VIX data availability
+      const vixData = await db.execute(sql`
+        SELECT MIN(timestamp) as earliest, MAX(timestamp) as latest, COUNT(*) as count 
+        FROM market_sentiment WHERE vix IS NOT NULL
+      `);
+      
+      // Check MACD data availability  
+      const macdData = await db.execute(sql`
+        SELECT MIN(timestamp) as earliest, MAX(timestamp) as latest, COUNT(*) as count 
+        FROM technical_indicators WHERE macd IS NOT NULL
+      `);
+      
+      // Check economic data availability
+      const economicData = await db.execute(sql`
+        SELECT COUNT(*) as count FROM historical_economic_data
+      `);
+      
+      const vixResult = vixData.rows[0] as any;
+      const macdResult = macdData.rows[0] as any;
+      const economicResult = economicData.rows[0] as any;
+      
+      // Calculate days of data available
+      const vixDays = vixResult.earliest ? 
+        Math.ceil((new Date(vixResult.latest).getTime() - new Date(vixResult.earliest).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+      const macdDays = macdResult.earliest ? 
+        Math.ceil((new Date(macdResult.latest).getTime() - new Date(macdResult.earliest).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+      
+      const availability = {
+        vixDays,
+        macdDays,
+        rsiDays: macdDays, // Same source as MACD
+        stockDays: vixDays, // Assuming similar timeline
+        economicRecords: parseInt(economicResult.count) || 0,
+        insufficient: vixDays < 180 || macdDays < 180 || economicResult.count < 10
+      };
+      
+      return availability;
+      
+    } catch (error) {
+      console.error('❌ Error verifying data availability:', error);
+      return {
+        vixDays: 0,
+        macdDays: 0,
+        rsiDays: 0,
+        stockDays: 0,
+        economicRecords: 0,
+        insufficient: true
+      };
+    }
+  }
+
+  /**
+   * Create context for insufficient data scenarios
+   */
+  private createInsufficientDataContext(): StatisticalContext {
+    return {
+      percentileRank: -1, // Use -1 to indicate no percentile available
+      zScore: 0,
+      regimeClassification: 'normal',
+      rollingComparisons: {
+        '30d': -1,
+        '60d': -1,
+        '90d': -1,
+        '1y': -1
+      },
+      bayesianPrior: {
+        regimeProbabilities: { normal: 1.0 },
+        expectedPersistence: 0,
+        confidenceInterval: [0, 0]
+      },
+      anomalyFlag: false
+    };
   }
 }
