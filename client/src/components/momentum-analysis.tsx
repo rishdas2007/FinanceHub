@@ -16,6 +16,7 @@ interface MomentumStrategy {
   zScore: number;
   correlationToSPY: number;
   fiveDayZScore: number;
+  oneDayChange: number;
   signal: string;
 }
 
@@ -256,6 +257,7 @@ const MomentumAnalysis = () => {
                   <th className="text-left p-2 text-gray-700 font-semibold w-20">Momentum</th>
                   <th className="text-right p-2 text-gray-700 font-semibold w-20">Annual<br/>Return</th>
                   <th className="text-right p-2 text-gray-700 font-semibold w-16">Sharpe<br/>Ratio</th>
+                  <th className="text-right p-2 text-gray-700 font-semibold w-16">1-Day<br/>Move</th>
                   <th className="text-right p-2 text-gray-700 font-semibold w-20">Z-Score of Latest<br/>1-Day Move</th>
                   <th className="text-left p-2 text-gray-700 font-semibold">Signal</th>
                 </tr>
@@ -287,6 +289,11 @@ const MomentumAnalysis = () => {
                     <td className="p-2 text-right w-16">
                       <span className={`text-sm ${strategy.sharpeRatio >= 0.5 ? 'text-green-600' : strategy.sharpeRatio >= 0 ? 'text-yellow-600' : 'text-red-600'}`}>
                         {strategy.sharpeRatio.toFixed(2)}
+                      </span>
+                    </td>
+                    <td className="p-2 text-right w-16">
+                      <span className={`text-sm font-medium ${strategy.oneDayChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {strategy.oneDayChange >= 0 ? '+' : ''}{strategy.oneDayChange.toFixed(2)}%
                       </span>
                     </td>
                     <td className="p-2 text-right w-20">

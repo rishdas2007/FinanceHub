@@ -34,6 +34,7 @@ interface MomentumStrategy {
   zScore: number;
   correlationToSPY: number;
   fiveDayZScore: number;
+  oneDayChange: number;
   signal: string;
 }
 
@@ -121,6 +122,7 @@ export class SimplifiedSectorAnalysisService {
         zScore: metrics.zScore,
         correlationToSPY,
         fiveDayZScore,
+        oneDayChange: sector.changePercent || 0,
         signal
       });
     }
