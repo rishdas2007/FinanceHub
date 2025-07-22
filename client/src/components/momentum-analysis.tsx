@@ -226,29 +226,11 @@ const MomentumAnalysis = () => {
                     return <Cell key={`cell-${index}`} fill={color} />;
                   })}
                   <LabelList 
-                    dataKey="sector"
-                    position="center"
-                    content={(props: any) => {
-                      const { x, y, payload } = props;
-                      if (!payload?.sector || x === undefined || y === undefined) return null;
-                      const isSPY = payload.sector === 'SPY';
-                      return (
-                        <text 
-                          x={x} 
-                          y={y} 
-                          fill="#000000"
-                          fontSize="12px"
-                          fontWeight={isSPY ? "bold" : "normal"}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          stroke="#ffffff"
-                          strokeWidth="2"
-                          paintOrder="stroke"
-                        >
-                          {payload.sector}
-                        </text>
-                      );
-                    }}
+                    dataKey="sector" 
+                    position="topRight"
+                    fontSize={11}
+                    fill="#000"
+                    fontWeight="bold"
                   />
                 </Scatter>
               </ScatterChart>
