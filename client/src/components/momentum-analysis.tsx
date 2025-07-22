@@ -227,7 +227,7 @@ const MomentumAnalysis = () => {
                   })}
                   <LabelList 
                     dataKey="sector" 
-                    position="topRight"
+                    position="top"
                     fontSize={11}
                     fill="#000"
                     fontWeight="bold"
