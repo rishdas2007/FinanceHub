@@ -97,6 +97,10 @@ export class SimplifiedSectorAnalysisService {
     const spySector = sectors.find(s => s.symbol === 'SPY');
     const spyReturn = spySector?.changePercent || 0;
     
+    // Batch fetch RSI data for all sectors at once
+    console.log(`📊 Batch fetching RSI data for ${sectors.length} ETFs...`);
+    const rsiData = await this.getBatchRSIData(sectors.map(s => s.symbol));
+    
     for (const sector of sectors) {
       const sectorHistory = historicalData.filter(h => h.symbol === sector.symbol);
       console.log(`📊 Processing ${sector.symbol}: ${sectorHistory.length} historical records`);
@@ -113,8 +117,8 @@ export class SimplifiedSectorAnalysisService {
       // Determine momentum signal
       const { momentum, signal } = this.determineMomentumSignal(sector, metrics, sectorHistory);
 
-      // Fetch RSI for this ETF
-      const rsi = await this.getRSIForSymbol(sector.symbol);
+      // Get RSI from batch data
+      const rsi = rsiData[sector.symbol] || this.getFallbackRSI(sector.symbol);
 
       strategies.push({
         sector: sector.symbol,
@@ -386,18 +390,75 @@ export class SimplifiedSectorAnalysisService {
   }
 
   /**
+   * Batch fetch RSI data for multiple symbols with smart caching
+   */
+  private async getBatchRSIData(symbols: string[]): Promise<{ [symbol: string]: number }> {
+    const rsiData: { [symbol: string]: number } = {};
+    const { cacheService } = await import('./cache-unified');
+    
+    // Check cache first for each symbol
+    const uncachedSymbols: string[] = [];
+    for (const symbol of symbols) {
+      const cacheKey = `rsi-${symbol}`;
+      const cachedRSI = cacheService.get(cacheKey);
+      if (cachedRSI !== undefined && cachedRSI !== null && typeof cachedRSI === 'number') {
+        rsiData[symbol] = cachedRSI;
+        console.log(`📊 Using cached RSI for ${symbol}: ${cachedRSI.toFixed(1)}`);
+      } else {
+        uncachedSymbols.push(symbol);
+      }
+    }
+    
+    // Fetch RSI for uncached symbols in batches to respect rate limits
+    if (uncachedSymbols.length > 0) {
+      console.log(`📊 Fetching fresh RSI data for ${uncachedSymbols.length} symbols...`);
+      
+      // Process in smaller batches to avoid rate limiting
+      const batchSize = 3; // Conservative batch size
+      for (let i = 0; i < uncachedSymbols.length; i += batchSize) {
+        const batch = uncachedSymbols.slice(i, i + batchSize);
+        const batchPromises = batch.map(symbol => this.getRSIForSymbol(symbol, true));
+        
+        try {
+          const batchResults = await Promise.all(batchPromises);
+          batch.forEach((symbol, index) => {
+            const rsi = batchResults[index];
+            rsiData[symbol] = rsi;
+            
+            // Cache RSI for 2 minutes to reduce API calls
+            const cacheKey = `rsi-${symbol}`;
+            cacheService.set(cacheKey, rsi, 120); // 2 minute cache
+            console.log(`📊 Fresh RSI for ${symbol}: ${rsi.toFixed(1)} (cached)`);
+          });
+        } catch (error) {
+          console.warn(`⚠️ Batch RSI fetch failed for batch ${i + 1}, using fallbacks:`, error);
+          batch.forEach(symbol => {
+            rsiData[symbol] = this.getFallbackRSI(symbol);
+          });
+        }
+        
+        // Small delay between batches to respect rate limits
+        if (i + batchSize < uncachedSymbols.length) {
+          await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
+        }
+      }
+    }
+    
+    console.log(`📊 RSI batch fetch complete: ${Object.keys(rsiData).length} symbols processed`);
+    return rsiData;
+  }
+
+  /**
    * Fetch RSI data for a specific symbol using Twelve Data API
    */
-  private async getRSIForSymbol(symbol: string): Promise<number> {
+  private async getRSIForSymbol(symbol: string, skipCache = false): Promise<number> {
     try {
       const { financialDataService } = await import('../services/financial-data');
       const technicalData = await financialDataService.getTechnicalIndicators(symbol);
-      return technicalData?.rsi || 50; // Default to neutral 50 if RSI not available
+      return technicalData?.rsi || this.getFallbackRSI(symbol);
     } catch (error) {
       console.warn(`⚠️ Could not fetch RSI for ${symbol}, using fallback:`, error);
-      // Return realistic RSI fallback values based on symbol
-      const fallbackRSI = this.getFallbackRSI(symbol);
-      return fallbackRSI;
+      return this.getFallbackRSI(symbol);
     }
   }
 
