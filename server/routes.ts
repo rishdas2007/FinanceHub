@@ -1486,142 +1486,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Enhanced Bayesian AI Analysis Route - Sophisticated analysis with rich historical context
-  app.get('/api/bayesian-analysis', async (req, res) => {
+  // Comprehensive Sector Analysis Route - Advanced sector rotation and cyclical pattern analysis
+  app.get('/api/sector-analysis', async (req, res) => {
     try {
-      console.log('🧠 Generating sophisticated Bayesian analysis with rich historical context...');
+      console.log('📊 Generating comprehensive sector analysis with cyclical patterns and rotation timing...');
       
       res.setHeader('Content-Type', 'application/json');
       
-      // Get comprehensive market data using financial data service
-      const [marketData, sectors, economicEvents] = await Promise.all([
-        (async () => {
-          // Use financial data service for real-time data
-          try {
-            const spyQuote = await financialDataService.getStockQuote('SPY');
-            const sentiment = await financialDataService.getRealMarketSentiment();
-            const technical = await financialDataService.getTechnicalIndicators('SPY');
-            
-            return {
-              spy_close: spyQuote.price,
-              spy_change: spyQuote.changePercent,
-              price: spyQuote.price,
-              changePercent: spyQuote.changePercent,
-              vix: sentiment.vix,
-              spy_rsi: technical.rsi || 50,
-              rsi: technical.rsi || 50,
-              aaiiBullish: sentiment.aaiiBullish,
-              spy_macd: technical.macd || 0,
-              macd: technical.macd || 0
-            };
-          } catch (error) {
-            // Fallback to database storage
-            const latestSpy = await storage.getLatestStockData('SPY');
-            const latestSentiment = await storage.getLatestMarketSentiment();
-            const latestTech = await storage.getLatestTechnicalIndicators('SPY');
-            
-            return {
-              spy_close: latestSpy ? parseFloat(latestSpy.price) : 620,
-              spy_change: latestSpy ? parseFloat(latestSpy.changePercent) : 0,
-              price: latestSpy ? parseFloat(latestSpy.price) : 620,
-              changePercent: latestSpy ? parseFloat(latestSpy.changePercent) : 0,
-              vix: latestSentiment ? parseFloat(latestSentiment.vix) : 20,
-              spy_rsi: latestTech ? parseFloat(latestTech.rsi || '50') : 50,
-              rsi: latestTech ? parseFloat(latestTech.rsi || '50') : 50,
-              aaiiBullish: latestSentiment ? parseFloat(latestSentiment.aaiiBullish || '40') : 40,
-              spy_macd: latestTech ? parseFloat(latestTech.macd || '0') : 0,
-              macd: latestTech ? parseFloat(latestTech.macd || '0') : 0
-            };
-          }
-        })(),
+      // Get current sector data and historical data for comprehensive analysis
+      const [currentSectorData, historicalData] = await Promise.all([
         (async () => {
           try {
+            console.log('🚀 Fetching real-time sector ETF data for analysis...');
             return await financialDataService.getSectorETFs();
           } catch (error) {
-            return await storage.getSectorData ? storage.getSectorData() : [];
+            console.warn('⚠️ Sector data fetch failed, using database fallback');
+            return await storage.getLatestSectorData() || [];
           }
         })(),
         (async () => {
           try {
-            return await storage.getEconomicEvents();
+            console.log('📈 Fetching historical sector data from database...');
+            // Check if historical_sector_etf_data table exists and has data
+            const checkQuery = `
+              SELECT COUNT(*) as count 
+              FROM information_schema.tables 
+              WHERE table_name = 'historical_sector_etf_data'
+            `;
+            const tableCheck = await db.query(checkQuery);
+            
+            if (tableCheck.rows[0]?.count > 0) {
+              const query = `
+                SELECT symbol, date, price 
+                FROM historical_sector_etf_data 
+                WHERE date >= NOW() - INTERVAL '6 months'
+                ORDER BY date DESC, symbol
+                LIMIT 1000
+              `;
+              const result = await db.query(query);
+              return result.rows || [];
+            } else {
+              console.log('📊 Historical sector data table not found, using current data for basic analysis');
+              return [];
+            }
           } catch (error) {
-            console.log('Using empty economic events array for Bayesian analysis');
+            console.warn('Historical sector data unavailable:', error.message);
             return [];
           }
         })()
       ]);
 
-      // Log market data for debugging
-      console.log('📊 Market data for sophisticated Bayesian analysis:', {
-        rsi: marketData.rsi || marketData.spy_rsi,
-        vix: marketData.vix,
-        spyPrice: marketData.spy_close || marketData.price,
-        spyChange: marketData.spy_change || marketData.changePercent
-      });
+      // Log data availability for debugging
+      console.log(`📊 Sector analysis data: ${currentSectorData.length} current sectors, ${historicalData.length} historical records`);
       
-      // Use the new sophisticated Bayesian analysis service
-      const { sophisticatedBayesianAnalysisService } = await import('./services/sophisticated-bayesian-analysis.js');
-      const analysis = await sophisticatedBayesianAnalysisService.generateAnalysisWithHistoricalContext(marketData);
+      // Use the new sector analysis service
+      const { sectorAnalysisService } = await import('./services/sector-analysis-service.js');
+      const analysis = await sectorAnalysisService.generateComprehensiveAnalysis(
+        currentSectorData,
+        historicalData
+      );
       
-      console.log(`💰 Sophisticated Bayesian analysis completed (confidence: ${analysis.confidence}%)`);
+      console.log(`✅ Comprehensive sector analysis completed (confidence: ${analysis.confidence}%)`);
       res.json(analysis);
       
     } catch (error) {
-      console.error('❌ Error generating Bayesian analysis:', error);
+      console.error('❌ Error generating sector analysis:', error);
       res.status(500).json({ 
-        error: 'Bayesian analysis temporarily unavailable',
-        bottomLine: 'Analysis system processing market conditions with historical context',
-        dominantTheme: 'System maintenance',
-        setup: 'Bayesian analysis system operational with smart caching',
-        evidence: 'Historical percentile system active',
-        implications: 'Comprehensive probability-weighted analysis available shortly',
-        confidence: 50,
-        analysisType: 'fallback'
+        error: 'Sector analysis temporarily unavailable',
+        summary: 'Comprehensive sector analysis building historical database for authentic cyclical pattern detection',
+        confidence: 0,
+        cyclicalPatterns: [],
+        rotationTiming: [],
+        riskAdjustedReturns: [],
+        momentumStrategies: [],
+        correlationAnalysis: [],
+        movingAverages: [],
+        technicalIndicators: [],
+        timestamp: new Date().toISOString()
       });
     }
   });
 
-  // Bayesian Cache Stats Route - For monitoring token efficiency
-  app.get('/api/bayesian-cache-stats', async (req, res) => {
-    try {
-      const { EnhancedAIAnalysisService } = await import('./services/enhanced-ai-analysis');
-      const aiService = EnhancedAIAnalysisService.getInstance();
-      
-      let cacheStats;
-      if (aiService.getCacheStats) {
-        cacheStats = aiService.getCacheStats();
-      } else {
-        // Provide fallback cache stats
-        cacheStats = {
-          validEntries: Math.floor(Math.random() * 15) + 5,
-          totalEntries: Math.floor(Math.random() * 25) + 10,
-          hitRate: '67%'
-        };
-      }
-      
-      const hitRate = Math.round((cacheStats.validEntries / Math.max(cacheStats.totalEntries, 1)) * 100);
-      
-      res.json({
-        validEntries: cacheStats.validEntries,
-        totalEntries: cacheStats.totalEntries,
-        hitRate: cacheStats.hitRate,
-        timestamp: new Date().toISOString(),
-        costEfficiency: `${hitRate}% cache hit rate`,
-        status: 'active'
-      });
-    } catch (error) {
-      console.error('❌ Error fetching cache stats:', error);
-      res.json({
-        validEntries: 8,
-        totalEntries: 12,
-        hitRate: '67%',
-        timestamp: new Date().toISOString(),
-        costEfficiency: '67% cache hit rate',
-        status: 'fallback',
-        error: 'Cache stats service temporarily unavailable'
-      });
-    }
-  });
+
 
   return httpServer;
 }
