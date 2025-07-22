@@ -108,9 +108,7 @@ export class ThematicAIAnalysisService {
       messages: [
         {
           role: "system",
-          content: `You are a senior Wall Street analyst specializing in thematic market narratives. 
-          Your analysis must follow the exact structure provided and create coherent stories from market data.
-          Focus on narrative coherence over individual data points. Use professional trader language.`
+          content: `You are a senior Wall Street analyst. Create concise market analysis in JSON format. Be direct and professional.`
         },
         {
           role: "user",
@@ -118,8 +116,8 @@ export class ThematicAIAnalysisService {
         }
       ],
       response_format: { type: "json_object" },
-      max_tokens: 2000,
-      temperature: 0.7,
+      max_tokens: 1200, // Reduced token count for faster response
+      temperature: 0.4  // Lower temperature for faster, more focused responses,
     });
 
     console.log('✅ OpenAI response received, parsing JSON...');

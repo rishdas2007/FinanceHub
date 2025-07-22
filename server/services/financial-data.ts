@@ -457,8 +457,8 @@ export class FinancialDataService {
           
           // Calculate REAL historical performance using Twelve Data time series
           const historicalData = await this.getHistoricalPerformance(etf.symbol);
-          const fiveDayChange = historicalData.fiveDayChange;
-          const oneMonthChange = historicalData.oneMonthChange;
+          const fiveDayChange = (historicalData as any).fiveDayChange || 0;
+          const oneMonthChange = (historicalData as any).oneMonthChange || 0;
           
           realSectorData.push({
             name: etf.name,

@@ -27,6 +27,24 @@ export function AIAnalysisComponent() {
     refetchOnWindowFocus: false, // Don't refetch on window focus to avoid excessive calls
     staleTime: 0, // Always consider data stale to force fresh fetches
     retry: 1,
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    queryFn: async () => {
+      const response = await fetch('/api/thematic-analysis', {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        // Increase timeout to 2 minutes for AI analysis
+        signal: AbortSignal.timeout(120000)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return data;
+    }
   });
 
   const { data: currentStock } = useQuery<StockData>({
@@ -69,8 +87,12 @@ export function AIAnalysisComponent() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="bg-financial-card rounded-lg p-4 h-80 flex items-center justify-center">
-            <div className="text-gray-400">Loading AI market analysis...</div>
+          <div className="bg-financial-card rounded-lg p-4 h-80 flex flex-col items-center justify-center space-y-3">
+            <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+            <div className="text-gray-400 text-center">
+              <div>Generating AI market analysis...</div>
+              <div className="text-sm text-gray-500 mt-1">This may take up to 60 seconds</div>
+            </div>
           </div>
         </CardContent>
       </Card>

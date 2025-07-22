@@ -309,7 +309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { cacheService } = await import('./services/cache-unified');
       const cacheKey = 'thematic-analysis-data';
       
-      // Check cache first (5 minute TTL for thematic analysis)
+      // Check cache first (10 minute TTL for thematic analysis to reduce API calls)
       const bypassCache = req.headers['x-bypass-cache'] === 'true';
       let cachedData = null;
       if (!bypassCache) {
@@ -319,6 +319,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.json(cachedData);
         }
       }
+      
+      // Set a timeout for the entire operation
+      const timeoutMs = 45000; // 45 seconds max to allow for OpenAI processing
+      let timeoutId: NodeJS.Timeout;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('Thematic analysis timeout')), timeoutMs);
+      });
       
       // Fetch all required data for thematic analysis
       const [marketData, sectorData, economicEvents, technicalData] = await Promise.all([
@@ -370,14 +377,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         percent_b: 0.76
       };
 
-      // Generate thematic analysis
-      const { thematicAIAnalysisService } = await import('./services/thematic-ai-analysis');
-      const analysis = await thematicAIAnalysisService.generateThematicAnalysis(
-        marketData,
-        sectorData || [],
-        economicEvents || [],
-        finalTechnicalData
-      );
+      // Generate thematic analysis with timeout
+      const analysisPromise = (async () => {
+        const { thematicAIAnalysisService } = await import('./services/thematic-ai-analysis');
+        return await thematicAIAnalysisService.generateThematicAnalysis(
+          marketData,
+          sectorData || [],
+          economicEvents || [],
+          finalTechnicalData
+        );
+      })();
+      
+      const analysis = await Promise.race([analysisPromise, timeoutPromise]) as any;
+      
+      // Clear timeout if analysis completes successfully
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
 
       // Store analysis with market context and update narrative memory
       const marketContext = { marketData, sectorData, economicEvents, technicalData };
@@ -391,8 +407,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('Error updating narrative memory:', error);
       }
       
-      // Cache the result for 5 minutes
-      cacheService.set(cacheKey, { ...analysis, timestamp: new Date().toISOString() }, 300);
+      // Cache the result for 10 minutes
+      cacheService.set(cacheKey, { ...analysis, timestamp: new Date().toISOString() }, 600);
       
       console.log('✅ Thematic analysis generated successfully');
       res.json({ ...analysis, timestamp: new Date().toISOString() });
