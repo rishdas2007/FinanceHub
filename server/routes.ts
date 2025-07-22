@@ -1651,7 +1651,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { simplifiedSectorAnalysisService } = await import('./services/simplified-sector-analysis');
       const analysis = await simplifiedSectorAnalysisService.generateSimplifiedAnalysis(
         convertedSectorData,
-        Array.isArray(historicalData) ? historicalData : []
+        Array.isArray(historicalData) ? historicalData.map((row: any) => ({
+          symbol: String(row.symbol || ''),
+          date: String(row.date || new Date().toISOString()),
+          price: Number(row.price || 0)
+        })) : []
       );
       
       console.log(`✅ Simplified momentum analysis completed (confidence: ${analysis.confidence}%)`);

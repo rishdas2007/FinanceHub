@@ -356,17 +356,17 @@ export function SectorAnalysis() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-white text-sm">{sectorNames[ma.sector] || ma.sector}</span>
                     <div className="flex space-x-1">
-                      <Badge variant="outline" size="sm" className={
-                        ma.ma20Signal === 'bullish' ? 'text-green-400 border-green-400' :
-                        ma.ma20Signal === 'bearish' ? 'text-red-400 border-red-400' :
-                        'text-gray-400 border-gray-400'
+                      <Badge variant="outline" className={
+                        ma.ma20Signal === 'bullish' ? 'text-green-400 border-green-400 text-xs' :
+                        ma.ma20Signal === 'bearish' ? 'text-red-400 border-red-400 text-xs' :
+                        'text-gray-400 border-gray-400 text-xs'
                       }>
                         20d
                       </Badge>
-                      <Badge variant="outline" size="sm" className={
-                        ma.ma50Signal === 'bullish' ? 'text-green-400 border-green-400' :
-                        ma.ma50Signal === 'bearish' ? 'text-red-400 border-red-400' :
-                        'text-gray-400 border-gray-400'
+                      <Badge variant="outline" className={
+                        ma.ma50Signal === 'bullish' ? 'text-green-400 border-green-400 text-xs' :
+                        ma.ma50Signal === 'bearish' ? 'text-red-400 border-red-400 text-xs' :
+                        'text-gray-400 border-gray-400 text-xs'
                       }>
                         50d
                       </Badge>

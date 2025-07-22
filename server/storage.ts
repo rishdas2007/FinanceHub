@@ -152,6 +152,11 @@ export class MemStorage implements IStorage {
     const id = this.currentId++;
     const sentimentEntry: MarketSentiment = {
       ...sentiment,
+      dataSource: sentiment.dataSource || 'aaii_survey',
+      vixChange: sentiment.vixChange ?? null,
+      putCallChange: sentiment.putCallChange ?? null,
+      aaiiBullishChange: sentiment.aaiiBullishChange ?? null,
+      aaiiBearishChange: sentiment.aaiiBearishChange ?? null,
       id,
       timestamp: new Date(),
     };
@@ -295,6 +300,8 @@ export class MemStorage implements IStorage {
   async createSectorData(sector: InsertSectorData): Promise<SectorData> {
     const newSector: SectorData = {
       ...sector,
+      fiveDayChange: sector.fiveDayChange ?? null,
+      oneMonthChange: sector.oneMonthChange ?? null,
       id: this.currentId++,
       timestamp: new Date(),
     };

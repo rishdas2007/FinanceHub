@@ -39,6 +39,16 @@ interface MomentumAnalysis {
 
 
 
+const getETFColor = (sector: string, index: number) => {
+  const colors = [
+    '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', 
+    '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',
+    '#6366f1', '#84cc16'
+  ];
+  if (sector === 'SPY') return '#3b82f6'; // Blue for SPY
+  return colors[index % colors.length];
+};
+
 const MomentumAnalysis = () => {
   const [refreshKey, setRefreshKey] = useState(0);
 
