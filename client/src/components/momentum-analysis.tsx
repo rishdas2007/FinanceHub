@@ -163,7 +163,7 @@ const MomentumAnalysis = () => {
       <Card className="bg-gray-100 border-gray-300">
         <CardHeader>
           <CardTitle className="text-lg text-gray-800">
-            RSI vs 1-Day Z-Score Analysis
+            1-Day Z-Score vs RSI Analysis
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -172,16 +172,16 @@ const MomentumAnalysis = () => {
               <ScatterChart data={analysis.chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#D1D5DB" />
                 <XAxis 
-                  dataKey="fiveDayZScore" 
-                  type="number" 
-                  stroke="#6B7280"
-                  label={{ value: 'Z-Score of the Latest 1-Day Move', position: 'insideBottom', offset: -5, style: { fill: '#6B7280' } }}
-                />
-                <YAxis 
                   dataKey="rsi" 
                   type="number" 
                   stroke="#6B7280"
-                  label={{ value: 'RSI', angle: -90, position: 'insideLeft', style: { fill: '#6B7280' } }}
+                  label={{ value: 'RSI', position: 'insideBottom', offset: -5, style: { fill: '#6B7280' } }}
+                />
+                <YAxis 
+                  dataKey="fiveDayZScore" 
+                  type="number" 
+                  stroke="#6B7280"
+                  label={{ value: 'Z-Score of the Latest 1-Day Move', angle: -90, position: 'insideLeft', style: { fill: '#6B7280' } }}
                 />
                 <Tooltip 
                   content={({ active, payload }) => {
@@ -206,7 +206,7 @@ const MomentumAnalysis = () => {
                     return null;
                   }}
                 />
-                <Scatter dataKey="rsi" fill="#8884d8">
+                <Scatter dataKey="fiveDayZScore" fill="#8884d8">
                   {analysis.chartData.map((entry, index) => {
                     const color = getETFColor(entry.sector, index);
                     return <Cell key={`cell-${index}`} fill={color} />;
@@ -241,10 +241,10 @@ const MomentumAnalysis = () => {
           </div>
           <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-sm text-gray-700">
-              <strong>How to interpret this chart:</strong> Each dot represents a sector ETF plotted by its 1-day Z-score (x-axis) and RSI (y-axis). 
-              The Z-score shows how many standard deviations the latest 1-day move is from its historical average. RSI measures momentum with values above 70 indicating overbought conditions and below 30 indicating oversold conditions.
-              <strong>Top-right quadrant</strong> shows sectors with strong momentum and high RSI levels (potentially overbought). 
-              <strong>Bottom-right quadrant</strong> shows sectors with recent positive moves but lower RSI levels (more room to run). 
+              <strong>How to interpret this chart:</strong> Each dot represents a sector ETF plotted by its RSI (x-axis) and 1-day Z-score (y-axis). 
+              RSI measures momentum with values above 70 indicating overbought conditions and below 30 indicating oversold conditions. The Z-score shows how many standard deviations the latest 1-day move is from its historical average.
+              <strong>Top-right quadrant</strong> shows sectors with high RSI levels and strong positive momentum moves (potentially overbought with recent strength). 
+              <strong>Bottom-right quadrant</strong> shows sectors with high RSI levels but negative momentum moves (overbought with recent weakness). 
               SPY (S&P 500) serves as the market benchmark with larger labels for easy identification.
             </p>
           </div>

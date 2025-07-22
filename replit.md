@@ -26,7 +26,7 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 - **CHART ENHANCEMENT**: Updated Risk-Return chart to use RSI on Y-axis instead of Annual Return with proper title and explanation updates
 - **RSI DATA FETCHING**: Implemented getRSIForSymbol() method in simplified-sector-analysis.ts with authentic API integration and realistic fallback values
 - **TABLE STRUCTURE UPDATED**: Added RSI column between Annual Return and Sharpe Ratio with color coding (red >70 overbought, green <30 oversold, gray neutral)
-- **CHART VISUALIZATION ENHANCED**: Chart now shows RSI vs 1-Day Z-Score analysis with updated tooltip and axis labels
+- **CHART VISUALIZATION ENHANCED**: Chart now shows 1-Day Z-Score vs RSI analysis with RSI on x-axis and Z-Score on y-axis with updated tooltip and axis labels
 - **USER INTERFACE IMPROVEMENTS**: Updated chart explanation to describe RSI momentum analysis and overbought/oversold interpretation
 - **PERFORMANCE OPTIMIZATION COMPLETED**: Implemented batch RSI fetching with smart caching to reduce load times from 75+ seconds to under 10 seconds
 - **BATCH RSI PROCESSING**: RSI data now fetched in batches of 3 symbols with 2-minute caching to minimize API calls and respect rate limits
