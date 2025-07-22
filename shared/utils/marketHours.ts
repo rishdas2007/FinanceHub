@@ -15,19 +15,8 @@ export interface MarketHoursInfo {
  * Check if US stock market is currently open
  * Market Hours: 9:30 AM - 4:00 PM ET, Monday-Friday
  */
-export function isMarketOpen(): boolean {
-  const now = new Date();
-  const etTime = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
-  const hour = etTime.getHours();
-  const minute = etTime.getMinutes();
-  const dayOfWeek = etTime.getDay(); // 0 = Sunday, 6 = Saturday
-  
-  // Market is open Monday-Friday, 9:30 AM - 4:00 PM ET
-  const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
-  const isMarketHours = (hour > 9 || (hour === 9 && minute >= 30)) && hour < 16;
-  
-  return isWeekday && isMarketHours;
-}
+// Re-export from unified utility
+export { isMarketOpen, getMarketStatus, formatMarketTimestamp } from './marketHours-unified';
 
 /**
  * Get comprehensive market hours information

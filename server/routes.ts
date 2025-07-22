@@ -32,11 +32,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/stocks/:symbol", async (req, res) => {
     try {
       const { symbol } = req.params;
-      const { cacheManager } = await import('./services/cache-manager');
+      const { cacheService } = await import('./services/cache-unified');
       const cacheKey = `stock-${symbol.toUpperCase()}`;
       
       // Check cache first (1 minute TTL for stock quotes)
-      const cachedData = cacheManager.get(cacheKey);
+      const cachedData = cacheService.get(cacheKey);
       if (cachedData) {
         return res.json(cachedData);
       }
@@ -52,7 +52,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Cache the result for 1 minute
-      cacheManager.set(cacheKey, newStockData, CACHE_DURATIONS.STOCK_QUOTES);
+      cacheService.set(cacheKey, newStockData, CACHE_DURATIONS.STOCK_QUOTES);
       
       res.json(newStockData);
     } catch (error) {
@@ -101,11 +101,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/technical/:symbol", async (req, res) => {
     try {
       const { symbol } = req.params;
-      const { cacheManager } = await import('./services/cache-manager');
+      const { cacheService } = await import('./services/cache-unified');
       const cacheKey = `technical-${symbol.toUpperCase()}`;
       
       // Check cache first (3 minute TTL for technical indicators)
-      const cachedData = cacheManager.get(cacheKey);
+      const cachedData = cacheService.get(cacheKey);
       if (cachedData) {
         return res.json(cachedData);
       }
@@ -132,7 +132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Cache the result for 3 minutes
-      cacheManager.set(cacheKey, indicators, CACHE_DURATIONS.TECHNICAL_INDICATORS);
+      cacheService.set(cacheKey, indicators, CACHE_DURATIONS.TECHNICAL_INDICATORS);
       
       res.json(indicators);
     } catch (error) {
@@ -144,11 +144,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Market sentiment with caching
   app.get("/api/sentiment", async (req, res) => {
     try {
-      const { cacheManager } = await import('./services/cache-manager');
+      const { cacheService } = await import('./services/cache-unified');
       const cacheKey = 'market-sentiment';
       
       // Check cache first (2 minute TTL for sentiment data)
-      const cachedData = cacheManager.get(cacheKey);
+      const cachedData = cacheService.get(cacheKey);
       if (cachedData) {
         return res.json(cachedData);
       }
@@ -157,7 +157,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sentimentData = await financialDataService.getRealMarketSentiment();
       
       // Cache the result for 2 minutes  
-      cacheManager.set(cacheKey, sentimentData, CACHE_DURATIONS.SENTIMENT_DATA);
+      cacheService.set(cacheKey, sentimentData, CACHE_DURATIONS.SENTIMENT_DATA);
       
       res.json(sentimentData);
     } catch (error) {
@@ -169,7 +169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Sector performance with market hours awareness and weekend fallback
   app.get("/api/sectors", async (req, res) => {
     try {
-      const { cacheManager } = await import('./services/cache-manager');
+      const { cacheService } = await import('./services/cache-unified');
       const cacheKey = 'sector-data';
       
       // Check market hours using centralized utility
@@ -177,7 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // During weekends or after hours, ALWAYS use cached data if available
       if (isWeekend || !isMarketHours) {
-        const cachedData = cacheManager.get(cacheKey);
+        const cachedData = cacheService.get(cacheKey);
         if (cachedData) {
           console.log(`📈 Weekend/After Hours: Using cached sector data (${isWeekend ? 'Weekend' : 'After Hours'})`);
           return res.json(cachedData);
@@ -198,7 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // During market hours, check cache first but allow fresh data if needed
       const bypassCache = req.headers['x-bypass-cache'] === 'true';
       if (!bypassCache && isMarketHours) {
-        const cachedData = cacheManager.get(cacheKey);
+        const cachedData = cacheService.get(cacheKey);
         if (cachedData) {
           console.log('📈 Market Hours: Using cached sector data');
           return res.json(cachedData);
@@ -206,13 +206,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Only make API calls during market hours or when absolutely necessary
-      if (isMarketHours || (!cacheManager.get(cacheKey))) {
+      if (isMarketHours || (!cacheService.get(cacheKey))) {
         console.log(`🚀 Fetching fresh sector ETF data... (Market ${isMarketHours ? 'Open' : 'Closed'})`);
         const freshSectors = await financialDataService.getSectorETFs();
         
         // Cache the result for 5 minutes during market hours, longer for after hours
         const cacheTime = isMarketHours ? CACHE_DURATIONS.SECTOR_DATA_MARKET_HOURS : CACHE_DURATIONS.SECTOR_DATA_AFTER_HOURS;
-        cacheManager.set(cacheKey, freshSectors, cacheTime);
+        cacheService.set(cacheKey, freshSectors, cacheTime);
         
         // Store in database for fallback (background task)
         setTimeout(async () => {
@@ -303,14 +303,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('🎭 Generating enhanced thematic AI analysis...');
       
-      const { cacheManager } = await import('./services/cache-manager');
+      const { cacheService } = await import('./services/cache-unified');
       const cacheKey = 'thematic-analysis-data';
       
       // Check cache first (5 minute TTL for thematic analysis)
       const bypassCache = req.headers['x-bypass-cache'] === 'true';
       let cachedData = null;
       if (!bypassCache) {
-        cachedData = cacheManager.get(cacheKey);
+        cachedData = cacheService.get(cacheKey);
         if (cachedData) {
           console.log('✅ Using cached thematic analysis data');
           return res.json(cachedData);
@@ -385,7 +385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Cache the result for 5 minutes
-      cacheManager.set(cacheKey, { ...analysis, timestamp: new Date().toISOString() }, 300);
+      cacheService.set(cacheKey, { ...analysis, timestamp: new Date().toISOString() }, 300);
       
       console.log('✅ Thematic analysis generated successfully');
       res.json({ ...analysis, timestamp: new Date().toISOString() });
@@ -413,14 +413,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('🧠 Generating enhanced AI analysis with FRESH real-time data... [DATA SYNC FIX ACTIVE]');
       
-      const { cacheManager } = await import('./services/cache-manager');
+      const { cacheService } = await import('./services/cache-unified');
       const cacheKey = 'ai-analysis-data';
       
       // Check cache first (2 minute TTL for AI analysis data)
       const bypassCache = req.headers['x-bypass-cache'] === 'true';
       let cachedData = null;
       if (!bypassCache) {
-        cachedData = cacheManager.get(cacheKey) as any;
+        cachedData = cacheService.get(cacheKey) as any;
         if (cachedData && cachedData.analysisResult) {
           console.log('✅ Using cached AI analysis data');
           return res.json(cachedData.analysisResult);
@@ -524,7 +524,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let finalSectors;
       try {
         const sectorCacheKey = 'sector-data';
-        const cachedSectors = cacheManager.get(sectorCacheKey);
+        const cachedSectors = cacheService.get(sectorCacheKey);
         if (cachedSectors) {
           finalSectors = cachedSectors;
           console.log('✅ Using cached sector data for enhanced analysis');
@@ -617,7 +617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Cache the result for 2 minutes to improve performance
-      cacheManager.set(cacheKey, { analysisResult: analysisData }, 120);
+      cacheService.set(cacheKey, { analysisResult: analysisData }, 120);
       
       res.json(analysisData);
     } catch (error) {
@@ -784,11 +784,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Market indicators (VWAP, RSI, McClellan, Williams %R) - REAL DATA
   app.get("/api/market-indicators", async (req, res) => {
     try {
-      const { cacheManager } = await import('./services/cache-manager');
+      const { cacheService } = await import('./services/cache-unified');
       const cacheKey = 'market-indicators';
       
       // Check cache first (2 minute TTL for market indicators)
-      const cachedData = cacheManager.get(cacheKey);
+      const cachedData = cacheService.get(cacheKey);
       if (cachedData) {
         return res.json(cachedData);
       }
@@ -807,7 +807,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       // Cache the result for 2 minutes
-      cacheManager.set(cacheKey, response, 120);
+      cacheService.set(cacheKey, response, 120);
       
       console.log(`📊 Market indicators updated: ${response.last_updated}`);
       res.json(response);

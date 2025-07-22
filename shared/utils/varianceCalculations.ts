@@ -3,17 +3,14 @@
  * Consolidates duplicate variance calculation logic from economic calendar services
  */
 
-export function calculateVariance(actual: string | number, forecast: string | number): number {
-  const actualNum = typeof actual === 'string' ? parseFloat(actual.replace(/[^-0-9.]/g, '')) : actual;
-  const forecastNum = typeof forecast === 'string' ? parseFloat(forecast.replace(/[^-0-9.]/g, '')) : forecast;
-  
-  if (isNaN(actualNum) || isNaN(forecastNum)) return 0;
-  return actualNum - forecastNum;
-}
+// Re-export from unified utility
+export { formatVariance, formatNumber, formatCurrency, formatPercentage, formatLargeNumber, parseNumberWithSuffix } from './numberFormatting-unified';
 
 export function calculateImpact(actual: string | number, forecast: string | number): 'positive' | 'negative' | 'neutral' {
   try {
-    const variance = calculateVariance(actual, forecast);
+    const varianceResult = formatVariance(actual, forecast);
+    if (!varianceResult) return 'neutral';
+    const variance = varianceResult.value;
     
     if (variance > 0) return 'positive';
     if (variance < 0) return 'negative';
