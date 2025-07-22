@@ -1,11 +1,11 @@
 
 
-import { AIAnalysisComponent } from "@/components/ai-analysis";
+// AI Analysis component removed to fix crashes
 import MomentumAnalysis from "@/components/momentum-analysis";
 import { MarketBreadth } from "@/components/market-breadth";
 import { SectorTracker } from "@/components/sector-tracker";
 import { AAIISentiment } from "@/components/aaii-sentiment";
-import { MarketHeatMap } from "@/components/market-heatmap";
+// MarketHeatMap component not available
 import { EconomicCalendar } from "@/components/economic-calendar";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
 import { EmailSubscription } from "@/components/email-subscription";
@@ -59,8 +59,7 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto p-4 space-y-6">
 
 
-        {/* AI Market Commentary */}
-        <AIAnalysisComponent />
+        {/* AI Market Commentary removed to fix crashes */}
 
         {/* Simplified Momentum Analysis with Verified Calculations */}
         <MomentumAnalysis />
