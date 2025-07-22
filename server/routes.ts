@@ -1487,13 +1487,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Comprehensive Sector Analysis Route - Advanced sector rotation and cyclical pattern analysis
-  app.get('/api/sector-analysis', async (req, res) => {
+  app.get('/api/momentum-analysis', async (req, res) => {
     try {
-      console.log('📊 Generating comprehensive sector analysis with cyclical patterns and rotation timing...');
+      console.log('📊 Generating focused momentum analysis with verified calculations...');
       
       res.setHeader('Content-Type', 'application/json');
       
-      // Get current sector data and historical data for comprehensive analysis
+      // Get current sector data and historical data for momentum analysis
       const [currentSectorData, historicalData] = await Promise.all([
         (async () => {
           try {
@@ -1507,8 +1507,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         (async () => {
           try {
             console.log('📈 Fetching historical sector data from database...');
-            // Check if historical_sector_etf_data table exists and has data
-            // Directly query the historical data table with Drizzle
             const result = await db.execute(`
               SELECT symbol, date, price 
               FROM historical_sector_etf_data 
@@ -1526,31 +1524,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]);
 
       // Log data availability for debugging
-      console.log(`📊 Sector analysis data: ${currentSectorData.length} current sectors, ${historicalData.length} historical records`);
+      console.log(`📊 Simplified momentum data: ${currentSectorData.length} current sectors, ${historicalData.length} historical records`);
       
-      // Use the new sector analysis service
-      const { sectorAnalysisService } = await import('./services/sector-analysis-service-fixed.js');
-      const analysis = await sectorAnalysisService.generateComprehensiveAnalysis(
+      // Use the simplified sector analysis service with verified calculations
+      const { simplifiedSectorAnalysisService } = await import('./services/simplified-sector-analysis.js');
+      const analysis = await simplifiedSectorAnalysisService.generateSimplifiedAnalysis(
         currentSectorData,
         historicalData
       );
       
-      console.log(`✅ Comprehensive sector analysis completed (confidence: ${analysis.confidence}%)`);
+      console.log(`✅ Simplified momentum analysis completed (confidence: ${analysis.confidence}%)`);
       res.json(analysis);
       
     } catch (error) {
-      console.error('❌ Error generating sector analysis:', error);
+      console.error('❌ Error generating momentum analysis:', error);
       res.status(500).json({ 
-        error: 'Sector analysis temporarily unavailable',
-        summary: 'Comprehensive sector analysis building historical database for authentic cyclical pattern detection',
+        error: 'Simplified momentum analysis temporarily unavailable',
+        summary: 'Building momentum analysis with verified calculations from Python template',
         confidence: 0,
-        cyclicalPatterns: [],
-        rotationTiming: [],
-        riskAdjustedReturns: [],
         momentumStrategies: [],
-        correlationAnalysis: [],
-        movingAverages: [],
-        technicalIndicators: [],
+        chartData: [],
         timestamp: new Date().toISOString()
       });
     }

@@ -1,7 +1,7 @@
 
 
 import { AIAnalysisComponent } from "@/components/ai-analysis";
-import { SectorAnalysis } from "@/components/sector-analysis";
+import MomentumAnalysis from "@/components/momentum-analysis";
 import { MarketBreadth } from "@/components/market-breadth";
 import { SectorTracker } from "@/components/sector-tracker";
 import { AAIISentiment } from "@/components/aaii-sentiment";
@@ -62,8 +62,8 @@ export default function Dashboard() {
         {/* AI Market Commentary */}
         <AIAnalysisComponent />
 
-        {/* Comprehensive Sector Analysis - Cyclical Patterns & Rotation Strategies */}
-        <SectorAnalysis />
+        {/* Simplified Momentum Analysis with Verified Calculations */}
+        <MomentumAnalysis />
 
         {/* Market Breadth Indicators */}
         <MarketBreadth />
