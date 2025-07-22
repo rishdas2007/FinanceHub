@@ -62,7 +62,7 @@ async function importSectorHistoricalData() {
         }
         
         try {
-          await db.query(`
+          await db.execute(`
             INSERT INTO historical_sector_etf_data (symbol, date, price)
             VALUES ($1, $2, $3)
             ON CONFLICT (symbol, date) DO UPDATE SET price = $3
@@ -83,7 +83,7 @@ async function importSectorHistoricalData() {
     console.log(`✅ Import completed: ${insertedCount} records inserted, ${skippedCount} skipped`);
     
     // Verify data
-    const countResult = await db.query('SELECT symbol, COUNT(*) as count FROM historical_sector_etf_data GROUP BY symbol ORDER BY symbol');
+    const countResult = await db.execute('SELECT symbol, COUNT(*) as count FROM historical_sector_etf_data GROUP BY symbol ORDER BY symbol');
     console.log('📊 Records per symbol:', countResult.rows);
     
   } catch (error) {

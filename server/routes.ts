@@ -1508,27 +1508,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             console.log('📈 Fetching historical sector data from database...');
             // Check if historical_sector_etf_data table exists and has data
-            const checkQuery = `
-              SELECT COUNT(*) as count 
-              FROM information_schema.tables 
-              WHERE table_name = 'historical_sector_etf_data'
-            `;
-            const tableCheck = await db.query(checkQuery);
-            
-            if (tableCheck.rows[0]?.count > 0) {
-              const query = `
-                SELECT symbol, date, price 
-                FROM historical_sector_etf_data 
-                WHERE date >= NOW() - INTERVAL '6 months'
-                ORDER BY date DESC, symbol
-                LIMIT 1000
-              `;
-              const result = await db.query(query);
-              return result.rows || [];
-            } else {
-              console.log('📊 Historical sector data table not found, using current data for basic analysis');
-              return [];
-            }
+            // Directly query the historical data table with Drizzle
+            const result = await db.execute(`
+              SELECT symbol, date, price 
+              FROM historical_sector_etf_data 
+              WHERE date >= NOW() - INTERVAL '6 months'
+              ORDER BY date DESC, symbol
+              LIMIT 1000
+            `);
+            console.log(`📊 Found ${result.rows.length} historical sector records`);
+            return result.rows || [];
           } catch (error) {
             console.warn('Historical sector data unavailable:', error.message);
             return [];
@@ -1540,7 +1529,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`📊 Sector analysis data: ${currentSectorData.length} current sectors, ${historicalData.length} historical records`);
       
       // Use the new sector analysis service
-      const { sectorAnalysisService } = await import('./services/sector-analysis-service.js');
+      const { sectorAnalysisService } = await import('./services/sector-analysis-service-fixed.js');
       const analysis = await sectorAnalysisService.generateComprehensiveAnalysis(
         currentSectorData,
         historicalData

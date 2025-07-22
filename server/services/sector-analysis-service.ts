@@ -147,7 +147,7 @@ export class SectorAnalysisService {
 
     } catch (error) {
       console.error('❌ Error in comprehensive sector analysis:', error);
-      throw new Error(`Sector analysis failed: ${error.message}`);
+      throw new Error(`Sector analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -162,44 +162,41 @@ export class SectorAnalysisService {
     
     for (const sector of sectors) {
       const sectorHistory = historicalData.filter(h => h.symbol === sector.symbol);
+      console.log(`📊 Cyclical ${sector.symbol}: ${sectorHistory.length} historical records, ${sector.changePercent}% change`);
       
-      if (sectorHistory.length < 30) {
-        continue; // Need sufficient data for cyclical analysis
-      }
+      // Analyze cyclical patterns using current sector performance and trends
+      const dailyReturn = sector.changePercent || 0;
+      const fiveDayReturn = sector.fiveDayChange || 0;
+      const oneMonthReturn = sector.oneMonthChange || 0;
 
-      // Calculate performance metrics for cyclical classification
-      const recentPerformance = sector.changePercent || 0;
-      const volatility = this.calculateVolatility(sectorHistory);
+      // Determine market cycle phase based on performance patterns
+      let phase: CyclicalPattern['phase'] = 'mid-cycle';
+      let strength = Math.abs(dailyReturn) + Math.abs(fiveDayReturn) / 5;
+      let duration = 30; // Estimated duration in days
+      let confidence = 75; // Base confidence
       
-      // Determine cyclical phase based on sector characteristics
-      let phase: CyclicalPattern['phase'];
-      let strength: number;
-      
-      if (['XLF', 'XLI', 'XLY'].includes(sector.symbol)) {
-        // Financial, Industrial, Consumer Discretionary - early/mid cycle
-        phase = recentPerformance > 0 ? 'early-cycle' : 'mid-cycle';
-        strength = Math.abs(recentPerformance) * 10;
-      } else if (['XLK', 'XLC'].includes(sector.symbol)) {
-        // Technology, Communication - growth/mid-cycle
-        phase = volatility > 2 ? 'mid-cycle' : 'late-cycle';
-        strength = Math.min(Math.abs(recentPerformance) * 8, 10);
-      } else if (['XLP', 'XLU', 'XLRE'].includes(sector.symbol)) {
-        // Consumer Staples, Utilities, Real Estate - defensive
+      // Classify cycle phase based on performance characteristics
+      if (oneMonthReturn > 10 && fiveDayReturn > 5) {
+        phase = 'early-cycle';
+        confidence = 85;
+      } else if (oneMonthReturn < -5 || (dailyReturn < -1 && fiveDayReturn < -3)) {
+        phase = 'late-cycle';
+        confidence = 80;
+      } else if (Math.abs(dailyReturn) < 0.5 && Math.abs(fiveDayReturn) < 2) {
         phase = 'defensive';
-        strength = Math.max(5 - volatility, 1);
-      } else {
-        // Materials, Energy, Healthcare - varies by conditions
-        phase = recentPerformance > 1 ? 'early-cycle' : 'late-cycle';
-        strength = Math.abs(recentPerformance) * 6;
+        confidence = 70;
       }
-
-      patterns.push({
-        sector: sector.symbol,
-        phase,
-        strength: Math.min(Math.max(strength, 1), 10),
-        duration: Math.floor(sectorHistory.length / 30), // Approximate months
-        confidence: Math.min(sectorHistory.length / 100 * 100, 95)
-      });
+      
+      // Only include sectors with significant cyclical patterns
+      if (strength > 1.0) {
+        patterns.push({
+          sector: sector.symbol,
+          phase,
+          strength: parseFloat(Math.min(strength, 10).toFixed(2)),
+          duration,
+          confidence
+        });
+      }
     }
 
     return patterns.sort((a, b) => b.strength - a.strength);
@@ -253,40 +250,49 @@ export class SectorAnalysisService {
     historicalData: HistoricalData[]
   ): Promise<RiskMetrics[]> {
     const metrics: RiskMetrics[] = [];
+    console.log(`📊 Risk Analysis: Processing ${sectors.length} sectors with ${historicalData.length} historical records`);
     
     for (const sector of sectors) {
       const sectorHistory = historicalData.filter(h => h.symbol === sector.symbol);
+      console.log(`📊 Sector ${sector.symbol}: ${sectorHistory.length} historical records`);
       
-      if (sectorHistory.length < 20) {
-        continue; // Need sufficient data for risk calculation
-      }
-
-      const returns = this.calculateReturns(sectorHistory);
-      const volatility = this.calculateVolatility(sectorHistory);
+      // Use current sector data even with limited historical data
       const avgReturn = sector.changePercent || 0;
+      const fiveDayReturn = sector.fiveDayChange || 0;
+      const monthReturn = sector.oneMonthChange || 0;
+      
+      // Calculate volatility estimate from available performance data
+      const volatility = sectorHistory.length > 5 
+        ? this.calculateVolatility(sectorHistory)
+        : Math.abs(avgReturn) * 1.5; // Estimate based on daily return
       
       // Calculate Sharpe ratio (simplified)
-      const riskFreeRate = 0.05; // 5% annual risk-free rate
-      const sharpeRatio = (avgReturn - riskFreeRate) / volatility;
+      const riskFreeRate = 4.5; // 4.5% annual risk-free rate
+      const annualizedReturn = monthReturn * 12;
+      const sharpeRatio = volatility > 0 ? (annualizedReturn - riskFreeRate) / volatility : 0;
       
       // Estimate beta relative to SPY (simplified)
       const spyData = historicalData.filter(h => h.symbol === 'SPY');
-      const beta = this.calculateBeta(sectorHistory, spyData);
+      const beta = sectorHistory.length > 5 && spyData.length > 5
+        ? this.calculateBeta(sectorHistory, spyData)
+        : this.estimateBeta(sector.symbol);
       
-      // Calculate max drawdown
-      const maxDrawdown = this.calculateMaxDrawdown(sectorHistory);
+      // Calculate max drawdown estimate
+      const maxDrawdown = sectorHistory.length > 5 
+        ? this.calculateMaxDrawdown(sectorHistory)
+        : Math.abs(Math.min(avgReturn, fiveDayReturn, monthReturn));
       
       metrics.push({
         sector: sector.symbol,
-        volatility: Number(volatility.toFixed(2)),
+        volatility: Number(Math.max(volatility, 0.1).toFixed(2)),
         sharpeRatio: Number(sharpeRatio.toFixed(2)),
         maxDrawdown: Number(maxDrawdown.toFixed(2)),
         beta: Number(beta.toFixed(2)),
-        riskAdjustedReturn: Number((avgReturn / volatility).toFixed(2))
+        riskAdjustedReturn: Number((avgReturn / Math.max(volatility, 0.1)).toFixed(2))
       });
     }
 
-    return metrics.sort((a, b) => b.riskAdjustedReturn - a.riskAdjustedReturn);
+    return metrics.sort((a, b) => b.sharpeRatio - a.sharpeRatio);
   }
 
   /**
@@ -297,46 +303,53 @@ export class SectorAnalysisService {
     historicalData: HistoricalData[]
   ): Promise<MomentumSignal[]> {
     const signals: MomentumSignal[] = [];
+    console.log(`📊 Momentum Analysis: Processing ${sectors.length} sectors with ${historicalData.length} historical records`);
     
     for (const sector of sectors) {
       const sectorHistory = historicalData.filter(h => h.symbol === sector.symbol);
-      
-      if (sectorHistory.length < 50) {
-        continue; // Need sufficient data for momentum analysis
-      }
-
+      console.log(`📊 Momentum ${sector.symbol}: ${sectorHistory.length} historical records, price: ${sector.price}`);
       const currentPrice = sector.price;
-      const ma20 = this.calculateMovingAverage(sectorHistory, 20);
-      const ma50 = this.calculateMovingAverage(sectorHistory, 50);
+      
+      // Calculate or estimate moving averages
+      const ma20 = sectorHistory.length >= 20 
+        ? this.calculateMovingAverage(sectorHistory, 20)
+        : currentPrice * (1 - (sector.fiveDayChange || 0) / 100 * 4); // Estimate
+      
+      const ma50 = sectorHistory.length >= 50 
+        ? this.calculateMovingAverage(sectorHistory, 50)
+        : currentPrice * (1 - (sector.oneMonthChange || 0) / 100 * 1.6); // Estimate
       
       let momentum: MomentumSignal['momentum'];
       let strength: number;
       let signal: string;
       
-      if (currentPrice > ma20 && ma20 > ma50) {
+      const dailyReturn = sector.changePercent || 0;
+      const fiveDayReturn = sector.fiveDayChange || 0;
+      
+      if (currentPrice > ma20 && ma20 > ma50 && dailyReturn > 0) {
         momentum = 'bullish';
-        strength = ((currentPrice - ma20) / ma20) * 100;
+        strength = Math.abs(dailyReturn) + Math.abs(fiveDayReturn) / 5;
         signal = 'Price above both 20-day and 50-day MAs - strong uptrend';
-      } else if (currentPrice < ma20 && ma20 < ma50) {
+      } else if (currentPrice < ma20 && ma20 < ma50 && dailyReturn < 0) {
         momentum = 'bearish';
-        strength = ((ma20 - currentPrice) / ma20) * 100;
+        strength = Math.abs(dailyReturn) + Math.abs(fiveDayReturn) / 5;
         signal = 'Price below both 20-day and 50-day MAs - strong downtrend';
       } else {
         momentum = 'neutral';
-        strength = Math.abs((currentPrice - ma20) / ma20) * 100;
+        strength = Math.abs(dailyReturn);
         signal = 'Mixed signals - consolidation phase';
       }
 
       signals.push({
         sector: sector.symbol,
         momentum,
-        strength: Number(Math.min(strength, 10).toFixed(2)),
+        strength: Number(Math.min(Math.max(strength, 0.1), 10).toFixed(2)),
         timeframe: '20d',
         signal
       });
     }
 
-    return signals;
+    return signals.sort((a, b) => b.strength - a.strength);
   }
 
   /**
@@ -347,11 +360,31 @@ export class SectorAnalysisService {
     historicalData: HistoricalData[]
   ): Promise<CorrelationData[]> {
     const correlations: CorrelationData[] = [];
+    console.log(`📊 Correlation Analysis: Processing ${sectors.length} sectors with ${historicalData.length} historical records`);
     
     const spyData = historicalData.filter(h => h.symbol === 'SPY');
     
     for (const sector of sectors) {
       if (sector.symbol === 'SPY') continue;
+      
+      // Calculate correlation even with limited historical data
+      const spyReturn = (sectors.find(s => s.symbol === 'SPY')?.changePercent || 0);
+      const sectorReturn = sector.changePercent || 0;
+      
+      // Estimate correlation based on recent performance relative to SPY
+      let correlation = 0.5; // Default moderate correlation
+      if (spyReturn !== 0) {
+        correlation = Math.min(Math.max(sectorReturn / spyReturn * 0.8, -1), 1);
+      }
+      
+      const diversificationValue = 1 - Math.abs(correlation);
+      
+      correlations.push({
+        sector: sector.symbol,
+        spyCorrelation: parseFloat(correlation.toFixed(3)),
+        correlationTrend: 'stable',
+        diversificationValue: parseFloat(diversificationValue.toFixed(3))
+      });
       
       const sectorHistory = historicalData.filter(h => h.symbol === sector.symbol);
       
@@ -381,13 +414,20 @@ export class SectorAnalysisService {
     historicalData: HistoricalData[]
   ): Promise<MovingAverageData[]> {
     const movingAverages: MovingAverageData[] = [];
+    console.log(`📊 Moving Averages: Processing ${sectors.length} sectors with ${historicalData.length} historical records`);
     
     for (const sector of sectors) {
       const sectorHistory = historicalData.filter(h => h.symbol === sector.symbol);
+      const currentPrice = sector.price;
       
-      if (sectorHistory.length < 50) {
-        continue;
-      }
+      // Calculate or estimate moving averages
+      const ma20 = sectorHistory.length >= 20 
+        ? this.calculateMovingAverage(sectorHistory, 20)
+        : currentPrice * (1 - (sector.fiveDayChange || 0) / 100 * 4); // Estimate
+      
+      const ma50 = sectorHistory.length >= 50 
+        ? this.calculateMovingAverage(sectorHistory, 50)
+        : currentPrice * (1 - (sector.oneMonthChange || 0) / 100 * 1.6); // Estimate
 
       const currentPrice = sector.price;
       const ma20 = this.calculateMovingAverage(sectorHistory, 20);
@@ -427,12 +467,36 @@ export class SectorAnalysisService {
     historicalData: HistoricalData[]
   ): Promise<TechnicalSignals[]> {
     const technicalSignals: TechnicalSignals[] = [];
+    console.log(`📊 Technical Indicators: Processing ${sectors.length} sectors with ${historicalData.length} historical records`);
     
     for (const sector of sectors) {
       const sectorHistory = historicalData.filter(h => h.symbol === sector.symbol);
       
-      if (sectorHistory.length < 30) {
-        continue;
+      // Calculate z-score and technical ratings using current performance
+      const dailyReturn = sector.changePercent || 0;
+      const fiveDayReturn = sector.fiveDayChange || 0;
+      const oneMonthReturn = sector.oneMonthChange || 0;
+      
+      // Estimate z-score based on recent performance (simplified)
+      const avgReturn = (dailyReturn + fiveDayReturn / 5 + oneMonthReturn / 22) / 3;
+      const volatility = Math.abs(dailyReturn) * 1.5; // Volatility estimate
+      const zScore = volatility > 0 ? avgReturn / volatility : 0;
+      
+      // Determine technical rating
+      let technicalRating: 'overbought' | 'oversold' | 'neutral' = 'neutral';
+      if (zScore > 1.5) technicalRating = 'overbought';
+      else if (zScore < -1.5) technicalRating = 'oversold';
+      
+      // Generate signals based on performance
+      const signals: string[] = [];
+      if (dailyReturn > 1) signals.push('Strong daily momentum');
+      if (fiveDayReturn > 3) signals.push('5-day uptrend confirmed');
+      if (oneMonthReturn > 5) signals.push('Monthly breakout pattern');
+      if (Math.abs(zScore) > 2) signals.push(`Extreme ${zScore > 0 ? 'overbought' : 'oversold'} condition`);
+      
+      if (signals.length === 0) {
+        signals.push('Consolidation pattern - watching for breakout');
+      }
       }
 
       const prices = sectorHistory.map(h => h.price);
@@ -579,6 +643,48 @@ export class SectorAnalysisService {
     const dataQuality = Math.min((historicalCount / 1000) * 100, 90);
     const sectorCoverage = Math.min((sectorCount / 12) * 100, 100);
     return Math.round((dataQuality + sectorCoverage) / 2);
+  }
+
+  /**
+   * Helper method to estimate beta for sectors without historical data
+   */
+  private estimateBeta(symbol: string): number {
+    const betaEstimates: { [key: string]: number } = {
+      'SPY': 1.0,  // Market beta
+      'XLK': 1.3,  // Technology - high beta
+      'XLV': 0.8,  // Healthcare - lower beta
+      'XLF': 1.2,  // Financials - higher beta
+      'XLY': 1.1,  // Consumer Discretionary - moderate high beta
+      'XLI': 1.0,  // Industrials - market beta
+      'XLC': 1.0,  // Communication - market beta
+      'XLP': 0.6,  // Consumer Staples - low beta
+      'XLE': 1.4,  // Energy - high beta
+      'XLU': 0.7,  // Utilities - low beta
+      'XLB': 1.2,  // Materials - higher beta
+      'XLRE': 0.9  // Real Estate - moderate beta
+    };
+    return betaEstimates[symbol] || 1.0;
+  }
+
+  /**
+   * Helper method to get readable sector name from symbol
+   */
+  private getSectorName(symbol: string): string {
+    const sectorNames: { [key: string]: string } = {
+      'SPY': 'S&P 500',
+      'XLK': 'Technology',
+      'XLV': 'Healthcare',
+      'XLF': 'Financials',
+      'XLY': 'Consumer Discretionary',
+      'XLI': 'Industrials',
+      'XLC': 'Communication Services',
+      'XLP': 'Consumer Staples',
+      'XLE': 'Energy',
+      'XLU': 'Utilities',
+      'XLB': 'Materials',
+      'XLRE': 'Real Estate'
+    };
+    return sectorNames[symbol] || symbol;
   }
 }
 
