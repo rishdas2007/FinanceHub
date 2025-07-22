@@ -229,9 +229,9 @@ const MomentumAnalysis = () => {
                     dataKey="sector"
                     position="center"
                     content={(props: any) => {
-                      const { x, y, value } = props;
-                      if (!value || x === undefined || y === undefined) return null;
-                      const isSPY = value === 'SPY';
+                      const { x, y, payload } = props;
+                      if (!payload?.sector || x === undefined || y === undefined) return null;
+                      const isSPY = payload.sector === 'SPY';
                       return (
                         <text 
                           x={x} 
@@ -245,7 +245,7 @@ const MomentumAnalysis = () => {
                           strokeWidth="2"
                           paintOrder="stroke"
                         >
-                          {value}
+                          {payload.sector}
                         </text>
                       );
                     }}
@@ -270,6 +270,15 @@ const MomentumAnalysis = () => {
                 </div>
               );
             })}
+          </div>
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-sm text-gray-700">
+              <strong>How to interpret this chart:</strong> Each dot represents a sector ETF plotted by its 1-day Z-score (x-axis) and annual return (y-axis). 
+              The Z-score shows how many standard deviations the latest 1-day move is from its historical average. 
+              <strong>Top-right quadrant</strong> shows high-performing sectors with positive momentum. 
+              <strong>Bottom-right quadrant</strong> shows sectors with recent positive moves but negative annual returns. 
+              SPY (S&P 500) serves as the market benchmark with larger labels for easy identification.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -296,8 +305,12 @@ const MomentumAnalysis = () => {
                 </tr>
               </thead>
               <tbody>
-                {analysis.momentumStrategies.map((strategy, index) => (
-                  <tr key={strategy.sector} className={`border-b border-gray-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                {analysis.momentumStrategies
+                  .sort((a, b) => a.sector === 'SPY' ? -1 : b.sector === 'SPY' ? 1 : 0)
+                  .map((strategy, index) => {
+                    const isSPY = strategy.sector === 'SPY';
+                    return (
+                  <tr key={strategy.sector} className={`border-b border-gray-200 ${isSPY ? 'bg-blue-50 border-blue-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
                     <td className="p-2 w-32">
                       <span className="text-gray-800 font-medium text-sm">{getSectorFullName(strategy.sector)}</span>
                     </td>
@@ -331,9 +344,51 @@ const MomentumAnalysis = () => {
                       </div>
                     </td>
                   </tr>
-                ))}
+                    );
+                  })}
               </tbody>
             </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Gap Calculation Explanation */}
+      <Card className="bg-gray-100 border-gray-300">
+        <CardHeader>
+          <CardTitle className="text-lg text-gray-800">
+            Understanding Moving Average Gap Calculations
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+            <div>
+              <h4 className="font-semibold text-gray-800 mb-2">What does "gap" mean?</h4>
+              <p className="text-sm text-gray-700">
+                The "gap" represents the percentage difference between the 20-day and 50-day moving averages. 
+                It's calculated as: <code className="bg-gray-200 px-2 py-1 rounded">((20-day MA - 50-day MA) / 50-day MA) × 100</code>
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-800 mb-2">Why negative gaps in bullish signals?</h4>
+              <p className="text-sm text-gray-700">
+                A <strong>negative gap</strong> like "-141.1%" means the 20-day MA is significantly <em>below</em> the 50-day MA. 
+                When we see "Strong bullish: 20-day MA crossing above 50-day MA (-141.1% gap)", it indicates:
+              </p>
+              <ul className="list-disc list-inside text-sm text-gray-700 mt-2 space-y-1">
+                <li>The short-term average is rapidly rising from a very oversold position</li>
+                <li>There's strong upward momentum as the 20-day MA catches up to the 50-day MA</li>
+                <li>This represents a powerful reversal signal from severely depressed levels</li>
+                <li>The larger the negative gap during a bullish crossover, the stronger the reversal momentum</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-800 mb-2">Interpretation Guide:</h4>
+              <div className="text-sm text-gray-700 space-y-1">
+                <div><strong>Positive gap (+%):</strong> 20-day MA above 50-day MA (established uptrend)</div>
+                <div><strong>Negative gap (-%):</strong> 20-day MA below 50-day MA (potential reversal opportunity)</div>
+                <div><strong>Large negative gap with bullish signal:</strong> Strong reversal momentum from oversold conditions</div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
