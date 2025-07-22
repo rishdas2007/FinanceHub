@@ -532,7 +532,7 @@ export class FinancialDataService {
   async getHistoricalPerformance(symbol: string) {
     try {
       // Check cache first to avoid unnecessary API calls
-      const { cacheManager } = await import('./cache-manager');
+      const { cacheManager } = await import('./cache-unified');
       const cacheKey = `historical-${symbol}`;
       const cached = cacheManager.get(cacheKey);
       if (cached) {

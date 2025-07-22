@@ -1,6 +1,6 @@
 /**
- * Unified market hours utility - consolidating all market time logic
- * Replaces scattered implementations across the codebase
+ * Unified Market Hours Utility
+ * Single source of truth for all market hours logic
  */
 
 export function isMarketOpen(): boolean {
@@ -17,12 +17,7 @@ export function isMarketOpen(): boolean {
   return isWeekday && isMarketHours;
 }
 
-export function getMarketStatus(): {
-  isOpen: boolean;
-  status: 'open' | 'closed' | 'pre-market' | 'after-hours';
-  nextOpen?: Date;
-  timezone: string;
-} {
+export function getMarketStatus(): 'open' | 'closed' | 'pre-market' | 'after-hours' {
   const now = new Date();
   const etTime = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
   const hour = etTime.getHours();
@@ -30,38 +25,32 @@ export function getMarketStatus(): {
   const dayOfWeek = etTime.getDay();
   
   const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
-  const isMarketHours = (hour > 9 || (hour === 9 && minute >= 30)) && hour < 16;
-  const isPreMarket = isWeekday && hour >= 4 && (hour < 9 || (hour === 9 && minute < 30));
-  const isAfterHours = isWeekday && hour >= 16 && hour < 20;
   
-  let status: 'open' | 'closed' | 'pre-market' | 'after-hours';
+  if (!isWeekday) return 'closed';
   
-  if (isMarketHours) {
-    status = 'open';
-  } else if (isPreMarket) {
-    status = 'pre-market';
-  } else if (isAfterHours) {
-    status = 'after-hours';
+  const currentTime = hour * 60 + minute;
+  const marketOpen = 9 * 60 + 30; // 9:30 AM
+  const marketClose = 16 * 60; // 4:00 PM
+  
+  if (currentTime >= marketOpen && currentTime < marketClose) {
+    return 'open';
+  } else if (currentTime < marketOpen) {
+    return 'pre-market';
   } else {
-    status = 'closed';
+    return 'after-hours';
   }
-  
-  return {
-    isOpen: isMarketHours,
-    status,
-    timezone: 'America/New_York'
-  };
 }
 
-export function formatMarketTimestamp(includeSeconds: boolean = false): string {
+export function formatMarketTimestamp(): string {
   const now = new Date();
   const etTime = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
-  const { isOpen } = getMarketStatus();
+  const status = getMarketStatus();
   
-  const timeFormat = includeSeconds ? 
-    etTime.toLocaleTimeString("en-US", { timeZone: "America/New_York" }) :
-    etTime.toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: '2-digit', minute: '2-digit' });
+  const timeStr = etTime.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'America/New_York'
+  });
   
-  const status = isOpen ? "Market Open" : "Market Closed";
-  return `${timeFormat} ET (${status})`;
+  return `${timeStr} ET (Market ${status === 'open' ? 'Open' : 'Closed'})`;
 }

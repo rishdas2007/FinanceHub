@@ -1,8 +1,9 @@
 import OpenAI from "openai";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
-import { historicalContextService } from "./historical-context";
-import { narrativeMemoryService } from "./narrative-memory";
+// Temporarily disable advanced features during optimization
+// import { historicalContextService } from "./historical-context";
+// import { narrativeMemoryService } from "./narrative-memory";
 
 interface ThematicAnalysisResult {
   bottomLine: string;
@@ -42,7 +43,10 @@ export class ThematicAIAnalysisService {
     
     if (includeHistoricalContext) {
       try {
+        // Temporarily disabled during optimization
         // Get percentile rankings for key metrics
+        // Temporarily disabled during optimization
+        /*
         const rsiPercentile = await historicalContextService.getMetricPercentile(
           'RSI', technicalData.rsi || 68, '3Y'
         );
@@ -68,6 +72,12 @@ export class ThematicAIAnalysisService {
         );
         
         narrativeContext = narrativeEvolution.narrativeConnection;
+        */
+        
+        // Simplified fallback during optimization
+        percentileInsights = 'Building sophisticated historical analysis system';
+        historicalContext = 'Analyzing current market conditions';
+        narrativeContext = 'Evaluating market theme evolution';
         
       } catch (error) {
         console.error('Error getting historical context:', error);
