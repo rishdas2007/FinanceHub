@@ -126,7 +126,7 @@ export class HistoricalContextAnalyzer {
               narrative
             });
             
-          } catch (error) {
+          } catch (error: any) {
             console.warn(`⚠️ Could not analyze ${metric.name}:`, error.message);
           }
         }

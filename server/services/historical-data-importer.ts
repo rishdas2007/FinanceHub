@@ -199,19 +199,87 @@ export class HistoricalDataImporter {
   }
 
   /**
+   * Import Sector ETF historical data from CSV
+   */
+  async importSectorETFData(csvPath: string): Promise<number> {
+    console.log('📊 Starting Sector ETF historical data import...');
+    
+    try {
+      const csvContent = fs.readFileSync(csvPath, 'utf-8');
+      const lines = csvContent.split('\n').filter(line => line.trim());
+      
+      // Skip header
+      const dataLines = lines.slice(1);
+      let importedCount = 0;
+      
+      // ETF symbols from header: SPY,XLK,XLV,XLF,XLY,XLI,XLC,XLP,XLE,XLU,XLB,XLRE
+      const symbols = ['SPY', 'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'];
+      
+      for (const line of dataLines) {
+        if (!line.trim()) continue;
+        
+        const columns = line.split(',');
+        if (columns.length < 13) continue; // Date + 12 ETFs
+        
+        const dateStr = columns[0];
+        if (!dateStr) continue;
+        
+        try {
+          const date = new Date(dateStr);
+          
+          // Process each ETF price
+          for (let i = 1; i < columns.length && i <= 12; i++) {
+            const priceStr = columns[i];
+            const symbol = symbols[i - 1];
+            
+            if (!priceStr || !symbol) continue;
+            
+            const price = parseFloat(priceStr);
+            if (isNaN(price) || price <= 0) continue;
+            
+            // Insert into database table
+            try {
+              await db.query(`
+                INSERT INTO historical_sector_etf_data (date, symbol, price, data_source) 
+                VALUES ($1, $2, $3, 'csv_import')
+                ON CONFLICT (date, symbol) DO UPDATE SET price = $3
+              `, [date, symbol, price]);
+            } catch (dbError) {
+              console.warn(`⚠️ Database insert failed for ${symbol} on ${date}:`, dbError.message);
+              continue;
+            }
+            
+            importedCount++;
+          }
+        } catch (error) {
+          console.warn(`⚠️  Skipping invalid sector ETF row: ${line.substring(0, 50)}...`);
+        }
+      }
+      
+      console.log(`✅ Sector ETF import completed: ${importedCount} records`);
+      return importedCount;
+    } catch (error) {
+      console.error('❌ Sector ETF import failed:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Import all historical data files
    */
-  async importAllData(): Promise<{vix: number, aaii: number, spy: number}> {
+  async importAllData(): Promise<{vix: number, aaii: number, spy: number, sectorETF: number}> {
     console.log('🚀 Starting comprehensive historical data import...');
     
     const vixPath = path.join(process.cwd(), 'attached_assets', 'VIX_History_1753144785433.csv');
     const aaiiPath = path.join(process.cwd(), 'attached_assets', 'sentiment readings_1753144785439.csv');
     const spyPath = path.join(process.cwd(), 'attached_assets', 'SPY_HistoricalData_1753144980967.csv');
+    const sectorETFPath = path.join(process.cwd(), 'attached_assets', 'SPDR_Sector_ETF_Historical_Data_3Years_1753146071323.csv');
     
     const results = {
       vix: 0,
       aaii: 0,
-      spy: 0
+      spy: 0,
+      sectorETF: 0
     };
     
     try {
@@ -230,8 +298,13 @@ export class HistoricalDataImporter {
         results.spy = await this.importSPYData(spyPath);
       }
       
+      // Import Sector ETF data
+      if (fs.existsSync(sectorETFPath)) {
+        results.sectorETF = await this.importSectorETFData(sectorETFPath);
+      }
+      
       console.log('🎉 Historical data import completed successfully!');
-      console.log(`📊 Imported: VIX: ${results.vix}, AAII: ${results.aaii}, SPY: ${results.spy}`);
+      console.log(`📊 Imported: VIX: ${results.vix}, AAII: ${results.aaii}, SPY: ${results.spy}, Sector ETFs: ${results.sectorETF}`);
       
       return results;
     } catch (error) {
