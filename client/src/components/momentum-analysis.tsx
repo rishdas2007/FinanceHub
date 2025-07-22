@@ -109,6 +109,34 @@ const MomentumAnalysis = () => {
     return '#059669'; // Dark green (low correlation, good for diversification)
   };
 
+  const getETFColor = (sector: string, index: number) => {
+    const colors = [
+      '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', 
+      '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',
+      '#6366f1', '#84cc16'
+    ];
+    if (sector === 'SPY') return '#3b82f6'; // Blue for SPY
+    return colors[index % colors.length];
+  };
+
+  const getSectorFullName = (ticker: string): string => {
+    const sectorMap: { [key: string]: string } = {
+      'SPY': 'S&P 500 INDEX',
+      'XLK': 'Technology',
+      'XLV': 'Health Care',
+      'XLF': 'Financials',
+      'XLY': 'Consumer Discretionary',
+      'XLI': 'Industrials',
+      'XLC': 'Communication Services',
+      'XLP': 'Consumer Staples',
+      'XLE': 'Energy',
+      'XLU': 'Utilities',
+      'XLB': 'Materials',
+      'XLRE': 'Real Estate'
+    };
+    return sectorMap[ticker] || ticker;
+  };
+
   if (isLoading) {
     return (
       <Card className="bg-gray-900 border-gray-800">
@@ -192,33 +220,32 @@ const MomentumAnalysis = () => {
                     return null;
                   }}
                 />
-                <Scatter dataKey="annualReturn">
+                <Scatter dataKey="annualReturn" fill="#8884d8">
                   {analysis.chartData.map((entry, index) => {
                     const color = getETFColor(entry.sector, index);
                     return <Cell key={`cell-${index}`} fill={color} />;
                   })}
                   <LabelList 
-                    dataKey="sector" 
-                    position="center" 
+                    dataKey="sector"
+                    position="center"
                     content={(props: any) => {
-                      const { x, y, payload } = props;
-                      if (!payload?.sector || x === undefined || y === undefined) return null;
-                      const isSPY = payload.sector === 'SPY';
+                      const { x, y, value } = props;
+                      if (!value || x === undefined || y === undefined) return null;
+                      const isSPY = value === 'SPY';
                       return (
                         <text 
                           x={x} 
                           y={y} 
-                          fill="#1F2937"
+                          fill="#000000"
                           fontSize={isSPY ? "14px" : "10px"}
                           fontWeight="bold"
                           textAnchor="middle"
                           dominantBaseline="middle"
-                          style={{ 
-                            textShadow: '1px 1px 2px rgba(255,255,255,0.8)',
-                            pointerEvents: 'none'
-                          }}
+                          stroke="#ffffff"
+                          strokeWidth="2"
+                          paintOrder="stroke"
                         >
-                          {payload.sector}
+                          {value}
                         </text>
                       );
                     }}
@@ -256,50 +283,52 @@ const MomentumAnalysis = () => {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto bg-gray-50 rounded-lg p-4">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-fixed">
               <thead>
                 <tr className="border-b border-gray-300">
-                  <th className="text-left p-3 text-gray-700 font-semibold">Sector</th>
-                  <th className="text-left p-3 text-gray-700 font-semibold">Ticker</th>
-                  <th className="text-left p-3 text-gray-700 font-semibold">Momentum</th>
-                  <th className="text-right p-3 text-gray-700 font-semibold">Annual Return</th>
-                  <th className="text-right p-3 text-gray-700 font-semibold">Sharpe Ratio</th>
-                  <th className="text-right p-3 text-gray-700 font-semibold">Z-Score</th>
-                  <th className="text-left p-3 text-gray-700 font-semibold">Signal</th>
+                  <th className="text-left p-2 text-gray-700 font-semibold w-32">Sector</th>
+                  <th className="text-left p-2 text-gray-700 font-semibold w-16">Ticker</th>
+                  <th className="text-left p-2 text-gray-700 font-semibold w-20">Momentum</th>
+                  <th className="text-right p-2 text-gray-700 font-semibold w-20">Annual<br/>Return</th>
+                  <th className="text-right p-2 text-gray-700 font-semibold w-16">Sharpe<br/>Ratio</th>
+                  <th className="text-right p-2 text-gray-700 font-semibold w-20">Z-Score of Latest<br/>1-Day Move</th>
+                  <th className="text-left p-2 text-gray-700 font-semibold">Signal</th>
                 </tr>
               </thead>
               <tbody>
                 {analysis.momentumStrategies.map((strategy, index) => (
                   <tr key={strategy.sector} className={`border-b border-gray-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                    <td className="p-3">
-                      <span className="text-gray-800 font-medium">{getSectorFullName(strategy.sector)}</span>
+                    <td className="p-2 w-32">
+                      <span className="text-gray-800 font-medium text-sm">{getSectorFullName(strategy.sector)}</span>
                     </td>
-                    <td className="p-3">
-                      <span className="text-gray-800 font-medium">{strategy.sector}</span>
+                    <td className="p-2 w-16">
+                      <span className="text-gray-800 font-medium text-sm">{strategy.sector}</span>
                     </td>
-                    <td className="p-3">
+                    <td className="p-2 w-20">
                       <Badge className={`${getMomentumColor(strategy.momentum)} text-xs flex items-center space-x-1 w-fit`}>
                         {getMomentumIcon(strategy.momentum)}
                         <span className="capitalize">{strategy.momentum}</span>
                       </Badge>
                     </td>
-                    <td className="p-3 text-right">
-                      <span className={`${strategy.annualReturn >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <td className="p-2 text-right w-20">
+                      <span className={`text-sm ${strategy.annualReturn >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {strategy.annualReturn.toFixed(1)}%
                       </span>
                     </td>
-                    <td className="p-3 text-right">
-                      <span className={`${strategy.sharpeRatio >= 0.5 ? 'text-green-600' : strategy.sharpeRatio >= 0 ? 'text-yellow-600' : 'text-red-600'}`}>
+                    <td className="p-2 text-right w-16">
+                      <span className={`text-sm ${strategy.sharpeRatio >= 0.5 ? 'text-green-600' : strategy.sharpeRatio >= 0 ? 'text-yellow-600' : 'text-red-600'}`}>
                         {strategy.sharpeRatio.toFixed(2)}
                       </span>
                     </td>
-                    <td className="p-3 text-right">
-                      <span className={`${Math.abs(strategy.zScore) > 1.5 ? 'text-yellow-600' : 'text-gray-600'}`}>
+                    <td className="p-2 text-right w-20">
+                      <span className={`text-sm ${Math.abs(strategy.zScore) > 1.5 ? 'text-yellow-600' : 'text-gray-600'}`}>
                         {strategy.zScore.toFixed(2)}
                       </span>
                     </td>
-                    <td className="p-3 text-gray-600 text-xs max-w-48 truncate" title={strategy.signal}>
-                      {strategy.signal}
+                    <td className="p-2 text-gray-600 text-xs">
+                      <div className="max-w-none overflow-visible">
+                        {strategy.signal}
+                      </div>
                     </td>
                   </tr>
                 ))}
