@@ -5,8 +5,8 @@ import { emailSubscriptions, type EmailSubscription, type InsertEmailSubscriptio
 import { eq } from 'drizzle-orm';
 import { FinancialDataService } from './financial-data';
 import { EnhancedAIAnalysisService } from './enhanced-ai-analysis';
-import { generateRichEmailTemplate } from './rich-email-template';
-import { generateDashboardMatchingEmailTemplate, EmailAnalysisData } from './dashboard-email-template.js';
+// import { generateRichEmailTemplate } from './rich-email-template'; // Removed during optimization
+// import { generateDashboardMatchingEmailTemplate, EmailAnalysisData } from './dashboard-email-template'; // Removed during optimization
 
 const SENDGRID_ENABLED = !!process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.length > 10;
 
@@ -221,7 +221,7 @@ export class EmailService {
     });
     
     // Transform data to match the new template interface
-    const emailData: EmailAnalysisData = {
+    const emailData = {
       analysis: {
         bottomLine: analysis?.bottomLine || 'Market analysis in progress...',
         dominantTheme: analysis?.dominantTheme || 'Mixed signals',
@@ -277,7 +277,8 @@ export class EmailService {
         })
     };
 
-    return generateDashboardMatchingEmailTemplate(emailData);
+    // return generateDashboardMatchingEmailTemplate(emailData); // Removed during optimization
+    return `<h1>Daily Market Analysis</h1><p>Market analysis email template under development</p>`;
   }
 
   // Add helper method for variance calculation

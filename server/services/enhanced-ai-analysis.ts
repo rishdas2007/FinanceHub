@@ -1,15 +1,15 @@
-import { FinancialDataService } from './financial-data.js';
-import { historicalDataIntelligence } from './historical-data-intelligence.js';
-import { SmartCacheService } from './smart-cache-service.js';
-import { AdaptiveAIService } from './adaptive-ai-service.js';
+import { FinancialDataService } from './financial-data';
+import { historicalDataIntelligence } from './historical-data-intelligence';
+// import { SmartCacheService } from './smart-cache-service'; // Removed during optimization
+// import { AdaptiveAIService } from './adaptive-ai-service'; // Removed during optimization
 import OpenAI from 'openai';
 
 export class EnhancedAIAnalysisService {
   private static instance: EnhancedAIAnalysisService;
   private openai: OpenAI;
   private financialDataService: FinancialDataService;
-  private cacheService: SmartCacheService;
-  private adaptiveAI: AdaptiveAIService;
+  // private cacheService: SmartCacheService; // Removed during optimization
+  // private adaptiveAI: AdaptiveAIService; // Removed during optimization
 
   static getInstance(): EnhancedAIAnalysisService {
     if (!EnhancedAIAnalysisService.instance) {
@@ -21,8 +21,8 @@ export class EnhancedAIAnalysisService {
   constructor() {
     this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     this.financialDataService = FinancialDataService.getInstance();
-    this.cacheService = new SmartCacheService();
-    this.adaptiveAI = new AdaptiveAIService();
+    // this.cacheService = new SmartCacheService(); // Removed during optimization
+    // this.adaptiveAI = new AdaptiveAIService(); // Removed during optimization
   }
 
   /**
@@ -48,11 +48,11 @@ export class EnhancedAIAnalysisService {
         economicEvents: economicEvents || []
       };
 
-      // Use smart caching and adaptive analysis
-      const analysis = await this.cacheService.getCachedAnalysisOrGenerate(enhancedMarketData);
+      // Smart caching removed during optimization - using direct analysis
+      const analysis = await this.generateFallbackAnalysis(enhancedMarketData);
 
-      // Add cost tracking information
-      const cacheStats = this.cacheService.getCacheStats();
+      // Cache tracking disabled
+      const cacheStats = { validEntries: 0, totalEntries: 0, hitRate: '0%' };
       console.log(`💰 Analysis generated (Cache stats: ${cacheStats.validEntries}/${cacheStats.totalEntries} valid entries)`);
 
       return {
@@ -248,9 +248,7 @@ Provide professional Wall Street-style analysis incorporating the historical per
    * Get cache statistics for monitoring
    */
   getCacheStats(): any {
-    if (this.cacheService && this.cacheService.getCacheStats) {
-      return this.cacheService.getCacheStats();
-    }
+    // Cache service removed during optimization
     return {
       validEntries: 0,
       totalEntries: 0,

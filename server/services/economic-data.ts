@@ -1,6 +1,6 @@
 import type { EconomicEvent } from '../types/financial';
-import { fredApiService } from './fred-api';
-import { marketWatchScraper } from './marketwatch-scraper';
+// import { fredApiService } from './fred-api'; // Removed during optimization
+// import { marketWatchScraper } from './marketwatch-scraper'; // Removed during optimization
 
 export class EconomicDataService {
   private static instance: EconomicDataService;
@@ -28,15 +28,15 @@ export class EconomicDataService {
       let scrapedEvents: EconomicEvent[] = [];
       
       if (needsRefresh) {
-        console.log('🕐 Daily MarketWatch scraping (last scraped 24+ hours ago)...');
-        const upcomingEvents = await marketWatchScraper.scrapeUpcomingEvents(14);
-        scrapedEvents = marketWatchScraper.convertToEconomicEvents(upcomingEvents);
+        console.log('🕐 Daily MarketWatch scraping disabled (service removed during optimization)...');
+        // Service removed during optimization
+        scrapedEvents = [];
         this.cachedScrapedEvents = scrapedEvents;
         this.lastScrapedTime = now;
-        console.log(`📅 Scraped ${scrapedEvents.length} events, cached for 24 hours`);
+        console.log(`📅 Scraping disabled, using fallback events only`);
       } else {
         scrapedEvents = this.cachedScrapedEvents;
-        const hoursUntilRefresh = Math.ceil((this.SCRAPE_CACHE_DURATION - (now.getTime() - this.lastScrapedTime.getTime())) / (60 * 60 * 1000));
+        const hoursUntilRefresh = Math.ceil((this.SCRAPE_CACHE_DURATION - (now.getTime() - this.lastScrapedTime!.getTime())) / (60 * 60 * 1000));
         console.log(`📋 Using cached scraping data (refreshes in ${hoursUntilRefresh} hours)`);
       }
       
@@ -78,15 +78,8 @@ export class EconomicDataService {
       // Only update events from the last 3 days that don't already have actual values
       if (eventDate >= threeDaysAgo && eventDate <= today && !event.actual) {
         try {
-          const fredUpdate = await fredApiService.updateEconomicEvent(event.title);
-          if (fredUpdate.actual) {
-            updatedEvents[i] = {
-              ...event,
-              actual: fredUpdate.actual,
-              impact: fredUpdate.impact as any
-            };
-            console.log(`📊 Auto-updated ${event.title}: ${fredUpdate.actual}`);
-          }
+          // FRED API service removed during optimization
+          console.log(`📊 FRED update disabled for ${event.title} (service removed during optimization)`);
         } catch (error) {
           console.error(`Failed to update ${event.title} with FRED data:`, error);
         }
