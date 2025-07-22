@@ -319,22 +319,22 @@ export class SimplifiedSectorAnalysisService {
     if (ma20AboveMA50 && priceAboveMA20 && sharpeRatio > 0.7 && annualReturn > 15) {
       return { 
         momentum: 'bullish', 
-        signal: `Strong bullish: 20-day MA crossing above 50-day MA (${crossoverStrength.toFixed(1)}% gap)` 
+        signal: `Strong bullish: 20-day MA above 50-day MA (+${Math.abs(crossoverStrength).toFixed(1)}% gap)` 
       };
     } else if (ma20AboveMA50 && priceAboveMA20 && sharpeRatio > 0.3) {
       return { 
         momentum: 'bullish', 
-        signal: `Moderate bullish: Price above rising 20-day MA (${priceMomentum.toFixed(1)}% above)` 
+        signal: `Moderate bullish: Price above rising 20-day MA (+${Math.abs(priceMomentum).toFixed(1)}% above)` 
       };
     } else if (!ma20AboveMA50 && !priceAboveMA20 && sharpeRatio < 0 && annualReturn < 0) {
       return { 
         momentum: 'bearish', 
-        signal: `Strong bearish: 20-day MA declining below 50-day MA (${Math.abs(crossoverStrength).toFixed(1)}% gap)` 
+        signal: `Strong bearish: 20-day MA below 50-day MA (-${Math.abs(crossoverStrength).toFixed(1)}% gap)` 
       };
     } else if (!ma20AboveMA50 && !priceAboveMA20 && sharpeRatio < 0.3) {
       return { 
         momentum: 'bearish', 
-        signal: `Moderate bearish: Price below declining 20-day MA (${Math.abs(priceMomentum).toFixed(1)}% below)` 
+        signal: `Moderate bearish: Price below declining 20-day MA (-${Math.abs(priceMomentum).toFixed(1)}% below)` 
       };
     } else if (Math.abs(priceMomentum) < 2 && Math.abs(crossoverStrength) < 1) {
       return { 

@@ -181,7 +181,7 @@ const MomentumAnalysis = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-96 bg-gray-50 rounded-lg p-4">
+          <div className="h-[500px] bg-gray-50 rounded-lg p-4">
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart data={analysis.chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#D1D5DB" />
@@ -237,8 +237,8 @@ const MomentumAnalysis = () => {
                           x={x} 
                           y={y} 
                           fill="#000000"
-                          fontSize={isSPY ? "14px" : "10px"}
-                          fontWeight="bold"
+                          fontSize="12px"
+                          fontWeight={isSPY ? "bold" : "normal"}
                           textAnchor="middle"
                           dominantBaseline="middle"
                           stroke="#ffffff"
@@ -352,46 +352,7 @@ const MomentumAnalysis = () => {
         </CardContent>
       </Card>
 
-      {/* Gap Calculation Explanation */}
-      <Card className="bg-gray-100 border-gray-300">
-        <CardHeader>
-          <CardTitle className="text-lg text-gray-800">
-            Understanding Moving Average Gap Calculations
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-            <div>
-              <h4 className="font-semibold text-gray-800 mb-2">What does "gap" mean?</h4>
-              <p className="text-sm text-gray-700">
-                The "gap" represents the percentage difference between the 20-day and 50-day moving averages. 
-                It's calculated as: <code className="bg-gray-200 px-2 py-1 rounded">((20-day MA - 50-day MA) / 50-day MA) × 100</code>
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-gray-800 mb-2">Why negative gaps in bullish signals?</h4>
-              <p className="text-sm text-gray-700">
-                A <strong>negative gap</strong> like "-141.1%" means the 20-day MA is significantly <em>below</em> the 50-day MA. 
-                When we see "Strong bullish: 20-day MA crossing above 50-day MA (-141.1% gap)", it indicates:
-              </p>
-              <ul className="list-disc list-inside text-sm text-gray-700 mt-2 space-y-1">
-                <li>The short-term average is rapidly rising from a very oversold position</li>
-                <li>There's strong upward momentum as the 20-day MA catches up to the 50-day MA</li>
-                <li>This represents a powerful reversal signal from severely depressed levels</li>
-                <li>The larger the negative gap during a bullish crossover, the stronger the reversal momentum</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold text-gray-800 mb-2">Interpretation Guide:</h4>
-              <div className="text-sm text-gray-700 space-y-1">
-                <div><strong>Positive gap (+%):</strong> 20-day MA above 50-day MA (established uptrend)</div>
-                <div><strong>Negative gap (-%):</strong> 20-day MA below 50-day MA (potential reversal opportunity)</div>
-                <div><strong>Large negative gap with bullish signal:</strong> Strong reversal momentum from oversold conditions</div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+
     </div>
   );
 };
