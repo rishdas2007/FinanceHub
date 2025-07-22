@@ -2,6 +2,13 @@ import express, { type Request, Response, NextFunction } from "express";
 import compression from "compression";
 import cors from "cors";
 import { registerRoutes } from "./routes";
+// Import optional enhancements
+import { monitoringRoutes } from './routes/monitoring';
+import { docsRoutes } from './routes/docs';
+import { v1Routes } from './routes/api/v1/index';
+import { v2Routes } from './routes/api/v2/index';
+import { apiVersioning, versionDeprecation, contentNegotiation } from './middleware/api-versioning';
+import { metricsMiddleware } from './utils/MetricsCollector';
 import { setupVite, serveStatic, log } from "./vite";
 import { registerHealthRoutes } from "./routes/health";
 
@@ -40,6 +47,14 @@ app.use('/api', compression());
 app.use('/api', cors(corsOptions));
 app.use('/api', apiRateLimit);
 
+// Optional Enhancements - Metrics Collection
+app.use('/api', metricsMiddleware());
+
+// Optional Enhancements - API Versioning
+app.use('/api', apiVersioning);
+app.use('/api', versionDeprecation(['v1'])); // Mark v1 as deprecated
+app.use('/api', contentNegotiation);
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -74,6 +89,15 @@ app.use((req, res, next) => {
   // Register health routes (API only)
   // registerHealthRoutes(app); // Temporarily disabled to fix frontend loading
   
+  // Register enhanced routes with versioning
+  app.use('/api/v1', v1Routes);
+  app.use('/api/v2', v2Routes);
+
+  // Optional Enhancements - Monitoring and Docs
+  app.use('/api/monitoring', monitoringRoutes);
+  app.use('/api/docs', docsRoutes);
+
+  // Register original routes (maintain backward compatibility)
   const server = await registerRoutes(app);
 
   // importantly only setup vite in development and after

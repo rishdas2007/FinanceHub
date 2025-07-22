@@ -1,112 +1,232 @@
 import { Request, Response } from 'express';
-import { asyncHandler } from '../middleware/standardized-error-handler';
 import { ResponseUtils } from '../utils/ResponseUtils';
+import { asyncHandler } from '../middleware/standardized-error-handler';
 import { logger } from '../utils/logger';
-import { validateStockSymbol, paginationSchema } from '../../shared/validation';
-import { CACHE_DURATION } from '../../shared/config/constants';
+import { metricsCollector } from '../utils/MetricsCollector';
+
+// Import services (use existing ones)
+import { financialDataService } from '../services/financial-data';
+import { storage } from '../storage';
 
 export class ApiController {
   static getAISummary = asyncHandler(async (req: Request, res: Response) => {
-    const { AISummaryService } = await import('../services/ai-summary');
+    const timerId = metricsCollector.startTimer('ai_summary_generation');
     
     try {
-      const summary = await AISummaryService.generateMarketSummary();
-      ResponseUtils.success(res, summary);
-    } catch (error: any) {
-      logger.error('AI summary generation failed', { error: error.message });
+      // Import AI service dynamically to avoid circular dependencies
+      const { aiAnalysisService } = await import('../services/ai-analysis-unified');
+      
+      logger.info('Generating AI summary', { 
+        requestId: req.headers['x-request-id'],
+        apiVersion: req.apiVersion 
+      });
+      
+      const analysis = await aiAnalysisService.generateMarketSummary();
+      
+      metricsCollector.endTimer(timerId, 'ai_summary_generation', { 
+        version: req.apiVersion,
+        success: 'true' 
+      });
+      
+      // Add API version metadata for v2
+      const response = req.apiVersion === 'v2' 
+        ? { ...analysis, apiVersion: 'v2', enhanced: true }
+        : analysis;
+      
+      ResponseUtils.success(res, response);
+    } catch (error) {
+      metricsCollector.endTimer(timerId, 'ai_summary_generation', { 
+        version: req.apiVersion,
+        success: 'false' 
+      });
+      
+      logger.error('AI summary generation failed', { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId: req.headers['x-request-id'] 
+      });
+      
       ResponseUtils.internalError(res, 'AI analysis temporarily unavailable');
     }
   });
 
   static getSectors = asyncHandler(async (req: Request, res: Response) => {
-    const { FinancialDataService } = await import('../services/financial-data');
+    const timerId = metricsCollector.startTimer('sector_data_fetch');
     
     try {
-      const sectors = await FinancialDataService.getSectorETFs();
-      res.setHeader('Cache-Control', `public, max-age=${CACHE_DURATION.SECTOR_DATA}`);
+      logger.info('Fetching sector data', { 
+        requestId: req.headers['x-request-id'],
+        apiVersion: req.apiVersion 
+      });
+      
+      const sectors = await financialDataService.getSectorETFs();
+      
+      metricsCollector.endTimer(timerId, 'sector_data_fetch', { 
+        version: req.apiVersion,
+        success: 'true' 
+      });
+      
       ResponseUtils.success(res, sectors);
-    } catch (error: any) {
-      logger.error('Sector data fetch failed', { error: error.message });
-      ResponseUtils.internalError(res, 'Market data temporarily unavailable');
+    } catch (error) {
+      metricsCollector.endTimer(timerId, 'sector_data_fetch', { 
+        version: req.apiVersion,
+        success: 'false' 
+      });
+      
+      logger.error('Sector data fetch failed', { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId: req.headers['x-request-id'] 
+      });
+      
+      ResponseUtils.internalError(res, 'Sector data temporarily unavailable');
     }
   });
 
   static getStockQuote = asyncHandler(async (req: Request, res: Response) => {
     const { symbol } = req.params;
-    
-    if (!validateStockSymbol(symbol)) {
-      return ResponseUtils.badRequest(res, 'Invalid stock symbol format');
-    }
-
-    const { FinancialDataService } = await import('../services/financial-data');
+    const timerId = metricsCollector.startTimer('stock_quote_fetch');
     
     try {
-      const quote = await FinancialDataService.getStockQuote(symbol);
-      res.setHeader('Cache-Control', `public, max-age=${CACHE_DURATION.STOCK_QUOTES}`);
+      logger.info('Fetching stock quote', { 
+        symbol,
+        requestId: req.headers['x-request-id'],
+        apiVersion: req.apiVersion 
+      });
+      
+      const quote = await financialDataService.getStockQuote(symbol.toUpperCase());
+      
+      metricsCollector.endTimer(timerId, 'stock_quote_fetch', { 
+        symbol,
+        version: req.apiVersion,
+        success: 'true' 
+      });
+      
       ResponseUtils.success(res, quote);
-    } catch (error: any) {
-      logger.error('Stock quote fetch failed', { symbol, error: error.message });
-      ResponseUtils.internalError(res, 'Stock data temporarily unavailable');
+    } catch (error) {
+      metricsCollector.endTimer(timerId, 'stock_quote_fetch', { 
+        symbol,
+        version: req.apiVersion,
+        success: 'false' 
+      });
+      
+      logger.error('Stock quote fetch failed', { 
+        symbol,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId: req.headers['x-request-id'] 
+      });
+      
+      ResponseUtils.internalError(res, `Quote for ${symbol} temporarily unavailable`);
     }
   });
 
   static getStockHistory = asyncHandler(async (req: Request, res: Response) => {
     const { symbol } = req.params;
-    const pagination = paginationSchema.parse(req.query);
-    
-    if (!validateStockSymbol(symbol)) {
-      return ResponseUtils.badRequest(res, 'Invalid stock symbol format');
-    }
-
-    const { StockDataRepository } = await import('../repositories/StockDataRepository');
-    const repository = new StockDataRepository();
+    const { page = 1, limit = 20 } = req.query;
+    const timerId = metricsCollector.startTimer('stock_history_fetch');
     
     try {
-      // Calculate offset for pagination
-      const offset = (pagination.page - 1) * pagination.limit;
+      logger.info('Fetching stock history', { 
+        symbol,
+        page,
+        limit,
+        requestId: req.headers['x-request-id'],
+        apiVersion: req.apiVersion 
+      });
       
-      // Get total count and paginated data
-      const allData = await repository.findBySymbol(symbol);
-      const total = allData.length;
-      const paginatedData = allData.slice(offset, offset + pagination.limit);
+      // For now, return paginated recent data from storage
+      const stockData = await storage.getStockHistory(symbol.toUpperCase(), {
+        page: Number(page),
+        limit: Number(limit)
+      });
       
-      ResponseUtils.paginated(res, paginatedData, total, pagination.page, pagination.limit);
-    } catch (error: any) {
-      logger.error('Stock history fetch failed', { symbol, error: error.message });
-      ResponseUtils.internalError(res, 'Historical data temporarily unavailable');
+      metricsCollector.endTimer(timerId, 'stock_history_fetch', { 
+        symbol,
+        version: req.apiVersion,
+        success: 'true' 
+      });
+      
+      const response = {
+        data: stockData.data,
+        pagination: stockData.pagination
+      };
+      
+      ResponseUtils.success(res, response);
+    } catch (error) {
+      metricsCollector.endTimer(timerId, 'stock_history_fetch', { 
+        symbol,
+        version: req.apiVersion,
+        success: 'false' 
+      });
+      
+      logger.error('Stock history fetch failed', { 
+        symbol,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId: req.headers['x-request-id'] 
+      });
+      
+      ResponseUtils.internalError(res, `History for ${symbol} temporarily unavailable`);
     }
   });
 
   static getTechnicalIndicators = asyncHandler(async (req: Request, res: Response) => {
     const { symbol } = req.params;
-    
-    if (!validateStockSymbol(symbol)) {
-      return ResponseUtils.badRequest(res, 'Invalid stock symbol format');
-    }
-
-    const { FinancialDataService } = await import('../services/financial-data');
+    const timerId = metricsCollector.startTimer('technical_indicators_fetch');
     
     try {
-      const indicators = await FinancialDataService.getTechnicalIndicators(symbol);
-      res.setHeader('Cache-Control', `public, max-age=${CACHE_DURATION.TECHNICAL_INDICATORS}`);
+      logger.info('Fetching technical indicators', { 
+        symbol,
+        requestId: req.headers['x-request-id'],
+        apiVersion: req.apiVersion 
+      });
+      
+      const indicators = await financialDataService.getTechnicalIndicators(symbol.toUpperCase());
+      
+      metricsCollector.endTimer(timerId, 'technical_indicators_fetch', { 
+        symbol,
+        version: req.apiVersion,
+        success: 'true' 
+      });
+      
       ResponseUtils.success(res, indicators);
-    } catch (error: any) {
-      logger.error('Technical indicators fetch failed', { symbol, error: error.message });
-      ResponseUtils.internalError(res, 'Technical data temporarily unavailable');
+    } catch (error) {
+      metricsCollector.endTimer(timerId, 'technical_indicators_fetch', { 
+        symbol,
+        version: req.apiVersion,
+        success: 'false' 
+      });
+      
+      logger.error('Technical indicators fetch failed', { 
+        symbol,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId: req.headers['x-request-id'] 
+      });
+      
+      ResponseUtils.internalError(res, `Technical data for ${symbol} temporarily unavailable`);
     }
   });
 
   static getHealthCheck = asyncHandler(async (req: Request, res: Response) => {
-    const healthCheck = {
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      environment: process.env.NODE_ENV,
-      version: process.env.npm_package_version || '1.0.0',
-      memory: process.memoryUsage(),
-      pid: process.pid
-    };
-    
-    ResponseUtils.success(res, healthCheck);
+    try {
+      const health = {
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        version: req.apiVersion || 'unknown',
+        memory: process.memoryUsage(),
+        metrics: metricsCollector.getMetrics()
+      };
+      
+      metricsCollector.increment('health_check_requests', 1, { 
+        version: req.apiVersion 
+      });
+      
+      ResponseUtils.success(res, health);
+    } catch (error) {
+      logger.error('Health check failed', { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId: req.headers['x-request-id'] 
+      });
+      
+      ResponseUtils.internalError(res, 'Health check failed');
+    }
   });
 }

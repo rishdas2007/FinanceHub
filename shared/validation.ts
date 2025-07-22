@@ -1,58 +1,50 @@
 import { z } from 'zod';
 
 // Stock symbol validation
-export const stockSymbolSchema = z
-  .string()
-  .min(1, 'Symbol cannot be empty')
-  .max(10, 'Symbol too long')
-  .regex(/^[A-Z]+$/, 'Symbol must contain only uppercase letters');
+export const stockSymbolSchema = z.string()
+  .min(1, 'Stock symbol is required')
+  .max(10, 'Stock symbol must be 10 characters or less')
+  .regex(/^[A-Z]+$/, 'Stock symbol must contain only uppercase letters')
+  .transform(s => s.toUpperCase());
 
-export const validateStockSymbol = (symbol: string): boolean => {
-  try {
-    stockSymbolSchema.parse(symbol);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-// Pagination validation
+// Pagination schemas
 export const paginationSchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20)
+  page: z.coerce.number()
+    .int('Page must be an integer')
+    .min(1, 'Page must be at least 1')
+    .default(1),
+  limit: z.coerce.number()
+    .int('Limit must be an integer')
+    .min(1, 'Limit must be at least 1')
+    .max(100, 'Limit cannot exceed 100')
+    .default(20)
 });
 
-// Date range validation
+// Request validation schemas
+export const apiKeySchema = z.string()
+  .min(10, 'API key must be at least 10 characters')
+  .regex(/^[A-Za-z0-9_-]+$/, 'API key contains invalid characters');
+
 export const dateRangeSchema = z.object({
   startDate: z.coerce.date(),
   endDate: z.coerce.date()
-}).refine(data => data.startDate <= data.endDate, {
-  message: 'Start date must be before or equal to end date'
+}).refine(data => data.endDate >= data.startDate, {
+  message: 'End date must be after start date'
 });
 
-// API request validation schemas
-export const stockHistoryRequestSchema = z.object({
-  symbol: stockSymbolSchema,
-  ...dateRangeSchema.shape,
-  ...paginationSchema.shape
+// Monitoring data schemas
+export const performanceMetricSchema = z.object({
+  name: z.string().min(1, 'Metric name is required'),
+  value: z.number(),
+  tags: z.record(z.string()).optional(),
+  timestamp: z.number()
 });
 
-export const technicalIndicatorRequestSchema = z.object({
-  symbol: stockSymbolSchema,
-  indicators: z.array(z.enum(['RSI', 'MACD', 'BBANDS', 'SMA', 'EMA'])).optional()
-});
-
-// Environment validation schema
-export const envSchema = z.object({
-  DATABASE_URL: z.string().url(),
-  OPENAI_API_KEY: z.string().min(1),
-  TWELVE_DATA_API_KEY: z.string().min(1),
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.coerce.number().default(5000)
-});
-
-export const createErrorResponse = (message: string, code?: string) => ({
-  success: false,
-  message,
-  ...(code && { code })
+export const errorReportSchema = z.object({
+  message: z.string().min(1, 'Error message is required'),
+  stack: z.string().optional(),
+  component: z.string().optional(),
+  url: z.string().url().optional(),
+  userAgent: z.string().optional(),
+  timestamp: z.string()
 });
