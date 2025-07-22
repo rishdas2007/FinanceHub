@@ -3,8 +3,8 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import { createErrorResponse } from '@shared/validation';
-import { logApiCall } from '@shared/utils/requestLogging';
+import { createErrorResponse } from '../utils/ResponseUtils';
+import { logger } from '../utils/logger';
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -42,10 +42,13 @@ export const errorHandler = (err: AppError, req: Request, res: Response, next: N
   let code = err.code || 'INTERNAL_ERROR';
 
   // Log error details
-  logApiCall('ErrorHandler', req.path, false, undefined, {
+  logger.error('Request error', {
     requestId,
+    method: req.method,
+    path: req.path,
     statusCode,
-    message: err.message,
+    message,
+    code,
     stack: isDevelopment ? err.stack : undefined,
     isOperational: err.isOperational
   });
@@ -69,16 +72,14 @@ export const errorHandler = (err: AppError, req: Request, res: Response, next: N
     code = 'INTERNAL_ERROR';
   }
 
-  res.status(statusCode).json(createErrorResponse(message, code, requestId));
+  res.status(statusCode).json(createErrorResponse(message, code));
 };
 
 // 404 handler
 export const notFoundHandler = (req: Request, res: Response, next: NextFunction) => {
-  const requestId = req.headers['x-request-id'] as string;
   res.status(404).json(createErrorResponse(
     `Route ${req.path} not found`,
-    'NOT_FOUND',
-    requestId
+    'NOT_FOUND'
   ));
 };
 

@@ -6,7 +6,7 @@ import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { createErrorResponse } from '@shared/validation';
+import { createErrorResponse } from '../utils/ResponseUtils';
 import { nanoid } from 'nanoid';
 
 // Rate limiting configuration

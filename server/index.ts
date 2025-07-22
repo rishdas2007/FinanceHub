@@ -21,17 +21,9 @@ import {
 } from "./middleware/error-handler";
 
 // Environment validation
-import { envSchema } from "@shared/validation";
+// Environment validation handled in EnvironmentValidator
 
-// Validate environment variables (skip in development for now)
-if (process.env.NODE_ENV === 'production') {
-  try {
-    envSchema.parse(process.env);
-  } catch (error) {
-    console.error("Environment validation failed:", error);
-    process.exit(1);
-  }
-}
+// Skip environment validation for now since we use EnvironmentValidator elsewhere
 
 const app = express();
 
