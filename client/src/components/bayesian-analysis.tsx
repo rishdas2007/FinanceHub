@@ -218,7 +218,7 @@ export function BayesianAnalysis() {
                   Evidence
                 </Badge>
                 <p className="text-yellow-100 text-sm leading-relaxed">
-                  {analysis.evidence}
+                  {typeof analysis.evidence === 'string' ? analysis.evidence : JSON.stringify(analysis.evidence)}
                 </p>
               </div>
 
@@ -228,7 +228,7 @@ export function BayesianAnalysis() {
                   Implications
                 </Badge>
                 <p className="text-red-100 text-sm leading-relaxed">
-                  {analysis.implications}
+                  {typeof analysis.implications === 'string' ? analysis.implications : JSON.stringify(analysis.implications)}
                 </p>
               </div>
 
