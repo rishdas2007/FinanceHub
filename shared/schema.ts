@@ -461,3 +461,60 @@ export type HistoricalContextSnapshot = typeof historicalContextSnapshots.$infer
 export type InsertHistoricalContextSnapshot = typeof historicalContextSnapshots.$inferInsert;
 export type DataQualityLog = typeof dataQualityLog.$inferSelect;
 export type InsertDataQualityLog = typeof dataQualityLog.$inferInsert;
+
+// Comprehensive Economic Indicators Database Schema
+export const economicIndicators = pgTable("economic_indicators", {
+  id: serial("id").primaryKey(),
+  indicator_name: text("indicator_name").notNull(),
+  indicator_type: text("indicator_type").notNull(), // GDP, CPI, PPI, Employment, etc.
+  category: text("category").notNull(), // Growth, Inflation, Labor, Housing, etc.
+  agency: text("agency").notNull(), // BLS, BEA, Census, Fed Reserve, etc.
+  frequency: text("frequency").notNull(), // Monthly, Quarterly, Annual
+  description: text("description"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow()
+}, (table) => ({
+  nameIdx: index("idx_indicator_name").on(table.indicator_name),
+  typeIdx: index("idx_indicator_type").on(table.indicator_type),
+  categoryIdx: index("idx_indicator_category").on(table.category)
+}));
+
+export const economicDataReadings = pgTable("economic_data_readings", {
+  id: serial("id").primaryKey(),
+  indicator_id: integer("indicator_id").references(() => economicIndicators.id).notNull(),
+  release_date: timestamp("release_date").notNull(),
+  period: text("period").notNull(), // "July 2025", "Q2 2025", etc.
+  actual_value: text("actual_value"),
+  forecast_value: text("forecast_value"),
+  previous_value: text("previous_value"),
+  unit: text("unit"), // %, millions, index, etc.
+  beat_forecast: boolean("beat_forecast"), // true if actual > forecast
+  variance: text("variance"), // actual - forecast
+  source: text("source"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow()
+}, (table) => ({
+  indicatorIdx: index("idx_economic_data_indicator").on(table.indicator_id),
+  dateIdx: index("idx_economic_data_date").on(table.release_date),
+  periodIdx: index("idx_economic_data_period").on(table.period)
+}));
+
+export const economicSearchCache = pgTable("economic_search_cache", {
+  id: serial("id").primaryKey(),
+  search_query: text("search_query").notNull(),
+  search_results: jsonb("search_results").notNull(),
+  indicators_found: integer("indicators_found").notNull(),
+  cached_at: timestamp("cached_at").defaultNow(),
+  expires_at: timestamp("expires_at").notNull()
+}, (table) => ({
+  queryIdx: index("idx_search_query").on(table.search_query),
+  expiresIdx: index("idx_search_expires").on(table.expires_at)
+}));
+
+// Types for the new economic tables
+export type EconomicIndicator = typeof economicIndicators.$inferSelect;
+export type InsertEconomicIndicator = typeof economicIndicators.$inferInsert;
+export type EconomicDataReading = typeof economicDataReadings.$inferSelect;
+export type InsertEconomicDataReading = typeof economicDataReadings.$inferInsert;
+export type EconomicSearchCacheEntry = typeof economicSearchCache.$inferSelect;
+export type InsertEconomicSearchCache = typeof economicSearchCache.$inferInsert;
