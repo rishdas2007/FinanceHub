@@ -15,8 +15,11 @@ export interface MarketHoursInfo {
  * Check if US stock market is currently open
  * Market Hours: 9:30 AM - 4:00 PM ET, Monday-Friday
  */
-// Re-export from unified utility  
-export { isMarketOpen, getMarketStatus, getDataTimestamp } from './marketHours-unified';
+// Import from unified utility  
+import { isMarketOpen, getMarketStatus, getDataTimestamp } from './marketHours-unified';
+
+// Re-export for backwards compatibility
+export { isMarketOpen, getMarketStatus, getDataTimestamp };
 
 /**
  * Get comprehensive market hours information
