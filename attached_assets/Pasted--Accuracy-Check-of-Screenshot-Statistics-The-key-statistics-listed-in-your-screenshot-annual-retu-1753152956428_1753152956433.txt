@@ -1,0 +1,61 @@
+## Accuracy Check of Screenshot Statistics
+
+The key statistics listed in your screenshot—annual return (%), Sharpe ratio, and volatility—are not accurate based on the actual ETF data provided for the last 12 months. In many cases, the values shown in the screenshot are substantially lower than the true calculated performance metrics. Below is a detailed comparison and guidance for error correction.
+
+### Table: Screenshot vs. Actual Calculated Metrics (Last 12 Months)
+
+| Sector | Annual Return % (Screenshot) | Annual Return % (Actual) | Diff | Sharpe (Screenshot) | Sharpe (Actual) | Diff | Volatility % (Screenshot) | Volatility % (Actual) | Diff |
+|--------|------------------------------|--------------------------|------|---------------------|-----------------|------|---------------------------|-----------------------|------|
+| XLC    | 3.4                          | 25.2                     | 21.8 | 0.64                | 1.29            | 0.65 | 5.2                       | 19.6                  | 14.4 |
+| XLB    | 1.3                          | 2.2                      | 0.9  | 0.27                | 0.11            | 0.16 | 4.8                       | 19.8                  | 15.0 |
+| XLY    | 1.2                          | 19.7                     | 18.5 | 0.19                | 0.76            | 0.57 | 6.2                       | 25.9                  | 19.7 |
+| SPY    | 0.5                          | 14.8                     | 14.3 | 0.18                | 0.72            | 0.54 | 2.6                       | 20.5                  | 17.9 |
+| XLRE   | 1.0                          | 4.3                      | 3.3  | 0.15                | 0.24            | 0.09 | 6.2                       | 17.9                  | 11.7 |
+| XLU    | 0.8                          | 18.9                     | 18.1 | 0.14                | 1.11            | 0.97 | 5.9                       | 17.1                  | 11.2 |
+| XLK    | 0.3                          | 19.0                     | 18.7 | 0.08                | 0.64            | 0.56 | 4.2                       | 29.9                  | 25.7 |
+| XLP    | -0.0                         | 4.4                      | 4.4  | -0.01               | 0.33            | 0.34 | 5.8                       | 13.4                  | 7.6  |
+| XLF    | -0.7                         | 21.9                     | 22.6 | -0.26               | 1.07            | 1.33 | 2.7                       | 20.5                  | 17.8 |
+| XLV    | -1.4                         | -11.5                    | 10.1 | -0.27               | -0.71           | 0.44 | 5.3                       | 16.1                  | 10.8 |
+| XLI    | -1.3                         | 19.9                     | 21.2 | -0.63               | 1.01            | 1.64 | 2.1                       | 19.7                  | 17.6 |
+| XLE    | -2.6                         | -4.4                     | 1.8  | -1.12               | -0.17           | 0.95 | 2.3                       | 25.6                  | 23.3 |
+
+*Values in the “Diff” columns show absolute difference between the screenshot and the actual trailing-12-months, based on the historical price data.*
+
+## Error Analysis and Correction Recommendations
+
+- **Annual Return, Sharpe, and Volatility:**  
+  The statistics in the screenshot are consistently much lower than the actual trailing 12-month performance. For instance, XLC's actual return is 25.2% vs. 3.4% shown; Sharpe ratios and volatility also exhibit major mismatches.
+- **Possible Causes:**
+  - The original statistics may have been calculated over a much shorter time window than 12 months—possibly a single month or a custom, recent period with low returns and volatility.
+  - There may be an incorrect return period, annualization formula, or missing trading days in the screenshot calculations.
+  - Errors in pulling price data (e.g., partial months or non-adjusted close prices).
+- **Z-Score and Correlation:**  
+  Calculations cannot be fully evaluated without rolling window context, but the broad magnitude discrepancies suggest these fields may also require review.
+
+### How to Error Correct
+
+1. **Time Period Consistency**
+   - Always define and apply a clear, identical time window (e.g., July 21, 2024 to July 21, 2025) for all return and risk calculations.
+   - Use exact trading-day matching for all tickers.
+
+2. **Annualization Formulas**
+   - **Annualized Return:**  
+     $$(1 + \text{daily return})^{252} - 1$$ on average daily return.
+   - **Volatility:**  
+     $$ \text{STD of daily returns} \times \sqrt{252} $$
+   - **Sharpe Ratio:**  
+     $$ \frac{\text{annualized return} - r_f}{\text{annualized volatility}} $$, with $$ r_f $$ ≈ 0 for simplicity.
+
+3. **Check for Data Issues**
+   - Ensure no missing days or nulls in the price series, and use adjusted closes where possible.
+   - Verify column-to-ETF mapping.
+
+4. **Software Tools**
+   - Use Python (pandas/numpy) or a trusted financial analytics platform for all metric calculations, not Excel manual formulas.
+
+### Summary
+
+The screenshot values are not correct for any sector when compared to up-to-date calculations from your 3-year dataset. All risk and return statistics underestimate the true trailing-12-month figures by a wide margin.  
+**Recalculating using a consistent annualization method across a proper 12-month window will resolve these errors and provide actionable, comparable metrics across the full set of sector ETFs.**
+
+[1] https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/28788834/62e605b2-d293-4487-99d3-9820ffb34310/SPDR_Sector_ETF_Historical_Data_3Years.csv

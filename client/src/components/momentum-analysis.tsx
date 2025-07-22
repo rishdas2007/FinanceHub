@@ -164,17 +164,17 @@ const MomentumAnalysis = () => {
                     if (active && payload && payload[0]) {
                       const data = payload[0].payload as ChartDataPoint;
                       const strategy = analysis.momentumStrategies.find(s => s.sector === data.sector);
+                      const sectorName = getSectorFullName(data.sector);
                       return (
                         <div className="bg-gray-800 border border-gray-600 rounded p-3 shadow-lg">
-                          <p className="text-white font-semibold">{data.sector}</p>
+                          <p className={`font-bold ${data.sector === 'SPY' ? 'text-blue-400' : 'text-white'}`}>
+                            {data.sector} - {sectorName}
+                          </p>
                           <p className="text-gray-300">Annual Return: {data.annualReturn.toFixed(1)}%</p>
                           <p className="text-gray-300">5-Day Z-Score: {data.fiveDayZScore.toFixed(2)}</p>
                           <p className="text-gray-300">Sharpe Ratio: {data.sharpeRatio.toFixed(2)}</p>
                           {strategy && (
-                            <>
-                              <p className="text-gray-300">SPY Correlation: {strategy.correlationToSPY.toFixed(2)}</p>
-                              <p className="text-gray-300">Volatility: {strategy.volatility.toFixed(1)}%</p>
-                            </>
+                            <p className="text-gray-300">Volatility: {strategy.volatility.toFixed(1)}%</p>
                           )}
                         </div>
                       );
@@ -184,23 +184,29 @@ const MomentumAnalysis = () => {
                 />
                 <Scatter dataKey="annualReturn">
                   {analysis.chartData.map((entry, index) => {
-                    const strategy = analysis.momentumStrategies.find(s => s.sector === entry.sector);
-                    const color = strategy ? getColorByCorrelation(strategy.correlationToSPY) : '#6B7280';
+                    const color = getETFColor(entry.sector, index);
                     return <Cell key={`cell-${index}`} fill={color} />;
                   })}
                 </Scatter>
               </ScatterChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-4 text-xs">
-            <div className="text-gray-400">
-              <span className="inline-block w-3 h-3 bg-green-600 rounded mr-2"></span>
-              Low SPY Correlation (Good Diversification)
-            </div>
-            <div className="text-gray-400">
-              <span className="inline-block w-3 h-3 bg-red-600 rounded mr-2"></span>
-              High SPY Correlation
-            </div>
+          <div className="mt-4 grid grid-cols-4 gap-2 text-xs">
+            {analysis.chartData.map((entry, index) => {
+              const color = getETFColor(entry.sector, index);
+              const sectorName = getSectorFullName(entry.sector);
+              return (
+                <div key={entry.sector} className="text-gray-400 flex items-center">
+                  <span 
+                    className="inline-block w-3 h-3 rounded mr-2" 
+                    style={{ backgroundColor: color }}
+                  ></span>
+                  <span className={entry.sector === 'SPY' ? 'font-bold text-blue-400' : ''}>
+                    {entry.sector} - {sectorName}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
