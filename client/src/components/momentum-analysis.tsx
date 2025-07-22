@@ -145,11 +145,11 @@ const MomentumAnalysis = () => {
     <div className="space-y-6">
 
 
-      {/* Chart: Annual Return vs 5-Day Z-Score */}
+      {/* Chart: Annual Return vs 1-Day Z-Score */}
       <Card className="bg-gray-100 border-gray-300">
         <CardHeader>
           <CardTitle className="text-lg text-gray-800">
-            Risk-Return: Annual Return vs 5-Day Z-Score
+            Risk-Return: Annual Return vs 1-Day Z-Score
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -181,7 +181,7 @@ const MomentumAnalysis = () => {
                             {data.sector} - {sectorName}
                           </p>
                           <p className="text-gray-600">Annual Return: {data.annualReturn.toFixed(1)}%</p>
-                          <p className="text-gray-600">5-Day Z-Score: {data.fiveDayZScore.toFixed(2)}</p>
+                          <p className="text-gray-600">1-Day Z-Score: {data.fiveDayZScore.toFixed(2)}</p>
                           <p className="text-gray-600">Sharpe Ratio: {data.sharpeRatio.toFixed(2)}</p>
                           {strategy && (
                             <p className="text-gray-600">Volatility: {strategy.volatility.toFixed(1)}%</p>
@@ -207,11 +207,13 @@ const MomentumAnalysis = () => {
                         <text 
                           x={x} 
                           y={y} 
-                          fill="#374151" 
+                          fill="white" 
                           fontSize={isSPY ? "14px" : "10px"}
                           fontWeight="bold"
                           textAnchor="middle"
                           dominantBaseline="middle"
+                          stroke="#374151"
+                          strokeWidth="0.5"
                         >
                           {payload?.sector}
                         </text>
@@ -255,6 +257,7 @@ const MomentumAnalysis = () => {
               <thead>
                 <tr className="border-b border-gray-300">
                   <th className="text-left p-3 text-gray-700 font-semibold">Sector</th>
+                  <th className="text-left p-3 text-gray-700 font-semibold">Ticker</th>
                   <th className="text-left p-3 text-gray-700 font-semibold">Momentum</th>
                   <th className="text-right p-3 text-gray-700 font-semibold">Annual Return</th>
                   <th className="text-right p-3 text-gray-700 font-semibold">Sharpe Ratio</th>
@@ -265,6 +268,9 @@ const MomentumAnalysis = () => {
               <tbody>
                 {analysis.momentumStrategies.map((strategy, index) => (
                   <tr key={strategy.sector} className={`border-b border-gray-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                    <td className="p-3">
+                      <span className="text-gray-800 font-medium">{getSectorFullName(strategy.sector)}</span>
+                    </td>
                     <td className="p-3">
                       <span className="text-gray-800 font-medium">{strategy.sector}</span>
                     </td>
