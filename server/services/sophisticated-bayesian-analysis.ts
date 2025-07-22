@@ -270,24 +270,24 @@ ${economicContext}
 BAYESIAN ANALYSIS REQUIREMENTS:
 1. Start with base rates (what usually happens in these conditions)
 2. Update priors based on current evidence
-3. Provide specific percentile rankings
-4. Reference historical precedents with dates and outcomes
-5. Calculate probability-weighted scenarios
+3. Only reference percentile rankings if provided in HISTORICAL CONTEXT above
+4. Use authentic economic readings provided in context
+5. Calculate probability-weighted scenarios based on available data
 
-Generate sophisticated JSON analysis with rich historical context:
+Generate sophisticated JSON analysis with authentic data only:
 
 {
-  "bottomLine": "Bayesian assessment with specific percentile rankings and base rate analysis - mention exact percentiles",
-  "dominantTheme": "Primary theme considering prior probabilities and historical precedents",
-  "setup": "Market positioning with historical context - mention specific percentiles, dates, and precedents",
-  "evidence": "Technical indicators with percentile rankings + economic readings analysis - be specific about percentiles",
-  "implications": "Probability-weighted scenarios based on historical outcomes when similar conditions occurred - include specific dates and outcomes",
+  "bottomLine": "Bayesian assessment acknowledging data availability status",
+  "dominantTheme": "Primary theme considering available evidence",
+  "setup": "Market positioning with available context - only mention percentiles if provided above",
+  "evidence": "Technical indicators + economic readings analysis using only authentic data",
+  "implications": "Probability-weighted scenarios based on available evidence",
   "confidence": 85,
-  "historicalPrecedent": "Specific example: 'Last time RSI was at Xth percentile in YEAR, markets moved Y% over Z weeks'",
-  "bayesianUpdate": "How current evidence updates our prior beliefs about market direction"
+  "historicalPrecedent": "Reference only if authentic historical data is provided above",
+  "bayesianUpdate": "How current evidence updates beliefs based on available data"
 }
 
-CRITICAL: Include specific percentiles (e.g., "78th percentile"), historical dates (e.g., "March 2024"), and quantified outcomes (e.g., "8% correction over 6 weeks"). Reference the economic readings in your evidence section.`;
+CRITICAL: Only reference actual percentile data provided in the HISTORICAL CONTEXT section above. Never fabricate percentiles, dates, or market outcomes. If historical percentile data is not available, acknowledge this transparently. Use only the authentic economic readings provided in the context.`;
 
     try {
       const response = await openai.chat.completions.create({
@@ -295,7 +295,7 @@ CRITICAL: Include specific percentiles (e.g., "78th percentile"), historical dat
         messages: [
           {
             role: "system",
-            content: "You are a Bayesian market analyst with access to comprehensive historical data. Always include specific percentile rankings, historical precedents with dates, and quantified outcomes. Use economic data in your analysis."
+            content: "You are a Bayesian market analyst. Only reference historical data and percentiles that are explicitly provided in the user context. Never fabricate dates, percentiles, or market outcomes. If historical data is not available, acknowledge this transparently."
           },
           {
             role: "user",
