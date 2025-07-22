@@ -143,52 +143,31 @@ const MomentumAnalysis = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <Card className="bg-gray-900 border-gray-800">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-xl font-bold text-white">
-            Simplified Momentum Analysis
-          </CardTitle>
-          <div className="flex items-center space-x-2">
-            <Badge variant="secondary" className="bg-blue-900 text-blue-100">
-              {analysis.confidence}% Confidence
-            </Badge>
-            <Button onClick={handleRefresh} variant="outline" size="sm">
-              Refresh
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-300 text-sm">{analysis.summary}</p>
-          <p className="text-gray-500 text-xs mt-2">
-            Last updated: {new Date(analysis.timestamp).toLocaleTimeString()}
-          </p>
-        </CardContent>
-      </Card>
+
 
       {/* Chart: Annual Return vs 5-Day Z-Score */}
-      <Card className="bg-gray-900 border-gray-800">
+      <Card className="bg-gray-100 border-gray-300">
         <CardHeader>
-          <CardTitle className="text-lg text-white">
+          <CardTitle className="text-lg text-gray-800">
             Risk-Return: Annual Return vs 5-Day Z-Score
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-96">
+          <div className="h-96 bg-gray-50 rounded-lg p-4">
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart data={analysis.chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#D1D5DB" />
                 <XAxis 
                   dataKey="fiveDayZScore" 
                   type="number" 
-                  stroke="#9CA3AF"
-                  label={{ value: 'Z-Score of the Latest 1-Day Move', position: 'insideBottom', offset: -5, style: { fill: '#9CA3AF' } }}
+                  stroke="#6B7280"
+                  label={{ value: 'Z-Score of the Latest 1-Day Move', position: 'insideBottom', offset: -5, style: { fill: '#6B7280' } }}
                 />
                 <YAxis 
                   dataKey="annualReturn" 
                   type="number" 
-                  stroke="#9CA3AF"
-                  label={{ value: 'Annual Return %', angle: -90, position: 'insideLeft', style: { fill: '#9CA3AF' } }}
+                  stroke="#6B7280"
+                  label={{ value: 'Annual Return %', angle: -90, position: 'insideLeft', style: { fill: '#6B7280' } }}
                 />
                 <Tooltip 
                   content={({ active, payload }) => {
@@ -197,15 +176,15 @@ const MomentumAnalysis = () => {
                       const strategy = analysis.momentumStrategies.find(s => s.sector === data.sector);
                       const sectorName = getSectorFullName(data.sector);
                       return (
-                        <div className="bg-gray-800 border border-gray-600 rounded p-3 shadow-lg">
-                          <p className={`font-bold ${data.sector === 'SPY' ? 'text-blue-400' : 'text-white'}`}>
+                        <div className="bg-white border border-gray-300 rounded p-3 shadow-lg">
+                          <p className={`font-bold ${data.sector === 'SPY' ? 'text-blue-600' : 'text-gray-800'}`}>
                             {data.sector} - {sectorName}
                           </p>
-                          <p className="text-gray-300">Annual Return: {data.annualReturn.toFixed(1)}%</p>
-                          <p className="text-gray-300">5-Day Z-Score: {data.fiveDayZScore.toFixed(2)}</p>
-                          <p className="text-gray-300">Sharpe Ratio: {data.sharpeRatio.toFixed(2)}</p>
+                          <p className="text-gray-600">Annual Return: {data.annualReturn.toFixed(1)}%</p>
+                          <p className="text-gray-600">5-Day Z-Score: {data.fiveDayZScore.toFixed(2)}</p>
+                          <p className="text-gray-600">Sharpe Ratio: {data.sharpeRatio.toFixed(2)}</p>
                           {strategy && (
-                            <p className="text-gray-300">Volatility: {strategy.volatility.toFixed(1)}%</p>
+                            <p className="text-gray-600">Volatility: {strategy.volatility.toFixed(1)}%</p>
                           )}
                         </div>
                       );
@@ -228,7 +207,7 @@ const MomentumAnalysis = () => {
                         <text 
                           x={x} 
                           y={y} 
-                          fill="white" 
+                          fill="#374151" 
                           fontSize={isSPY ? "14px" : "10px"}
                           fontWeight="bold"
                           textAnchor="middle"
@@ -248,12 +227,12 @@ const MomentumAnalysis = () => {
               const color = getETFColor(entry.sector, index);
               const sectorName = getSectorFullName(entry.sector);
               return (
-                <div key={entry.sector} className="text-gray-400 flex items-center">
+                <div key={entry.sector} className="text-gray-600 flex items-center">
                   <span 
                     className="inline-block w-3 h-3 rounded mr-2" 
                     style={{ backgroundColor: color }}
                   ></span>
-                  <span className={entry.sector === 'SPY' ? 'font-bold text-blue-400' : ''}>
+                  <span className={entry.sector === 'SPY' ? 'font-bold text-blue-600' : ''}>
                     {entry.sector} - {sectorName}
                   </span>
                 </div>
@@ -264,30 +243,30 @@ const MomentumAnalysis = () => {
       </Card>
 
       {/* Momentum Strategies Table */}
-      <Card className="bg-gray-900 border-gray-800">
+      <Card className="bg-gray-100 border-gray-300">
         <CardHeader>
-          <CardTitle className="text-lg text-white">
+          <CardTitle className="text-lg text-gray-800">
             Momentum Strategies with Enhanced Metrics
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto bg-gray-50 rounded-lg p-4">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-700">
-                  <th className="text-left p-3 text-gray-300 font-semibold">Sector</th>
-                  <th className="text-left p-3 text-gray-300 font-semibold">Momentum</th>
-                  <th className="text-right p-3 text-gray-300 font-semibold">Annual Return</th>
-                  <th className="text-right p-3 text-gray-300 font-semibold">Sharpe Ratio</th>
-                  <th className="text-right p-3 text-gray-300 font-semibold">Z-Score</th>
-                  <th className="text-left p-3 text-gray-300 font-semibold">Signal</th>
+                <tr className="border-b border-gray-300">
+                  <th className="text-left p-3 text-gray-700 font-semibold">Sector</th>
+                  <th className="text-left p-3 text-gray-700 font-semibold">Momentum</th>
+                  <th className="text-right p-3 text-gray-700 font-semibold">Annual Return</th>
+                  <th className="text-right p-3 text-gray-700 font-semibold">Sharpe Ratio</th>
+                  <th className="text-right p-3 text-gray-700 font-semibold">Z-Score</th>
+                  <th className="text-left p-3 text-gray-700 font-semibold">Signal</th>
                 </tr>
               </thead>
               <tbody>
                 {analysis.momentumStrategies.map((strategy, index) => (
-                  <tr key={strategy.sector} className={`border-b border-gray-800 ${index % 2 === 0 ? 'bg-gray-900' : 'bg-gray-850'}`}>
+                  <tr key={strategy.sector} className={`border-b border-gray-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
                     <td className="p-3">
-                      <span className="text-white font-medium">{strategy.sector}</span>
+                      <span className="text-gray-800 font-medium">{strategy.sector}</span>
                     </td>
                     <td className="p-3">
                       <Badge className={`${getMomentumColor(strategy.momentum)} text-xs flex items-center space-x-1 w-fit`}>
@@ -296,21 +275,21 @@ const MomentumAnalysis = () => {
                       </Badge>
                     </td>
                     <td className="p-3 text-right">
-                      <span className={`${strategy.annualReturn >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      <span className={`${strategy.annualReturn >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {strategy.annualReturn.toFixed(1)}%
                       </span>
                     </td>
                     <td className="p-3 text-right">
-                      <span className={`${strategy.sharpeRatio >= 0.5 ? 'text-green-400' : strategy.sharpeRatio >= 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+                      <span className={`${strategy.sharpeRatio >= 0.5 ? 'text-green-600' : strategy.sharpeRatio >= 0 ? 'text-yellow-600' : 'text-red-600'}`}>
                         {strategy.sharpeRatio.toFixed(2)}
                       </span>
                     </td>
                     <td className="p-3 text-right">
-                      <span className={`${Math.abs(strategy.zScore) > 1.5 ? 'text-yellow-400' : 'text-gray-300'}`}>
+                      <span className={`${Math.abs(strategy.zScore) > 1.5 ? 'text-yellow-600' : 'text-gray-600'}`}>
                         {strategy.zScore.toFixed(2)}
                       </span>
                     </td>
-                    <td className="p-3 text-gray-300 text-xs max-w-48 truncate" title={strategy.signal}>
+                    <td className="p-3 text-gray-600 text-xs max-w-48 truncate" title={strategy.signal}>
                       {strategy.signal}
                     </td>
                   </tr>
