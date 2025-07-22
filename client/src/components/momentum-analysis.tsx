@@ -39,6 +39,10 @@ const MomentumAnalysis = () => {
 
   const { data: analysis, isLoading, error, refetch } = useQuery<MomentumAnalysis>({
     queryKey: ['/api/momentum-analysis', refreshKey],
+    queryFn: () => fetch('/api/momentum-analysis').then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      return res.json();
+    }),
     refetchInterval: 0,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
