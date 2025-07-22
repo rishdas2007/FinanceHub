@@ -202,20 +202,23 @@ const MomentumAnalysis = () => {
                     position="center" 
                     content={(props: any) => {
                       const { x, y, payload } = props;
-                      const isSPY = payload?.sector === 'SPY';
+                      if (!payload?.sector || x === undefined || y === undefined) return null;
+                      const isSPY = payload.sector === 'SPY';
                       return (
                         <text 
                           x={x} 
                           y={y} 
-                          fill="white" 
+                          fill="#1F2937"
                           fontSize={isSPY ? "14px" : "10px"}
                           fontWeight="bold"
                           textAnchor="middle"
                           dominantBaseline="middle"
-                          stroke="#374151"
-                          strokeWidth="0.5"
+                          style={{ 
+                            textShadow: '1px 1px 2px rgba(255,255,255,0.8)',
+                            pointerEvents: 'none'
+                          }}
                         >
-                          {payload?.sector}
+                          {payload.sector}
                         </text>
                       );
                     }}
