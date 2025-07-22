@@ -2,10 +2,18 @@ import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Brain, TrendingUp, Activity, Loader2 } from 'lucide-react';
 
+interface EconomicEvent {
+  title: string;
+  actual: string;
+  forecast: string;
+  date: string;
+  category: string;
+}
+
 interface AISummaryData {
   summary: string;
   keyInsights: string[];
-  marketOutlook: string;
+  recentEconomicReadings: EconomicEvent[];
   riskLevel: 'low' | 'moderate' | 'high';
   confidence: number;
 }
@@ -66,8 +74,8 @@ export function AISummary() {
           <div className="flex items-center space-x-2">
             <Activity size={16} className="text-blue-400" />
             <span className="text-gray-300">Risk Level:</span>
-            <span className={`font-semibold ${getRiskColor(aiSummary?.riskLevel)}`}>
-              {aiSummary?.riskLevel?.toUpperCase()}
+            <span className={`font-semibold ${getRiskColor(aiSummary?.riskLevel || 'moderate')}`}>
+              {aiSummary?.riskLevel?.toUpperCase() || 'MODERATE'}
             </span>
           </div>
           <div className="flex items-center space-x-2">
@@ -100,11 +108,25 @@ export function AISummary() {
           </div>
         )}
 
-        {/* Market Outlook */}
-        {aiSummary?.marketOutlook && (
+        {/* Recent Economic Readings */}
+        {aiSummary?.recentEconomicReadings && aiSummary.recentEconomicReadings.length > 0 && (
           <div>
-            <h3 className="text-lg font-semibold text-white mb-2">Market Outlook</h3>
-            <p className="text-gray-300 leading-relaxed">{aiSummary.marketOutlook}</p>
+            <h3 className="text-lg font-semibold text-white mb-2">Recent Economic Readings</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {aiSummary.recentEconomicReadings.map((event, index) => (
+                <div key={index} className="bg-financial-gray/20 p-3 rounded border border-financial-border">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-white">{event.title}</span>
+                    <span className="text-xs text-gray-400">{event.date}</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm">
+                    <span className="text-blue-400">{event.actual}</span>
+                    <span className="text-gray-500">vs</span>
+                    <span className="text-gray-300">{event.forecast} forecast</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

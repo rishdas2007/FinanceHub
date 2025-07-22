@@ -17,7 +17,7 @@ interface EconomicEvent {
 interface AISummaryResult {
   summary: string;
   keyInsights: string[];
-  marketOutlook: string;
+  recentEconomicReadings: EconomicEvent[];
   riskLevel: 'low' | 'moderate' | 'high';
   confidence: number;
 }
@@ -58,7 +58,13 @@ export class AISummaryService {
       const analysis = await this.generateAIAnalysis(momentumData, economicEvents);
       console.log(`🎯 AI analysis complete with ${analysis.confidence}% confidence`);
 
-      return analysis;
+      // Add the economic readings to the response
+      return {
+        ...analysis,
+        recentEconomicReadings: economicEvents.slice(0, 6).sort((a, b) => 
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        )
+      };
     } catch (error) {
       console.error('Error generating AI market summary:', error);
       throw new Error('Failed to generate AI market summary');
@@ -329,7 +335,6 @@ export class AISummaryService {
     return {
       summary: result.summary || 'Market analysis unavailable',
       keyInsights: result.keyInsights || [],
-      marketOutlook: result.marketOutlook || 'Outlook analysis unavailable',
       riskLevel: result.riskLevel || 'moderate',
       confidence: result.confidence || 75
     };
@@ -344,7 +349,7 @@ Analyze the current market conditions and provide a JSON response:
 {
   "summary": "Market data is currently being processed. Analysis based on general market conditions.",
   "keyInsights": ["Market momentum analysis in progress", "Economic data being collected", "Real-time updates coming shortly"],
-  "marketOutlook": "Awaiting comprehensive data for detailed market outlook.",
+
   "riskLevel": "moderate",
   "confidence": 25
 }
@@ -389,7 +394,7 @@ Analyze this comprehensive market data and provide a JSON response:
 {
   "summary": "Detailed market overview based on sector momentum and economic data",
   "keyInsights": ["specific insight about momentum", "economic data impact", "sector rotation insight"],
-  "marketOutlook": "Forward-looking assessment based on current conditions",
+
   "riskLevel": "low|moderate|high",
   "confidence": number (60-95)
 }
