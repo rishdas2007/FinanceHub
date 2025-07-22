@@ -215,18 +215,18 @@ export class SophisticatedBayesianAnalysisService {
 
   private generateRichHistoricalContext(marketData: any): string {
     const rsiContext = marketData.rsi > 70 ? 
-      `RSI at ${marketData.rsi} is elevated - last time RSI was above 70 was in March 2024, followed by a 8% correction over 6 weeks` :
+      `RSI at ${marketData.rsi} is elevated and approaching overbought territory` :
       marketData.rsi < 30 ?
-      `RSI at ${marketData.rsi} is oversold - historically RSI below 30 has preceded 12% average recoveries` :
+      `RSI at ${marketData.rsi} is oversold and may indicate potential oversold conditions` :
       `RSI at ${marketData.rsi} is in normal range but approaching overbought territory`;
     
     const vixContext = marketData.vix < 15 ?
-      `VIX at ${marketData.vix} indicates complacency - sub-15 VIX levels historically precede volatility spikes within 2-3 months` :
+      `VIX at ${marketData.vix} indicates low volatility and market complacency` :
       marketData.vix > 25 ?
-      `VIX at ${marketData.vix} shows elevated fear - historically VIX above 25 has marked intermediate-term bottoms` :
+      `VIX at ${marketData.vix} shows elevated fear and uncertainty` :
       `VIX at ${marketData.vix} is moderate but watching for breakout above 20`;
     
-    return `${rsiContext}. ${vixContext}. Current levels suggest market is in late-cycle positioning similar to Q3 2023.`;
+    return `${rsiContext}. ${vixContext}. Current levels reflect present market conditions without sufficient historical data for comparative analysis.`;
   }
 
   private getPercentileDescription(value: number, history: any[]): string {
