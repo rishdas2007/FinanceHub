@@ -18,11 +18,12 @@ interface MomentumStrategy {
   fiveDayZScore: number;
   oneDayChange: number;
   signal: string;
+  rsi: number;
 }
 
 interface ChartDataPoint {
   sector: string;
-  annualReturn: number;
+  rsi: number;
   fiveDayZScore: number;
   sharpeRatio: number;
 }
@@ -162,7 +163,7 @@ const MomentumAnalysis = () => {
       <Card className="bg-gray-100 border-gray-300">
         <CardHeader>
           <CardTitle className="text-lg text-gray-800">
-            Risk-Return: Annual Return vs 1-Day Z-Score
+            RSI vs 1-Day Z-Score Analysis
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -177,10 +178,10 @@ const MomentumAnalysis = () => {
                   label={{ value: 'Z-Score of the Latest 1-Day Move', position: 'insideBottom', offset: -5, style: { fill: '#6B7280' } }}
                 />
                 <YAxis 
-                  dataKey="annualReturn" 
+                  dataKey="rsi" 
                   type="number" 
                   stroke="#6B7280"
-                  label={{ value: 'Annual Return %', angle: -90, position: 'insideLeft', style: { fill: '#6B7280' } }}
+                  label={{ value: 'RSI', angle: -90, position: 'insideLeft', style: { fill: '#6B7280' } }}
                 />
                 <Tooltip 
                   content={({ active, payload }) => {
@@ -193,7 +194,7 @@ const MomentumAnalysis = () => {
                           <p className={`font-bold ${data.sector === 'SPY' ? 'text-blue-600' : 'text-gray-800'}`}>
                             {data.sector} - {sectorName}
                           </p>
-                          <p className="text-gray-600">Annual Return: {data.annualReturn.toFixed(1)}%</p>
+                          <p className="text-gray-600">RSI: {data.rsi.toFixed(1)}</p>
                           <p className="text-gray-600">1-Day Z-Score: {data.fiveDayZScore.toFixed(2)}</p>
                           <p className="text-gray-600">Sharpe Ratio: {data.sharpeRatio.toFixed(2)}</p>
                           {strategy && (
@@ -205,7 +206,7 @@ const MomentumAnalysis = () => {
                     return null;
                   }}
                 />
-                <Scatter dataKey="annualReturn" fill="#8884d8">
+                <Scatter dataKey="rsi" fill="#8884d8">
                   {analysis.chartData.map((entry, index) => {
                     const color = getETFColor(entry.sector, index);
                     return <Cell key={`cell-${index}`} fill={color} />;
@@ -240,10 +241,10 @@ const MomentumAnalysis = () => {
           </div>
           <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-sm text-gray-700">
-              <strong>How to interpret this chart:</strong> Each dot represents a sector ETF plotted by its 1-day Z-score (x-axis) and annual return (y-axis). 
-              The Z-score shows how many standard deviations the latest 1-day move is from its historical average. 
-              <strong>Top-right quadrant</strong> shows high-performing sectors with positive momentum. 
-              <strong>Bottom-right quadrant</strong> shows sectors with recent positive moves but negative annual returns. 
+              <strong>How to interpret this chart:</strong> Each dot represents a sector ETF plotted by its 1-day Z-score (x-axis) and RSI (y-axis). 
+              The Z-score shows how many standard deviations the latest 1-day move is from its historical average. RSI measures momentum with values above 70 indicating overbought conditions and below 30 indicating oversold conditions.
+              <strong>Top-right quadrant</strong> shows sectors with strong momentum and high RSI levels (potentially overbought). 
+              <strong>Bottom-right quadrant</strong> shows sectors with recent positive moves but lower RSI levels (more room to run). 
               SPY (S&P 500) serves as the market benchmark with larger labels for easy identification.
             </p>
           </div>
@@ -266,6 +267,7 @@ const MomentumAnalysis = () => {
                   <th className="text-left p-2 text-gray-700 font-semibold w-16">Ticker</th>
                   <th className="text-left p-2 text-gray-700 font-semibold w-20">Momentum</th>
                   <th className="text-right p-2 text-gray-700 font-semibold w-20">Annual<br/>Return</th>
+                  <th className="text-right p-2 text-gray-700 font-semibold w-16">RSI</th>
                   <th className="text-right p-2 text-gray-700 font-semibold w-16">Sharpe<br/>Ratio</th>
                   <th className="text-right p-2 text-gray-700 font-semibold w-16">1-Day<br/>Move</th>
                   <th className="text-right p-2 text-gray-700 font-semibold w-20">Z-Score of Latest<br/>1-Day Move</th>
@@ -294,6 +296,11 @@ const MomentumAnalysis = () => {
                     <td className="p-2 text-right w-20">
                       <span className={`text-sm ${strategy.annualReturn >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {strategy.annualReturn.toFixed(1)}%
+                      </span>
+                    </td>
+                    <td className="p-2 text-right w-16">
+                      <span className={`text-sm ${strategy.rsi >= 70 ? 'text-red-600' : strategy.rsi <= 30 ? 'text-green-600' : 'text-gray-600'}`}>
+                        {strategy.rsi.toFixed(1)}
                       </span>
                     </td>
                     <td className="p-2 text-right w-16">
