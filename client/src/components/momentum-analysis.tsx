@@ -34,35 +34,9 @@ interface MomentumAnalysis {
   timestamp: string;
 }
 
-// Helper function to get sector full names
-const getSectorFullName = (symbol: string): string => {
-  const names: Record<string, string> = {
-    'SPY': 'S&P 500 ETF',
-    'XLK': 'Technology',
-    'XLV': 'Health Care',
-    'XLF': 'Financial',
-    'XLY': 'Consumer Discretionary',
-    'XLI': 'Industrial',
-    'XLC': 'Communication Services',
-    'XLP': 'Consumer Staples',
-    'XLE': 'Energy',
-    'XLU': 'Utilities',
-    'XLB': 'Materials',
-    'XLRE': 'Real Estate'
-  };
-  return names[symbol] || symbol;
-};
 
-// Helper function to get color for each ETF
-const getETFColor = (symbol: string, index: number): string => {
-  if (symbol === 'SPY') return '#1E40AF'; // Bold blue for SPY
-  
-  const colors = [
-    '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', 
-    '#06B6D4', '#84CC16', '#F97316', '#6366F1', '#14B8A6', '#F43F5E'
-  ];
-  return colors[index % colors.length];
-};
+
+
 
 const MomentumAnalysis = () => {
   const [refreshKey, setRefreshKey] = useState(0);

@@ -322,7 +322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Set a timeout for the entire operation
       const timeoutMs = 45000; // 45 seconds max to allow for OpenAI processing
-      let timeoutId: NodeJS.Timeout;
+      let timeoutId: NodeJS.Timeout | undefined;
       const timeoutPromise = new Promise((_, reject) => {
         timeoutId = setTimeout(() => reject(new Error('Thematic analysis timeout')), timeoutMs);
       });
@@ -1636,10 +1636,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log data availability for debugging
       console.log(`📊 Simplified momentum data: ${currentSectorData.length} current sectors, ${historicalData.length} historical records`);
       
+      // Convert data types to match SectorETF interface
+      const convertedSectorData = Array.isArray(currentSectorData) ? currentSectorData.map((sector: any) => ({
+        symbol: sector.symbol,
+        name: sector.name,
+        price: typeof sector.price === 'string' ? parseFloat(sector.price) : sector.price,
+        changePercent: typeof sector.changePercent === 'string' ? parseFloat(sector.changePercent) : sector.changePercent,
+        fiveDayChange: sector.fiveDayChange ? (typeof sector.fiveDayChange === 'string' ? parseFloat(sector.fiveDayChange) : sector.fiveDayChange) : undefined,
+        oneMonthChange: sector.oneMonthChange ? (typeof sector.oneMonthChange === 'string' ? parseFloat(sector.oneMonthChange) : sector.oneMonthChange) : undefined,
+        volume: sector.volume || 0
+      })) : [];
+
       // Use the simplified sector analysis service with verified calculations
       const { simplifiedSectorAnalysisService } = await import('./services/simplified-sector-analysis');
       const analysis = await simplifiedSectorAnalysisService.generateSimplifiedAnalysis(
-        Array.isArray(currentSectorData) ? currentSectorData : [],
+        convertedSectorData,
         Array.isArray(historicalData) ? historicalData : []
       );
       

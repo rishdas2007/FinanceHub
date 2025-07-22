@@ -149,7 +149,7 @@ export class HistoricalDataAccumulator {
         cpiChange: latestReadings.cpiChange?.toString(),
         coreCpi: latestReadings.coreCpi?.toString(),
         unemployment: latestReadings.unemployment?.toString(),
-        payrolls: latestReadings.payrolls,
+        payrolls: latestReadings.payrolls?.toString(),
         retailSales: latestReadings.retailSales?.toString(),
         housingStarts: latestReadings.housingStarts?.toString(),
         fedFunds: latestReadings.fedFunds?.toString(),
