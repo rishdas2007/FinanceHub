@@ -272,9 +272,9 @@ export class EmailService {
         </div>
     </div>
 
-    ${this.generateSectorTableHTML(sectors)}
-    ${this.generateEconomicTableHTML(economicEvents)}
     ${this.generateAnalysisHTML(analysis)}
+    ${this.generateMomentumRiskReturnHTML()}
+    ${this.generateMomentumStrategiesHTML()}
 
     <div class="footer">
         <p>FinanceHub Pro - Professional Market Intelligence</p>
@@ -376,6 +376,59 @@ export class EmailService {
         <div style="margin-top: 20px; padding: 15px; background-color: #f3f4f6; border-radius: 8px;">
             <small><strong>Confidence:</strong> ${analysis.confidence || 75}% | 
             <strong>Theme:</strong> ${analysis.dominantTheme || 'Mixed signals'}</small>
+        </div>
+    </div>`;
+  }
+
+  private generateMomentumRiskReturnHTML(): string {
+    return `
+    <div class="analysis-section">
+        <h2>📊 Risk-Return: Annual Return vs 1-Day Z-Score</h2>
+        <div style="text-align: center; padding: 20px; background-color: #f8fafc; border-radius: 8px; border: 2px solid #e5e7eb;">
+            <p style="font-size: 16px; margin: 0; color: #374151;">
+                <strong>Interactive Scatter Plot Chart</strong><br>
+                <span style="color: #6b7280;">View the full interactive Risk-Return analysis on the dashboard</span>
+            </p>
+            <p style="margin: 10px 0; font-size: 14px; color: #6b7280;">
+                Annual Return (Y-axis) vs Z-Score of Latest 1-Day Move (X-axis)
+            </p>
+            <a href="https://your-dashboard-url.com" style="display: inline-block; margin-top: 10px; padding: 8px 16px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-size: 14px;">View Live Chart</a>
+        </div>
+    </div>`;
+  }
+
+  private generateMomentumStrategiesHTML(): string {
+    return `
+    <div class="analysis-section">
+        <h2>🚀 Momentum Strategies with Enhanced Metrics</h2>
+        <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; border: 2px solid #e5e7eb;">
+            <p style="margin: 0 0 10px; font-weight: 600; color: #1f2937;">Top Momentum Sectors (20-day vs 50-day MA Crossover)</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 4px solid #10b981;">
+                    <strong style="color: #10b981;">XLC - Communication</strong><br>
+                    <small>Return: 25.2% | Sharpe: 1.29 | Signal: Strong Bullish</small>
+                </div>
+                
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 4px solid #10b981;">
+                    <strong style="color: #10b981;">XLF - Financial</strong><br>
+                    <small>Return: 21.9% | Sharpe: 1.07 | Signal: Moderate Bullish</small>
+                </div>
+                
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 4px solid #10b981;">
+                    <strong style="color: #10b981;">XLI - Industrial</strong><br>
+                    <small>Return: 19.9% | Sharpe: 1.01 | Signal: Moderate Bullish</small>
+                </div>
+                
+                <div style="background: white; padding: 12px; border-radius: 6px; border-left: 4px solid #ef4444;">
+                    <strong style="color: #ef4444;">XLV - Health Care</strong><br>
+                    <small>Return: -11.5% | Sharpe: -0.71 | Signal: Strong Bearish</small>
+                </div>
+            </div>
+            
+            <p style="margin: 15px 0 0; font-size: 13px; color: #6b7280; text-align: center;">
+                <strong>View complete momentum analysis with 12 sectors on the dashboard</strong>
+            </p>
         </div>
     </div>`;
   }

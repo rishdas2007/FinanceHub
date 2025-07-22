@@ -78,8 +78,8 @@ export class DataScheduler {
     try {
       console.log('📧 Sending daily market commentary emails...');
       
-      // Import email service  
-      const { emailService } = await import('./email-service');
+      // Import unified email service  
+      const { emailService } = await import('./email-unified.js');
       
       // FIXED: Generate fresh analysis using real data instead of mock data
       // Get fresh real-time data for email
@@ -195,8 +195,38 @@ export class DataScheduler {
         economicEvents: finalEconomicEvents
       };
       
-      // Send the daily email
-      await emailService.sendDailyMarketCommentary(analysisData);
+      // Prepare email data for unified service template
+      const emailData = {
+        stockData: {
+          price: finalStockData.price,
+          changePercent: finalStockData.changePercent
+        },
+        sentiment: {
+          vix: finalSentiment.vix,
+          vixChange: finalSentiment.vixChange || '0',
+          aaiiBullish: finalSentiment.aaiiBullish,
+          aaiiBearish: finalSentiment.aaiiBearish
+        },
+        technical: {
+          rsi: finalTechnical.rsi,
+          macd: finalTechnical.macd
+        },
+        sectors: [],
+        economicEvents: [],
+        analysis,
+        timestamp: new Date().toISOString()
+      };
+
+      // Get active subscribers and send emails using unified service
+      const { storage } = await import('../storage.js');
+      const subscribers = await storage.getActiveEmailSubscriptions();
+      
+      if (subscribers.length > 0) {
+        const result = await emailService.sendDailyMarketEmail(subscribers, emailData);
+        console.log(`📧 Daily emails sent: ${result.sent} successful, ${result.failed} failed`);
+      } else {
+        console.log('📧 No active subscribers found for daily email');
+      }
       
       console.log('✅ Daily market commentary emails sent successfully');
     } catch (error) {

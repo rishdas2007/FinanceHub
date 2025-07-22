@@ -1110,10 +1110,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-  // Test endpoint for email functionality with real-time data
+  // Test endpoint for email functionality with updated template  
   app.post("/api/email/test-daily", async (req, res) => {
     try {
-      console.log('📧 Starting email test with real-time data...');
+      console.log('📧 Testing updated email template with 3 sections...');
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email address is required" });
+      }
+
+      // Get fresh market data for email
+      const freshMarketData = await gatherMarketDataForAI();
+      
+      // Generate simple analysis for email test
+      const analysis = {
+        bottomLine: `Market showing ${freshMarketData.spyChange >= 0 ? 'positive' : 'negative'} momentum with SPY at $${freshMarketData.spyPrice}.`,
+        setup: `Technical indicators: RSI ${freshMarketData.rsi}, VIX ${freshMarketData.vix}. Market sentiment reflects current positioning.`,
+        evidence: `Current levels suggest balanced conditions with sector rotation favoring momentum strategies.`,
+        implications: `Focus on momentum crossover signals and risk-return positioning for optimal sector allocation.`,
+        confidence: 0.75
+      };
+
+      // Prepare email data for updated template
+      const emailData = {
+        stockData: {
+          price: freshMarketData.spyPrice,
+          changePercent: freshMarketData.spyChange
+        },
+        sentiment: {
+          vix: freshMarketData.vix,
+          vixChange: freshMarketData.vixChange,
+          aaiiBullish: freshMarketData.aaiiBullish,
+          aaiiBearish: freshMarketData.aaiiBearish
+        },
+        technical: {
+          rsi: freshMarketData.rsi,
+          macd: freshMarketData.macd
+        },
+        sectors: [],
+        economicEvents: [],
+        analysis,
+        timestamp: new Date().toISOString()
+      };
+
+      // Use unified email service
+      const { emailService } = await import('./services/email-unified.js');
+      
+      const sendGridEnabled = !!process.env.SENDGRID_API_KEY;
+      
+      if (sendGridEnabled) {
+        await emailService.sendTestEmail(email, emailData);
+        res.json({
+          success: true,
+          message: 'Updated email template sent successfully',
+          sections: ['AI Market Commentary', 'Risk-Return: Annual Return vs 1-Day Z-Score', 'Momentum Strategies with Enhanced Metrics'],
+          recipient: email
+        });
+      } else {
+        res.json({
+          success: true,
+          message: 'Email template updated successfully (SendGrid not configured)',
+          sections: ['AI Market Commentary', 'Risk-Return: Annual Return vs 1-Day Z-Score', 'Momentum Strategies with Enhanced Metrics'],
+          note: 'Configure SENDGRID_API_KEY to send actual emails'
+        });
+      }
+
+    } catch (error) {
+      console.error('Error testing updated email:', error);
+      res.status(500).json({ 
+        message: "Failed to test updated email template", 
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Legacy email test endpoint (keeping for backward compatibility)
+  app.post("/api/email/test-legacy", async (req, res) => {
+    try {
+      console.log('📧 Starting legacy email test...');
       const { emailService } = await import('./services/email-service');
       
       // Get active subscriptions
