@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { HistoricalContextAnalyzer } from './historical-context-analyzer.js';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -6,6 +7,11 @@ const openai = new OpenAI({
 
 export class SophisticatedBayesianAnalysisService {
   private static instance: SophisticatedBayesianAnalysisService;
+  private historicalAnalyzer: HistoricalContextAnalyzer;
+
+  constructor() {
+    this.historicalAnalyzer = HistoricalContextAnalyzer.getInstance();
+  }
 
   static getInstance(): SophisticatedBayesianAnalysisService {
     if (!SophisticatedBayesianAnalysisService.instance) {
@@ -22,23 +28,25 @@ export class SophisticatedBayesianAnalysisService {
       const significanceScore = this.calculateEnhancedSignificanceScore(marketData);
       console.log(`📊 Enhanced significance score: ${significanceScore}/10`);
       
-      // Get comprehensive data for analysis
-      const [historicalContext, economicContext, percentileData] = await Promise.all([
-        this.getHistoricalContextData(marketData),
-        this.getEconomicEventsContext(),
-        this.calculatePercentileRankings(marketData)
+      // Get comprehensive statistical analysis with new historical context analyzer
+      const [statisticalAnalyses, economicContext] = await Promise.all([
+        this.historicalAnalyzer.analyzeHistoricalContext(marketData),
+        this.getEconomicEventsContext()
       ]);
       
-      console.log('📊 Historical Context:', historicalContext);
-      console.log('💰 Economic Context:', economicContext);
-      console.log('📈 Percentile Data:', percentileData);
+      // Get summary of significant findings
+      const significantFindings = await this.historicalAnalyzer.getSummaryFindings(statisticalAnalyses);
       
-      // Always use sophisticated analysis (ignore light analysis)
+      console.log('📊 Statistical Analyses Count:', statisticalAnalyses.length);
+      console.log('💰 Economic Context:', economicContext);
+      console.log('🎯 Significant Findings:', significantFindings);
+      
+      // Always use sophisticated analysis with new statistical context
       const analysis = await this.generateSophisticatedBayesianAnalysis({
         marketData,
-        historicalContext,
+        statisticalAnalyses,
         economicContext,
-        percentileData,
+        significantFindings,
         significanceScore
       });
       
@@ -52,6 +60,8 @@ export class SophisticatedBayesianAnalysisService {
           generatedAt: new Date().toISOString(),
           significanceScore,
           analysisDepth: 'sophisticated',
+          statisticalAnalysesCount: statisticalAnalyses.length,
+          significantFindingsCount: significantFindings.split('•').length,
           historicalDataUsed: true,
           economicDataUsed: true,
           tokenEfficiency: 'generated',
@@ -94,26 +104,9 @@ export class SophisticatedBayesianAnalysisService {
     return Math.min(score, 10);
   }
 
+  // Legacy method - no longer used with new statistical analyzer
   private async getHistoricalContextData(marketData: any): Promise<string> {
-    try {
-      // Try to get real historical data
-      const { historicalDataAccumulator } = await import('./historical-data-accumulator.js');
-      
-      const rsiHistory = await historicalDataAccumulator.getHistoricalContext('RSI', 24);
-      const vixHistory = await historicalDataAccumulator.getHistoricalContext('VIX', 24);
-      
-      if (rsiHistory.length > 0 && vixHistory.length > 0) {
-        const rsiAvg = rsiHistory.reduce((sum, r) => sum + parseFloat(r.value), 0) / rsiHistory.length;
-        const vixAvg = vixHistory.reduce((sum, r) => sum + parseFloat(r.value), 0) / vixHistory.length;
-        
-        return `RSI ${marketData.rsi} vs 24-month average ${rsiAvg.toFixed(1)} (${this.getPercentileDescription(marketData.rsi, rsiHistory)}). VIX ${marketData.vix} vs average ${vixAvg.toFixed(1)} (${this.getPercentileDescription(marketData.vix, vixHistory)}).`;
-      }
-    } catch (error) {
-      console.log('Using statistical approximations for historical context');
-    }
-    
-    // Enhanced statistical approximations with concrete numbers
-    return this.generateRichHistoricalContext(marketData);
+    return 'Historical context now handled by HistoricalContextAnalyzer';
   }
 
   private async getEconomicEventsContext(): Promise<string> {
@@ -134,36 +127,9 @@ export class SophisticatedBayesianAnalysisService {
     }
   }
 
+  // Legacy method - percentile calculations now handled by HistoricalContextAnalyzer
   private async calculatePercentileRankings(marketData: any): Promise<string> {
-    // Check for authentic historical data first
-    try {
-      // Try to get database historical data for technical indicators
-      const historicalData = await this.tryGetDatabaseHistoricalData(marketData);
-      if (historicalData) {
-        console.log(`📊 Real percentiles from database: ${historicalData}`);
-        return historicalData;
-      }
-    } catch (error) {
-      console.log('📊 Database historical data not ready, checking accumulator...');
-    }
-
-    // Try historical data accumulator for economic indicators
-    try {
-      const { historicalDataAccumulator } = await import('./historical-data-accumulator.js');
-      
-      // Check if we have any economic indicators available
-      const economicContext = await historicalDataAccumulator.getHistoricalContext('CPIAUCSL', 6);
-      if (economicContext && economicContext.length > 0) {
-        console.log(`📊 Using economic data context: ${economicContext.length} data points available`);
-        return `Market percentile calculations based on ${economicContext.length} months of economic data. Technical indicator percentiles will be available after sufficient technical data accumulation.`;
-      }
-    } catch (error) {
-      console.log('📊 Historical accumulator data not ready');
-    }
-
-    // When no historical data is available, provide transparent notice
-    console.log('⚠️  Authentic historical data collection in progress');
-    return 'Authentic historical percentile rankings accumulating - calculations will use real historical data once sufficient collection period completes (currently building 18-month database).';
+    return 'Percentile rankings now handled by HistoricalContextAnalyzer';
   }
 
   private async tryGetDatabaseHistoricalData(marketData: any): Promise<string | null> {
@@ -250,7 +216,7 @@ export class SophisticatedBayesianAnalysisService {
   }
 
   private async generateSophisticatedBayesianAnalysis(data: any): Promise<any> {
-    const { marketData, historicalContext, economicContext, percentileData } = data;
+    const { marketData, statisticalAnalyses, economicContext, significantFindings } = data;
     
     const prompt = `You are a senior quantitative analyst performing sophisticated Bayesian market analysis. Use prior probabilities from historical data and update beliefs based on current evidence.
 
@@ -260,9 +226,11 @@ VIX: ${marketData.vix}
 RSI: ${marketData.rsi}  
 AAII Bullish: ${marketData.aaiiBullish}%
 
-HISTORICAL CONTEXT & PERCENTILES:
-${percentileData}
-${historicalContext}
+STATISTICAL ANALYSIS RESULTS:
+${this.formatStatisticalAnalyses(statisticalAnalyses)}
+
+SIGNIFICANT FINDINGS:
+${significantFindings}
 
 RECENT ECONOMIC READINGS:
 ${economicContext}
@@ -287,7 +255,7 @@ Generate sophisticated JSON analysis with authentic data only:
   "bayesianUpdate": "How current evidence updates beliefs based on available data"
 }
 
-CRITICAL: Only reference actual percentile data provided in the HISTORICAL CONTEXT section above. Never fabricate percentiles, dates, or market outcomes. If historical percentile data is not available, acknowledge this transparently. Use only the authentic economic readings provided in the context.`;
+CRITICAL: Only reference actual percentile rankings and statistical data provided in the STATISTICAL ANALYSIS RESULTS section above. Never fabricate percentiles, dates, or market outcomes. If statistical analysis shows insufficient data, acknowledge this transparently. Use only the authentic economic readings and percentile rankings provided in the context.`;
 
     try {
       const response = await openai.chat.completions.create({
@@ -314,6 +282,34 @@ CRITICAL: Only reference actual percentile data provided in the HISTORICAL CONTE
       console.error('OpenAI API error:', error);
       throw error;
     }
+  }
+
+  private formatStatisticalAnalyses(analyses: any[]): string {
+    if (!analyses || analyses.length === 0) {
+      return "Statistical analysis: Building historical database - percentile rankings will be available after sufficient data collection period.";
+    }
+
+    const formattedAnalyses = analyses.map(analysis => {
+      const { name, currentValue, context, narrative } = analysis;
+      
+      let formatted = `${name}: ${narrative}`;
+      
+      // Add regime classification and z-score if significant
+      if (context.anomalyFlag) {
+        formatted += ` (ANOMALY: ${context.zScore.toFixed(1)} std devs)`;
+      } else if (Math.abs(context.zScore) > 1.5) {
+        formatted += ` (${Math.abs(context.zScore).toFixed(1)} std devs from mean)`;
+      }
+      
+      // Add Bayesian priors if available
+      if (context.bayesianPrior && context.bayesianPrior.expectedPersistence) {
+        formatted += ` - Expected persistence: ${context.bayesianPrior.expectedPersistence.toFixed(1)} periods`;
+      }
+      
+      return formatted;
+    }).join('\n');
+
+    return formattedAnalyses;
   }
 }
 

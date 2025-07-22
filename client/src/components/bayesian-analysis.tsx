@@ -21,7 +21,10 @@ interface BayesianAnalysis {
       totalEntries: number;
     };
     tokenEfficiency: string;
-    significanceScore?: string;
+    significanceScore?: number;
+    statisticalAnalysesCount?: number;
+    significantFindingsCount?: number;
+    historicalDataUsed?: boolean;
   };
 }
 
@@ -231,6 +234,41 @@ export function BayesianAnalysis() {
                   {typeof analysis.implications === 'string' ? analysis.implications : JSON.stringify(analysis.implications)}
                 </p>
               </div>
+
+              {/* Statistical Analysis Metrics */}
+              {analysis.metadata && (analysis.metadata.statisticalAnalysesCount || analysis.metadata.significantFindingsCount) && (
+                <div className="space-y-2">
+                  <Badge className="bg-cyan-600/20 text-cyan-400 border-cyan-600/30">
+                    Statistical Analysis
+                  </Badge>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {analysis.metadata.statisticalAnalysesCount && (
+                      <div className="bg-gray-800/50 p-2 rounded">
+                        <span className="text-gray-400">Metrics Analyzed:</span>
+                        <span className="text-white ml-1">{analysis.metadata.statisticalAnalysesCount}</span>
+                      </div>
+                    )}
+                    {analysis.metadata.significantFindingsCount && (
+                      <div className="bg-gray-800/50 p-2 rounded">
+                        <span className="text-gray-400">Significant Findings:</span>
+                        <span className="text-white ml-1">{analysis.metadata.significantFindingsCount}</span>
+                      </div>
+                    )}
+                    {analysis.metadata.significanceScore && (
+                      <div className="bg-gray-800/50 p-2 rounded">
+                        <span className="text-gray-400">Significance Score:</span>
+                        <span className="text-white ml-1">{analysis.metadata.significanceScore}/10</span>
+                      </div>
+                    )}
+                    {analysis.metadata.historicalDataUsed && (
+                      <div className="bg-gray-800/50 p-2 rounded">
+                        <span className="text-gray-400">Historical Context:</span>
+                        <span className="text-green-400 ml-1">Active</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Metadata */}
               {analysis.metadata && (
