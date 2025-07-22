@@ -221,8 +221,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               await storage.createSectorData({
                 symbol: sector.symbol,
                 name: sector.name,
-                price: typeof sector.price === 'number' ? sector.price.toString() : sector.price.toString(),
-                changePercent: typeof sector.changePercent === 'number' ? sector.changePercent.toString() : sector.changePercent.toString(),
+                price: (typeof sector.price === 'number' ? sector.price : parseFloat(sector.price as string) || 0).toString(),
+                changePercent: (typeof sector.changePercent === 'number' ? sector.changePercent : parseFloat(sector.changePercent as string) || 0).toString(),
                 fiveDayChange: (sector.fiveDayChange || 0).toString(),
                 oneMonthChange: (sector.oneMonthChange || 0).toString(),
                 volume: sector.volume || 0,
@@ -611,15 +611,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { EnhancedAIAnalysisService } = await import('./services/enhanced-ai-analysis');
       const enhancedAiService = EnhancedAIAnalysisService.getInstance();
       const aiResult = await enhancedAiService.generateRobustMarketAnalysis ? 
-        await enhancedAiService.generateRobustMarketAnalysis(enhancedMarketData, finalSectors || [], economicEvents || []) :
-        await enhancedAiService.generateAnalysisWithHistoricalContext(enhancedMarketData, finalSectors || [], economicEvents || []);
+        await enhancedAiService.generateRobustMarketAnalysis(enhancedMarketData, Array.isArray(finalSectors) ? finalSectors : [], Array.isArray(economicEvents) ? economicEvents : []) :
+        await enhancedAiService.generateAnalysisWithHistoricalContext(enhancedMarketData, Array.isArray(finalSectors) ? finalSectors : [], Array.isArray(economicEvents) ? economicEvents : []);
       console.log('✅ Enhanced AI analysis generated with trader-style insights');
       
       const analysisData = await storage.createAiAnalysis({
         marketConditions: aiResult.marketConditions || 'Market analysis unavailable',
-        technicalAnalysis: aiResult.technicalAnalysis || 'Technical analysis unavailable',  
-        economicAnalysis: aiResult.economicAnalysis || 'Economic analysis unavailable',
-        confidence: (aiResult.confidence || 0.5).toString(),
+        technicalOutlook: aiResult.technicalAnalysis || 'Technical analysis unavailable',  
+        riskAssessment: aiResult.economicAnalysis || 'Economic analysis unavailable',
+        sectorRotation: (aiResult as any).sectorRotation || 'Sector analysis unavailable',
+        confidence: ((aiResult as any).confidence || 0.5).toString(),
       });
       
       // Cache the result for 2 minutes to improve performance
@@ -1599,7 +1600,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         (async () => {
           try {
             console.log('📈 Fetching historical sector data from database...');
-            const { db } = await import('../db');
+            const { db } = await import('./db');
             const result = await db.execute(`
               SELECT symbol, date, price 
               FROM historical_sector_etf_data 
@@ -1622,8 +1623,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use the simplified sector analysis service with verified calculations
       const { simplifiedSectorAnalysisService } = await import('./services/simplified-sector-analysis');
       const analysis = await simplifiedSectorAnalysisService.generateSimplifiedAnalysis(
-        currentSectorData,
-        historicalData
+        Array.isArray(currentSectorData) ? currentSectorData : [],
+        Array.isArray(historicalData) ? historicalData : []
       );
       
       console.log(`✅ Simplified momentum analysis completed (confidence: ${analysis.confidence}%)`);

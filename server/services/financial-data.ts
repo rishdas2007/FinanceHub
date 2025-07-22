@@ -477,8 +477,8 @@ export class FinancialDataService {
           console.error(`Error fetching ${etf.symbol}, using estimate:`, etfError);
           // If individual ETF fails, use realistic estimate based on SPY correlation
           const spyData = realSectorData.find(s => s.symbol === 'SPY');
-          const correlation = this.getSectorCorrelation(etf.symbol);
-          const estimatedChange = spyData ? spyData.changePercent * correlation : 0;
+          const correlation: number = this.getSectorCorrelation(etf.symbol);
+          const estimatedChange: number = spyData ? spyData.changePercent * correlation : 0;
           
           const correlationPerformance = this.getCorrelationBasedPerformance(etf.symbol);
           
@@ -526,13 +526,14 @@ export class FinancialDataService {
       'XLB': 1.15, // Materials cyclical
       'XLRE': 0.9  // Real Estate moderate
     };
-    return correlations[symbol] || 1.0;
+    return correlations[symbol as keyof typeof correlations] || 1.0;
   }
 
   async getHistoricalPerformance(symbol: string) {
     try {
       // Check cache first to avoid unnecessary API calls
-      const { cacheManager } = await import('./cache-unified');
+      const cacheUnified = await import('./cache-unified');
+      const cacheManager = cacheUnified.cacheService;
       const cacheKey = `historical-${symbol}`;
       const cached = cacheManager.get(cacheKey);
       if (cached) {
@@ -618,7 +619,7 @@ export class FinancialDataService {
     };
     
     // Return reference performance data or correlation-based estimate
-    return referencePerfomance[symbol] || {
+    return referencePerfomance[symbol as keyof typeof referencePerfomance] || {
       fiveDayChange: 0.27 * this.getSectorCorrelation(symbol),
       oneMonthChange: 5.26 * this.getSectorCorrelation(symbol)
     };
@@ -631,7 +632,7 @@ export class FinancialDataService {
       'XLI': 133, 'XLC': 79, 'XLP': 80, 'XLE': 89, 'XLU': 71,
       'XLB': 95, 'XLRE': 44
     };
-    return prices[symbol] || 100;
+    return prices[symbol as keyof typeof prices] || 100;
   }
 
   async getRealVixData() {
