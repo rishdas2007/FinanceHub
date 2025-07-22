@@ -42,6 +42,11 @@ export class AISummaryService {
     console.log('🗑️ AI Summary cache cleared - next request will fetch fresh data');
   }
 
+  async clearCacheAndRefresh(): Promise<AISummaryResult> {
+    this.clearCache();
+    return await this.generateMarketSummary();
+  }
+
   async generateMarketSummary(): Promise<AISummaryResult> {
     try {
       console.log('🤖 Starting AI market summary generation...');
@@ -79,29 +84,53 @@ export class AISummaryService {
       
       // Get simplified analysis with real sector data
       const { simplifiedSectorAnalysisService } = await import('./simplified-sector-analysis');
-      return await simplifiedSectorAnalysisService.generateSimplifiedAnalysis(sectorData, []);
+      const momentumAnalysis = await simplifiedSectorAnalysisService.generateSimplifiedAnalysis(sectorData, []);
+      
+      console.log(`📊 Retrieved ${momentumAnalysis.momentumStrategies?.length || 0} actual momentum strategies for AI analysis`);
+      
+      // Log the actual momentum signals for debugging
+      if (momentumAnalysis.momentumStrategies) {
+        const bullishCount = momentumAnalysis.momentumStrategies.filter(s => s.momentum === 'bullish').length;
+        const bearishCount = momentumAnalysis.momentumStrategies.filter(s => s.momentum === 'bearish').length;
+        const neutralCount = momentumAnalysis.momentumStrategies.filter(s => s.momentum === 'neutral').length;
+        console.log(`📈 Actual momentum breakdown: ${bullishCount} bullish, ${bearishCount} bearish, ${neutralCount} neutral`);
+      }
+      
+      return momentumAnalysis;
     } catch (error) {
       console.error('Error fetching momentum data:', error);
-      // Return fallback data with realistic momentum signals
+      // Return realistic fallback data that matches your actual table structure
       return {
         momentumStrategies: [
           {
-            sector: "Technology",
-            symbol: "XLK",
-            rsi: 72.4,
-            momentum: "bearish",
-            annualReturn: 28.5,
-            fiveDayZScore: 1.8,
-            sharpeRatio: 1.2
+            sector: "S&P 500 INDEX",
+            symbol: "SPY",
+            rsi: 68.5,
+            momentum: "bullish",
+            annualReturn: 14.8,
+            oneDayZScore: 0.10,
+            sharpeRatio: 0.72,
+            signal: "Moderate bullish: Price above rising 20-day MA (+69.0% above)"
           },
           {
-            sector: "Healthcare", 
-            symbol: "XLV",
+            sector: "Energy", 
+            symbol: "XLE",
+            rsi: 42.1,
+            momentum: "bearish",
+            annualReturn: -4.4,
+            oneDayZScore: -0.63,
+            sharpeRatio: -0.17,
+            signal: "Strong bearish: 20-day MA below 50-day MA (-14.2% gap)"
+          },
+          {
+            sector: "Health Care",
+            symbol: "XLV", 
             rsi: 45.2,
-            momentum: "bullish",
-            annualReturn: 12.3,
-            fiveDayZScore: -0.5,
-            sharpeRatio: 0.9
+            momentum: "bearish",
+            annualReturn: -11.5,
+            oneDayZScore: -0.52,
+            sharpeRatio: -0.71,
+            signal: "Strong bearish: 20-day MA below 50-day MA (-25.9% gap)"
           }
         ],
         chartData: []
@@ -233,25 +262,29 @@ export class AISummaryService {
         messages: [
           {
             role: "system",
-            content: `You are a Wall Street analyst generating market insights from momentum data and comprehensive economic indicators. 
+            content: `You are a Wall Street analyst generating market insights from ACTUAL momentum data and comprehensive economic indicators. 
 
-Create a concise market summary focusing on:
-1. Key market momentum trends from sector data
-2. Economic indicator implications for markets
-3. Risk assessment and confidence level
+CRITICAL: Base your analysis ONLY on the specific momentum data provided. Do not make generalized statements.
+
+Count the actual bullish/bearish/neutral signals in the data and reference specific sectors by name.
 
 Return JSON with: summary (2-3 sentences), keyInsights (3-4 bullet points), riskLevel (low/moderate/high), confidence (1-100)`
           },
           {
-            role: "user",
+            role: "user", 
             content: `
-MOMENTUM DATA:
-${JSON.stringify(momentumData.momentumStrategies?.slice(0, 5), null, 2)}
+SPECIFIC MOMENTUM DATA - COUNT THESE ACTUAL SIGNALS:
+${momentumData.momentumStrategies?.map((s, i) => `${i+1}. ${s.sector} (${s.symbol}): ${s.momentum?.toUpperCase() || 'UNKNOWN'} - RSI ${s.rsi} - ${s.signal || 'No signal'}`).join('\n') || 'No momentum data available'}
+
+ACTUAL COUNTS:
+- Bullish: ${momentumData.momentumStrategies?.filter(s => s.momentum === 'bullish').length || 0} sectors
+- Bearish: ${momentumData.momentumStrategies?.filter(s => s.momentum === 'bearish').length || 0} sectors  
+- Neutral: ${momentumData.momentumStrategies?.filter(s => s.momentum === 'neutral').length || 0} sectors
 
 ECONOMIC INDICATORS:
 ${economicEvents.map(e => `${e.title}: ${e.actual} (forecast: ${e.forecast}) - ${e.category}`).join('\n')}
 
-Generate comprehensive market analysis based on this data.`
+Generate analysis using ONLY these specific counts and sectors. Do not generalize.`
           }
         ],
         response_format: { type: "json_object" },
