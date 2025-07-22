@@ -463,12 +463,12 @@ export class FinancialDataService {
           realSectorData.push({
             name: etf.name,
             symbol: etf.symbol,
-            price: etfData.price,
-            change: etfData.change,
-            changePercent: etfData.changePercent,
+            price: parseFloat(etfData.price || '0'),
+            change: parseFloat(etfData.change || '0'),
+            changePercent: parseFloat(etfData.changePercent || '0'),
             fiveDayChange: Math.round(fiveDayChange * 100) / 100, // Round to 2 decimals
             oneMonthChange: Math.round(oneMonthChange * 100) / 100,
-            volume: etfData.volume
+            volume: parseInt(etfData.volume || '0')
           });
           
           console.log(`✅ Real data for ${etf.symbol}: $${etfData.price} (${etfData.changePercent > 0 ? '+' : ''}${etfData.changePercent.toFixed(2)}%)`);
@@ -485,11 +485,11 @@ export class FinancialDataService {
           realSectorData.push({
             name: etf.name,
             symbol: etf.symbol,
-            price: this.getLastKnownPrice(etf.symbol),
-            change: estimatedChange,
-            changePercent: estimatedChange,
-            fiveDayChange: correlationPerformance.fiveDayChange,
-            oneMonthChange: correlationPerformance.oneMonthChange,
+            price: parseFloat(this.getLastKnownPrice(etf.symbol).toString()),
+            change: parseFloat(estimatedChange.toString()),
+            changePercent: parseFloat(estimatedChange.toString()),
+            fiveDayChange: parseFloat(correlationPerformance.fiveDayChange.toString()),
+            oneMonthChange: parseFloat(correlationPerformance.oneMonthChange.toString()),
             volume: 10000000 + Math.floor(Math.random() * 5000000)
           });
         }

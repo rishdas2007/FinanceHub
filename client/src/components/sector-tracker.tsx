@@ -94,22 +94,22 @@ export function SectorTracker() {
                   </td>
                   <td className="py-3 px-2 text-gray-300">{sector.symbol}</td>
                   <td className="py-3 px-2 text-right text-white font-medium">
-                    ${sector.price.toFixed(2)}
+                    ${typeof sector.price === 'number' ? sector.price.toFixed(2) : parseFloat(sector.price || '0').toFixed(2)}
                   </td>
                   <td className={`py-3 px-2 text-right font-medium ${
-                    sector.changePercent >= 0 ? 'text-gain-green' : 'text-loss-red'
+                    (typeof sector.changePercent === 'number' ? sector.changePercent : parseFloat(sector.changePercent || '0')) >= 0 ? 'text-gain-green' : 'text-loss-red'
                   }`}>
-                    {sector.changePercent >= 0 ? '+' : ''}{sector.changePercent.toFixed(2)}%
+                    {(typeof sector.changePercent === 'number' ? sector.changePercent : parseFloat(sector.changePercent || '0')) >= 0 ? '+' : ''}{(typeof sector.changePercent === 'number' ? sector.changePercent : parseFloat(sector.changePercent || '0')).toFixed(2)}%
                   </td>
                   <td className={`py-3 px-2 text-right font-medium ${
-                    (sector.fiveDayChange || 0) >= 0 ? 'text-gain-green' : 'text-loss-red'
+                    (typeof sector.fiveDayChange === 'number' ? sector.fiveDayChange : parseFloat(sector.fiveDayChange || '0')) >= 0 ? 'text-gain-green' : 'text-loss-red'
                   }`}>
-                    {(sector.fiveDayChange || 0) >= 0 ? '+' : ''}{(sector.fiveDayChange || 0).toFixed(2)}%
+                    {(typeof sector.fiveDayChange === 'number' ? sector.fiveDayChange : parseFloat(sector.fiveDayChange || '0')) >= 0 ? '+' : ''}{(typeof sector.fiveDayChange === 'number' ? sector.fiveDayChange : parseFloat(sector.fiveDayChange || '0')).toFixed(2)}%
                   </td>
                   <td className={`py-3 px-2 text-right font-medium ${
-                    (sector.oneMonthChange || 0) >= 0 ? 'text-gain-green' : 'text-loss-red'
+                    (typeof sector.oneMonthChange === 'number' ? sector.oneMonthChange : parseFloat(sector.oneMonthChange || '0')) >= 0 ? 'text-gain-green' : 'text-loss-red'
                   }`}>
-                    {(sector.oneMonthChange || 0) >= 0 ? '+' : ''}{(sector.oneMonthChange || 0).toFixed(2)}%
+                    {(typeof sector.oneMonthChange === 'number' ? sector.oneMonthChange : parseFloat(sector.oneMonthChange || '0')) >= 0 ? '+' : ''}{(typeof sector.oneMonthChange === 'number' ? sector.oneMonthChange : parseFloat(sector.oneMonthChange || '0')).toFixed(2)}%
                   </td>
                 </tr>
               ))}
