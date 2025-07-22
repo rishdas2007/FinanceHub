@@ -30,11 +30,14 @@ class MarketSynthesisService {
 
       logger.info('Generating fresh market synthesis with OpenAI');
 
+      // Wait for AI Market Summary to be available first
+      const aiSummaryData = await this.getAIMarketSummary();
+      
       // Gather comprehensive market data
       const marketData = await this.gatherMarketData();
       
-      // Generate synthesis using sophisticated prompting
-      const synthesis = await this.generateSynthesisWithAI(marketData);
+      // Generate synthesis using sophisticated prompting with AI summary context
+      const synthesis = await this.generateSynthesisWithAI(marketData, aiSummaryData);
       
       // Cache the result for cost optimization
       cacheService.set(this.CACHE_KEY, synthesis, this.CACHE_DURATION);
@@ -59,13 +62,16 @@ class MarketSynthesisService {
       // Import services dynamically to avoid circular dependencies
       const [
         { simplifiedSectorAnalysisService },
-        { simplifiedEconomicCalendar },
+        { economicDataEnhancedService },
         { financialDataService }
       ] = await Promise.all([
         import('./simplified-sector-analysis'),
-        import('./simplified-economic-calendar'),
+        import('./economic-data-enhanced'),
         import('./financial-data')
       ]);
+
+      // Get sector data first
+      const sectorETFs = await financialDataService.getSectorETFs();
 
       // Gather all relevant data in parallel
       const [
@@ -74,8 +80,8 @@ class MarketSynthesisService {
         technicalIndicators,
         marketSentiment
       ] = await Promise.all([
-        simplifiedSectorAnalysisService.getMomentumAnalysis(),
-        simplifiedEconomicCalendar.getEconomicEvents(),
+        simplifiedSectorAnalysisService.generateSimplifiedAnalysis(sectorETFs, []),
+        economicDataEnhancedService.getEnhancedEconomicEvents(),
         financialDataService.getTechnicalIndicators('SPY'),
         this.getMarketSentiment()
       ]);
@@ -104,7 +110,19 @@ class MarketSynthesisService {
     }
   }
 
-  private async generateSynthesisWithAI(marketData: any): Promise<MarketSynthesis> {
+  private async getAIMarketSummary() {
+    try {
+      // Import AI analysis service to get existing summary
+      const { aiAnalysisService } = await import('./ai-analysis-unified');
+      const aiSummary = await aiAnalysisService.generateMarketSummary();
+      return aiSummary;
+    } catch (error) {
+      logger.error('Failed to get AI market summary', { error });
+      return null;
+    }
+  }
+
+  private async generateSynthesisWithAI(marketData: any, aiSummaryData?: any): Promise<MarketSynthesis> {
     // Count bullish/bearish/neutral sectors
     const sectorSignals = marketData.sectors?.momentumStrategies || [];
     const bullishCount = sectorSignals.filter((s: any) => 
@@ -122,35 +140,53 @@ class MarketSynthesisService {
       `${event.indicator}: ${event.actual} (vs ${event.forecast || 'forecast'})`
     ).join(', ');
 
-    const prompt = `You are a senior Wall Street analyst providing market synthesis. Based on current data, create a comprehensive market narrative that connects all data points.
+    // Extract key insights from AI Market Summary
+    const aiInsights = aiSummaryData?.keyInsights?.slice(0, 3) || [];
+    const aiRiskLevel = aiSummaryData?.riskLevel || 'moderate';
+    const aiSummary = aiSummaryData?.summary || '';
+
+    // Get specific sector performance details
+    const topPerformingSectors = sectorSignals
+      .filter((s: any) => s.signal?.toLowerCase().includes('bullish'))
+      .slice(0, 3);
+    const underperformingSectors = sectorSignals
+      .filter((s: any) => s.signal?.toLowerCase().includes('bearish'))
+      .slice(0, 2);
+
+    const prompt = `You are a senior Wall Street analyst providing market synthesis that builds upon the AI Market Summary. Create a narrative connecting sector performance with economic data.
+
+AI MARKET SUMMARY CONTEXT:
+Summary: ${aiSummary}
+Key Insights: ${aiInsights.join('; ')}
+Risk Level: ${aiRiskLevel}
 
 CURRENT MARKET DATA:
 Sector Momentum: ${bullishCount} bullish, ${bearishCount} bearish, ${neutralCount} neutral signals
+Top Performing: ${topPerformingSectors.map((s: any) => `${s.ticker} (${s.rsi || 'N/A'} RSI)`).join(', ')}
+Underperforming: ${underperformingSectors.map((s: any) => `${s.ticker} (${s.rsi || 'N/A'} RSI)`).join(', ')}
 Key Technical: SPY RSI ${marketData.technical?.rsi || 'N/A'}, VIX ${marketData.sentiment?.vix || 'N/A'}
-Recent Economic Readings: ${economicContext}
+Recent Economic: ${economicContext}
 AAII Sentiment: ${marketData.sentiment?.aaiiBullish || 'N/A'}% bullish
 
 INSTRUCTIONS:
-1. Identify the single most important market story connecting sector performance with economic data
-2. Connect different data points into coherent investment themes
-3. Provide specific, actionable insights with timing considerations
-4. Focus on narrative and implications, not just data description
+Reference the AI Market Summary insights and build upon them. Create the "growth vs. reality" narrative style shown in the example. Connect sector overbought/oversold levels (RSI) with economic fundamentals. Include specific ticker symbols and RSI levels.
 
-FORMAT YOUR RESPONSE EXACTLY AS:
+FORMAT EXACTLY AS:
 
-MARKET PULSE: [2-3 sentences about the biggest market story right now, how sector momentum connects with economic data, and current risk level with reasoning]
+MARKET PULSE
+[Create a "growth vs. reality" or similar thematic narrative. Reference specific RSI levels and economic disconnects. End with "Risk level: [level] due to [specific reason]"]
 
-CRITICAL CATALYSTS:
-• [First catalyst - focus on what's driving markets with timing implications]
-• [Second catalyst - connect different data points into coherent theme]
-• [Third catalyst - include forward-looking implications]
+CRITICAL CATALYSTS
+• [Tech/sector leadership test with specific RSI levels and economic context]
+• [Fed/economic timing catalyst with specific economic readings and implications] 
+• [Sector rotation signal with specific defensive vs growth characteristics]
 
-ACTION ITEMS:
-• Tactical (1-2 weeks): [Specific actionable move for short term]
-• Strategic (3-6 months): [Specific positioning for medium term]
-• Risk Monitor: [Key risk to watch closely with specific metrics]
+ACTION ITEMS
+• Tactical: [Specific sector rotation recommendations with ticker symbols]
+• Strategic: [Specific defensive/growth positioning recommendations]
+• Risk Monitor: [Specific metrics and levels to watch]
 
-Be specific, actionable, and connect the narrative. Avoid generic statements.`;
+Use the writing style of the example provided. Be specific with ticker symbols, RSI levels, and economic data points.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user

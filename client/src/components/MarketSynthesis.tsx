@@ -13,11 +13,19 @@ interface MarketSynthesis {
 }
 
 export default function MarketSynthesis() {
+  // Wait for AI Summary to be available first
+  const { data: aiSummary } = useQuery({
+    queryKey: ['/api/ai-summary'],
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: synthesis, isLoading, error, refetch } = useQuery<MarketSynthesis>({
     queryKey: ['/api/market-synthesis'],
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
+    // Wait for AI summary to be available before fetching synthesis
+    enabled: !!aiSummary,
   });
 
   if (error) {
