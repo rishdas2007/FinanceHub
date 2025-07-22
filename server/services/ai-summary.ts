@@ -334,19 +334,24 @@ export class AISummaryService {
 
 CRITICAL: Base your analysis ONLY on the specific momentum data provided. Do not make generalized statements.
 
-REQUIRED KEY INSIGHTS STRUCTURE:
-- Exactly 2 bullets on momentum analysis (bullish/bearish/neutral sector counts)
-- At least 2 bullets on economic indicators and their market implications
+REQUIRED KEY INSIGHTS STRUCTURE (EXACTLY 5 bullets):
+1. Momentum analysis: Reference specific bullish sectors with actual RSI and z-score numerical values (8 bullish, 2 bearish, 2 neutral)  
+2. Momentum analysis: Reference specific bearish/neutral sectors with actual RSI and z-score numerical values
+3. Leading Economic Index analysis: Focus on the most recent economic release (Leading Economic Index) with actual vs forecast
+4. Economic analysis: Focus on most significant economic indicator from other recent readings
+5. Economic analysis: Additional economic context or secondary indicators
 
-Count the actual bullish/bearish/neutral signals in the data and reference specific sectors by name.
+FORMATTING: All numerical values in Key Insights must be formatted in blue color using <span style="color: #3B82F6;">VALUE</span> tags.
 
-Return JSON with: summary (2-3 sentences), keyInsights (exactly 4 bullet points: 2 momentum + 2+ economic), riskLevel (low/moderate/high), confidence (1-100)`
+Count the actual bullish/bearish/neutral signals in the data and reference specific sectors by name with their RSI and z-score values.
+
+Return JSON with: summary (2-3 sentences), keyInsights (exactly 5 bullet points with blue numerical formatting), riskLevel (low/moderate/high), confidence (1-100)`
           },
           {
             role: "user", 
             content: `
 SPECIFIC MOMENTUM DATA - COUNT THESE ACTUAL SIGNALS:
-${momentumData.momentumStrategies?.map((s, i) => `${i+1}. ${s.sector} (${s.symbol}): ${s.momentum?.toUpperCase() || 'UNKNOWN'} - RSI ${s.rsi} - ${s.signal || 'No signal'}`).join('\n') || 'No momentum data available'}
+${momentumData.momentumStrategies?.map((s, i) => `${i+1}. ${s.sector} (${s.symbol}): ${s.momentum?.toUpperCase() || 'UNKNOWN'} - RSI ${s.rsi || 'N/A'} - Z-Score ${s.zScore || 'N/A'} - ${s.signal || 'No signal'}`).join('\n') || 'No momentum data available'}
 
 ACTUAL COUNTS:
 - Bullish: ${momentumData.momentumStrategies?.filter(s => s.momentum === 'bullish').length || 0} sectors
@@ -359,10 +364,13 @@ ${economicEvents.map(e => `${e.title}: ${e.actual} (forecast: ${e.forecast}) - $
 Generate analysis using ONLY these specific counts and sectors. 
 
 STRUCTURE YOUR KEY INSIGHTS AS:
-1. [Momentum bullet 1: sector counts and specific examples]
-2. [Momentum bullet 2: bearish/neutral sectors and implications] 
-3. [Economic bullet 1: specific indicator analysis with market impact]
-4. [Economic bullet 2: additional economic data and implications]`
+1. [Momentum bullet 1: Reference specific bullish sectors with actual RSI and z-score values in blue]
+2. [Momentum bullet 2: Reference specific bearish/neutral sectors with actual RSI and z-score values in blue]
+3. [Leading Economic Index: Focus on most recent release - Leading Economic Index actual vs forecast in blue]
+4. [Economic bullet 1: Other significant economic indicator with values in blue]
+5. [Economic bullet 2: Additional economic context with values in blue]
+
+CRITICAL: Format ALL numerical values (RSI, z-scores, percentages, etc.) with blue color using <span style="color: #3B82F6;">VALUE</span> tags.`
           }
         ],
         response_format: { type: "json_object" },
@@ -373,7 +381,13 @@ STRUCTURE YOUR KEY INSIGHTS AS:
       
       return {
         summary: analysis.summary || "Market analysis completed with current data.",
-        keyInsights: analysis.keyInsights || ["Market momentum tracked", "Economic indicators analyzed", "Risk assessment completed"],
+        keyInsights: analysis.keyInsights || [
+          "Market momentum tracked", 
+          "Economic indicators analyzed", 
+          "Leading Economic Index analysis", 
+          "Risk assessment completed",
+          "Additional economic context"
+        ],
         riskLevel: analysis.riskLevel || 'moderate',
         confidence: analysis.confidence || 75
       };
@@ -382,7 +396,9 @@ STRUCTURE YOUR KEY INSIGHTS AS:
       return {
         summary: "Market analysis using comprehensive momentum and economic data completed.",
         keyInsights: [
-          "Sector momentum analysis completed",
+          "Sector momentum analysis completed with RSI and z-score data",
+          "Bearish/neutral sector analysis with momentum indicators", 
+          "Leading Economic Index analysis from recent release",
           "Economic indicators integrated from comprehensive database",
           "Risk assessment based on current market conditions"
         ],

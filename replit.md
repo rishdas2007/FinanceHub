@@ -13,6 +13,8 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 - **KEY INSIGHTS REBALANCED**: Fixed structure to 2 momentum bullets + 2+ economic bullets as requested (was 4 momentum + 0 economic)
 - **ACCURATE MOMENTUM ANALYSIS VERIFIED**: AI now correctly identifies 8 bullish, 2 bearish, 2 neutral sectors matching user's actual table data
 - **ENHANCED AI PROMPTING**: Improved prompts force AI to reference specific sector counts and economic indicators instead of generic statements
+- **RSI AND Z-SCORE INTEGRATION**: Enhanced momentum bullets now include actual RSI and z-score numerical values in blue font formatting
+- **5-BULLET STRUCTURE IMPLEMENTED**: Restructured from 4 to 5 Key Insights bullets with Leading Economic Index analysis as bullet 3
 - **CACHE PERFORMANCE MONITORING**: System logs show "strategic cost optimization" and response times reduced from 9+ seconds to 2ms when cached
 - **ECONOMIC UPDATE WINDOWS**: System only performs expensive web searches during designated hours, using 3-hour cache otherwise
 - **MARKET HOURS INTELLIGENCE**: Different caching strategies for market hours vs after-hours to optimize both data freshness and API costs

@@ -101,7 +101,10 @@ export function AISummary() {
               {aiSummary.keyInsights.map((insight: string, index: number) => (
                 <li key={index} className="flex items-start space-x-2">
                   <span className="text-blue-400 mt-1">•</span>
-                  <span className="text-gray-300">{insight}</span>
+                  <span 
+                    className="text-gray-300"
+                    dangerouslySetInnerHTML={{ __html: insight }}
+                  ></span>
                 </li>
               ))}
             </ul>
