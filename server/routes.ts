@@ -1486,9 +1486,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cache for momentum analysis (1-minute cache)
+  let momentumAnalysisCache: { data: any; timestamp: number } | null = null;
+  const MOMENTUM_CACHE_DURATION = 60 * 1000; // 1 minute in milliseconds
+
   // Comprehensive Sector Analysis Route - Advanced sector rotation and cyclical pattern analysis
   app.get('/api/momentum-analysis', async (req, res) => {
     try {
+      // Check if we have valid cached data
+      const now = Date.now();
+      if (momentumAnalysisCache && (now - momentumAnalysisCache.timestamp < MOMENTUM_CACHE_DURATION)) {
+        console.log('📊 Returning cached momentum analysis (1-minute cache hit)');
+        return res.json(momentumAnalysisCache.data);
+      }
+      
       console.log('📊 Generating focused momentum analysis with verified calculations...');
       
       res.setHeader('Content-Type', 'application/json');
@@ -1534,6 +1545,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       console.log(`✅ Simplified momentum analysis completed (confidence: ${analysis.confidence}%)`);
+      
+      // Cache the result for 1 minute
+      momentumAnalysisCache = {
+        data: analysis,
+        timestamp: Date.now()
+      };
+      
       res.json(analysis);
       
     } catch (error) {

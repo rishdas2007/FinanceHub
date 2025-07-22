@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
-import { Scatter, ScatterChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Scatter, ScatterChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 
 interface MomentumStrategy {
   sector: string;
@@ -74,7 +74,8 @@ const MomentumAnalysis = () => {
       return res.json();
     }),
     refetchInterval: 0,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 1 * 60 * 1000, // 1 minute cache for cost optimization
+    gcTime: 2 * 60 * 1000, // Keep in cache for 2 minutes
   });
 
   const handleRefresh = () => {
@@ -217,6 +218,17 @@ const MomentumAnalysis = () => {
                     const color = getETFColor(entry.sector, index);
                     return <Cell key={`cell-${index}`} fill={color} />;
                   })}
+                  <LabelList 
+                    dataKey="sector" 
+                    position="center" 
+                    style={{ 
+                      fill: 'white', 
+                      fontSize: '10px', 
+                      fontWeight: 'bold',
+                      textAnchor: 'middle',
+                      dominantBaseline: 'middle'
+                    }} 
+                  />
                 </Scatter>
               </ScatterChart>
             </ResponsiveContainer>
@@ -258,8 +270,6 @@ const MomentumAnalysis = () => {
                   <th className="text-right p-3 text-gray-300 font-semibold">Annual Return</th>
                   <th className="text-right p-3 text-gray-300 font-semibold">Sharpe Ratio</th>
                   <th className="text-right p-3 text-gray-300 font-semibold">Z-Score</th>
-                  <th className="text-right p-3 text-gray-300 font-semibold">SPY Correlation</th>
-                  <th className="text-right p-3 text-gray-300 font-semibold">Volatility</th>
                   <th className="text-left p-3 text-gray-300 font-semibold">Signal</th>
                 </tr>
               </thead>
@@ -289,14 +299,6 @@ const MomentumAnalysis = () => {
                       <span className={`${Math.abs(strategy.zScore) > 1.5 ? 'text-yellow-400' : 'text-gray-300'}`}>
                         {strategy.zScore.toFixed(2)}
                       </span>
-                    </td>
-                    <td className="p-3 text-right">
-                      <span className={`${Math.abs(strategy.correlationToSPY) < 0.5 ? 'text-green-400' : 'text-gray-300'}`}>
-                        {strategy.correlationToSPY.toFixed(2)}
-                      </span>
-                    </td>
-                    <td className="p-3 text-right text-gray-300">
-                      {strategy.volatility.toFixed(1)}%
                     </td>
                     <td className="p-3 text-gray-300 text-xs max-w-48 truncate" title={strategy.signal}>
                       {strategy.signal}
