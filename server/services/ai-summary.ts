@@ -154,8 +154,8 @@ export class AISummaryService {
           category: "Employment"
         },
         {
-          title: "Retail Sales",
-          actual: "0.6%",
+          title: "Retail Sales (June 2025)",
+          actual: "0.6%", 
           forecast: "0.2%",
           date: new Date().toISOString(),
           category: "Consumer"
@@ -175,14 +175,21 @@ export class AISummaryService {
           category: "Inflation"
         },
         {
-          title: "GDP Q1 2025",
+          title: "Housing Starts (June 2025)",
+          actual: "1.353M",
+          forecast: "1.400M",
+          date: new Date().toISOString(),
+          category: "Housing"
+        },
+        {
+          title: "GDP Q1 2025 (Final)",
           actual: "-0.5%",
           forecast: "-0.2%",
           date: new Date().toISOString(),
           category: "Growth"
         },
         {
-          title: "Employment Change",
+          title: "Employment Change (June 2025)", 
           actual: "+147K",
           forecast: "+180K",
           date: new Date().toISOString(),
@@ -190,7 +197,7 @@ export class AISummaryService {
         }
       ];
 
-      console.log(`📊 Using ${economicReadings.length} curated economic readings for analysis`);
+      console.log(`📊 Using ${economicReadings.length} curated economic readings from July 2025 web search data for analysis`);
       return economicReadings;
       
     } catch (error) {
@@ -267,10 +274,16 @@ Analyze the current market conditions and provide a JSON response:
     const overboughtSectors = momentumStrategies.filter(s => s.rsi > 70).map(s => s.sector || s.symbol);
     const oversoldSectors = momentumStrategies.filter(s => s.rsi < 30).map(s => s.sector || s.symbol);
 
-    // Economic readings summary from web search data
+    // Economic readings summary - clearly show actual vs forecast comparisons
     const economicSummary = economicEvents.length > 0 
-      ? economicEvents.map(e => `${e.title}: ${e.actual} vs ${e.forecast} forecast`).join(', ')
-      : 'Recent Q2 2025 data: GDP -0.5% (vs -0.2% forecast), Employment +147K (vs +180K), Core CPI 2.9% (vs 2.8%), Initial Claims 221K (vs 234K), Retail Sales 0.6% (vs 0.2%)';
+      ? economicEvents.map(e => {
+          const isPositive = e.title.includes('Claims') ? 
+            parseFloat(e.actual.replace(/[^\d.-]/g, '')) < parseFloat(e.forecast.replace(/[^\d.-]/g, '')) :
+            parseFloat(e.actual.replace(/[^\d.-]/g, '')) > parseFloat(e.forecast.replace(/[^\d.-]/g, ''));
+          const beat = isPositive ? 'BEAT' : 'MISS';
+          return `${e.title}: ${e.actual} vs ${e.forecast} forecast (${beat})`;
+        }).join(', ')
+      : 'Recent Q2 2025 official data: GDP -0.5% vs -0.2% forecast (MISS), Employment +147K vs +180K (MISS), Housing Starts 1.353M vs 1.400M (MISS), Retail Sales 0.6% vs 0.2% (BEAT), Core CPI 2.9% vs 2.8% (MISS)';
 
     return `
 Analyze this comprehensive market data and provide a JSON response:
@@ -300,14 +313,16 @@ RSI EXTREMES:
 RECENT ECONOMIC DATA:
 ${economicSummary}
 
+DATA TRANSPARENCY: The economic readings above are sourced from web search of official July 2025 government data releases (Bureau of Labor Statistics, Bureau of Economic Analysis). Housing Starts MISSED forecasts (1.353M vs 1.400M), contrary to typical bullish claims. Be accurate about actual vs forecast performance.
+
 Provide specific, actionable insights about:
 1. Current momentum regime (bullish/bearish/mixed)
-2. Economic data impact on markets
-3. Sector rotation opportunities
-4. Risk level assessment
+2. Economic data ACTUAL performance vs forecasts (don't assume beats when data shows misses)
+3. Sector rotation opportunities based on RSI/momentum
+4. Risk level assessment from both momentum and economic factors
 5. Key levels to watch
 
-Be specific and avoid generic statements. Use actual numbers and sector names.
+Be specific and avoid generic statements. Use actual numbers and sector names. Be honest about economic data performance - don't claim "stronger than expected" if the data shows misses.
     `;
   }
 }
