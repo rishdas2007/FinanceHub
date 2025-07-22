@@ -182,7 +182,7 @@ const MomentumAnalysis = () => {
                   dataKey="fiveDayZScore" 
                   type="number" 
                   stroke="#9CA3AF"
-                  label={{ value: '5-Day Z-Score', position: 'insideBottom', offset: -5, style: { fill: '#9CA3AF' } }}
+                  label={{ value: 'Z-Score of the Latest 1-Day Move', position: 'insideBottom', offset: -5, style: { fill: '#9CA3AF' } }}
                 />
                 <YAxis 
                   dataKey="annualReturn" 
@@ -221,13 +221,23 @@ const MomentumAnalysis = () => {
                   <LabelList 
                     dataKey="sector" 
                     position="center" 
-                    style={{ 
-                      fill: 'white', 
-                      fontSize: '10px', 
-                      fontWeight: 'bold',
-                      textAnchor: 'middle',
-                      dominantBaseline: 'middle'
-                    }} 
+                    content={(props: any) => {
+                      const { x, y, payload } = props;
+                      const isSPY = payload?.sector === 'SPY';
+                      return (
+                        <text 
+                          x={x} 
+                          y={y} 
+                          fill="white" 
+                          fontSize={isSPY ? "14px" : "10px"}
+                          fontWeight="bold"
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                        >
+                          {payload?.sector}
+                        </text>
+                      );
+                    }}
                   />
                 </Scatter>
               </ScatterChart>
