@@ -1118,7 +1118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Generate simple analysis for email test
       const analysis = {
-        bottomLine: `Market showing ${freshMarketData.spyChange >= 0 ? 'positive' : 'negative'} momentum with SPY at $${freshMarketData.spyPrice}.`,
+        bottomLine: `Market showing ${freshMarketData.changePercent >= 0 ? 'positive' : 'negative'} momentum with SPY at $${freshMarketData.price}.`,
         setup: `Technical indicators: RSI ${freshMarketData.rsi}, VIX ${freshMarketData.vix}. Market sentiment reflects current positioning.`,
         evidence: `Current levels suggest balanced conditions with sector rotation favoring momentum strategies.`,
         implications: `Focus on momentum crossover signals and risk-return positioning for optimal sector allocation.`,
@@ -1128,8 +1128,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Prepare email data for updated template
       const emailData = {
         stockData: {
-          price: freshMarketData.spyPrice,
-          changePercent: freshMarketData.spyChange
+          price: freshMarketData.price,
+          changePercent: freshMarketData.changePercent
         },
         sentiment: {
           vix: freshMarketData.vix,
@@ -1193,6 +1193,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error testing updated email:', error);
       res.status(500).json({ 
         message: "Failed to test updated email template", 
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Email Preview Route - Shows HTML content without sending
+  app.post("/api/email/preview", async (req, res) => {
+    try {
+      console.log('📧 Generating email preview...');
+      const { email = "preview@example.com" } = req.body;
+      
+      // Get fresh market data for email
+      const freshMarketData = await gatherMarketDataForAI();
+      
+      // Generate analysis for preview
+      const analysis = {
+        bottomLine: `Market showing ${freshMarketData.changePercent >= 0 ? 'positive' : 'negative'} momentum with SPY at $${freshMarketData.price}.`,
+        setup: `Technical indicators: RSI ${freshMarketData.rsi}, VIX ${freshMarketData.vix}. Market sentiment reflects current positioning.`,
+        evidence: `Current levels suggest balanced conditions with sector rotation favoring momentum strategies.`,
+        implications: `Focus on momentum crossover signals and risk-return positioning for optimal sector allocation.`,
+        dominantTheme: 'Momentum-Based Rotation',
+        confidence: 0.75
+      };
+
+      // Get sector data (simplified for preview)
+      const sectorData = [
+        { name: 'Technology', symbol: 'XLK', price: 260.86, changePercent: 1.2, fiveDayChange: 2.8, oneMonthChange: 4.5 },
+        { name: 'Financial', symbol: 'XLF', price: 52.56, changePercent: 0.8, fiveDayChange: 1.5, oneMonthChange: 3.2 },
+        { name: 'Health Care', symbol: 'XLV', price: 131.86, changePercent: -0.5, fiveDayChange: 0.2, oneMonthChange: 2.1 },
+        { name: 'Energy', symbol: 'XLE', price: 85.82, changePercent: 2.1, fiveDayChange: 4.2, oneMonthChange: 6.8 },
+        { name: 'Utilities', symbol: 'XLU', price: 83.62, changePercent: -1.1, fiveDayChange: -0.8, oneMonthChange: 1.5 }
+      ];
+
+      // Get economic events (simplified for preview)
+      const economicEvents = [
+        { title: 'Initial Jobless Claims', actual: '221K', forecast: '234K', previous: '228K', importance: 'Medium', date: 'Today' },
+        { title: 'Retail Sales', actual: '0.6%', forecast: '0.2%', previous: '0.1%', importance: 'High', date: 'Today' },
+        { title: 'Housing Starts', actual: '1.32M', forecast: '1.35M', previous: '1.31M', importance: 'Medium', date: 'Yesterday' },
+        { title: 'CPI (YoY)', actual: '2.9%', forecast: '3.0%', previous: '3.2%', importance: 'High', date: '2 days ago' }
+      ];
+
+      // Prepare comprehensive email data
+      const emailData = {
+        stockData: {
+          price: freshMarketData.price,
+          changePercent: freshMarketData.changePercent
+        },
+        sentiment: {
+          vix: freshMarketData.vix,
+          vixChange: freshMarketData.vixChange,
+          aaiiBullish: freshMarketData.aaiiBullish,
+          aaiiBearish: freshMarketData.aaiiBearish,
+          putCallRatio: freshMarketData.putCallRatio
+        },
+        technical: {
+          rsi: freshMarketData.rsi,
+          macd: freshMarketData.macd,
+          adx: freshMarketData.adx,
+          sma20: freshMarketData.sma20,
+          ema12: freshMarketData.ema12,
+          atr: freshMarketData.atr,
+          willr: freshMarketData.willr,
+          vwap: freshMarketData.vwap,
+          stoch_k: freshMarketData.stoch_k
+        },
+        sectors: sectorData,
+        economicEvents: economicEvents,
+        analysis,
+        timestamp: new Date().toLocaleString('en-US', { 
+          timeZone: 'America/New_York',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      };
+
+      // Import enhanced email service
+      const { enhancedEmailService } = await import('./services/email-unified-enhanced.js');
+      
+      // Generate HTML content (use private method via workaround)
+      const htmlContent = (enhancedEmailService as any).generateComprehensiveDashboardTemplate(emailData);
+      
+      // Return HTML for preview
+      res.setHeader('Content-Type', 'text/html');
+      res.send(htmlContent);
+      
+    } catch (error) {
+      console.error('Error generating email preview:', error);
+      res.status(500).json({ 
+        message: "Failed to generate email preview", 
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
