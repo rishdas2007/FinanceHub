@@ -171,28 +171,46 @@ class MarketSynthesisService {
     // Get economic indicators data for analysis
     const economicIndicators = marketData.economicIndicators || [];
     
-    const prompt = `You are an economic analyst. Analyze the following economic indicator data to synthesize the current state of the economy, highlighting key trends, potential risks, and areas of strength.
+    // Sort economic indicators by Last Update date to get the 6 most recent
+    const sortedByDate = economicIndicators
+      .filter((ind: any) => ind.lastUpdated && ind.lastUpdated !== 'N/A')
+      .sort((a: any, b: any) => {
+        // Parse dates and sort newest first
+        const dateA = new Date(a.lastUpdated);
+        const dateB = new Date(b.lastUpdated);
+        return dateB.getTime() - dateA.getTime();
+      })
+      .slice(0, 6);
+
+    // Create recent readings display similar to screenshot format
+    const recentReadingsDisplay = sortedByDate.map((ind: any) => {
+      const variance = ind.vsForecast !== null && ind.vsForecast !== undefined ? 
+        (ind.vsForecast >= 0 ? `+${ind.vsForecast}` : `${ind.vsForecast}`) : 'vs';
+      const forecast = ind.forecast !== null && ind.forecast !== undefined ? `${ind.forecast}` : 'forecast';
+      
+      return `${ind.metric}: ${ind.current} ${variance} ${forecast} forecast (${ind.lastUpdated})`;
+    }).join('\n');
+
+    const prompt = `Based on the Economic Indicators data, provide analysis following this new format:
+
+RECENT ECONOMIC READINGS (6 most recent by Last Update date):
+${recentReadingsDisplay}
 
 Analysis Focus Areas:
-• Overall Economic Health: Based on leading, coincident, and lagging indicators, what is the general direction of the economy?
-• Inflation Outlook: Analyze CPI, Core CPI, and PCE Price Index. Are inflationary pressures easing, persisting, or accelerating?
-• Labor Market Strength: Evaluate Unemployment Rate and Nonfarm Payrolls. How robust is the job market?
-• Monetary Policy Implications: Interpret Federal Funds Rate and 10-Year Treasury Yield. What do these suggest about future interest rate actions?
-• Consumer & Business Sentiment: Assess Consumer Confidence and Michigan Consumer Sentiment. How are consumers feeling?
-• Sectoral Performance: Review GDP, Manufacturing PMI, Retail Sales, Industrial Production, Housing data, and Leading Economic Index. Which sectors show strength or weakness?
-• Key Variances: Highlight significant variances against forecasts that indicate unexpected economic shifts.
-• Risks and Opportunities: Identify emerging risks or opportunities.
+• Overall Economic Health: Based on leading, coincident, and lagging indicators, what is the general direction of the economy (expanding, contracting, stable)?
+• Key Variances: Highlight any significant variances against forecasts or prior readings that indicate unexpected economic shifts
+• Risks and Opportunities: Identify any emerging risks (e.g., potential recession, persistent inflation) or opportunities (e.g., strong growth, disinflation)
 
 Generate analysis in this EXACT format:
 
-**ECONOMIC PULSE**
-[2-3 sentences: Overall economic direction and key theme]
+**OVERALL ECONOMIC HEALTH**
+[2-3 sentences: General direction of the economy based on leading, coincident, and lagging indicators - expanding, contracting, or stable]
 
-**CRITICAL INDICATORS**
-[3 bullet points: Most important economic signals and their implications]
+**KEY VARIANCES** 
+[3 bullet points: Significant variances against forecasts from the 6 most recent readings that indicate unexpected shifts]
 
-**ECONOMIC OUTLOOK** 
-[3 key points: Near-term risks, opportunities, and what to monitor]
+**RISKS AND OPPORTUNITIES**
+[3 key points: Emerging risks (recession, persistent inflation) and opportunities (strong growth, disinflation) based on the recent data]
 
 Economic Indicators Data:
 ${JSON.stringify(economicIndicators.map((ind: any) => ({
@@ -205,16 +223,17 @@ ${JSON.stringify(economicIndicators.map((ind: any) => ({
   prior: ind.prior,
   zScore: ind.zScore,
   yoyChange: ind.yoyChange,
-  threeMonthAnnualized: ind.threeMonthAnnualized
+  threeMonthAnnualized: ind.threeMonthAnnualized,
+  lastUpdated: ind.lastUpdated
 })), null, 2)}
 
 Rules:
+- Prioritize indicators that were updated more recently (based on "Last Update" column)
+- Display the 6 most recent economic readings in a format similar to the provided screenshot
+- Analyze those recent readings for economic health direction
 - Reference specific Z-scores, YoY changes, and variance data
-- Focus on economic indicators only, not sector performance  
-- Provide clear assessment of economic trends
-- Keep total response under 400 words
-
-Use sector NAMES and the exact data points provided above. Do NOT reference any undefined metrics.`;
+- Focus on economic indicators only, not sector performance
+- Keep total response under 500 words`;
 
     console.log('🚀 Sending request to OpenAI with prompt length:', prompt.length);
     

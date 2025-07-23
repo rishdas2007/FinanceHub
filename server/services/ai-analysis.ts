@@ -57,53 +57,40 @@ Energy sector showing weakness: 1D: ${formatPercent(sectorData.find(s => s.symbo
 Technology resilience: 1D: +${formatPercent(sectorData.find(s => s.symbol === 'XLK')?.changePercent || 0)}%, 5D: +${formatPercent(sectorData.find(s => s.symbol === 'XLK')?.fiveDayChange || 0)}%`;
       }
       
-      const prompt = `Analyze the current market conditions based on the following data:
+      const prompt = `Analyze current market conditions focusing on the specific areas requested:
 
-MARKET DATA:
+SPY ANALYSIS:
 Stock: ${marketData.symbol}
 Price: $${formatPrice(marketData.price)}
 Change: ${formatPrice(marketData.change)} (${formatPercent(marketData.changePercent)}%)
 RSI: ${marketData.rsi ? formatPrice(marketData.rsi) : 'N/A'} ${marketData.rsi && marketData.rsi > 70 ? '(Overbought)' : marketData.rsi && marketData.rsi < 30 ? '(Oversold)' : '(Neutral)'}
 MACD: ${marketData.macd ? formatPrice(marketData.macd) : 'N/A'} vs Signal: ${marketData.macdSignal ? formatPrice(marketData.macdSignal) : 'N/A'} ${marketData.macd && marketData.macdSignal && marketData.macd < marketData.macdSignal ? '(Bearish Crossover)' : '(Bullish Territory)'}
 VIX: ${marketData.vix ? formatPrice(marketData.vix) : 'N/A'} (Volatility measure)
-Put/Call Ratio: ${marketData.putCallRatio ? formatPrice(marketData.putCallRatio) : 'N/A'}
 AAII Bullish: ${marketData.aaiiBullish ? formatPrice(marketData.aaiiBullish) : 'N/A'}% vs Bearish: ${marketData.aaiiBearish ? formatPrice(marketData.aaiiBearish) : 'N/A'}%
+
+MOMENTUM STRATEGIES TABLE DATA:
 ${sectorAnalysis}
 
-CURRENT ECONOMIC CALENDAR DATA (MarketWatch):
-Recent High-Impact Releases:
-- Consumer Price Index (CPI): 0.3% monthly (vs 0.3% forecast), annualized 2.7% (vs 2.6% estimate)
-- Core CPI: 0.2% monthly (vs 0.3% forecast), annualized 2.9% (exceeding Fed's 2% target)
-- Producer Price Index (PPI): 0.0% monthly (vs 0.2% forecast), showing wholesale price cooling at 2.1%
-- Retail Sales: +0.6% monthly (vs 0.2% forecast), demonstrating consumer resilience
-- Initial Jobless Claims: 221,000 (vs 234,000 forecast), labor market strength
-- Philadelphia Fed Manufacturing: +15.9 (vs -1.0 forecast), significant manufacturing improvement
-- Empire State Manufacturing: +5.5 (vs -9.0 forecast), NY region expansion
-- JOLTS Job Openings: 8.18M (vs 8.05M forecast), stable employment demand
-- Industrial Production: +0.3% (vs 0.1% forecast), steady manufacturing growth
-- Housing Starts: 1.31M (vs 1.28M previous), modest housing sector improvement
+ANALYSIS FOCUS AREAS:
 
-KEY ECONOMIC THEMES: 
-1. Inflation Persistence: Core CPI at 2.9% remains above Fed's 2% target despite PPI cooling
-2. Consumer Resilience: Retail sales beating forecasts shows spending strength amid rate pressures
-3. Labor Market Balance: Strong jobs data (221K claims vs 234K forecast) without overheating signs
-4. Manufacturing Recovery: Philadelphia Fed (+15.9) and Empire State (+5.5) both beat expectations significantly
-5. Wholesale Price Relief: PPI at 0.0% monthly suggests upstream inflation pressures easing
+1. Overall Market Sentiment (SPY): Analyze the S&P 500 (SPY) row. What is the overall market momentum, and what do the short-term and medium-term moves suggest?
 
-Provide a comprehensive market analysis in JSON format that INTEGRATES technical indicators with specific economic calendar data points:
+2. Momentum Outliers: Highlight any sectors with exceptionally high or low 1-Day, 5-Day, or 1-Month moves. Also interpret the RSI values (e.g., overbought/oversold conditions) and Z-Score of the latest 1-Day Move for key sectors.
+
+Provide analysis in JSON format:
 {
-  "marketConditions": "Provide technical and sentiment analysis commentary based on current indicators. Discuss RSI levels, MACD signals, volatility environment (VIX), and investor sentiment readings. Use 1 decimal place formatting. Do NOT include any economic data in this section.",
-  "technicalOutlook": "Technical analysis including MACD crossover status, RSI levels, and sentiment backdrop. Use 1 decimal place for all technical values.", 
-  "riskAssessment": "ECONOMIC ANALYSIS: Comprehensive analysis incorporating latest MarketWatch economic releases. BOLD all economic readings (e.g., **Core CPI at 2.9%**, **Retail Sales at 0.6%**, **Initial Claims at 221,000**). Address Fed policy implications from persistent inflation vs cooling PPI. Discuss consumer spending strength vs manufacturing recovery signals.\n\nSECTOR ROTATION ANALYSIS: Detailed sector performance analysis covering 1-day and 5-day trends. Include technology resilience, energy sector weakness, financial sector performance, and rotation patterns. This must be a separate complete paragraph.",
+  "marketConditions": "Focus on SPY overall market momentum analysis. Discuss SPY's 1-day, 5-day, and 1-month moves. Analyze what SPY's short-term and medium-term trends suggest for overall market sentiment. Include RSI interpretation for SPY specifically.",
+  "technicalOutlook": "Identify momentum outliers from the sector data. Highlight sectors with exceptionally high or low performance across 1-Day, 5-Day, and 1-Month timeframes. Interpret RSI overbought/oversold conditions (RSI >70 = overbought, RSI <30 = oversold). Explain Z-Score significance for sectors with extreme 1-day moves (Z-Score >1.5 or <-1.5 indicates unusual movement).", 
+  "riskAssessment": "Synthesize SPY momentum with sector outlier analysis. What do extreme sector moves and SPY's position suggest about market rotation and risk? Identify which momentum outliers present opportunities vs risks based on RSI levels and Z-scores.",
   "confidence": 0.85
 }
 
-IMPORTANT FORMATTING RULES:
-1. Use exactly 1 decimal place for ALL prices and percentages (e.g., $624.2, 0.3%, 65.9)
-2. BOLD all economic data readings in the riskAssessment section using **text** format
-3. marketConditions should focus ONLY on technical indicators and sentiment - NO economic data repetition
-4. riskAssessment should have two distinct paragraphs: Economic analysis first, then sector rotation analysis
-5. Focus on how the specific economic data points from the calendar influence market outlook and Fed policy expectations.`;
+IMPORTANT RULES:
+1. Focus specifically on SPY momentum analysis and sector momentum outliers
+2. Interpret RSI levels: >70 = overbought, <30 = oversold, 30-70 = neutral
+3. Highlight Z-scores >1.5 or <-1.5 as significant unusual movements
+4. Use 1 decimal place for all numbers
+5. Connect SPY trends with sector rotation patterns`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o",

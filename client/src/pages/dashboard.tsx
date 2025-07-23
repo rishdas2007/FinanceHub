@@ -1,7 +1,7 @@
 
 
 import MomentumAnalysis from "@/components/momentum-analysis";
-import { SectorTracker } from "@/components/sector-tracker";
+
 import { AAIISentiment } from "@/components/aaii-sentiment";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
 import { EmailSubscription } from "@/components/email-subscription";
@@ -65,9 +65,6 @@ export default function Dashboard() {
 
         {/* Simplified Momentum Analysis with Verified Calculations */}
         <MomentumAnalysis />
-
-        {/* Sector Performance Section */}
-        <SectorTracker />
 
         {/* Economic Indicators Section */}
         <EconomicIndicators />

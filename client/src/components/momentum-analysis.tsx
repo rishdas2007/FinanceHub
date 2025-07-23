@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, ArrowRight, ChevronUp, ChevronDown } from 'lucide-react';
 import { Scatter, ScatterChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 
 interface MomentumStrategy {
@@ -53,8 +53,13 @@ const getETFColor = (sector: string, index: number) => {
   return colors[index % colors.length];
 };
 
+type SortField = 'sector' | 'ticker' | 'momentum' | 'oneDayChange' | 'fiveDayChange' | 'oneMonthChange' | 'rsi' | 'zScore' | 'annualReturn' | 'sharpeRatio';
+type SortDirection = 'asc' | 'desc';
+
 const MomentumAnalysis = () => {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [sortField, setSortField] = useState<SortField>('sharpeRatio');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   const { data: analysis, isLoading, error, refetch } = useQuery<MomentumAnalysis>({
     queryKey: ['/api/momentum-analysis', refreshKey],
@@ -70,6 +75,47 @@ const MomentumAnalysis = () => {
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
     refetch();
+  };
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) return null;
+    return sortDirection === 'asc' ? 
+      <ChevronUp className="w-3 h-3 inline ml-1" /> : 
+      <ChevronDown className="w-3 h-3 inline ml-1" />;
+  };
+
+  const sortStrategies = (strategies: MomentumStrategy[]) => {
+    return [...strategies].sort((a, b) => {
+      // Always put SPY first
+      if (a.ticker === 'SPY') return -1;
+      if (b.ticker === 'SPY') return 1;
+      
+      let aValue: any = a[sortField];
+      let bValue: any = b[sortField];
+      
+      // Handle string comparisons
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortDirection === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      
+      // Handle number comparisons
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      return 0;
+    });
   };
 
   const getMomentumColor = (momentum: string) => {
@@ -266,22 +312,41 @@ const MomentumAnalysis = () => {
             <table className="w-full text-sm table-fixed">
               <thead>
                 <tr className="border-b border-gray-300">
-                  <th className="text-left p-2 text-gray-700 font-semibold w-32">Sector</th>
-                  <th className="text-left p-2 text-gray-700 font-semibold w-16">Ticker</th>
-                  <th className="text-left p-2 text-gray-700 font-semibold w-20">Momentum</th>
-                  <th className="text-right p-2 text-gray-700 font-semibold w-16">1-Day<br/>Move</th>
-                  <th className="text-right p-2 text-gray-700 font-semibold w-16">5-Day<br/>Move</th>
-                  <th className="text-right p-2 text-gray-700 font-semibold w-16">1-Month<br/>Move</th>
-                  <th className="text-right p-2 text-gray-700 font-semibold w-16">RSI</th>
-                  <th className="text-right p-2 text-gray-700 font-semibold w-20">Z-Score of Latest<br/>1-Day Move</th>
-                  <th className="text-right p-2 text-gray-700 font-semibold w-20">Annual<br/>Return</th>
-                  <th className="text-right p-2 text-gray-700 font-semibold w-16">Sharpe<br/>Ratio</th>
+                  <th className="text-left p-2 text-gray-700 font-semibold w-32 cursor-pointer hover:bg-gray-200" onClick={() => handleSort('sector')}>
+                    Sector{getSortIcon('sector')}
+                  </th>
+                  <th className="text-left p-2 text-gray-700 font-semibold w-16 cursor-pointer hover:bg-gray-200" onClick={() => handleSort('ticker')}>
+                    Ticker{getSortIcon('ticker')}
+                  </th>
+                  <th className="text-left p-2 text-gray-700 font-semibold w-20 cursor-pointer hover:bg-gray-200" onClick={() => handleSort('momentum')}>
+                    Momentum{getSortIcon('momentum')}
+                  </th>
+                  <th className="text-right p-2 text-gray-700 font-semibold w-16 cursor-pointer hover:bg-gray-200" onClick={() => handleSort('oneDayChange')}>
+                    1-Day<br/>Move{getSortIcon('oneDayChange')}
+                  </th>
+                  <th className="text-right p-2 text-gray-700 font-semibold w-16 cursor-pointer hover:bg-gray-200" onClick={() => handleSort('fiveDayChange')}>
+                    5-Day<br/>Move{getSortIcon('fiveDayChange')}
+                  </th>
+                  <th className="text-right p-2 text-gray-700 font-semibold w-16 cursor-pointer hover:bg-gray-200" onClick={() => handleSort('oneMonthChange')}>
+                    1-Month<br/>Move{getSortIcon('oneMonthChange')}
+                  </th>
+                  <th className="text-right p-2 text-gray-700 font-semibold w-16 cursor-pointer hover:bg-gray-200" onClick={() => handleSort('rsi')}>
+                    RSI{getSortIcon('rsi')}
+                  </th>
+                  <th className="text-right p-2 text-gray-700 font-semibold w-20 cursor-pointer hover:bg-gray-200" onClick={() => handleSort('zScore')}>
+                    Z-Score of Latest<br/>1-Day Move{getSortIcon('zScore')}
+                  </th>
+                  <th className="text-right p-2 text-gray-700 font-semibold w-20 cursor-pointer hover:bg-gray-200" onClick={() => handleSort('annualReturn')}>
+                    Annual<br/>Return{getSortIcon('annualReturn')}
+                  </th>
+                  <th className="text-right p-2 text-gray-700 font-semibold w-16 cursor-pointer hover:bg-gray-200" onClick={() => handleSort('sharpeRatio')}>
+                    Sharpe<br/>Ratio{getSortIcon('sharpeRatio')}
+                  </th>
                   <th className="text-left p-2 text-gray-700 font-semibold">Signal</th>
                 </tr>
               </thead>
               <tbody>
-                {analysis.momentumStrategies
-                  .sort((a, b) => a.ticker === 'SPY' ? -1 : b.ticker === 'SPY' ? 1 : 0)
+                {sortStrategies(analysis.momentumStrategies)
                   .map((strategy, index) => {
                     const isSPY = strategy.ticker === 'SPY';
                     return (
