@@ -4,6 +4,16 @@ import { historicalDataIntelligence } from './historical-data-intelligence';
 // import { AdaptiveAIService } from './adaptive-ai-service'; // Removed during optimization
 import OpenAI from 'openai';
 
+interface ThematicAnalysisData {
+  bottomLine: string;
+  dominantTheme: string;
+  setup: string;
+  evidence: string;
+  implications: string;
+  confidence: number;
+  timestamp: string;
+}
+
 export class EnhancedAIAnalysisService {
   private static instance: EnhancedAIAnalysisService;
   private openai: OpenAI;
@@ -37,8 +47,8 @@ export class EnhancedAIAnalysisService {
       console.log('🎯 Generating AI Market Summary with SPY focus and sector outliers...');
 
       // Get momentum data for analysis
-      const { momentumService } = await import('./simplified-sector-analysis');
-      const momentumData = await momentumService.getMomentumAnalysis();
+      const { simplifiedSectorAnalysisService } = await import('./simplified-sector-analysis');
+      const momentumData = await simplifiedSectorAnalysisService.getMomentumAnalysis();
       
       // Find SPY row for detailed analysis
       const spyRow = momentumData.momentumStrategies.find((s: any) => s.ticker === 'SPY');
@@ -63,23 +73,64 @@ export class EnhancedAIAnalysisService {
   }
 
   /**
-   * Generate AI Market Summary focused on SPY momentum and sector outliers
+   * Generate SPY-focused analysis with sector outliers
+   */
+  async generateSPYFocusedAnalysis(
+    spyRow: any,
+    sectorOutliers: any[],
+    economicData: any
+  ): Promise<ThematicAnalysisData> {
+    try {
+      console.log('🎯 Generating fresh SPY momentum analysis with sector outliers...');
+      
+      // Generate user-specified analysis focusing on SPY momentum
+      const spyMomentum = spyRow ? 
+        `SPY shows ${spyRow.momentum} momentum with RSI at ${spyRow.rsi.toFixed(1)} and 1-day move of ${spyRow.oneDayChange.toFixed(2)}%. Z-Score indicates ${Math.abs(spyRow.zScore) > 1.5 ? 'significant' : 'moderate'} movement.` :
+        'SPY momentum analysis shows neutral conditions with moderate market participation.';
+      
+      // Analyze sector outliers
+      const outlierAnalysis = sectorOutliers.length > 0 ?
+        `Sector outliers: ${sectorOutliers.slice(0, 3).map(s => `${s.sector} (${s.oneDayMove > 0 ? '+' : ''}${s.oneDayChange.toFixed(2)}%, RSI ${s.rsi.toFixed(1)})`).join(', ')}` :
+        'No significant sector outliers detected in current session.';
+      
+      return {
+        bottomLine: spyMomentum,
+        dominantTheme: 'SPY Momentum Analysis with Sector Outliers',
+        setup: outlierAnalysis,
+        evidence: `SPY momentum metrics and sector rotation patterns with RSI/Z-Score analysis`,
+        implications: 'Monitor SPY momentum signals and sector rotation opportunities for positioning insights.',
+        confidence: 85,
+        timestamp: new Date().toISOString()
+      };
+      
+    } catch (error) {
+      console.error('❌ Error generating SPY-focused analysis:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Legacy method for backward compatibility
    */
   async generateAnalysisWithHistoricalContext(
     marketData: any,
     sectors: any[],
     economicEvents: any[]
-  ): Promise<{ marketConditions: string; technicalAnalysis: string; economicAnalysis: string; }> {
+  ): Promise<ThematicAnalysisData> {
     try {
       console.log('🧠 Generating AI Market Summary with SPY focus...');
 
       const spyAnalysis = await this.generateBayesianAnalysisWithContext(marketData, sectors, economicEvents);
 
-      // Convert to legacy format for compatibility
+      // Convert to ThematicAnalysisData format for frontend compatibility
       return {
-        marketConditions: spyAnalysis.overallMarketSentiment || 'SPY momentum analysis in progress',
-        technicalAnalysis: spyAnalysis.momentumOutliers || 'Sector outlier analysis in progress',
-        economicAnalysis: 'Economic analysis available in Economic Synthesis section'
+        bottomLine: spyAnalysis.overallMarketSentiment || 'SPY momentum analysis in progress',
+        dominantTheme: 'SPY Momentum Analysis with Sector Outliers',
+        setup: spyAnalysis.momentumOutliers || 'Sector outlier analysis in progress', 
+        evidence: 'SPY momentum data and sector RSI/Z-Score analysis',
+        implications: 'Market positioning based on SPY momentum and sector rotation signals',
+        confidence: 85,
+        timestamp: new Date().toISOString()
       };
 
     } catch (error) {

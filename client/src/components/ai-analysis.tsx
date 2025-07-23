@@ -19,9 +19,9 @@ interface ThematicAnalysisData {
 export function AIAnalysisComponent() {
   const queryClient = useQueryClient();
 
-  // Use thematic analysis instead of standard analysis
+  // Use enhanced AI analysis with SPY momentum focus  
   const { data: analysis, isLoading, error } = useQuery<ThematicAnalysisData>({
-    queryKey: ['/api/thematic-analysis'],
+    queryKey: ['/api/enhanced-ai-analysis'],
     refetchInterval: 300000, // Refresh every 5 minutes
     refetchOnMount: true, // Always fetch fresh data on mount
     refetchOnWindowFocus: false, // Don't refetch on window focus to avoid excessive calls
@@ -29,7 +29,7 @@ export function AIAnalysisComponent() {
     retry: 1,
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
     queryFn: async () => {
-      const response = await fetch('/api/thematic-analysis', {
+      const response = await fetch('/api/enhanced-ai-analysis', {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
@@ -70,7 +70,7 @@ export function AIAnalysisComponent() {
   const refreshMutation = useMutation({
     mutationFn: () => apiRequest('POST', '/api/refresh'),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/thematic-analysis'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/enhanced-ai-analysis'] });
     },
   });
 
