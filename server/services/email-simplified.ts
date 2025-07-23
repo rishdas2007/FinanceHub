@@ -58,11 +58,10 @@ export class SimplifiedEmailService {
         await this.mailService.send({
           to: subscriber.email,
           from: 'me@rishabhdas.com',
-          subject: `FinanceHub Pro Dashboard - ${new Date().toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
+          subject: `Rishabh's Market Dashboard - ${new Date().toLocaleDateString('en-US', { 
+            month: '2-digit', 
+            day: '2-digit', 
+            year: 'numeric' 
           })}`,
           html: htmlContent
         });
@@ -77,6 +76,24 @@ export class SimplifiedEmailService {
 
     logger.info(`Simplified email batch complete: ${sent} sent, ${failed} failed`, 'Email');
     return { sent, failed };
+  }
+
+  private formatDateConsistent(timestamp: string): string {
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleDateString('en-US', { 
+        month: '2-digit', 
+        day: '2-digit', 
+        year: 'numeric' 
+      });
+    } catch (error) {
+      // Fallback to current date if timestamp parsing fails
+      return new Date().toLocaleDateString('en-US', { 
+        month: '2-digit', 
+        day: '2-digit', 
+        year: 'numeric' 
+      });
+    }
   }
 
   private generateSimplifiedDashboardTemplate(data: EmailTemplateData): string {
@@ -139,16 +156,16 @@ export class SimplifiedEmailService {
 </head>
 <body>
     <div class="header">
-        <h1>📊 FinanceHub Pro Dashboard</h1>
-        <p>Daily Market Intelligence | ${timestamp}</p>
+        <h1>📊 Rishabh's Market Dashboard</h1>
+        <p>Daily Market Intelligence | ${this.formatDateConsistent(timestamp)}</p>
         <p><a href="https://rishabhdas.substack.com/" style="color: white; text-decoration: underline;">📈 Visit Substack</a> | 
-           <a href="#" style="color: white; text-decoration: underline;">📊 Live Dashboard</a></p>
+           <a href="https://replit.com/@rishabhadas/FinanceHub-Pro" style="color: white; text-decoration: underline;">📊 Live Dashboard</a></p>
     </div>
 
     ${this.generateAIDashboardSummarySection()}
-    ${this.generateRecentEconomicReadingsSection(economicEvents)}
-    ${this.generateMomentumStrategiesSection(sectors)}
-    ${this.generateEconomicIndicatorsSection(economicEvents)}
+    ${this.generateRecentEconomicReadingsSection(economicEvents || [])}
+    ${this.generateMomentumStrategiesSection(sectors || [])}
+    ${this.generateEconomicIndicatorsSection(economicEvents || [])}
 
     <div style="text-align: center; padding: 20px; color: #6b7280; font-size: 12px; border-top: 1px solid #e5e7eb; margin-top: 30px;">
         <p><strong>Data Sources:</strong> FRED, Twelve Data, AAII, OpenAI</p>
