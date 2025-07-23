@@ -8,6 +8,7 @@ import { Scatter, ScatterChart, XAxis, YAxis, CartesianGrid, Tooltip, Responsive
 
 interface MomentumStrategy {
   sector: string;
+  ticker: string;
   momentum: 'bullish' | 'bearish' | 'neutral';
   strength: number;
   annualReturn: number;
@@ -17,6 +18,8 @@ interface MomentumStrategy {
   correlationToSPY: number;
   fiveDayZScore: number;
   oneDayChange: number;
+  fiveDayChange: number;
+  oneMonthChange: number;
   signal: string;
   rsi: number;
 }
@@ -187,7 +190,7 @@ const MomentumAnalysis = () => {
                   content={({ active, payload }) => {
                     if (active && payload && payload[0]) {
                       const data = payload[0].payload as ChartDataPoint;
-                      const strategy = analysis.momentumStrategies.find(s => s.sector === data.sector);
+                      const strategy = analysis.momentumStrategies.find(s => s.ticker === data.sector);
                       const sectorName = getSectorFullName(data.sector);
                       return (
                         <div className="bg-white border border-gray-300 rounded p-3 shadow-lg">
@@ -266,26 +269,28 @@ const MomentumAnalysis = () => {
                   <th className="text-left p-2 text-gray-700 font-semibold w-32">Sector</th>
                   <th className="text-left p-2 text-gray-700 font-semibold w-16">Ticker</th>
                   <th className="text-left p-2 text-gray-700 font-semibold w-20">Momentum</th>
-                  <th className="text-right p-2 text-gray-700 font-semibold w-20">Annual<br/>Return</th>
-                  <th className="text-right p-2 text-gray-700 font-semibold w-16">RSI</th>
-                  <th className="text-right p-2 text-gray-700 font-semibold w-16">Sharpe<br/>Ratio</th>
                   <th className="text-right p-2 text-gray-700 font-semibold w-16">1-Day<br/>Move</th>
+                  <th className="text-right p-2 text-gray-700 font-semibold w-16">5-Day<br/>Move</th>
+                  <th className="text-right p-2 text-gray-700 font-semibold w-16">1-Month<br/>Move</th>
+                  <th className="text-right p-2 text-gray-700 font-semibold w-16">RSI</th>
                   <th className="text-right p-2 text-gray-700 font-semibold w-20">Z-Score of Latest<br/>1-Day Move</th>
+                  <th className="text-right p-2 text-gray-700 font-semibold w-20">Annual<br/>Return</th>
+                  <th className="text-right p-2 text-gray-700 font-semibold w-16">Sharpe<br/>Ratio</th>
                   <th className="text-left p-2 text-gray-700 font-semibold">Signal</th>
                 </tr>
               </thead>
               <tbody>
                 {analysis.momentumStrategies
-                  .sort((a, b) => a.sector === 'SPY' ? -1 : b.sector === 'SPY' ? 1 : 0)
+                  .sort((a, b) => a.ticker === 'SPY' ? -1 : b.ticker === 'SPY' ? 1 : 0)
                   .map((strategy, index) => {
-                    const isSPY = strategy.sector === 'SPY';
+                    const isSPY = strategy.ticker === 'SPY';
                     return (
-                  <tr key={strategy.sector} className={`border-b border-gray-200 ${isSPY ? 'bg-blue-50 border-blue-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                  <tr key={strategy.ticker} className={`border-b border-gray-200 ${isSPY ? 'bg-blue-50 border-blue-200' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
                     <td className="p-2 w-32">
-                      <span className="text-gray-800 font-medium text-sm">{getSectorFullName(strategy.sector)}</span>
+                      <span className="text-gray-800 font-medium text-sm">{strategy.sector}</span>
                     </td>
                     <td className="p-2 w-16">
-                      <span className="text-gray-800 font-medium text-sm">{strategy.sector}</span>
+                      <span className="text-gray-800 font-medium text-sm">{strategy.ticker}</span>
                     </td>
                     <td className="p-2 w-20">
                       <Badge className={`${getMomentumColor(strategy.momentum)} text-xs flex items-center space-x-1 w-fit`}>
@@ -293,9 +298,19 @@ const MomentumAnalysis = () => {
                         <span className="capitalize">{strategy.momentum}</span>
                       </Badge>
                     </td>
-                    <td className="p-2 text-right w-20">
-                      <span className={`text-sm ${strategy.annualReturn >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {strategy.annualReturn.toFixed(1)}%
+                    <td className="p-2 text-right w-16">
+                      <span className={`text-sm font-medium ${strategy.oneDayChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {strategy.oneDayChange >= 0 ? '+' : ''}{strategy.oneDayChange.toFixed(2)}%
+                      </span>
+                    </td>
+                    <td className="p-2 text-right w-16">
+                      <span className={`text-sm font-medium ${strategy.fiveDayChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {strategy.fiveDayChange >= 0 ? '+' : ''}{strategy.fiveDayChange.toFixed(2)}%
+                      </span>
+                    </td>
+                    <td className="p-2 text-right w-16">
+                      <span className={`text-sm font-medium ${strategy.oneMonthChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {strategy.oneMonthChange >= 0 ? '+' : ''}{strategy.oneMonthChange.toFixed(2)}%
                       </span>
                     </td>
                     <td className="p-2 text-right w-16">
@@ -303,19 +318,19 @@ const MomentumAnalysis = () => {
                         {strategy.rsi.toFixed(1)}
                       </span>
                     </td>
-                    <td className="p-2 text-right w-16">
-                      <span className={`text-sm ${strategy.sharpeRatio >= 0.5 ? 'text-green-600' : strategy.sharpeRatio >= 0 ? 'text-yellow-600' : 'text-red-600'}`}>
-                        {strategy.sharpeRatio.toFixed(2)}
-                      </span>
-                    </td>
-                    <td className="p-2 text-right w-16">
-                      <span className={`text-sm font-medium ${strategy.oneDayChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {strategy.oneDayChange >= 0 ? '+' : ''}{strategy.oneDayChange.toFixed(2)}%
-                      </span>
-                    </td>
                     <td className="p-2 text-right w-20">
                       <span className={`text-sm ${Math.abs(strategy.zScore) > 1.5 ? 'text-yellow-600' : 'text-gray-600'}`}>
                         {strategy.zScore.toFixed(2)}
+                      </span>
+                    </td>
+                    <td className="p-2 text-right w-20">
+                      <span className={`text-sm ${strategy.annualReturn >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {strategy.annualReturn.toFixed(1)}%
+                      </span>
+                    </td>
+                    <td className="p-2 text-right w-16">
+                      <span className={`text-sm ${strategy.sharpeRatio >= 0.5 ? 'text-green-600' : strategy.sharpeRatio >= 0 ? 'text-yellow-600' : 'text-red-600'}`}>
+                        {strategy.sharpeRatio.toFixed(2)}
                       </span>
                     </td>
                     <td className="p-2 text-gray-600 text-xs">

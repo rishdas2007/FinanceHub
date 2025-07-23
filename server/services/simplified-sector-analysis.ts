@@ -26,6 +26,7 @@ interface SimplifiedSectorAnalysis {
 
 interface MomentumStrategy {
   sector: string;
+  ticker: string;
   momentum: 'bullish' | 'bearish' | 'neutral';
   strength: number;
   annualReturn: number;
@@ -35,6 +36,8 @@ interface MomentumStrategy {
   correlationToSPY: number;
   fiveDayZScore: number;
   oneDayChange: number;
+  fiveDayChange: number;
+  oneMonthChange: number;
   signal: string;
   rsi: number;
 }
@@ -121,7 +124,8 @@ export class SimplifiedSectorAnalysisService {
       const rsi = rsiData[sector.symbol] || this.getFallbackRSI(sector.symbol);
 
       strategies.push({
-        sector: sector.symbol,
+        sector: this.getSectorName(sector.symbol),
+        ticker: sector.symbol,
         momentum,
         strength: Math.abs(sector.changePercent || 0),
         annualReturn: metrics.annualReturn,
@@ -131,6 +135,8 @@ export class SimplifiedSectorAnalysisService {
         correlationToSPY,
         fiveDayZScore,
         oneDayChange: sector.changePercent || 0,
+        fiveDayChange: sector.fiveDayChange || 0,
+        oneMonthChange: sector.oneMonthChange || 0,
         signal,
         rsi
       });
@@ -612,6 +618,28 @@ export class SimplifiedSectorAnalysisService {
     };
     
     return verifiedZScores[symbol] || 0;
+  }
+
+  /**
+   * Get human-readable sector name from ticker symbol
+   */
+  private getSectorName(symbol: string): string {
+    const sectorNames: Record<string, string> = {
+      'SPY': 'S&P 500',
+      'XLK': 'Technology',
+      'XLV': 'Health Care',
+      'XLF': 'Financial',
+      'XLY': 'Consumer Discretionary',
+      'XLI': 'Industrial',
+      'XLC': 'Communication Services',
+      'XLP': 'Consumer Staples',
+      'XLE': 'Energy',
+      'XLU': 'Utilities',
+      'XLB': 'Materials',
+      'XLRE': 'Real Estate'
+    };
+    
+    return sectorNames[symbol] || symbol;
   }
 }
 
