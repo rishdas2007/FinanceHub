@@ -159,7 +159,7 @@ export class SimplifiedEmailService {
         <h1>📊 Rishabh's Market Dashboard</h1>
         <p>Daily Market Intelligence | ${this.formatDateConsistent(timestamp)}</p>
         <p><a href="https://rishabhdas.substack.com/" style="color: white; text-decoration: underline;">📈 Visit Substack</a> | 
-           <a href="https://replit.com/@rishabhadas/FinanceHub-Pro" style="color: white; text-decoration: underline;">📊 Live Dashboard</a></p>
+           <a href="https://financial-tracker-rishabhdas07.replit.app/" style="color: white; text-decoration: underline;">📊 Live Dashboard</a></p>
     </div>
 
     ${this.generateAIDashboardSummarySection()}

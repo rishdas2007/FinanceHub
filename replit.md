@@ -8,7 +8,7 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 
 ### EMAIL HEADER AND BRANDING FINALIZATION COMPLETED (July 23, 2025 - LATEST UPDATE)
 - **EMAIL TITLE UPDATED**: Changed email subject and header title from "FinanceHub Pro Dashboard" to "Rishabh's Market Dashboard"
-- **DASHBOARD LINK FIXED**: Updated live dashboard link in email header to point to actual Replit dashboard (https://replit.com/@rishabhadas/FinanceHub-Pro)
+- **DASHBOARD LINK FIXED**: Updated live dashboard link in email header to point to actual deployed dashboard (https://financial-tracker-rishabhdas07.replit.app/)
 - **CONSISTENT DATE FORMATTING**: All dates in email header now use consistent mm/dd/yyyy format via formatDateConsistent() method
 - **SUBJECT LINE STANDARDIZED**: Email subject now follows format "Rishabh's Market Dashboard - mm/dd/yyyy" for consistency
 - **SUBSTACK LINK MAINTAINED**: Preserved existing Substack link (https://rishabhdas.substack.com/) in email header
