@@ -39,7 +39,7 @@ export default function MarketSynthesis() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-gray-100">
             <AlertCircle className="h-5 w-5 text-red-400" />
-            Market Synthesis
+            Economic Synthesis
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -61,7 +61,7 @@ export default function MarketSynthesis() {
     return (
       <Card className="bg-gray-900 border-gray-700">
         <CardHeader>
-          <CardTitle className="text-gray-100">Market Synthesis</CardTitle>
+          <CardTitle className="text-gray-100">Economic Synthesis</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Skeleton className="h-20 w-full bg-gray-800" />
@@ -76,7 +76,7 @@ export default function MarketSynthesis() {
     return (
       <Card className="bg-gray-900 border-gray-700">
         <CardHeader>
-          <CardTitle className="text-gray-100">Market Synthesis</CardTitle>
+          <CardTitle className="text-gray-100">Economic Synthesis</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-gray-400">No synthesis data available</div>
@@ -113,7 +113,7 @@ export default function MarketSynthesis() {
         <CardTitle className="flex items-center justify-between text-gray-100">
           <span className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-blue-400" />
-            Market Synthesis
+            Economic Synthesis
           </span>
           <div className="flex items-center gap-2 text-sm">
             <span className={`${getConfidenceColor(synthesis.confidence)}`}>
@@ -130,7 +130,7 @@ export default function MarketSynthesis() {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-            <h3 className="text-blue-400 font-semibold text-sm">MARKET PULSE</h3>
+            <h3 className="text-blue-400 font-semibold text-sm">ECONOMIC PULSE</h3>
           </div>
           <p className="text-gray-100 text-sm leading-relaxed pl-4 border-l-2 border-blue-400/30">
             {synthesis.marketPulse}
@@ -141,7 +141,7 @@ export default function MarketSynthesis() {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <AlertCircle className="h-4 w-4 text-orange-400" />
-            <h3 className="text-orange-400 font-semibold text-sm">CRITICAL CATALYSTS</h3>
+            <h3 className="text-orange-400 font-semibold text-sm">CRITICAL INDICATORS</h3>
           </div>
           <div className="space-y-2 pl-6">
             {synthesis.criticalCatalysts.map((catalyst, index) => (

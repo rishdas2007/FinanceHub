@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from "react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 
 interface EconomicIndicator {
   metric: string;
@@ -99,12 +101,68 @@ const getVarianceColor = (variance: any): string => {
   return 'text-gray-400';
 };
 
+type SortField = 'metric' | 'type' | 'category' | 'current' | 'forecast' | 'vsForecast' | 'prior' | 'vsPrior' | 'zScore' | 'threeMonthAnnualized' | 'yoyChange';
+type SortDirection = 'asc' | 'desc';
+
 export function EconomicIndicators() {
+  const [sortField, setSortField] = useState<SortField>('metric');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
   const { data: indicators, isLoading, error } = useQuery<EconomicIndicator[]>({
     queryKey: ['/api/economic-indicators'],
     staleTime: 4 * 60 * 60 * 1000, // 4 hours
     gcTime: 8 * 60 * 60 * 1000, // 8 hours
   });
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ChevronUp className="w-4 h-4 text-gray-500" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ChevronUp className="w-4 h-4 text-blue-400" />
+      : <ChevronDown className="w-4 h-4 text-blue-400" />;
+  };
+
+  const sortedIndicators = indicators ? [...indicators].sort((a, b) => {
+    const aVal = a[sortField];
+    const bVal = b[sortField];
+    
+    // Handle null/undefined values
+    if (aVal === null || aVal === undefined) return 1;
+    if (bVal === null || bVal === undefined) return -1;
+    
+    // Convert to numbers for numeric fields
+    const numericFields: SortField[] = ['current', 'forecast', 'vsForecast', 'prior', 'vsPrior', 'zScore', 'threeMonthAnnualized', 'yoyChange'];
+    if (numericFields.includes(sortField)) {
+      const aNum = typeof aVal === 'string' ? parseFloat(aVal) : Number(aVal);
+      const bNum = typeof bVal === 'string' ? parseFloat(bVal) : Number(bVal);
+      
+      if (isNaN(aNum) && isNaN(bNum)) return 0;
+      if (isNaN(aNum)) return 1;
+      if (isNaN(bNum)) return -1;
+      
+      return sortDirection === 'asc' ? aNum - bNum : bNum - aNum;
+    }
+    
+    // String comparison for text fields
+    const aStr = String(aVal).toLowerCase();
+    const bStr = String(bVal).toLowerCase();
+    
+    if (sortDirection === 'asc') {
+      return aStr < bStr ? -1 : aStr > bStr ? 1 : 0;
+    } else {
+      return aStr > bStr ? -1 : aStr < bStr ? 1 : 0;
+    }
+  }) : [];
 
   if (error) {
     return (
@@ -139,22 +197,110 @@ export function EconomicIndicators() {
         <table className="w-full text-sm bg-gray-900/80">
           <thead className="bg-gray-800">
             <tr>
-              <th className="text-left py-4 px-4 text-gray-200 font-semibold border-b border-gray-600">Metric</th>
-              <th className="text-center py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">Type</th>
-              <th className="text-left py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">Category</th>
+              <th 
+                className="text-left py-4 px-4 text-gray-200 font-semibold border-b border-gray-600 cursor-pointer hover:bg-gray-700/50 transition-colors"
+                onClick={() => handleSort('metric')}
+              >
+                <div className="flex items-center justify-between">
+                  Metric
+                  {getSortIcon('metric')}
+                </div>
+              </th>
+              <th 
+                className="text-center py-4 px-3 text-gray-200 font-semibold border-b border-gray-600 cursor-pointer hover:bg-gray-700/50 transition-colors"
+                onClick={() => handleSort('type')}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  Type
+                  {getSortIcon('type')}
+                </div>
+              </th>
+              <th 
+                className="text-left py-4 px-3 text-gray-200 font-semibold border-b border-gray-600 cursor-pointer hover:bg-gray-700/50 transition-colors"
+                onClick={() => handleSort('category')}
+              >
+                <div className="flex items-center justify-between">
+                  Category
+                  {getSortIcon('category')}
+                </div>
+              </th>
               <th className="text-center py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">Last Update</th>
-              <th className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">Current</th>
-              <th className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">Forecast</th>
-              <th className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">vs Forecast</th>
-              <th className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">Prior</th>
-              <th className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">vs Prior</th>
-              <th className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">Z-Score</th>
-              <th className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">3M Ann</th>
-              <th className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">12M YoY</th>
+              <th 
+                className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600 cursor-pointer hover:bg-gray-700/50 transition-colors"
+                onClick={() => handleSort('current')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  Current
+                  {getSortIcon('current')}
+                </div>
+              </th>
+              <th 
+                className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600 cursor-pointer hover:bg-gray-700/50 transition-colors"
+                onClick={() => handleSort('forecast')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  Forecast
+                  {getSortIcon('forecast')}
+                </div>
+              </th>
+              <th 
+                className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600 cursor-pointer hover:bg-gray-700/50 transition-colors"
+                onClick={() => handleSort('vsForecast')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  vs Forecast
+                  {getSortIcon('vsForecast')}
+                </div>
+              </th>
+              <th 
+                className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600 cursor-pointer hover:bg-gray-700/50 transition-colors"
+                onClick={() => handleSort('prior')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  Prior
+                  {getSortIcon('prior')}
+                </div>
+              </th>
+              <th 
+                className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600 cursor-pointer hover:bg-gray-700/50 transition-colors"
+                onClick={() => handleSort('vsPrior')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  vs Prior
+                  {getSortIcon('vsPrior')}
+                </div>
+              </th>
+              <th 
+                className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600 cursor-pointer hover:bg-gray-700/50 transition-colors"
+                onClick={() => handleSort('zScore')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  Z-Score
+                  {getSortIcon('zScore')}
+                </div>
+              </th>
+              <th 
+                className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600 cursor-pointer hover:bg-gray-700/50 transition-colors"
+                onClick={() => handleSort('threeMonthAnnualized')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  3M Ann
+                  {getSortIcon('threeMonthAnnualized')}
+                </div>
+              </th>
+              <th 
+                className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600 cursor-pointer hover:bg-gray-700/50 transition-colors"
+                onClick={() => handleSort('yoyChange')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  12M YoY
+                  {getSortIcon('yoyChange')}
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {indicators.map((indicator, index) => (
+            {sortedIndicators.map((indicator, index) => (
               <tr 
                 key={indicator.metric} 
                 className={`border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors ${

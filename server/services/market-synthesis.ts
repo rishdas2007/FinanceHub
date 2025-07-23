@@ -32,7 +32,7 @@ class MarketSynthesisService {
       // Wait for AI Market Summary to be available first
       const aiSummaryData = await this.getAIMarketSummary();
       
-      // Gather comprehensive market data
+      // Gather comprehensive market data including economic indicators
       const marketData = await this.gatherMarketData();
       
       console.log('🔍 Market data gathered:', {
@@ -67,40 +67,20 @@ class MarketSynthesisService {
     try {
       // Import services dynamically to avoid circular dependencies
       const [
-        { simplifiedSectorAnalysisService },
-        { economicDataEnhancedService },
-        { financialDataService }
+        { economicIndicatorsService }
       ] = await Promise.all([
-        import('./simplified-sector-analysis'),
-        import('./economic-data-enhanced'),
-        import('./financial-data')
+        import('./economic-indicators')
       ]);
 
-      // Get sector data first
-      const sectorETFs = await financialDataService.getSectorETFs();
-
-      // Gather all relevant data in parallel
-      const [
-        sectorData,
-        economicEvents,
-        technicalIndicators,
-        marketSentiment
-      ] = await Promise.all([
-        simplifiedSectorAnalysisService.generateSimplifiedAnalysis(sectorETFs, []),
-        economicDataEnhancedService.getEnhancedEconomicEvents(),
-        financialDataService.getTechnicalIndicators('SPY'),
-        this.getMarketSentiment()
-      ]);
+      // Get economic indicators data for analysis
+      const economicIndicators = await economicIndicatorsService.getEconomicIndicators();
 
       return {
-        sectors: sectorData,
-        economic: economicEvents,
-        technical: technicalIndicators,
-        sentiment: marketSentiment
+        economicIndicators
       };
 
     } catch (error) {
-      logger.error('Failed to gather market data for synthesis', { error });
+      logger.error('Failed to gather economic indicators data for synthesis', { error });
       throw error;
     }
   }
@@ -188,40 +168,51 @@ class MarketSynthesisService {
     const topSectorNames = topPerformingSectors.map(s => s.name).join(', ') || 'Technology, Health Care, Financial';
     const underSectorNames = underperformingSectors.map(s => s.name).join(', ') || 'Energy, Utilities';
 
-    const prompt = `You are a senior Wall Street analyst providing market synthesis that builds upon the AI Market Summary. Create a narrative connecting sector performance with economic data.
+    // Get economic indicators data for analysis
+    const economicIndicators = marketData.economicIndicators || [];
+    
+    const prompt = `You are an economic analyst. Analyze the following economic indicator data to synthesize the current state of the economy, highlighting key trends, potential risks, and areas of strength.
 
-AI MARKET SUMMARY CONTEXT:
-Summary: ${aiSummary || 'Market shows mixed signals with growth themes dominating'}
-Key Insights: ${aiInsights.length > 0 ? aiInsights.join('; ') : 'Momentum remains bullish; Economic data mixed; Sector rotation active'}
-Risk Level: ${aiRiskLevel}
+Analysis Focus Areas:
+• Overall Economic Health: Based on leading, coincident, and lagging indicators, what is the general direction of the economy?
+• Inflation Outlook: Analyze CPI, Core CPI, and PCE Price Index. Are inflationary pressures easing, persisting, or accelerating?
+• Labor Market Strength: Evaluate Unemployment Rate and Nonfarm Payrolls. How robust is the job market?
+• Monetary Policy Implications: Interpret Federal Funds Rate and 10-Year Treasury Yield. What do these suggest about future interest rate actions?
+• Consumer & Business Sentiment: Assess Consumer Confidence and Michigan Consumer Sentiment. How are consumers feeling?
+• Sectoral Performance: Review GDP, Manufacturing PMI, Retail Sales, Industrial Production, Housing data, and Leading Economic Index. Which sectors show strength or weakness?
+• Key Variances: Highlight significant variances against forecasts that indicate unexpected economic shifts.
+• Risks and Opportunities: Identify emerging risks or opportunities.
 
-CURRENT MARKET DATA:
-Sector Momentum: ${bullishCount} bullish, ${bearishCount} bearish, ${neutralCount} neutral signals
-Top Performing Sectors: ${topSectorNames} - Tickers: ${topPerformingSectors.map(s => `${s.ticker} (${s.rsi} RSI)`).join(', ')}
-Underperforming Sectors: ${underSectorNames} - Tickers: ${underperformingSectors.map(s => `${s.ticker} (${s.rsi} RSI)`).join(', ')}
-Key Technical: SPY RSI ${spyRsi}, VIX ${vixLevel}
-Recent Economic: ${safeEconomicContext}
-AAII Sentiment: ${aaiiBullish}% bullish
+Generate analysis in this EXACT format:
 
-INSTRUCTIONS:
-Reference the AI Market Summary insights and build upon them. Create the "growth vs. reality" narrative style. Connect sector overbought/oversold levels (RSI) with economic fundamentals. 
+**ECONOMIC PULSE**
+[2-3 sentences: Overall economic direction and key theme]
 
-IMPORTANT: Use specific sector NAMES (Technology, Health Care, Financial, Energy, etc.) not just ticker symbols. Reference specific RSI levels and economic data points from above data. Do NOT use "undefined" for any metrics - all data is provided above.
+**CRITICAL INDICATORS**
+[3 bullet points: Most important economic signals and their implications]
 
-FORMAT EXACTLY AS:
+**ECONOMIC OUTLOOK** 
+[3 key points: Near-term risks, opportunities, and what to monitor]
 
-MARKET PULSE
-[Create a "growth vs. reality" narrative referencing specific sector names and RSI levels from the data above. End with "Risk level: [level] due to [specific reason]"]
+Economic Indicators Data:
+${JSON.stringify(economicIndicators.map((ind: any) => ({
+  metric: ind.metric,
+  type: ind.type,
+  category: ind.category,
+  current: ind.current,
+  forecast: ind.forecast,
+  vsForecast: ind.vsForecast,
+  prior: ind.prior,
+  zScore: ind.zScore,
+  yoyChange: ind.yoyChange,
+  threeMonthAnnualized: ind.threeMonthAnnualized
+})), null, 2)}
 
-CRITICAL CATALYSTS
-• [Tech/sector leadership test using specific sector names and RSI levels from data above]
-• [Fed/economic timing catalyst using specific economic readings from data above] 
-• [Sector rotation signal using specific sector names and characteristics from data above]
-
-ACTION ITEMS
-• Tactical: [Specific sector rotation recommendations using sector names and tickers from data above]
-• Strategic: [Specific defensive/growth positioning using sector names from data above]
-• Risk Monitor: [Specific metrics and levels from the data above]
+Rules:
+- Reference specific Z-scores, YoY changes, and variance data
+- Focus on economic indicators only, not sector performance  
+- Provide clear assessment of economic trends
+- Keep total response under 400 words
 
 Use sector NAMES and the exact data points provided above. Do NOT reference any undefined metrics.`;
 
@@ -247,16 +238,20 @@ Use sector NAMES and the exact data points provided above. Do NOT reference any 
       console.log('🔍 Parsing synthesis response, content length:', content.length);
       console.log('📝 Content preview:', content.substring(0, 300));
       
-      // Handle both markdown formatting (**SECTION**) and plain text (SECTION:)
-      const cleanContent = content.replace(/\*\*([^*]+)\*\*/g, '$1').trim();
+      // Handle both markdown formatting (**SECTION**) and plain text (SECTION:)  
+      const cleanContent = content
+        .replace(/\*\*([^*]+)\*\*/g, '$1')  // Remove bold markdown
+        .replace(/\*([^*]+)\*/g, '$1')      // Remove italic markdown
+        .replace(/- /g, '• ')               // Convert hyphens to bullets
+        .trim();
       
       console.log('🔍 Searching for sections in cleaned content...');
       console.log('📋 First 200 chars:', cleanContent.substring(0, 200));
       
       // Extract sections using more flexible regex patterns with case-insensitive matching
-      const marketPulseMatch = cleanContent.match(/MARKET PULSE[\s:]*\n*(.*?)(?=CRITICAL CATALYSTS|$)/si);
-      const catalystsMatch = cleanContent.match(/CRITICAL CATALYSTS[\s:]*\n*(.*?)(?=ACTION ITEMS|$)/si);
-      const actionItemsMatch = cleanContent.match(/ACTION ITEMS[\s:]*\n*(.*?)$/si);
+      const marketPulseMatch = cleanContent.match(/ECONOMIC PULSE[\s:]*\n*(.*?)(?=CRITICAL INDICATORS|$)/si);
+      const catalystsMatch = cleanContent.match(/CRITICAL INDICATORS[\s:]*\n*(.*?)(?=ECONOMIC OUTLOOK|$)/si);
+      const actionItemsMatch = cleanContent.match(/ECONOMIC OUTLOOK[\s:]*\n*(.*?)$/si);
       
       console.log('🎯 Section matches found:', {
         marketPulse: !!marketPulseMatch,
@@ -272,16 +267,16 @@ Use sector NAMES and the exact data points provided above. Do NOT reference any 
       }
 
       const marketPulse = marketPulseMatch?.[1]?.trim() || 
-        'Market conditions remain mixed with competing forces at play.';
+        'Economic conditions show mixed signals with competing growth and inflation pressures.';
 
       const criticalCatalysts = catalystsMatch?.[1]
         ?.split('•')
         .filter(item => item.trim())
         .map(item => item.trim())
         .slice(0, 3) || [
-          'Sector rotation dynamics shifting',
-          'Economic data mixed signals',
-          'Technical levels under pressure'
+          'Inflation indicators showing mixed pressure signals',
+          'Labor market strength remains robust despite concerns',
+          'Consumer sentiment reflects ongoing economic uncertainty'
         ];
 
       const actionItems = actionItemsMatch?.[1]
@@ -289,9 +284,9 @@ Use sector NAMES and the exact data points provided above. Do NOT reference any 
         .filter(item => item.trim())
         .map(item => item.trim())
         .slice(0, 3) || [
-          'Tactical: Monitor sector leadership changes',
-          'Strategic: Maintain diversified positioning', 
-          'Risk Monitor: Watch key support levels'
+          'Near-term: Monitor inflation trajectory and Fed policy signals',
+          'Medium-term: Watch for shifts in labor market dynamics', 
+          'Risk Watch: Consumer spending patterns and sentiment deterioration'
         ];
 
       // Calculate confidence based on content quality
@@ -329,16 +324,16 @@ Use sector NAMES and the exact data points provided above. Do NOT reference any 
 
   private getFallbackSynthesis(): MarketSynthesis {
     return {
-      marketPulse: 'Market conditions are currently mixed with competing technical and fundamental factors. Sector rotation patterns suggest selective opportunities while overall sentiment remains cautious. Risk level: Moderate due to conflicting signals.',
+      marketPulse: 'Economic conditions present mixed signals with growth momentum tempered by inflation concerns. Labor market strength supports consumer spending while monetary policy remains data-dependent. Economic risk level: Moderate due to conflicting indicators.',
       criticalCatalysts: [
-        'Technical divergence between growth and value sectors creating rotation opportunities',
-        'Economic data showing mixed signals requiring careful interpretation of trends',
-        'Market structure changes suggesting need for active positioning'
+        'Inflation measures showing divergent trends requiring careful Fed interpretation',
+        'Employment data demonstrating resilience despite broader economic uncertainties',
+        'Consumer sentiment reflecting cautious optimism amid mixed economic signals'
       ],
       actionItems: [
-        'Tactical (1-2 weeks): Focus on sector leaders with strong momentum signals',
-        'Strategic (3-6 months): Build defensive positions while maintaining growth exposure',
-        'Risk Monitor: Watch for breakdown in sector correlations and volatility spikes'
+        'Near-term focus: Monitor key inflation readings and Fed communication for policy shifts',
+        'Medium-term strategy: Track labor market evolution and consumer spending patterns',
+        'Risk monitoring: Watch for deterioration in leading economic indicators'
       ],
       confidence: 70,
       timestamp: new Date().toISOString()
