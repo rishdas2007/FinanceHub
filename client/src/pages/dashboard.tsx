@@ -7,6 +7,7 @@ import { GlobalRefreshButton } from "@/components/global-refresh-button";
 import { EmailSubscription } from "@/components/email-subscription";
 import { AISummary } from "@/components/ai-summary";
 import MarketSynthesis from "@/components/MarketSynthesis";
+import { EconomicIndicators } from "@/components/EconomicIndicators";
 
 import { TrendingUp, MessageSquare } from "lucide-react";
 import { useApiTracker } from "@/hooks/useApiTracker";
@@ -67,6 +68,9 @@ export default function Dashboard() {
 
         {/* Sector Performance Section */}
         <SectorTracker />
+
+        {/* Economic Indicators Section */}
+        <EconomicIndicators />
 
         {/* Email Subscription - Full Width */}
         <EmailSubscription />
