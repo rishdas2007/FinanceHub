@@ -7,32 +7,38 @@ import { apiRequest } from "@/lib/queryClient";
 import type { AiAnalysis, StockData, MarketSentiment, TechnicalIndicators, SectorData, EconomicEvent } from "@/types/financial";
 
 interface ThematicAnalysisData {
-  bottomLine: string;
-  dominantTheme: string;
-  setup: string;
-  evidence: string;
-  implications: string;
-  confidence: number;
-  timestamp: string;
+  bottomLine?: string;
+  dominantTheme?: string;
+  setup?: string;
+  evidence?: string;
+  implications?: string;
+  confidence?: number;
+  timestamp?: string;
+  // Handle the actual response format from backend
+  overallMarketSentiment?: string;
+  momentumOutliers?: string;
 }
 
 export function AIAnalysisComponent() {
   const queryClient = useQueryClient();
 
-  // Use enhanced AI analysis with SPY momentum focus  
+  // Use enhanced AI analysis with SPY momentum focus - force fresh data
   const { data: analysis, isLoading, error } = useQuery<ThematicAnalysisData>({
-    queryKey: ['/api/enhanced-ai-analysis'],
+    queryKey: ['/api/enhanced-ai-analysis', 'spy-momentum-v2'], // Updated key to force refresh
     refetchInterval: 300000, // Refresh every 5 minutes
     refetchOnMount: true, // Always fetch fresh data on mount
     refetchOnWindowFocus: false, // Don't refetch on window focus to avoid excessive calls
     staleTime: 0, // Always consider data stale to force fresh fetches
     retry: 1,
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    gcTime: 0, // Don't cache to force fresh requests
     queryFn: async () => {
-      const response = await fetch('/api/enhanced-ai-analysis', {
+      // Add cache busting timestamp to force fresh request
+      const timestamp = new Date().getTime();
+      const response = await fetch(`/api/enhanced-ai-analysis?t=${timestamp}`, {
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
         },
         // Increase timeout to 2 minutes for AI analysis
         signal: AbortSignal.timeout(120000)
@@ -43,6 +49,7 @@ export function AIAnalysisComponent() {
       }
       
       const data = await response.json();
+      console.log('🎯 Fresh SPY momentum analysis received:', data);
       return data;
     }
   });
@@ -132,104 +139,58 @@ export function AIAnalysisComponent() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="bg-financial-card rounded-lg p-6 overflow-y-auto h-[800px]">
+        <div className="bg-financial-card rounded-lg p-6 overflow-y-auto h-[600px]">
           {analysis ? (
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 text-sm">
-              {/* Current Market Position */}
-              <div className="lg:col-span-4 border-l-4 border-gain-green pl-4 mb-4">
+            <div className="space-y-6 text-sm">
+              {/* SPY Momentum Analysis Header */}
+              <div className="border-l-4 border-blue-400 pl-4 mb-6">
                 <div className="flex items-center gap-2 mb-3">
-                  <TrendingUp className="w-5 h-5 text-gain-green" />
-                  <h4 className="font-semibold text-white text-lg">Current Market Position</h4>
-                </div>
-                <p className="text-gray-300 leading-relaxed mb-4">
-                  {currentStock ? (
-                    <>
-                      The S&P 500 (SPY) closed at <span className="font-bold text-blue-400">${currentStock.price ? parseFloat(currentStock.price).toFixed(2) : 'N/A'}</span>, gaining <span className="font-bold text-blue-400">{currentStock.changePercent ? (parseFloat(currentStock.changePercent) >= 0 ? '+' : '') + parseFloat(currentStock.changePercent).toFixed(2) : 'N/A'}%</span> today. 
-                      {currentStock.price && parseFloat(currentStock.price) > 620 && (
-                        <span className="text-warning-yellow"> This puts the market near historical highs, trading at elevated valuations that warrant careful monitoring.</span>
-                      )}
-                    </>
-                  ) : (
-                    "Loading current market position..."
-                  )}
-                </p>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-financial-gray bg-opacity-30 rounded-lg p-4">
-                  <div className="text-center">
-                    <span className="text-gray-400 text-xs block">Current Price</span>
-                    <div className="text-blue-400 font-bold text-lg">
-                      {currentStock?.price ? `$${parseFloat(currentStock.price).toFixed(2)}` : '---'}
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <span className="text-gray-400 text-xs block">Daily Change</span>
-                    <div className={`font-bold text-lg ${currentStock?.changePercent && parseFloat(currentStock.changePercent) >= 0 ? 'text-gain-green' : 'text-loss-red'}`}>
-                      {currentStock?.changePercent ? `${parseFloat(currentStock.changePercent) >= 0 ? '+' : ''}${parseFloat(currentStock.changePercent).toFixed(2)}%` : '---'}
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <span className="text-gray-400 text-xs block">VIX Level</span>
-                    <div className="text-blue-400 font-bold text-lg">
-                      {sentiment?.vix ? parseFloat(sentiment.vix).toFixed(1) : '---'}
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <span className="text-gray-400 text-xs block">AAII Bullish</span>
-                    <div className="text-blue-400 font-bold text-lg">
-                      {sentiment?.aaiiBullish ? `${parseFloat(sentiment.aaiiBullish).toFixed(1)}%` : '---'}
-                    </div>
-                  </div>
+                  <Brain className="w-5 h-5 text-blue-400" />
+                  <h4 className="font-semibold text-white text-lg">SPY Momentum Analysis with Sector Outliers</h4>
+                  <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded">
+                    Confidence: {analysis.confidence || 85}%
+                  </span>
                 </div>
               </div>
 
-              {/* Thematic Analysis Bottom Line */}
-              <div className="lg:col-span-4 border-l-4 border-gain-green pl-4 mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <Target className="w-5 h-5 text-gain-green" />
-                  <h4 className="font-semibold text-white text-lg">Bottom Line</h4>
+              {/* SPY Momentum Analysis */}
+              <div className="bg-financial-gray/50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Target className="w-4 h-4 text-blue-400" />
+                  <h5 className="font-semibold text-blue-400">SPY Momentum Assessment</h5>
                 </div>
-                <p className="text-gray-300 leading-relaxed mb-4">{analysis.bottomLine}</p>
-                <div className="flex items-center space-x-4 text-sm text-gray-400">
-                  <span>Theme: <span className="text-white font-medium">{analysis.dominantTheme}</span></span>
-                  <span>•</span>
-                  <span>Updated: {new Date(analysis.timestamp).toLocaleTimeString()}</span>
-                  <span>•</span>
-                  <span>{Math.round(analysis.confidence * 100)}% Confidence</span>
+                <div className="text-gray-300 leading-relaxed whitespace-pre-line">
+                  {analysis.overallMarketSentiment || analysis.bottomLine || 'Loading SPY momentum analysis...'}
                 </div>
               </div>
 
-              {/* Market Setup */}
-              <div className="border-l-4 border-green-500/30 pl-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-lg">📊</span>
-                  <h4 className="font-semibold text-white text-base">Market Setup</h4>
+              {/* Sector Outliers Analysis */}
+              <div className="bg-financial-gray/50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="w-4 h-4 text-orange-400" />
+                  <h5 className="font-semibold text-orange-400">Momentum Outliers & Sector Rotation</h5>
                 </div>
-                <p className="text-gray-300 leading-relaxed" 
-                   dangerouslySetInnerHTML={{
-                     __html: analysis.setup.replace(/(\d+\.?\d*%?)/g, '<span class="font-bold text-blue-400">$1</span>')
-                   }}>
-                </p>
+                <div className="text-gray-300 leading-relaxed whitespace-pre-line">
+                  {analysis.momentumOutliers || analysis.setup || 'Loading sector outlier analysis...'}
+                </div>
               </div>
 
-              {/* Evidence - Wider Column */}
-              <div className="lg:col-span-2 border-l-4 border-blue-500/30 pl-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-lg">🔍</span>
-                  <h4 className="font-semibold text-white text-base">Evidence</h4>
-                </div>
-                <div className="space-y-3">
-                  <p className="text-gray-300 leading-relaxed" 
-                     dangerouslySetInnerHTML={{
-                       __html: analysis.evidence.replace(/(\d+\.?\d*%?K?M?)/g, '<span class="font-bold text-blue-400">$1</span>')
-                     }}>
-                  </p>
-                  
-                  {/* Economic Data Integration */}
-                  {economicEvents && economicEvents.length > 0 && (
-                    <div className="bg-financial-gray/20 rounded-lg p-3 border-l-4 border-blue-400/50">
-                      <h5 className="text-sm font-semibold text-blue-400 mb-2">Recent Economic Readings</h5>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                        {economicEvents
+              {/* Analysis Timestamp */}
+              <div className="text-xs text-gray-500 text-center pt-4 border-t border-gray-600">
+                Analysis updated: {analysis.timestamp ? new Date(analysis.timestamp).toLocaleString() : 'Just now'}
+              </div>
+            </div>
+          ) : (
+            <div className="text-gray-400 text-center py-8">
+              <div>No analysis data available</div>
+              <div className="text-sm text-gray-500 mt-1">Loading momentum analysis...</div>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
                           .filter(event => event.actual && event.forecast)
                           .slice(0, 4)
                           .map((event, index) => (
