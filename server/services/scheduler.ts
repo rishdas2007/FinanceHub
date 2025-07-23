@@ -381,9 +381,9 @@ export class DataScheduler {
       timezone: "America/New_York"
     });
 
-    // Daily email at 8 AM EST (Monday-Friday) - fetch fresh data 1 minute before sending
-    cron.schedule('59 7 * * 1-5', async () => {
-      console.log('📊 PRE-EMAIL: Refreshing market data for 8 AM email send...');
+    // Daily email at 8 AM EST (Market Days + Sunday) - fetch fresh data 1 minute before sending
+    cron.schedule('59 7 * * 0,1-5', async () => {
+      console.log('📊 PRE-EMAIL: Refreshing market data for 8 AM email send (Market Days + Sunday)...');
       try {
         // Force refresh all data 1 minute before email
         await this.updateAllData();
@@ -395,9 +395,9 @@ export class DataScheduler {
       timezone: "America/New_York"
     });
 
-    // Daily email at 8 AM EST (Monday-Friday)
-    cron.schedule('0 8 * * 1-5', async () => {
-      console.log('📧 SCHEDULED: Sending daily market commentary at 8 AM EST...');
+    // Daily email at 8 AM EST (Market Days + Sunday)
+    cron.schedule('0 8 * * 0,1-5', async () => {
+      console.log('📧 SCHEDULED: Sending daily market commentary at 8 AM EST (Market Days + Sunday)...');
       try {
         await this.sendDailyEmail();
         console.log('✅ SCHEDULED: Daily email completed successfully');
@@ -424,14 +424,14 @@ export class DataScheduler {
 
     // Enhanced logging for email schedule
     const estNow = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
-    console.log(`📧 Daily email scheduled for 8:00 AM EST (Monday-Friday)`);
+    console.log(`📧 Daily email scheduled for 8:00 AM EST (Market Days + Sunday)`);
     console.log(`📧 Current EST time: ${estNow}`);
 
     console.log('📅 Scheduler configured:');
     console.log('  • Real-time updates: Every 2 minutes (8:30 AM - 6 PM EST, weekdays)');
     console.log('  • Forecast updates: Every 6 hours');
     console.log('  • Comprehensive sync: Daily at 6 AM EST');
-    console.log('  • Daily email: 8 AM EST (Monday-Friday) - ENHANCED WITH ERROR HANDLING');
+    console.log('  • Daily email: 8 AM EST (Market Days + Sunday) - COMPREHENSIVE DASHBOARD');
     console.log('  • Data cleanup: Daily at 2 AM EST');
   }
 

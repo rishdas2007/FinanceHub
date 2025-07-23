@@ -133,7 +133,7 @@ export class EmailService {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinanceHub Pro Market Dashboard</title>
+    <title>FinanceHub Pro - Complete Dashboard</title>
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
@@ -152,84 +152,44 @@ export class EmailService {
             border-radius: 12px; 
             margin-bottom: 30px; 
         }
-        .header h1 { 
-            margin: 0; 
-            font-size: 28px; 
-            font-weight: 700; 
+        .widget { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            margin-bottom: 20px;
         }
-        .header p { 
-            margin: 10px 0 0; 
-            font-size: 16px; 
-            opacity: 0.9; 
-        }
-        .market-data { 
+        .dashboard-grid { 
             display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
             gap: 20px; 
             margin-bottom: 30px; 
         }
-        .metric-card { 
-            background: white; 
-            padding: 20px; 
-            border-radius: 10px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
-            text-align: center; 
+        .positive { color: #10b981; font-weight: bold; }
+        .negative { color: #ef4444; font-weight: bold; }
+        .neutral { color: #6b7280; }
+        .chart-summary { 
+            background: #f8fafc; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 10px 0; 
         }
-        .metric-card h3 { 
-            margin: 0 0 10px; 
-            font-size: 14px; 
-            color: #666; 
-            text-transform: uppercase; 
-            letter-spacing: 0.5px; 
+        .live-data { 
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+            color: white; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 10px 0; 
         }
-        .metric-card .value { 
-            font-size: 24px; 
-            font-weight: 700; 
-            color: #1a202c; 
-        }
-        .positive { color: #10b981; }
-        .negative { color: #ef4444; }
-        .analysis-section { 
-            background: white; 
-            padding: 25px; 
-            border-radius: 10px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
-            margin-bottom: 25px; 
-        }
-        .analysis-section h2 { 
-            margin: 0 0 15px; 
-            color: #1a202c; 
-            font-size: 18px; 
-        }
-        .sector-table, .economic-table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin-top: 15px; 
-        }
-        .sector-table th, .economic-table th, 
-        .sector-table td, .economic-table td { 
-            padding: 12px; 
-            text-align: left; 
-            border-bottom: 1px solid #e5e7eb; 
-        }
-        .sector-table th, .economic-table th { 
-            background-color: #f3f4f6; 
-            font-weight: 600; 
-            color: #374151; 
-        }
-        .footer { 
-            text-align: center; 
-            padding: 20px; 
-            color: #666; 
-            font-size: 14px; 
-        }
-        .unsubscribe { 
-            color: #666; 
-            text-decoration: none; 
-        }
+        .value { color: #3b82f6; font-weight: bold; }
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { background: #f3f4f6; font-weight: 600; }
         @media (max-width: 600px) { 
-            .market-data { grid-template-columns: 1fr; } 
-            .sector-table, .economic-table { font-size: 14px; } 
+            .dashboard-grid { grid-template-columns: 1fr; } 
+            .header { padding: 20px; }
+            .widget { padding: 15px; }
         }
     </style>
 </head>
