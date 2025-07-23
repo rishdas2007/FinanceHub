@@ -9,7 +9,7 @@ interface EconomicIndicator {
   type: string;
   lastUpdated?: string;
   change?: string;
-  zScore?: number;
+  zScore?: number | string;
 }
 
 export function RecentEconomicReadings() {
@@ -132,9 +132,14 @@ export function RecentEconomicReadings() {
                 )}
               </div>
 
-              {indicator.zScore !== undefined && (
+              {indicator.zScore !== undefined && indicator.zScore !== null && (
                 <div className="mt-2 text-xs text-gray-500">
-                  Z-Score: <span className="text-yellow-400 font-medium">{indicator.zScore.toFixed(2)}</span>
+                  Z-Score: <span className="text-yellow-400 font-medium">
+                    {typeof indicator.zScore === 'number' 
+                      ? indicator.zScore.toFixed(2) 
+                      : parseFloat(indicator.zScore.toString()).toFixed(2)
+                    }
+                  </span>
                 </div>
               )}
             </div>
