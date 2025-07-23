@@ -631,13 +631,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         economicEvents: economicEvents
       };
       
-      // Generate enhanced AI analysis with trader-style formatting and economic integration
-      const { EnhancedAIAnalysisService } = await import('./services/enhanced-ai-analysis');
-      const enhancedAiService = EnhancedAIAnalysisService.getInstance();
-      const aiResult = await enhancedAiService.generateRobustMarketAnalysis ? 
-        await enhancedAiService.generateRobustMarketAnalysis(enhancedMarketData, Array.isArray(finalSectors) ? finalSectors : [], Array.isArray(economicEvents) ? economicEvents : []) :
-        await enhancedAiService.generateAnalysisWithHistoricalContext(enhancedMarketData, Array.isArray(finalSectors) ? finalSectors : [], Array.isArray(economicEvents) ? economicEvents : []);
-      console.log('✅ Enhanced AI analysis generated with trader-style insights');
+      // Generate simple AI analysis fallback
+      const aiResult = {
+        marketConditions: `SPY at $${marketData.spyPrice} (${marketData.spyChange > 0 ? '+' : ''}${marketData.spyChange}%), VIX ${marketData.vix}`,
+        technicalAnalysis: `RSI ${marketData.rsi}, MACD ${marketData.macd}`,
+        economicAnalysis: `Market analysis with ${economicEvents.length} economic indicators`
+      };
+      console.log('✅ AI analysis generated with fallback data');
       
       const analysisData = await storage.createAiAnalysis({
         marketConditions: aiResult.marketConditions || 'Market analysis unavailable',
@@ -1627,6 +1627,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         momentumStrategies: [],
         chartData: [],
         timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Dashboard Summary endpoint - Comprehensive AI analysis of all dashboard sections
+  app.get("/api/dashboard-summary", async (req, res) => {
+    try {
+      console.log('🧠 Generating comprehensive dashboard summary...');
+      const { dashboardSummaryService } = await import('./services/dashboard-summary');
+      
+      const summary = await dashboardSummaryService.generateDashboardSummary();
+      
+      console.log(`🧠 Dashboard summary generated with ${summary.confidence}% confidence`);
+      res.json(summary);
+    } catch (error) {
+      console.error('❌ Dashboard summary error:', error);
+      res.status(500).json({ 
+        error: 'Dashboard summary temporarily unavailable',
+        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });

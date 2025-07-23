@@ -1,7 +1,7 @@
 
 
 import MomentumAnalysis from "@/components/momentum-analysis";
-
+import { DashboardSummary } from "@/components/DashboardSummary";
 import { AAIISentiment } from "@/components/aaii-sentiment";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
 import { EmailSubscription } from "@/components/email-subscription";
@@ -56,7 +56,8 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
 
-
+        {/* AI Dashboard Summary */}
+        <DashboardSummary />
 
         {/* Simplified Momentum Analysis with Verified Calculations */}
         <MomentumAnalysis />
