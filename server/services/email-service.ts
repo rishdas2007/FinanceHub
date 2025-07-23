@@ -4,7 +4,7 @@ import { db } from '../db';
 import { emailSubscriptions, type EmailSubscription, type InsertEmailSubscription } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { FinancialDataService } from './financial-data';
-import { EnhancedAIAnalysisService } from './enhanced-ai-analysis';
+import { aiAnalysisService } from './ai-analysis-unified';
 // import { generateRichEmailTemplate } from './rich-email-template'; // Removed during optimization
 // import { generateDashboardMatchingEmailTemplate, EmailAnalysisData } from './dashboard-email-template'; // Removed during optimization
 
@@ -20,7 +20,7 @@ if (SENDGRID_ENABLED) {
 export class EmailService {
   private readonly fromEmail = 'me@rishabhdas.com'; // Using verified sender domain
   private financialService = new FinancialDataService();
-  private aiService = new EnhancedAIAnalysisService();
+  private aiService = aiAnalysisService;
 
   async subscribeToDaily(email: string): Promise<EmailSubscription> {
     try {
