@@ -211,8 +211,8 @@ export class DataScheduler {
           rsi: finalTechnical.rsi,
           macd: finalTechnical.macd
         },
-        sectors: [],
-        economicEvents: [],
+        sectors: finalSectors,
+        economicEvents: finalEconomicEvents,
         analysis,
         timestamp: new Date().toISOString()
       };

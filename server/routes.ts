@@ -1116,6 +1116,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get fresh market data for email
       const freshMarketData = await gatherMarketDataForAI();
       
+      // Get real sector data for Momentum Strategies section
+      let sectorData = [];
+      try {
+        const { FinancialDataService } = await import('./services/financial-data.js');
+        const financialService = FinancialDataService.getInstance();
+        const sectors = await financialService.getSectorETFs();
+        
+        sectorData = sectors.map(sector => ({
+          sector: sector.name,
+          ticker: sector.symbol,
+          oneDay: sector.changePercent?.toFixed(2) || '0.00',
+          fiveDay: sector.fiveDayChange?.toFixed(2) || '0.00', 
+          oneMonth: sector.monthlyChange?.toFixed(2) || '0.00',
+          rsi: sector.rsi?.toFixed(1) || '50.0',
+          signal: sector.changePercent > 1 ? 'Bullish' : sector.changePercent < -1 ? 'Bearish' : 'Neutral'
+        }));
+        console.log(`📊 Real sector data for email: ${sectorData.length} sectors`);
+        console.log('📊 First sector:', sectorData[0]);
+      } catch (error) {
+        console.error('Error fetching sector data for email:', error);
+      }
+      
+      // Get real economic events for Recent Economic Readings section
+      let economicEventsData = [];
+      try {
+        const { economicDataEnhancedService } = await import('./services/economic-data-enhanced.js');
+        const events = await economicDataEnhancedService.getEnhancedEconomicEvents();
+        
+        economicEventsData = events.slice(0, 6).map(event => ({
+          indicator: event.title || event.indicator,
+          actual: event.actual || 'N/A',
+          forecast: event.forecast || 'N/A', 
+          date: event.date || event.releaseDate || 'N/A'
+        }));
+        console.log(`📅 Real economic events for email: ${economicEventsData.length} events`);
+        console.log('📅 First event:', economicEventsData[0]);
+      } catch (error) {
+        console.error('Error fetching economic events for email:', error);
+      }
+      
       // Generate simple analysis for email test
       const analysis = {
         bottomLine: `Market showing ${freshMarketData.changePercent >= 0 ? 'positive' : 'negative'} momentum with SPY at $${freshMarketData.price}.`,
@@ -1141,8 +1181,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           rsi: freshMarketData.rsi,
           macd: freshMarketData.macd
         },
-        sectors: [],
-        economicEvents: [],
+        sectors: sectorData,
+        economicEvents: economicEventsData,
         analysis,
         timestamp: new Date().toISOString()
       };

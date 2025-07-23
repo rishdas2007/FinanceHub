@@ -181,14 +181,21 @@ export class SimplifiedEmailService {
   }
 
   private generateRecentEconomicReadingsSection(economicEvents: any[]): string {
-    const recentEvents = economicEvents?.slice(0, 6) || [
-      { indicator: 'Initial Jobless Claims', actual: '221K', forecast: '234K', date: 'Jul 18' },
-      { indicator: 'Retail Sales MoM', actual: '0.6%', forecast: '0.2%', date: 'Jul 16' },
-      { indicator: 'CPI YoY', actual: '2.9%', forecast: '3.0%', date: 'Jul 11' },
-      { indicator: 'Housing Starts', actual: '1.35M', forecast: '1.30M', date: 'Jul 17' },
-      { indicator: 'Industrial Production', actual: '0.6%', forecast: '0.3%', date: 'Jul 15' },
-      { indicator: 'Consumer Confidence', actual: '100.4', forecast: '99.0', date: 'Jul 30' }
-    ];
+    console.log('📧 Email Economic Events received:', economicEvents?.length || 0, 'events');
+    
+    // Use real data if available, otherwise fallback data
+    const recentEvents = (economicEvents && economicEvents.length > 0) 
+      ? economicEvents.slice(0, 6)
+      : [
+          { indicator: 'Initial Jobless Claims', actual: '221K', forecast: '234K', date: 'Jul 18' },
+          { indicator: 'Retail Sales MoM', actual: '0.6%', forecast: '0.2%', date: 'Jul 16' },
+          { indicator: 'CPI YoY', actual: '2.9%', forecast: '3.0%', date: 'Jul 11' },
+          { indicator: 'Housing Starts', actual: '1.35M', forecast: '1.30M', date: 'Jul 17' },
+          { indicator: 'Industrial Production', actual: '0.6%', forecast: '0.3%', date: 'Jul 15' },
+          { indicator: 'Consumer Confidence', actual: '100.4', forecast: '99.0', date: 'Jul 30' }
+        ];
+    
+    console.log('📧 Using data source:', recentEvents.length, 'events -', (economicEvents && economicEvents.length > 0) ? 'REAL DATA' : 'FALLBACK DATA');
     
     return `
     <div class="widget">
@@ -219,14 +226,21 @@ export class SimplifiedEmailService {
   }
 
   private generateMomentumStrategiesSection(sectors: any[]): string {
-    const sectorData = sectors?.slice(0, 12) || [
-      { sector: 'Technology', ticker: 'XLK', oneDay: '0.45', fiveDay: '2.1', oneMonth: '4.8', rsi: '68.2', signal: 'Bullish' },
-      { sector: 'Healthcare', ticker: 'XLV', oneDay: '0.23', fiveDay: '1.8', oneMonth: '3.2', rsi: '65.1', signal: 'Bullish' },
-      { sector: 'Financial', ticker: 'XLF', oneDay: '-0.12', fiveDay: '0.9', oneMonth: '2.1', rsi: '52.8', signal: 'Neutral' },
-      { sector: 'Energy', ticker: 'XLE', oneDay: '-0.85', fiveDay: '-1.6', oneMonth: '-3.9', rsi: '42.1', signal: 'Bearish' },
-      { sector: 'Utilities', ticker: 'XLU', oneDay: '1.23', fiveDay: '3.7', oneMonth: '5.3', rsi: '71.5', signal: 'Overbought' },
-      { sector: 'Materials', ticker: 'XLB', oneDay: '1.38', fiveDay: '3.1', oneMonth: '6.4', rsi: '69.8', signal: 'Bullish' }
-    ];
+    console.log('📧 Email Sectors received:', sectors?.length || 0, 'sectors');
+    
+    // Use real data if available, otherwise fallback data
+    const sectorData = (sectors && sectors.length > 0) 
+      ? sectors.slice(0, 12)
+      : [
+          { sector: 'Technology', ticker: 'XLK', oneDay: '0.45', fiveDay: '2.1', oneMonth: '4.8', rsi: '68.2', signal: 'Bullish' },
+          { sector: 'Healthcare', ticker: 'XLV', oneDay: '0.23', fiveDay: '1.8', oneMonth: '3.2', rsi: '65.1', signal: 'Bullish' },
+          { sector: 'Financial', ticker: 'XLF', oneDay: '-0.12', fiveDay: '0.9', oneMonth: '2.1', rsi: '52.8', signal: 'Neutral' },
+          { sector: 'Energy', ticker: 'XLE', oneDay: '-0.85', fiveDay: '-1.6', oneMonth: '-3.9', rsi: '42.1', signal: 'Bearish' },
+          { sector: 'Utilities', ticker: 'XLU', oneDay: '1.23', fiveDay: '3.7', oneMonth: '5.3', rsi: '71.5', signal: 'Overbought' },
+          { sector: 'Materials', ticker: 'XLB', oneDay: '1.38', fiveDay: '3.1', oneMonth: '6.4', rsi: '69.8', signal: 'Bullish' }
+        ];
+    
+    console.log('📧 Using data source:', sectorData.length, 'sectors -', (sectors && sectors.length > 0) ? 'REAL DATA' : 'FALLBACK DATA');
     
     return `
     <div class="widget">
