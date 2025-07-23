@@ -16,6 +16,9 @@ interface EconomicIndicator {
   threeMonthAnnualized?: number | null;
   unit: string;
   frequency: string;
+  dateOfRelease: string;
+  nextRelease: string;
+  lastUpdated?: string; // New field for tracking FRED updates
 }
 
 const formatValue = (value: number | null, unit: string): string => {
@@ -125,6 +128,7 @@ export function EconomicIndicators() {
               <th className="text-left py-4 px-4 text-gray-200 font-semibold border-b border-gray-600">Metric</th>
               <th className="text-center py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">Type</th>
               <th className="text-left py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">Category</th>
+              <th className="text-center py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">Last Update</th>
               <th className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">Current</th>
               <th className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">Forecast</th>
               <th className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">vs Forecast</th>
@@ -157,6 +161,15 @@ export function EconomicIndicators() {
                 </td>
                 <td className="py-4 px-3 text-gray-200 font-medium">
                   {indicator.category}
+                </td>
+                <td className="py-4 px-3 text-center">
+                  {indicator.lastUpdated ? (
+                    <span className="text-green-400 font-medium text-xs bg-green-900/20 px-2 py-1 rounded border border-green-600">
+                      TODAY
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 text-xs">CSV</span>
+                  )}
                 </td>
                 <td className="py-4 px-3 text-right text-white font-bold text-lg">
                   {formatValue(indicator.current, indicator.unit)}
@@ -195,7 +208,7 @@ export function EconomicIndicators() {
               📈 Data Source: Federal Reserve Economic Data (FRED API)
             </p>
             <p className="text-xs text-gray-400 mt-1">
-              Updated every 4 hours • Real-time government economic statistics
+              Updated every 2 hours • Real-time government economic statistics
             </p>
           </div>
           <div className="flex flex-wrap gap-4 text-sm">

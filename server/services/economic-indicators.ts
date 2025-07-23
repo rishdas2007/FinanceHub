@@ -1,5 +1,6 @@
 import axios from 'axios';
-// import { cacheService } from './cache-unified';
+import { historicalEconomicIndicatorsService } from './historical-economic-indicators';
+import { logger } from '../utils/logger';
 
 interface EconomicIndicator {
   metric: string;
@@ -190,18 +191,27 @@ class EconomicIndicatorsService {
 
   async getEconomicIndicators(): Promise<EconomicIndicator[]> {
     try {
-      // Load from CSV with proper calculation logic - always fresh for now
-      console.log('📊 Loading economic indicators from authentic CSV data with proper calculations');
-      const indicators = await this.loadFromCSVWithCalculations();
+      // First, try to get indicators with historical FRED data
+      logger.info('📊 Loading economic indicators with historical FRED context...');
+      const historicalIndicators = await historicalEconomicIndicatorsService.getIndicatorsWithHistoricalContext();
       
-      if (indicators.length > 0) {
-        console.log(`✅ Economic indicators loaded: ${indicators.length} indicators with verified calculations`);
-        return indicators;
+      if (historicalIndicators.length > 0) {
+        logger.info(`✅ Historical indicators loaded: ${historicalIndicators.length} with FRED data`);
+        return historicalIndicators;
+      }
+
+      // Fallback to CSV data if no historical data available
+      logger.info('📊 Falling back to CSV data with proper calculations');
+      const csvIndicators = await this.loadFromCSVWithCalculations();
+      
+      if (csvIndicators.length > 0) {
+        logger.info(`✅ CSV indicators loaded: ${csvIndicators.length} indicators with verified calculations`);
+        return csvIndicators;
       }
 
       return this.getFallbackIndicators();
     } catch (error) {
-      console.error('❌ Error loading economic indicators:', error);
+      logger.error('❌ Error loading economic indicators:', error);
       return this.getFallbackIndicators();
     }
   }

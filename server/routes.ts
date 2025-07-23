@@ -28,6 +28,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(getApiStats());
   });
 
+  // Historical Economic Indicators Routes
+  app.post("/api/historical-economic-indicators/update", async (req, res) => {
+    try {
+      console.log('🔄 Manual FRED historical data update requested...');
+      const { historicalEconomicIndicatorsService } = await import('./services/historical-economic-indicators');
+      
+      const result = await historicalEconomicIndicatorsService.updateAllIndicators();
+      
+      res.json({
+        success: result.success,
+        message: result.message,
+        updatedCount: result.updatedCount,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Manual FRED update failed:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Manual FRED update failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  app.get("/api/historical-economic-indicators/summary", async (req, res) => {
+    try {
+      const { historicalEconomicIndicatorsService } = await import('./services/historical-economic-indicators');
+      const summary = await historicalEconomicIndicatorsService.getHistoricalDataSummary();
+      
+      res.json({
+        success: true,
+        data: summary,
+        totalIndicators: summary.length,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Failed to get historical summary:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get historical data summary',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // FRED Data Management Routes
   app.get("/api/fred-data/update", async (req, res) => {
     try {

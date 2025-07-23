@@ -1,12 +1,13 @@
 import { fredDataUpdaterService } from './fred-data-updater';
+import { historicalEconomicIndicatorsService } from './historical-economic-indicators';
 import { logger } from '../utils/logger';
 
 export class FREDSchedulerService {
   private schedulerId: NodeJS.Timeout | null = null;
-  private readonly UPDATE_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
+  private readonly UPDATE_INTERVAL = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
 
   async startScheduler(): Promise<void> {
-    logger.info('📅 Starting FRED data scheduler - updates every 4 hours');
+    logger.info('📅 Starting FRED data scheduler - updates every 2 hours (within 120 req/min FRED limit)');
     
     // Perform initial update
     setTimeout(async () => {
@@ -29,14 +30,21 @@ export class FREDSchedulerService {
 
   private async performScheduledUpdate(): Promise<void> {
     try {
-      logger.info('🕐 Scheduled FRED data update starting...');
+      logger.info('🕐 Scheduled FRED data update starting (2-hour interval)...');
       
-      const result = await fredDataUpdaterService.updateFREDData();
+      // Update historical data directly from FRED API
+      const historicalResult = await historicalEconomicIndicatorsService.updateAllIndicators();
       
-      if (result.success) {
-        logger.info(`✅ Scheduled FRED update completed: ${result.indicatorsCount} indicators processed`);
+      if (historicalResult.success) {
+        logger.info(`✅ Historical FRED update completed: ${historicalResult.updatedCount} indicators updated`);
+        
+        // Also run the Python script for backup CSV generation
+        const csvResult = await fredDataUpdaterService.updateFREDData();
+        if (csvResult.success) {
+          logger.info(`✅ Backup CSV generation completed: ${csvResult.indicatorsCount} indicators`);
+        }
       } else {
-        logger.error(`❌ Scheduled FRED update failed: ${result.message}`);
+        logger.error(`❌ Scheduled FRED update failed: ${historicalResult.message}`);
       }
     } catch (error) {
       logger.error('💥 Scheduled FRED update error:', error);
@@ -51,7 +59,7 @@ export class FREDSchedulerService {
     return {
       isRunning: this.schedulerId !== null,
       nextUpdate: this.schedulerId ? new Date(Date.now() + this.UPDATE_INTERVAL).toISOString() : null,
-      updateInterval: '4 hours'
+      updateInterval: '2 hours'
     };
   }
 }
