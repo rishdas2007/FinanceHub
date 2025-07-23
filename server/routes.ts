@@ -28,6 +28,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(getApiStats());
   });
 
+  // FRED Data Management Routes
+  app.get("/api/fred-data/update", async (req, res) => {
+    try {
+      console.log('🚀 Manual FRED data update requested');
+      const { fredDataUpdaterService } = await import('./services/fred-data-updater');
+      
+      const result = await fredDataUpdaterService.updateFREDData();
+      
+      if (result.success) {
+        res.json({
+          success: true,
+          message: result.message,
+          indicatorsCount: result.indicatorsCount,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          error: result.message,
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (error) {
+      console.error('❌ FRED data update API error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error during FRED data update',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  app.get("/api/fred-data/status", async (req, res) => {
+    try {
+      const fs = await import('fs/promises');
+      const path = 'server/data/macroeconomic_indicators_dataset.csv';
+      
+      let fileStats = null;
+      let dataAge = null;
+      
+      try {
+        const stats = await fs.stat(path);
+        fileStats = {
+          size: stats.size,
+          lastModified: stats.mtime.toISOString()
+        };
+        dataAge = Date.now() - stats.mtime.getTime();
+      } catch (error) {
+        // File doesn't exist
+      }
+      
+      res.json({
+        success: true,
+        status: {
+          dataFileExists: fileStats !== null,
+          lastUpdate: fileStats?.lastModified || null,
+          dataAgeMinutes: dataAge ? Math.floor(dataAge / (60 * 1000)) : null,
+          nextScheduledUpdate: '4 hours after last update',
+          fredApiKey: process.env.FRED_API_KEY ? 'Configured' : 'Not configured'
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ FRED data status API error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error during status check',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // Economic Indicators endpoint
   app.get("/api/economic-indicators", async (req, res) => {
     try {

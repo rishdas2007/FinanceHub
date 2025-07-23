@@ -140,6 +140,12 @@ app.use((req, res, next) => {
         await dataScheduler.startScheduler();
         log('✅ Data scheduler started successfully with 8 AM email cron job');
         
+        // Initialize FRED data scheduler for 4-hour updates
+        log('📊 Initializing FRED data scheduler...');
+        const { fredSchedulerService } = await import('./services/fred-scheduler');
+        await fredSchedulerService.startScheduler();
+        log('✅ FRED data scheduler started successfully - updating every 4 hours');
+        
         // Initialize comprehensive intelligent historical data storage system
         log('🎯 Initializing Comprehensive Intelligent Historical Data Storage System...');
         
