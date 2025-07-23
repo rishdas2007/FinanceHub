@@ -21,52 +21,62 @@ interface EconomicIndicator {
   lastUpdated?: string; // New field for tracking FRED updates
 }
 
-const formatValue = (value: number | null, unit: string): string => {
-  if (value === null) return 'N/A';
+const formatValue = (value: any, unit: string): string => {
+  if (value === null || value === undefined || value === 'N/A') return 'N/A';
+  
+  const numValue = typeof value === 'string' ? parseFloat(value) : Number(value);
+  if (isNaN(numValue) || !isFinite(numValue)) return 'N/A';
   
   if (unit === 'thousands') {
-    if (Math.abs(value) >= 1000) {
-      return `${Math.round(value / 1000)}M`;
+    if (Math.abs(numValue) >= 1000) {
+      return `${Math.round(numValue / 1000)}M`;
     }
-    return `${Math.round(value)}K`;
+    return `${Math.round(numValue)}K`;
   }
   
   if (unit === 'percent') {
-    return `${value.toFixed(2)}%`;
+    return `${numValue.toFixed(2)}%`;
   }
   
   if (unit === 'basis_points') {
-    return `${Math.round(value)} bps`;
+    return `${Math.round(numValue)} bps`;
   }
   
   if (unit === 'index') {
-    return value.toFixed(1);
+    return numValue.toFixed(1);
   }
   
-  return value.toFixed(2);
+  if (unit === 'decimal') {
+    return numValue.toFixed(2);
+  }
+  
+  return numValue.toFixed(2);
 };
 
-const formatVariance = (variance: number | null, unit: string): string => {
-  if (variance === null) return '';
+const formatVariance = (variance: any, unit: string): string => {
+  if (variance === null || variance === undefined || variance === 'N/A') return '';
   
-  const sign = variance > 0 ? '+' : '';
+  const numValue = typeof variance === 'string' ? parseFloat(variance) : Number(variance);
+  if (isNaN(numValue) || !isFinite(numValue)) return '';
+  
+  const sign = numValue > 0 ? '+' : '';
   
   if (unit === 'thousands') {
-    if (Math.abs(variance) >= 1000) {
-      return `${sign}${Math.round(variance / 1000)}M`;
+    if (Math.abs(numValue) >= 1000) {
+      return `${sign}${Math.round(numValue / 1000)}M`;
     }
-    return `${sign}${Math.round(variance)}K`;
+    return `${sign}${Math.round(numValue)}K`;
   }
   
   if (unit === 'percent') {
-    return `${sign}${variance.toFixed(2)}%`;
+    return `${sign}${numValue.toFixed(2)}%`;
   }
   
   if (unit === 'basis_points') {
-    return `${sign}${Math.round(variance)} bps`;
+    return `${sign}${Math.round(numValue)} bps`;
   }
   
-  return `${sign}${variance.toFixed(2)}`;
+  return `${sign}${numValue.toFixed(2)}`;
 };
 
 const getTypeColor = (type: string): string => {
@@ -78,10 +88,14 @@ const getTypeColor = (type: string): string => {
   }
 };
 
-const getVarianceColor = (variance: number | null): string => {
-  if (variance === null) return 'text-gray-400';
-  if (variance > 0) return 'text-green-400';
-  if (variance < 0) return 'text-red-400';
+const getVarianceColor = (variance: any): string => {
+  if (variance === null || variance === undefined || variance === 'N/A') return 'text-gray-400';
+  
+  const numValue = typeof variance === 'string' ? parseFloat(variance) : Number(variance);
+  if (isNaN(numValue) || !isFinite(numValue)) return 'text-gray-400';
+  
+  if (numValue > 0) return 'text-green-400';
+  if (numValue < 0) return 'text-red-400';
   return 'text-gray-400';
 };
 
@@ -187,13 +201,13 @@ export function EconomicIndicators() {
                   {formatVariance(indicator.vsPrior, indicator.unit)}
                 </td>
                 <td className={`py-4 px-3 text-right font-bold text-lg ${getVarianceColor(indicator.zScore)}`}>
-                  {indicator.zScore?.toFixed(2) || 'N/A'}
+                  {formatValue(indicator.zScore, 'decimal')}
                 </td>
                 <td className={`py-4 px-3 text-right font-bold text-lg ${getVarianceColor(indicator.threeMonthAnnualized)}`}>
-                  {indicator.threeMonthAnnualized ? `${indicator.threeMonthAnnualized.toFixed(1)}%` : 'N/A'}
+                  {indicator.threeMonthAnnualized ? formatValue(indicator.threeMonthAnnualized, 'percent') : 'N/A'}
                 </td>
                 <td className={`py-4 px-3 text-right font-bold text-lg ${getVarianceColor(indicator.yoyChange)}`}>
-                  {indicator.yoyChange ? `${indicator.yoyChange.toFixed(1)}%` : 'N/A'}
+                  {indicator.yoyChange ? formatValue(indicator.yoyChange, 'percent') : 'N/A'}
                 </td>
               </tr>
             ))}
