@@ -101,7 +101,7 @@ const getVarianceColor = (variance: any): string => {
   return 'text-gray-400';
 };
 
-type SortField = 'metric' | 'type' | 'category' | 'current' | 'forecast' | 'vsForecast' | 'prior' | 'vsPrior' | 'zScore' | 'threeMonthAnnualized' | 'yoyChange';
+type SortField = 'metric' | 'type' | 'category' | 'lastUpdated' | 'current' | 'forecast' | 'vsForecast' | 'prior' | 'vsPrior' | 'zScore' | 'threeMonthAnnualized' | 'yoyChange';
 type SortDirection = 'asc' | 'desc';
 
 export function EconomicIndicators() {
@@ -142,6 +142,13 @@ export function EconomicIndicators() {
     
     // Convert to numbers for numeric fields
     const numericFields: SortField[] = ['current', 'forecast', 'vsForecast', 'prior', 'vsPrior', 'zScore', 'threeMonthAnnualized', 'yoyChange'];
+    
+    // Handle date fields for lastUpdated
+    if (sortField === 'lastUpdated') {
+      const aDate = aVal ? new Date(aVal as string).getTime() : 0;
+      const bDate = bVal ? new Date(bVal as string).getTime() : 0;
+      return sortDirection === 'asc' ? aDate - bDate : bDate - aDate;
+    }
     if (numericFields.includes(sortField)) {
       const aNum = typeof aVal === 'string' ? parseFloat(aVal) : Number(aVal);
       const bNum = typeof bVal === 'string' ? parseFloat(bVal) : Number(bVal);
@@ -224,7 +231,15 @@ export function EconomicIndicators() {
                   {getSortIcon('category')}
                 </div>
               </th>
-              <th className="text-center py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">Last Update</th>
+              <th 
+                className="text-center py-4 px-3 text-gray-200 font-semibold border-b border-gray-600 cursor-pointer hover:bg-gray-700/50 transition-colors"
+                onClick={() => handleSort('lastUpdated')}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  Last Update
+                  {getSortIcon('lastUpdated')}
+                </div>
+              </th>
               <th 
                 className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600 cursor-pointer hover:bg-gray-700/50 transition-colors"
                 onClick={() => handleSort('current')}
@@ -324,9 +339,18 @@ export function EconomicIndicators() {
                 </td>
                 <td className="py-4 px-3 text-center">
                   {indicator.lastUpdated ? (
-                    <span className="text-green-400 font-medium text-xs bg-green-900/20 px-2 py-1 rounded border border-green-600">
-                      TODAY
-                    </span>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-green-400 font-medium text-xs bg-green-900/20 px-2 py-1 rounded border border-green-600">
+                        FRED
+                      </span>
+                      <span className="text-gray-300 text-xs">
+                        {new Date(indicator.lastUpdated).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric',
+                          year: '2-digit'
+                        })}
+                      </span>
+                    </div>
                   ) : (
                     <span className="text-gray-400 text-xs">CSV</span>
                   )}

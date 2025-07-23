@@ -16,12 +16,17 @@ interface EconomicIndicator {
   threeMonthAnnualized?: number | null;
   unit: string;
   frequency: string;
+  dateOfRelease?: string;
+  nextRelease?: string;
+  lastUpdated?: string;
 }
 
 interface FredApiResponse {
   observations: Array<{
     date: string;
     value: string;
+    realtime_start: string;
+    realtime_end: string;
   }>;
 }
 
@@ -197,7 +202,10 @@ class EconomicIndicatorsService {
       
       if (historicalIndicators.length > 0) {
         logger.info(`✅ Historical indicators loaded: ${historicalIndicators.length} with FRED data`);
-        return historicalIndicators;
+        
+        // Enhance with realtime_start data from FRED API
+        const enhancedIndicators = await this.addRealtimeStartDates(historicalIndicators);
+        return enhancedIndicators;
       }
 
       // Fallback to CSV data if no historical data available
@@ -244,11 +252,11 @@ class EconomicIndicatorsService {
 
       for (const record of records) {
         // Skip empty rows
-        if (!record['Metric'] || record['Metric'].trim() === '') {
+        if (!record || typeof record !== 'object' || !record['Metric'] || record['Metric'].toString().trim() === '') {
           continue;
         }
 
-        const indicator = this.processCSVRecord(record);
+        const indicator = this.processCSVRecord(record as Record<string, any>);
         indicators.push(indicator);
       }
 
@@ -259,7 +267,7 @@ class EconomicIndicatorsService {
     }
   }
 
-  private processCSVRecord(record: any): EconomicIndicator {
+  private processCSVRecord(record: Record<string, any>): EconomicIndicator {
     const current = this.parseNumber(record['Current Reading']);
     const forecast = this.parseNumber(record['Forecast']);
     const prior = this.parseNumber(record['Prior Reading']);
@@ -371,9 +379,83 @@ class EconomicIndicatorsService {
     return values.reverse(); // Return chronological order
   }
 
+  /**
+   * Add realtime_start dates to indicators by fetching from FRED API
+   */
+  private async addRealtimeStartDates(indicators: EconomicIndicator[]): Promise<EconomicIndicator[]> {
+    const FRED_API_KEY = process.env.FRED_API_KEY;
+    const FRED_BASE_URL = 'https://api.stlouisfed.org/fred/series/observations';
+    
+    if (!FRED_API_KEY) {
+      logger.warn('⚠️ FRED_API_KEY not available, skipping realtime_start enhancement');
+      return indicators;
+    }
+
+    logger.info('🔍 Enhancing indicators with FRED realtime_start dates...');
+    
+    const enhancedIndicators: EconomicIndicator[] = [];
+    
+    for (const indicator of indicators) {
+      let enhanced = { ...indicator };
+      
+      // Find FRED series ID for this metric
+      const fredConfig = Object.entries(this.fredSeriesMap).find(
+        ([metricName]) => metricName === indicator.metric
+      );
+      
+      if (fredConfig) {
+        const [, config] = fredConfig;
+        try {
+          // Fetch latest observation with realtime_start
+          const realtimeStart = await this.fetchRealtimeStart(config.id, FRED_API_KEY, FRED_BASE_URL);
+          if (realtimeStart) {
+            enhanced.lastUpdated = realtimeStart;
+            logger.info(`✅ ${indicator.metric}: realtime_start = ${realtimeStart}`);
+          }
+        } catch (error) {
+          logger.warn(`⚠️ Failed to fetch realtime_start for ${indicator.metric}:`, error);
+        }
+      }
+      
+      enhancedIndicators.push(enhanced);
+    }
+    
+    logger.info(`✅ Enhanced ${enhancedIndicators.length} indicators with realtime_start dates`);
+    return enhancedIndicators;
+  }
+
+  /**
+   * Fetch realtime_start date for the latest observation of a FRED series
+   */
+  private async fetchRealtimeStart(seriesId: string, apiKey: string, baseUrl: string): Promise<string | null> {
+    try {
+      const response = await axios.get(baseUrl, {
+        params: {
+          series_id: seriesId,
+          api_key: apiKey,
+          file_type: 'json',
+          sort_order: 'desc',
+          limit: 1, // Only get the latest observation
+        },
+        timeout: 10000,
+      });
+
+      const observations = response.data?.observations || [];
+      if (observations.length > 0) {
+        const latestObs = observations[0];
+        return latestObs.realtime_start || null;
+      }
+      
+      return null;
+    } catch (error) {
+      logger.warn(`⚠️ Error fetching realtime_start for ${seriesId}:`, error);
+      return null;
+    }
+  }
+
   private processIndicatorData(
     metricName: string,
-    config: any,
+    config: Record<string, any>,
     values: number[]
   ): EconomicIndicator {
     const current = values[values.length - 1] || null;
@@ -417,7 +499,7 @@ class EconomicIndicatorsService {
     };
   }
 
-  private createFallbackIndicator(metricName: string, config: any): EconomicIndicator {
+  private createFallbackIndicator(metricName: string, config: Record<string, any>): EconomicIndicator {
     // This method is no longer used - CSV data is loaded directly in getFallbackIndicators()
     console.warn('⚠️ createFallbackIndicator called but should not be used with CSV data');
     
