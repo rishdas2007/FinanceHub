@@ -13,6 +13,7 @@ interface EconomicIndicator {
   vsPrior: number | null;
   zScore: number | null;
   yoyChange: number | null;
+  threeMonthAnnualized?: number | null;
   unit: string;
   frequency: string;
 }
@@ -130,6 +131,7 @@ export function EconomicIndicators() {
               <th className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">Prior</th>
               <th className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">vs Prior</th>
               <th className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">Z-Score</th>
+              <th className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">3M Ann</th>
               <th className="text-right py-4 px-3 text-gray-200 font-semibold border-b border-gray-600">12M YoY</th>
             </tr>
           </thead>
@@ -173,6 +175,9 @@ export function EconomicIndicators() {
                 </td>
                 <td className={`py-4 px-3 text-right font-bold text-lg ${getVarianceColor(indicator.zScore)}`}>
                   {indicator.zScore?.toFixed(2) || 'N/A'}
+                </td>
+                <td className={`py-4 px-3 text-right font-bold text-lg ${getVarianceColor(indicator.threeMonthAnnualized)}`}>
+                  {indicator.threeMonthAnnualized ? `${indicator.threeMonthAnnualized.toFixed(1)}%` : 'N/A'}
                 </td>
                 <td className={`py-4 px-3 text-right font-bold text-lg ${getVarianceColor(indicator.yoyChange)}`}>
                   {indicator.yoyChange ? `${indicator.yoyChange.toFixed(1)}%` : 'N/A'}
