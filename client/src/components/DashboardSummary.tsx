@@ -83,7 +83,9 @@ export function DashboardSummary() {
             <TrendingUp className="h-4 w-4 mr-2" />
             Executive Summary
           </h3>
-          <p className="text-gray-300 leading-relaxed">{summary.executiveSummary}</p>
+          <p className="text-gray-300 leading-relaxed" dangerouslySetInnerHTML={{
+            __html: summary.executiveSummary.replace(/\*\*(.*?)\*\*/g, '<strong class="text-blue-400">$1</strong>')
+          }}></p>
         </div>
 
         {/* Three Column Layout */}
@@ -95,7 +97,9 @@ export function DashboardSummary() {
               {summary.keyInsights.map((insight, index) => (
                 <li key={index} className="text-sm text-gray-300 flex items-start">
                   <span className="text-green-400 mr-2 mt-1">•</span>
-                  <span>{insight}</span>
+                  <span dangerouslySetInnerHTML={{
+                    __html: insight.replace(/\*\*(.*?)\*\*/g, '<strong class="text-blue-400">$1</strong>')
+                  }}></span>
                 </li>
               ))}
             </ul>
@@ -104,7 +108,9 @@ export function DashboardSummary() {
           {/* Market Outlook */}
           <div className="bg-financial-dark rounded-lg p-4">
             <h4 className="font-semibold text-blue-400 mb-3">Market Outlook</h4>
-            <p className="text-sm text-gray-300 leading-relaxed">{summary.marketOutlook}</p>
+            <p className="text-sm text-gray-300 leading-relaxed" dangerouslySetInnerHTML={{
+              __html: summary.marketOutlook.replace(/\*\*(.*?)\*\*/g, '<strong class="text-blue-400">$1</strong>')
+            }}></p>
           </div>
 
           {/* Risk Factors & Actions */}
@@ -115,7 +121,9 @@ export function DashboardSummary() {
                 {summary.riskFactors.map((risk, index) => (
                   <li key={index} className="text-xs text-gray-300 flex items-start">
                     <span className="text-red-400 mr-2 mt-1">⚠</span>
-                    <span>{risk}</span>
+                    <span dangerouslySetInnerHTML={{
+                      __html: risk.replace(/\*\*(.*?)\*\*/g, '<strong class="text-blue-400">$1</strong>')
+                    }}></span>
                   </li>
                 ))}
               </ul>
@@ -127,7 +135,9 @@ export function DashboardSummary() {
                 {summary.actionItems.map((action, index) => (
                   <li key={index} className="text-xs text-gray-300 flex items-start">
                     <span className="text-yellow-400 mr-2 mt-1">→</span>
-                    <span>{action}</span>
+                    <span dangerouslySetInnerHTML={{
+                      __html: action.replace(/\*\*(.*?)\*\*/g, '<strong class="text-blue-400">$1</strong>')
+                    }}></span>
                   </li>
                 ))}
               </ul>

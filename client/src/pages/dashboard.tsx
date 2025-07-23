@@ -2,6 +2,7 @@
 
 import MomentumAnalysis from "@/components/momentum-analysis";
 import { DashboardSummary } from "@/components/DashboardSummary";
+import { RecentEconomicReadings } from "@/components/RecentEconomicReadings";
 import { AAIISentiment } from "@/components/aaii-sentiment";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
 import { EmailSubscription } from "@/components/email-subscription";
@@ -58,6 +59,9 @@ export default function Dashboard() {
 
         {/* AI Dashboard Summary */}
         <DashboardSummary />
+
+        {/* Recent Economic Readings - Full Width */}
+        <RecentEconomicReadings />
 
         {/* Simplified Momentum Analysis with Verified Calculations */}
         <MomentumAnalysis />

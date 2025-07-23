@@ -140,7 +140,7 @@ export class DashboardSummaryService {
     return `
 Analyze this comprehensive financial dashboard data and provide an executive summary in JSON format:
 
-ECONOMIC INDICATORS DATA:
+ECONOMIC INDICATORS DATA (prioritized by most recent "Last Update" date):
 ${economicSummary}
 
 MOMENTUM ANALYSIS DATA:
@@ -159,14 +159,20 @@ Provide a comprehensive analysis in this exact JSON structure:
   "confidence": 85
 }
 
+IMPORTANT FORMATTING REQUIREMENTS:
+- Make ALL numerical values, percentages, and metrics BOLD in your response
+- Use **bold** formatting for all numbers, percentages, ratios, and financial metrics
+- Example: "SPY at **$627.41** with RSI at **68.2**" not "SPY at $627.41 with RSI at 68.2"
+- Bold ALL economic data points, sector returns, technical indicators, and sentiment readings
+
 Focus on:
-1. Cross-section analysis between economic data, momentum, and sentiment
-2. Identifying divergences or confirmations across data sets
-3. Actionable insights for investment positioning
-4. Risk assessment based on current data
+1. Prioritize the 6 most recent economic readings by "Last Update" date
+2. Cross-section analysis between economic data, momentum, and sentiment
+3. Identifying divergences or confirmations across data sets
+4. Actionable insights for investment positioning with bold metrics
 5. Forward-looking perspective based on leading indicators
 
-Keep insights concise but substantive. Use specific data points where relevant.
+Keep insights concise but substantive. Use specific data points with bold formatting.
 `;
   }
 
@@ -175,9 +181,18 @@ Keep insights concise but substantive. Use specific data points where relevant.
       return "Economic indicators data unavailable";
     }
 
-    const recent = indicators.slice(0, 8);
+    // Sort by lastUpdated date (most recent first) and take top 6
+    const sortedByDate = indicators
+      .filter(ind => ind.lastUpdated)
+      .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
+      .slice(0, 6);
+    
+    // If we don't have enough with dates, fill with others
+    const remaining = indicators.filter(ind => !ind.lastUpdated).slice(0, 6 - sortedByDate.length);
+    const recent = [...sortedByDate, ...remaining];
+
     return recent.map(ind => 
-      `${ind.metric}: ${ind.current} (Type: ${ind.type})`
+      `${ind.metric}: **${ind.current}** (Type: ${ind.type}, Updated: ${ind.lastUpdated || 'Recent'})`
     ).join('\n');
   }
 
@@ -189,9 +204,9 @@ Keep insights concise but substantive. Use specific data points where relevant.
     const spy = momentum.momentumStrategies.find((s: any) => s.ticker === 'SPY');
     const sectors = momentum.momentumStrategies.filter((s: any) => s.ticker !== 'SPY').slice(0, 5);
     
-    let summary = spy ? `SPY: ${spy.momentum} momentum, RSI ${spy.rsi}, 1-day ${spy.oneDayChange}%\n` : '';
+    let summary = spy ? `SPY: **${spy.momentum}** momentum, RSI **${spy.rsi}**, 1-day **${spy.oneDayChange}%**\n` : '';
     summary += sectors.map((s: any) => 
-      `${s.sector}: ${s.momentum}, RSI ${s.rsi}, 1-day ${s.oneDayChange}%`
+      `${s.sector}: **${s.momentum}**, RSI **${s.rsi}**, 1-day **${s.oneDayChange}%**`
     ).join('\n');
     
     return summary;
@@ -202,7 +217,7 @@ Keep insights concise but substantive. Use specific data points where relevant.
       return "Market sentiment data unavailable";
     }
 
-    return `VIX: ${sentiment.vix || 'N/A'}, AAII Bullish: ${sentiment.aaiiBullish || 'N/A'}%, AAII Bearish: ${sentiment.aaiiBearish || 'N/A'}%`;
+    return `VIX: **${sentiment.vix || 'N/A'}**, AAII Bullish: **${sentiment.aaiiBullish || 'N/A'}%**, AAII Bearish: **${sentiment.aaiiBearish || 'N/A'}%**`;
   }
 
   private getFallbackSummary(): DashboardSummaryData {
