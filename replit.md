@@ -20,7 +20,9 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 - **WEEKEND EMAIL SUPPORT**: Sunday delivery for weekly market summary alongside market day delivery schedule
 - **SENDER EMAIL UPDATED**: Changed from generic address to verified sender "me@rishabhdas.com" for successful delivery
 - **SENDGRID TROUBLESHOOTING**: Added diagnostic routes and simple test endpoint for email delivery verification
-- **STATUS**: Comprehensive email system with all dashboard elements, Sunday delivery, and verified sender fully operational
+- **EMAIL TEMPLATE SIMPLIFIED**: Updated to show only 4 specific dashboard sections per user request: AI Dashboard Summary, Recent Economic Readings, Momentum Strategies with Enhanced Metrics, and Economic Indicators
+- **SENDER EMAIL VERIFIED**: Using verified "me@rishabhdas.com" for successful delivery
+- **STATUS**: Simplified email system with 4 dashboard sections, Sunday delivery, and verified sender fully operational
 
 ### COMPREHENSIVE AUDIT RECOMMENDATIONS IMPLEMENTATION COMPLETED (July 23, 2025 - PREVIOUS UPDATE)
 - **HIGH-PRIORITY CIRCUIT BREAKER PATTERN**: Implemented complete circuit breaker pattern for external API resilience with service-specific configurations

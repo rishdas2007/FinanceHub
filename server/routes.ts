@@ -1147,14 +1147,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       };
 
-      // Use enhanced email service with comprehensive dashboard template
-      const { enhancedEmailService } = await import('./services/email-unified-enhanced.js');
+      // Use simplified email service with 4 dashboard sections only
+      const { simplifiedEmailService } = await import('./services/email-simplified.js');
       
       const sendGridEnabled = !!process.env.SENDGRID_API_KEY;
       
       if (sendGridEnabled) {
         try {
-          await enhancedEmailService.sendDailyMarketEmail([{ 
+          await simplifiedEmailService.sendDailyMarketEmail([{ 
             id: 1, 
             email, 
             token: 'test', 
@@ -1163,19 +1163,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }], emailData);
           res.json({
             success: true,
-            message: 'Comprehensive dashboard email sent successfully',
-            sections: ['Live Market Snapshot', 'Chart Analysis', 'Market Sentiment', 'Technical Analysis', 'AI Commentary', 'Sector Tracker', 'Economic Calendar'],
+            message: 'Simplified dashboard email sent successfully',
+            sections: ['AI Dashboard Summary', 'Recent Economic Readings', 'Momentum Strategies with Enhanced Metrics', 'Economic Indicators'],
             recipient: email,
-            template: 'Enhanced Dashboard Template'
+            template: 'Simplified Dashboard Template'
           });
         } catch (error) {
           console.error('SendGrid Error Details:', error);
           res.json({
             success: false,
             message: 'Email template generated but SendGrid delivery failed',
-            sections: ['Live Market Snapshot', 'Chart Analysis', 'Market Sentiment', 'Technical Analysis', 'AI Commentary', 'Sector Tracker', 'Economic Calendar'],
+            sections: ['AI Dashboard Summary', 'Recent Economic Readings', 'Momentum Strategies with Enhanced Metrics', 'Economic Indicators'],
             recipient: email,
-            template: 'Enhanced Dashboard Template',
+            template: 'Simplified Dashboard Template',
             sendgridError: error instanceof Error ? error.message : 'SendGrid error',
             troubleshooting: {
               possibleCauses: [
@@ -1191,9 +1191,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.json({
           success: true,
-          message: 'Comprehensive dashboard email template generated successfully',
-          sections: ['Live Market Snapshot', 'Chart Analysis', 'Market Sentiment', 'Technical Analysis', 'AI Commentary', 'Sector Tracker', 'Economic Calendar'],
-          template: 'Enhanced Dashboard Template',
+          message: 'Simplified dashboard email template generated successfully',
+          sections: ['AI Dashboard Summary', 'Recent Economic Readings', 'Momentum Strategies with Enhanced Metrics', 'Economic Indicators'],
+          template: 'Simplified Dashboard Template',
           note: 'Configure SENDGRID_API_KEY to send actual emails'
         });
       }
@@ -1339,11 +1339,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       };
 
-      // Import enhanced email service
-      const { enhancedEmailService } = await import('./services/email-unified-enhanced.js');
+      // Import simplified email service
+      const { simplifiedEmailService } = await import('./services/email-simplified.js');
       
       // Generate HTML content (use private method via workaround)
-      const htmlContent = (enhancedEmailService as any).generateComprehensiveDashboardTemplate(emailData);
+      const htmlContent = (simplifiedEmailService as any).generateSimplifiedDashboardTemplate(emailData);
       
       // Return HTML for preview
       res.setHeader('Content-Type', 'text/html');

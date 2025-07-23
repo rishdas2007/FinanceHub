@@ -78,8 +78,8 @@ export class DataScheduler {
     try {
       console.log('📧 Sending daily market commentary emails...');
       
-      // Import unified email service  
-      const { emailService } = await import('./email-unified.js');
+      // Import simplified email service with 4 dashboard sections only
+      const { simplifiedEmailService } = await import('./email-simplified.js');
       
       // FIXED: Generate fresh analysis using real data instead of mock data
       // Get fresh real-time data for email
@@ -222,7 +222,7 @@ export class DataScheduler {
       const subscribers = await storage.getActiveEmailSubscriptions();
       
       if (subscribers.length > 0) {
-        const result = await emailService.sendDailyMarketEmail(subscribers, emailData);
+        const result = await simplifiedEmailService.sendDailyMarketEmail(subscribers, emailData);
         console.log(`📧 Daily emails sent: ${result.sent} successful, ${result.failed} failed`);
       } else {
         console.log('📧 No active subscribers found for daily email');
