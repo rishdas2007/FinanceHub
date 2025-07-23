@@ -54,6 +54,7 @@ export interface IStorage {
   
   // Economic events
   getUpcomingEconomicEvents(): Promise<EconomicEvent[]>;
+  getAllEconomicEvents(): Promise<EconomicEvent[]>;
   createEconomicEvent(event: InsertEconomicEvent): Promise<EconomicEvent>;
   
   // Market breadth operations
@@ -66,6 +67,7 @@ export interface IStorage {
   
   // Sector data operations
   getLatestSectorData(): Promise<SectorData[]>;
+  getAllSectorData(): Promise<SectorData[]>;
   createSectorData(sector: InsertSectorData): Promise<SectorData>;
 }
 
@@ -244,6 +246,10 @@ export class MemStorage implements IStorage {
       .slice(0, 10);
   }
 
+  async getAllEconomicEvents(): Promise<EconomicEvent[]> {
+    return this.economicEvents.slice().sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  }
+
   async createEconomicEvent(event: InsertEconomicEvent): Promise<EconomicEvent> {
     const id = this.currentId++;
     const eventEntry: EconomicEvent = {
@@ -295,6 +301,10 @@ export class MemStorage implements IStorage {
     // Return most recent sector data, or empty array if none
     const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
     return this.sectorData.filter(sector => sector.timestamp > twoMinutesAgo);
+  }
+
+  async getAllSectorData(): Promise<SectorData[]> {
+    return this.sectorData.slice().sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
   }
 
   async createSectorData(sector: InsertSectorData): Promise<SectorData> {

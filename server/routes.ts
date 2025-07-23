@@ -1116,44 +1116,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get fresh market data for email
       const freshMarketData = await gatherMarketDataForAI();
       
-      // Get real sector data for Momentum Strategies section
+      // Get sector data from database (last available data)
       let sectorData = [];
       try {
-        const { FinancialDataService } = await import('./services/financial-data.js');
-        const financialService = FinancialDataService.getInstance();
-        const sectors = await financialService.getSectorETFs();
+        const { storage } = await import('./storage.js');
+        const dbSectors = await storage.getAllSectorData();
         
-        sectorData = sectors.map(sector => ({
-          sector: sector.name,
+        sectorData = dbSectors.map(sector => ({
+          sector: sector.name || sector.symbol,
           ticker: sector.symbol,
           oneDay: sector.changePercent?.toFixed(2) || '0.00',
-          fiveDay: sector.fiveDayChange?.toFixed(2) || '0.00', 
-          oneMonth: sector.monthlyChange?.toFixed(2) || '0.00',
+          fiveDay: sector.fiveDayChange?.toFixed(2) || '0.00',
+          oneMonth: sector.monthlyChange?.toFixed(2) || '0.00', 
           rsi: sector.rsi?.toFixed(1) || '50.0',
           signal: sector.changePercent > 1 ? 'Bullish' : sector.changePercent < -1 ? 'Bearish' : 'Neutral'
         }));
-        console.log(`📊 Real sector data for email: ${sectorData.length} sectors`);
-        console.log('📊 First sector:', sectorData[0]);
+        console.log(`📊 Database sector data for email: ${sectorData.length} sectors`);
       } catch (error) {
-        console.error('Error fetching sector data for email:', error);
+        console.error('Error fetching sector data from database:', error);
       }
       
-      // Get real economic events for Recent Economic Readings section
+      // Get economic events from database (last available data)
       let economicEventsData = [];
       try {
-        const { economicDataEnhancedService } = await import('./services/economic-data-enhanced.js');
-        const events = await economicDataEnhancedService.getEnhancedEconomicEvents();
+        const { storage } = await import('./storage.js');
+        const dbEvents = await storage.getAllEconomicEvents();
         
-        economicEventsData = events.slice(0, 6).map(event => ({
+        economicEventsData = dbEvents.slice(0, 6).map(event => ({
           indicator: event.title || event.indicator,
           actual: event.actual || 'N/A',
-          forecast: event.forecast || 'N/A', 
+          forecast: event.forecast || 'N/A',
           date: event.date || event.releaseDate || 'N/A'
         }));
-        console.log(`📅 Real economic events for email: ${economicEventsData.length} events`);
-        console.log('📅 First event:', economicEventsData[0]);
+        console.log(`📅 Database economic events for email: ${economicEventsData.length} events`);
       } catch (error) {
-        console.error('Error fetching economic events for email:', error);
+        console.error('Error fetching economic events from database:', error);
       }
       
       // Generate simple analysis for email test

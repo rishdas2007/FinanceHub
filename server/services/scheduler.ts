@@ -211,8 +211,8 @@ export class DataScheduler {
           rsi: finalTechnical.rsi,
           macd: finalTechnical.macd
         },
-        sectors: finalSectors,
-        economicEvents: finalEconomicEvents,
+        sectors: await this.getDatabaseSectorData(),
+        economicEvents: await this.getDatabaseEconomicEvents(),
         analysis,
         timestamp: new Date().toISOString()
       };
@@ -441,6 +441,43 @@ export class DataScheduler {
   async forceUpdate(): Promise<void> {
     console.log('🚨 Force updating all data...');
     await this.updateAllData();
+  }
+
+  async getDatabaseSectorData(): Promise<any[]> {
+    try {
+      const { storage } = await import('../storage.js');
+      const dbSectors = await storage.getAllSectorData();
+      
+      return dbSectors.map(sector => ({
+        sector: sector.name || sector.symbol,
+        ticker: sector.symbol,
+        oneDay: sector.changePercent?.toFixed(2) || '0.00',
+        fiveDay: sector.fiveDayChange?.toFixed(2) || '0.00',
+        oneMonth: sector.monthlyChange?.toFixed(2) || '0.00',
+        rsi: sector.rsi?.toFixed(1) || '50.0',
+        signal: sector.changePercent > 1 ? 'Bullish' : sector.changePercent < -1 ? 'Bearish' : 'Neutral'
+      }));
+    } catch (error) {
+      console.error('Error fetching database sector data:', error);
+      return [];
+    }
+  }
+
+  async getDatabaseEconomicEvents(): Promise<any[]> {
+    try {
+      const { storage } = await import('../storage.js');
+      const dbEvents = await storage.getAllEconomicEvents();
+      
+      return dbEvents.slice(0, 6).map(event => ({
+        indicator: event.title || event.indicator,
+        actual: event.actual || 'N/A', 
+        forecast: event.forecast || 'N/A',
+        date: event.date || event.releaseDate || 'N/A'
+      }));
+    } catch (error) {
+      console.error('Error fetching database economic events:', error);
+      return [];
+    }
   }
 }
 
