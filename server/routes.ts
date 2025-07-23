@@ -462,7 +462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🧠 Generating enhanced AI analysis with FRESH real-time data... [DATA SYNC FIX ACTIVE]');
       
       const { cacheService } = await import('./services/cache-unified');
-      const cacheKey = 'ai-analysis-data';
+      const cacheKey = 'ai-analysis-data-v2-spy-focus';
       
       // Check cache first (2 minute TTL for AI analysis data)
       const bypassCache = req.headers['x-bypass-cache'] === 'true';

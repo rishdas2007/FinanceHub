@@ -15,19 +15,24 @@ interface MarketSynthesis {
 }
 
 class MarketSynthesisService {
-  private readonly CACHE_KEY = 'market-synthesis-v5'; // Updated to fix undefined references with proper data fallbacks
+  private readonly CACHE_KEY = 'market-synthesis-v6-economic-focus'; // Updated for new Economic Synthesis format with 6 recent readings
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes during market hours - back to standard
 
   async generateMarketSynthesis(): Promise<MarketSynthesis> {
     try {
-      // Check cache first for cost optimization
-      const cached = cacheService.get(this.CACHE_KEY);
-      if (cached) {
-        logger.info('Market synthesis served from cache for cost optimization');
-        return cached;
-      }
+      // Force bypass cache to implement new prompt changes
+      const cached = null; // Temporarily force fresh generation for new prompt implementation
+      // const cached = cacheService.get(this.CACHE_KEY);
+      // if (cached) {
+      //   logger.info('Market synthesis served from cache for cost optimization');
+      //   return cached;
+      // }
 
       logger.info('Generating fresh market synthesis with OpenAI');
+
+      // Clear any old cache entries to force fresh generation
+      cacheService.delete('market-synthesis-v5');
+      cacheService.delete('market-synthesis-v6-economic-focus');
 
       // Wait for AI Market Summary to be available first
       const aiSummaryData = await this.getAIMarketSummary();
@@ -267,10 +272,10 @@ Rules:
       console.log('🔍 Searching for sections in cleaned content...');
       console.log('📋 First 200 chars:', cleanContent.substring(0, 200));
       
-      // Extract sections using more flexible regex patterns with case-insensitive matching
-      const marketPulseMatch = cleanContent.match(/ECONOMIC PULSE[\s:]*\n*(.*?)(?=CRITICAL INDICATORS|$)/si);
-      const catalystsMatch = cleanContent.match(/CRITICAL INDICATORS[\s:]*\n*(.*?)(?=ECONOMIC OUTLOOK|$)/si);
-      const actionItemsMatch = cleanContent.match(/ECONOMIC OUTLOOK[\s:]*\n*(.*?)$/si);
+      // Extract sections using new format (OVERALL ECONOMIC HEALTH, KEY VARIANCES, RISKS AND OPPORTUNITIES)
+      const marketPulseMatch = cleanContent.match(/OVERALL ECONOMIC HEALTH[\s:]*\n*(.*?)(?=KEY VARIANCES|$)/si);
+      const catalystsMatch = cleanContent.match(/KEY VARIANCES[\s:]*\n*(.*?)(?=RISKS AND OPPORTUNITIES|$)/si);
+      const actionItemsMatch = cleanContent.match(/RISKS AND OPPORTUNITIES[\s:]*\n*(.*?)$/si);
       
       console.log('🎯 Section matches found:', {
         marketPulse: !!marketPulseMatch,
