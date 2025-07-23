@@ -1169,14 +1169,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
             template: 'Enhanced Dashboard Template'
           });
         } catch (error) {
+          console.error('SendGrid Error Details:', error);
           res.json({
             success: false,
-            message: 'Email template generated but SendGrid authentication failed',
+            message: 'Email template generated but SendGrid delivery failed',
             sections: ['Live Market Snapshot', 'Chart Analysis', 'Market Sentiment', 'Technical Analysis', 'AI Commentary', 'Sector Tracker', 'Economic Calendar'],
             recipient: email,
             template: 'Enhanced Dashboard Template',
-            note: 'Email content ready - please provide valid SendGrid API key to send emails',
-            error: error instanceof Error ? error.message : 'SendGrid error'
+            sendgridError: error instanceof Error ? error.message : 'SendGrid error',
+            troubleshooting: {
+              possibleCauses: [
+                '1. From email address not verified in SendGrid',
+                '2. API key permissions insufficient (needs Mail Send permission)',
+                '3. Account suspended or limited',
+                '4. Domain authentication required'
+              ],
+              solution: 'Check SendGrid dashboard for sender verification and API permissions'
+            }
           });
         }
       } else {
@@ -1193,6 +1202,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error testing updated email:', error);
       res.status(500).json({ 
         message: "Failed to test updated email template", 
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // SendGrid Diagnostic Route - Check API setup
+  app.get("/api/email/sendgrid-status", async (req, res) => {
+    try {
+      const { MailService } = await import('@sendgrid/mail');
+      const mailService = new MailService();
+      
+      if (!process.env.SENDGRID_API_KEY) {
+        return res.json({
+          status: 'error',
+          message: 'SENDGRID_API_KEY not configured',
+          setup: false
+        });
+      }
+
+      mailService.setApiKey(process.env.SENDGRID_API_KEY);
+      
+      // Test with a minimal request to check API key validity
+      try {
+        // We'll catch the specific error to diagnose the issue
+        await mailService.send({
+          to: 'test@example.com',
+          from: 'test@test.com', // This will fail but give us info
+          subject: 'Test',
+          text: 'test'
+        });
+      } catch (error: any) {
+        res.json({
+          status: 'diagnostic',
+          apiKeyValid: error.code !== 401, // 401 = bad API key, 403 = sender not verified
+          errorCode: error.code,
+          errorMessage: error.message,
+          diagnosis: error.code === 403 
+            ? 'API key is valid but sender email needs verification'
+            : error.code === 401
+            ? 'API key is invalid or expired'
+            : 'Other SendGrid configuration issue',
+          nextSteps: error.code === 403
+            ? [
+                '1. Go to SendGrid dashboard > Settings > Sender Authentication',
+                '2. Add and verify your email address as a sender',
+                '3. Or set up domain authentication',
+                '4. Use the verified email in the from field'
+              ]
+            : [
+                '1. Check your SendGrid API key is correct',
+                '2. Ensure the API key has Mail Send permissions',
+                '3. Verify your SendGrid account is active'
+              ]
+        });
+      }
+    } catch (error) {
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to check SendGrid configuration',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
