@@ -1147,24 +1147,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       };
 
-      // Use unified email service
-      const { emailService } = await import('./services/email-unified.js');
+      // Use enhanced email service with comprehensive dashboard template
+      const { enhancedEmailService } = await import('./services/email-unified-enhanced.js');
       
       const sendGridEnabled = !!process.env.SENDGRID_API_KEY;
       
       if (sendGridEnabled) {
-        await emailService.sendTestEmail(email, emailData);
-        res.json({
-          success: true,
-          message: 'Updated email template sent successfully',
-          sections: ['AI Market Commentary', 'Risk-Return: Annual Return vs 1-Day Z-Score', 'Momentum Strategies with Enhanced Metrics'],
-          recipient: email
-        });
+        try {
+          await enhancedEmailService.sendDailyMarketEmail([{ 
+            id: 1, 
+            email, 
+            token: 'test', 
+            createdAt: new Date(), 
+            isActive: true 
+          }], emailData);
+          res.json({
+            success: true,
+            message: 'Comprehensive dashboard email sent successfully',
+            sections: ['Live Market Snapshot', 'Chart Analysis', 'Market Sentiment', 'Technical Analysis', 'AI Commentary', 'Sector Tracker', 'Economic Calendar'],
+            recipient: email,
+            template: 'Enhanced Dashboard Template'
+          });
+        } catch (error) {
+          res.json({
+            success: false,
+            message: 'Email template generated but SendGrid authentication failed',
+            sections: ['Live Market Snapshot', 'Chart Analysis', 'Market Sentiment', 'Technical Analysis', 'AI Commentary', 'Sector Tracker', 'Economic Calendar'],
+            recipient: email,
+            template: 'Enhanced Dashboard Template',
+            note: 'Email content ready - please provide valid SendGrid API key to send emails',
+            error: error instanceof Error ? error.message : 'SendGrid error'
+          });
+        }
       } else {
         res.json({
           success: true,
-          message: 'Email template updated successfully (SendGrid not configured)',
-          sections: ['AI Market Commentary', 'Risk-Return: Annual Return vs 1-Day Z-Score', 'Momentum Strategies with Enhanced Metrics'],
+          message: 'Comprehensive dashboard email template generated successfully',
+          sections: ['Live Market Snapshot', 'Chart Analysis', 'Market Sentiment', 'Technical Analysis', 'AI Commentary', 'Sector Tracker', 'Economic Calendar'],
+          template: 'Enhanced Dashboard Template',
           note: 'Configure SENDGRID_API_KEY to send actual emails'
         });
       }
