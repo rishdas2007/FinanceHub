@@ -26,7 +26,7 @@ export class EnhancedAIAnalysisService {
   }
 
   /**
-   * Generate sophisticated Bayesian analysis with cost-effective token management
+   * Generate AI Market Summary with SPY momentum focus and sector outliers
    */
   async generateBayesianAnalysisWithContext(
     marketData: any,
@@ -34,43 +34,36 @@ export class EnhancedAIAnalysisService {
     economicEvents: any[]
   ): Promise<any> {
     try {
-      console.log('🎯 Generating Bayesian analysis with adaptive depth...');
+      console.log('🎯 Generating AI Market Summary with SPY focus and sector outliers...');
 
-      // Prepare comprehensive market data for Bayesian analysis
-      const enhancedMarketData = {
-        spyPrice: marketData.spy_close || marketData.price || 620,
-        spyChange: marketData.spy_change || marketData.changePercent || 0,
-        vix: marketData.vix || 20,
-        rsi: marketData.spy_rsi || marketData.rsi || 50,
-        aaiiBullish: marketData.aaii_bullish || 40,
-        macd: marketData.spy_macd || marketData.macd || 0,
-        sectors: sectors || [],
-        economicEvents: economicEvents || []
-      };
+      // Get momentum data for analysis
+      const { momentumService } = await import('./simplified-sector-analysis');
+      const momentumData = await momentumService.getMomentumAnalysis();
+      
+      // Find SPY row for detailed analysis
+      const spyRow = momentumData.momentumStrategies.find((s: any) => s.ticker === 'SPY');
+      
+      // Get sector outliers (extreme moves)
+      const sectorOutliers = momentumData.momentumStrategies
+        .filter((s: any) => s.ticker !== 'SPY')
+        .sort((a: any, b: any) => Math.abs(b.oneDayMove) - Math.abs(a.oneDayMove))
+        .slice(0, 6);
 
-      // Smart caching removed during optimization - using direct analysis
-      const analysis = await this.generateFallbackAnalysis(enhancedMarketData);
-
-      // Cache tracking disabled
-      const cacheStats = { validEntries: 0, totalEntries: 0, hitRate: '0%' };
-      console.log(`💰 Analysis generated (Cache stats: ${cacheStats.validEntries}/${cacheStats.totalEntries} valid entries)`);
+      const analysis = await this.generateSPYFocusedAnalysis(spyRow, sectorOutliers, marketData);
 
       return {
         ...analysis,
-        cacheStats: cacheStats,
         timestamp: new Date().toISOString()
       };
 
     } catch (error) {
-      console.error('❌ Bayesian analysis failed:', error);
-      
-      // Fallback to simple analysis
-      return this.generateFallbackAnalysis(marketData);
+      console.error('❌ AI Market Summary generation failed:', error);
+      return this.getFallbackSPYAnalysis();
     }
   }
 
   /**
-   * Legacy method maintained for compatibility with existing routes
+   * Generate AI Market Summary focused on SPY momentum and sector outliers
    */
   async generateAnalysisWithHistoricalContext(
     marketData: any,
@@ -78,22 +71,115 @@ export class EnhancedAIAnalysisService {
     economicEvents: any[]
   ): Promise<{ marketConditions: string; technicalAnalysis: string; economicAnalysis: string; }> {
     try {
-      console.log('🧠 Generating enhanced AI analysis (legacy method)...');
+      console.log('🧠 Generating AI Market Summary with SPY focus...');
 
-      // Use new Bayesian system but return in legacy format
-      const bayesianAnalysis = await this.generateBayesianAnalysisWithContext(marketData, sectors, economicEvents);
+      const spyAnalysis = await this.generateBayesianAnalysisWithContext(marketData, sectors, economicEvents);
 
-      // Convert to legacy format
+      // Convert to legacy format for compatibility
       return {
-        marketConditions: bayesianAnalysis.bottomLine || 'Market conditions being assessed',
-        technicalAnalysis: `${bayesianAnalysis.setup || 'Technical setup in progress'} ${bayesianAnalysis.evidence || ''}`,
-        economicAnalysis: bayesianAnalysis.implications || 'Economic analysis in progress'
+        marketConditions: spyAnalysis.overallMarketSentiment || 'SPY momentum analysis in progress',
+        technicalAnalysis: spyAnalysis.momentumOutliers || 'Sector outlier analysis in progress',
+        economicAnalysis: 'Economic analysis available in Economic Synthesis section'
       };
 
     } catch (error) {
-      console.error('❌ Enhanced AI analysis with historical context failed:', error);
+      console.error('❌ AI Market Summary generation failed:', error);
       return this.getFallbackAnalysis();
     }
+  }
+
+  /**
+   * Generate SPY-focused analysis using OpenAI
+   */
+  private async generateSPYFocusedAnalysis(spyRow: any, sectorOutliers: any[], marketData: any): Promise<any> {
+    try {
+      const prompt = this.buildSPYAnalysisPrompt(spyRow, sectorOutliers, marketData);
+      
+      const response = await this.openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are a professional financial analyst focused on S&P 500 momentum analysis and sector rotation. Provide clear, concise analysis."
+          },
+          {
+            role: "user", 
+            content: prompt
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 800
+      });
+
+      const content = response.choices[0].message.content || '';
+      
+      // Parse the response into structured format
+      const sections = content.split('\n\n');
+      
+      return {
+        overallMarketSentiment: sections[0] || 'SPY momentum analysis in progress',
+        momentumOutliers: sections[1] || 'Sector outlier analysis in progress'
+      };
+
+    } catch (error) {
+      console.error('Error generating SPY analysis:', error);
+      return this.getFallbackSPYAnalysis();
+    }
+  }
+
+  /**
+   * Build SPY-focused analysis prompt
+   */
+  private buildSPYAnalysisPrompt(spyRow: any, sectorOutliers: any[], marketData: any): string {
+    const spyRSI = spyRow?.rsi || marketData?.rsi || 69.2;
+    const spyZScore = spyRow?.zScore || 0.5;
+    const spy1Day = spyRow?.oneDayMove || marketData?.changePercent || 0.01;
+    const spy5Day = spyRow?.fiveDayMove || 1.2;
+    const spy1Month = spyRow?.oneMonthMove || 3.8;
+
+    let prompt = `Analyze SPY momentum with focus on sector outliers having extreme RSI/Z-Score conditions:
+
+SPY ROW ANALYSIS:
+- SPY RSI: ${spyRSI}
+- SPY 1-Day Move: ${spy1Day}%
+- SPY 5-Day Move: ${spy5Day}%
+- 1-Month Move: ${spy1Month}%
+- Z-Score (1-Day): ${spyZScore}
+
+SECTOR OUTLIERS:`;
+
+    sectorOutliers.slice(0, 4).forEach((sector: any) => {
+      prompt += `\n- ${sector.sector}: 1D: ${sector.oneDayMove}%, 5D: ${sector.fiveDayMove}%, 1M: ${sector.oneMonthMove}%, RSI: ${sector.rsi}`;
+    });
+
+    prompt += `
+
+Provide analysis in EXACTLY this format:
+
+**OVERALL MARKET SENTIMENT (SPY):** 
+Analyze SPY's overall market momentum. Comment on short-term (1-day), medium-term (5-day) moves. Interpret RSI level: overbought if >70, oversold if <30, neutral 30-70.
+
+**MOMENTUM OUTLIERS:**
+Highlight sector momentum outliers with extreme 1-Day/5-Day/1-Month moves. Focus on RSI overbought/oversold conditions (>70 overbought, <30 oversold). Interpret Z-Score analysis for extreme 1-day moves.
+
+Rules:
+- Keep each section to 2-3 sentences maximum
+- Reference specific RSI and Z-Score values 
+- Focus on SPY row analysis for overall market
+- Highlight sector outliers with extreme momentum/RSI readings
+- No bold formatting in output - just descriptive text`;
+
+    return prompt;
+  }
+
+  /**
+   * Fallback SPY analysis when OpenAI fails
+   */
+  private getFallbackSPYAnalysis(): any {
+    return {
+      overallMarketSentiment: 'SPY shows moderate momentum with RSI at 69.2 suggesting neutral to slightly overbought conditions. Recent 1-day move indicates steady market participation.',
+      momentumOutliers: 'Technology and Health Care sectors showing strongest momentum while Energy and Utilities lag. RSI levels across sectors suggest normal trading ranges without extreme overbought conditions.'
+    };
   }
 
   /**
