@@ -58,7 +58,7 @@ export class EnhancedEmailService {
         
         await this.mailService.send({
           to: subscriber.email,
-          from: 'noreply@financehubpro.com',
+          from: 'me@rishabhdas.com',
           subject: `FinanceHub Pro Complete Dashboard - ${new Date().toLocaleDateString('en-US', { 
             weekday: 'long', 
             year: 'numeric', 

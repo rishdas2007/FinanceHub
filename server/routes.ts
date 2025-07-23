@@ -1358,6 +1358,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Simple SendGrid Test - Minimal email to test delivery
+  app.post("/api/email/simple-test", async (req, res) => {
+    try {
+      const { email = "me@rishabhdas.com" } = req.body;
+      const { MailService } = await import('@sendgrid/mail');
+      const mailService = new MailService();
+      
+      if (!process.env.SENDGRID_API_KEY) {
+        return res.json({ error: 'SENDGRID_API_KEY not configured' });
+      }
+
+      mailService.setApiKey(process.env.SENDGRID_API_KEY);
+      
+      try {
+        await mailService.send({
+          to: email,
+          from: 'me@rishabhdas.com',
+          subject: 'FinanceHub Pro - Simple Test Email',
+          text: 'This is a test email to verify SendGrid delivery is working.',
+          html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+              <h2>FinanceHub Pro Test Email</h2>
+              <p>This test email confirms that SendGrid delivery is working properly.</p>
+              <p>Sender: me@rishabhdas.com</p>
+              <p>Time: ${new Date().toLocaleString()}</p>
+              <p>If you received this, the comprehensive dashboard email should work too!</p>
+            </div>
+          `
+        });
+        
+        res.json({
+          success: true,
+          message: 'Simple test email sent successfully',
+          recipient: email,
+          sender: 'me@rishabhdas.com'
+        });
+        
+      } catch (error: any) {
+        console.error('SendGrid Simple Test Error:', error);
+        res.json({
+          success: false,
+          error: error.message,
+          code: error.code,
+          details: error.response?.body || 'No additional details',
+          troubleshooting: 'Check SendGrid dashboard for sender verification status'
+        });
+      }
+      
+    } catch (error) {
+      res.status(500).json({
+        error: 'Failed to test SendGrid',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Legacy email test endpoint (keeping for backward compatibility)
   app.post("/api/email/test-legacy", async (req, res) => {
     try {
