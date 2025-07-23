@@ -23,6 +23,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // FRED routes removed to fix crashes
 
+  // Health monitoring endpoints
+  app.use('/api/health', (await import('./routes/health')).default);
+
   // API stats endpoint
   app.get("/api/stats", (req, res) => {
     res.json(getApiStats());

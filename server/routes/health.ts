@@ -1,152 +1,262 @@
-/**
- * Health check endpoints for monitoring and observability
- */
+import { Router } from 'express';
+import { circuitBreakers } from '../middleware/circuit-breaker';
+import { performanceMonitor } from '../middleware/performance-monitor';
+import { serviceSizeMonitor } from '../utils/service-size-monitor';
+import { codeDocumentationAnalyzer } from '../utils/code-documentation';
+import { queryOptimizer } from '../utils/query-optimizer';
+import { loadTester } from '../utils/load-testing';
+import { logger } from '../utils/logger';
 
-import type { Express, Request, Response } from 'express';
-import { db } from '../db';
-import { createApiResponse, createErrorResponse } from '@shared/validation';
-import { asyncHandler } from '../middleware/error-handler';
-import logger from '../middleware/logging';
+const router = Router();
 
-interface HealthCheck {
-  status: 'ok' | 'error';
-  timestamp: string;
-  details?: any;
-}
-
-interface SystemHealth {
-  overall: 'healthy' | 'degraded' | 'unhealthy';
-  database: HealthCheck;
-  external_apis: HealthCheck;
-  memory: {
-    used: number;
-    total: number;
-    percentage: number;
-  };
-  uptime: number;
-  version: string;
-}
-
-// Check database connectivity
-const checkDatabase = async (): Promise<HealthCheck> => {
+// System health endpoint
+router.get('/health', async (req, res) => {
   try {
-    // Simple query to test connection
-    await db.execute('SELECT 1');
-    return {
-      status: 'ok',
-      timestamp: new Date().toISOString()
-    };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown database error';
-    logger.error({ error: errorMessage }, 'Database health check failed');
-    return {
-      status: 'error',
-      timestamp: new Date().toISOString(),
-      details: errorMessage
-    };
-  }
-};
-
-// Check external API availability
-const checkExternalAPIs = async (): Promise<HealthCheck> => {
-  try {
-    // Test if we can reach external APIs (without using quota)
-    const checks = await Promise.allSettled([
-      fetch('https://api.twelvedata.com/time_series', { method: 'HEAD' }),
-      fetch('https://api.openai.com/v1/models', { method: 'HEAD' })
-    ]);
-
-    const failedChecks = checks.filter(result => result.status === 'rejected');
+    const dbHealth = await performanceMonitor.checkDatabaseHealth();
+    const performanceStats = performanceMonitor.getStats();
     
-    if (failedChecks.length > 0) {
-      return {
-        status: 'error',
-        timestamp: new Date().toISOString(),
-        details: `${failedChecks.length} external API(s) unreachable`
-      };
-    }
-
-    return {
-      status: 'ok',
-      timestamp: new Date().toISOString()
+    // Get circuit breaker statuses
+    const circuitBreakerHealth = {
+      openai: circuitBreakers.openai.getHealth(),
+      twelveData: circuitBreakers.twelveData.getHealth(),
+      fred: circuitBreakers.fred.getHealth(),
+      sendgrid: circuitBreakers.sendgrid.getHealth()
     };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown external API error';
-    return {
-      status: 'error',
+
+    const overallStatus = dbHealth.status === 'healthy' && 
+      Object.values(circuitBreakerHealth).every(cb => cb.status === 'healthy')
+        ? 'healthy' 
+        : 'degraded';
+
+    res.json({
+      status: overallStatus,
       timestamp: new Date().toISOString(),
-      details: errorMessage
-    };
-  }
-};
-
-// Get memory usage statistics
-const getMemoryStats = () => {
-  const usage = process.memoryUsage();
-  const totalMem = usage.heapTotal;
-  const usedMem = usage.heapUsed;
-  
-  return {
-    used: Math.round(usedMem / 1024 / 1024), // MB
-    total: Math.round(totalMem / 1024 / 1024), // MB
-    percentage: Math.round((usedMem / totalMem) * 100)
-  };
-};
-
-export function registerHealthRoutes(app: Express) {
-  // Detailed health check
-  app.get('/health', asyncHandler(async (req: Request, res: Response) => {
-    const [databaseHealth, externalAPIsHealth] = await Promise.all([
-      checkDatabase(),
-      checkExternalAPIs()
-    ]);
-
-    const memoryStats = getMemoryStats();
-    const uptime = Math.floor(process.uptime());
-
-    const systemHealth: SystemHealth = {
-      overall: 'healthy',
-      database: databaseHealth,
-      external_apis: externalAPIsHealth,
-      memory: memoryStats,
-      uptime,
-      version: process.env.npm_package_version || '1.0.0'
-    };
-
-    // Determine overall health
-    if (databaseHealth.status === 'error') {
-      systemHealth.overall = 'unhealthy';
-    } else if (externalAPIsHealth.status === 'error' || memoryStats.percentage > 90) {
-      systemHealth.overall = 'degraded';
-    }
-
-    const statusCode = systemHealth.overall === 'unhealthy' ? 503 : 200;
-    
-    res.status(statusCode).json(createApiResponse(systemHealth));
-  }));
-
-  // Simple ping endpoint
-  app.get('/ping', (req: Request, res: Response) => {
-    res.json({ 
-      status: 'ok', 
-      timestamp: new Date().toISOString(),
-      uptime: Math.floor(process.uptime())
+      database: dbHealth,
+      circuitBreakers: circuitBreakerHealth,
+      performance: {
+        averageQueryTime: performanceStats.averageQueryTime,
+        queriesInLastHour: performanceStats.queriesInLastHour,
+        slowQueries: performanceStats.slowQueries.length
+      }
     });
-  });
+  } catch (error) {
+    logger.error('Health check failed', { error: error instanceof Error ? error.message : String(error) });
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: 'Health check failed'
+    });
+  }
+});
 
-  // Readiness probe (for Kubernetes)
-  app.get('/ready', asyncHandler(async (req: Request, res: Response) => {
-    const databaseHealth = await checkDatabase();
+// Detailed performance stats endpoint
+router.get('/performance', async (req, res) => {
+  try {
+    const stats = performanceMonitor.getStats();
+    res.json({
+      ...stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Performance stats request failed', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Failed to retrieve performance stats' });
+  }
+});
+
+// Circuit breaker status endpoint
+router.get('/circuit-breakers', (req, res) => {
+  try {
+    const status = {
+      openai: circuitBreakers.openai.getState(),
+      twelveData: circuitBreakers.twelveData.getState(),
+      fred: circuitBreakers.fred.getState(),
+      sendgrid: circuitBreakers.sendgrid.getState()
+    };
+
+    res.json({
+      timestamp: new Date().toISOString(),
+      circuitBreakers: status
+    });
+  } catch (error) {
+    logger.error('Circuit breaker status request failed', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Failed to retrieve circuit breaker status' });
+  }
+});
+
+// Service size governance endpoint
+router.get('/service-sizes', async (req, res) => {
+  try {
+    const reports = await serviceSizeMonitor.checkAllServices();
+    res.json({
+      timestamp: new Date().toISOString(),
+      services: reports,
+      summary: {
+        total: reports.length,
+        critical: reports.filter(r => r.status === 'critical').length,
+        warning: reports.filter(r => r.status === 'warning').length,
+        healthy: reports.filter(r => r.status === 'healthy').length
+      }
+    });
+  } catch (error) {
+    logger.error('Service size check failed', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Failed to check service sizes' });
+  }
+});
+
+// Generate detailed governance report
+router.get('/governance-report', async (req, res) => {
+  try {
+    const report = await serviceSizeMonitor.generateReport();
+    res.type('text/plain').send(report);
+  } catch (error) {
+    logger.error('Governance report generation failed', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Failed to generate governance report' });
+  }
+});
+
+// Code documentation analysis endpoint
+router.get('/code-documentation', async (req, res) => {
+  try {
+    const analysis = await codeDocumentationAnalyzer.analyzeProject();
+    res.json({
+      timestamp: new Date().toISOString(),
+      analysis,
+      summary: {
+        total: analysis.length,
+        wellDocumented: analysis.filter(a => a.status === 'well-documented').length,
+        needsImprovement: analysis.filter(a => a.status === 'needs-improvement').length,
+        poorlyDocumented: analysis.filter(a => a.status === 'poorly-documented').length,
+        averageCommentRatio: analysis.reduce((sum, a) => sum + a.commentRatio, 0) / analysis.length
+      }
+    });
+  } catch (error) {
+    logger.error('Code documentation analysis failed', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Failed to analyze code documentation' });
+  }
+});
+
+// Generate documentation report
+router.get('/documentation-report', async (req, res) => {
+  try {
+    const report = await codeDocumentationAnalyzer.generateDocumentationReport();
+    res.type('text/plain').send(report);
+  } catch (error) {
+    logger.error('Documentation report generation failed', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Failed to generate documentation report' });
+  }
+});
+
+// Query optimization analysis
+router.get('/query-optimization', async (req, res) => {
+  try {
+    const slowQueries = queryOptimizer.getSlowQueries();
+    res.json({
+      timestamp: new Date().toISOString(),
+      slowQueries,
+      count: slowQueries.length,
+      threshold: '100ms'
+    });
+  } catch (error) {
+    logger.error('Query optimization analysis failed', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Failed to analyze query performance' });
+  }
+});
+
+// Generate query optimization report
+router.get('/optimization-report', async (req, res) => {
+  try {
+    const report = await queryOptimizer.generateOptimizationReport();
+    res.type('text/plain').send(report);
+  } catch (error) {
+    logger.error('Optimization report generation failed', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Failed to generate optimization report' });
+  }
+});
+
+// Load testing endpoint
+router.post('/load-test', async (req, res) => {
+  try {
+    const { endpoint = '/api/health/ping', concurrentUsers = 5, duration = 10 } = req.body;
     
-    if (databaseHealth.status === 'ok') {
-      res.json({ status: 'ready' });
-    } else {
-      res.status(503).json({ status: 'not ready', reason: 'database unavailable' });
+    if (duration > 60) {
+      return res.status(400).json({ error: 'Maximum test duration is 60 seconds' });
     }
-  }));
+    
+    const result = await loadTester.runLoadTest({
+      endpoint,
+      concurrentUsers,
+      duration
+    });
+    
+    res.json({
+      timestamp: new Date().toISOString(),
+      testConfig: { endpoint, concurrentUsers, duration },
+      results: result
+    });
+  } catch (error) {
+    logger.error('Load test failed', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({ error: 'Failed to run load test' });
+  }
+});
 
-  // Liveness probe (for Kubernetes)
-  app.get('/live', (req: Request, res: Response) => {
-    res.json({ status: 'alive' });
+// Comprehensive system status
+router.get('/system-status', async (req, res) => {
+  try {
+    const [dbHealth, performanceStats, serviceReports] = await Promise.all([
+      performanceMonitor.checkDatabaseHealth(),
+      performanceMonitor.getStats(),
+      serviceSizeMonitor.checkAllServices()
+    ]);
+
+    const circuitBreakerHealth = {
+      openai: circuitBreakers.openai.getHealth(),
+      twelveData: circuitBreakers.twelveData.getHealth(),
+      fred: circuitBreakers.fred.getHealth(),
+      sendgrid: circuitBreakers.sendgrid.getHealth()
+    };
+
+    const overallStatus = 
+      dbHealth.status === 'healthy' && 
+      Object.values(circuitBreakerHealth).every(cb => cb.status === 'healthy') &&
+      serviceReports.filter(s => s.status === 'critical').length === 0
+        ? 'healthy' 
+        : 'degraded';
+
+    res.json({
+      status: overallStatus,
+      timestamp: new Date().toISOString(),
+      components: {
+        database: dbHealth,
+        circuitBreakers: circuitBreakerHealth,
+        performance: {
+          averageQueryTime: performanceStats.averageQueryTime,
+          queriesInLastHour: performanceStats.queriesInLastHour,
+          slowQueries: performanceStats.slowQueries.length
+        },
+        services: {
+          total: serviceReports.length,
+          critical: serviceReports.filter(s => s.status === 'critical').length,
+          warning: serviceReports.filter(s => s.status === 'warning').length,
+          healthy: serviceReports.filter(s => s.status === 'healthy').length
+        }
+      }
+    });
+  } catch (error) {
+    logger.error('System status check failed', { error: error instanceof Error ? error.message : String(error) });
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: 'System status check failed'
+    });
+  }
+});
+
+// Basic ping endpoint
+router.get('/ping', (req, res) => {
+  res.json({ 
+    message: 'pong', 
+    timestamp: new Date().toISOString() 
   });
-}
+});
+
+export default router;
