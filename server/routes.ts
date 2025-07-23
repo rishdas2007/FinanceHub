@@ -164,24 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Market Synthesis endpoint
-  app.get("/api/market-synthesis", async (req, res) => {
-    try {
-      console.log('🎯 Generating market synthesis...');
-      const { marketSynthesisService } = await import('./services/market-synthesis');
-      
-      const synthesis = await marketSynthesisService.generateMarketSynthesis();
-      
-      console.log(`🎯 Market synthesis generated with ${synthesis.confidence}% confidence`);
-      res.json(synthesis);
-    } catch (error) {
-      console.error('❌ Market synthesis error:', error);
-      res.status(500).json({ 
-        error: 'Market synthesis temporarily unavailable',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
+
   // Stock data endpoints with caching
   app.get("/api/stocks/:symbol", async (req, res) => {
     try {
@@ -1391,63 +1374,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
 
-  // Enhanced AI Analysis API - SPY momentum focus with sector outliers
-  app.get("/api/enhanced-ai-analysis", async (req, res) => {
-    try {
-      console.log('🎯 Generating SPY momentum analysis with sector outliers...');
-      
-      // Fetch momentum data from momentum analysis endpoint
-      const response = await fetch('http://localhost:5000/api/momentum-analysis');
-      const momentumData = await response.json();
-      
-      // Find SPY row for detailed analysis
-      const spyRow = momentumData.momentumStrategies.find((s: any) => s.ticker === 'SPY');
-      
-      // Get sector outliers (extreme moves)
-      const sectorOutliers = momentumData.momentumStrategies
-        .filter((s: any) => s.ticker !== 'SPY')
-        .sort((a: any, b: any) => Math.abs(b.oneDayChange) - Math.abs(a.oneDayChange))
-        .slice(0, 6);
 
-      // Create SPY momentum analysis directly
-      const spyMomentum = spyRow ? 
-        `SPY shows ${spyRow.momentum} momentum with RSI at ${spyRow.rsi.toFixed(1)} and 1-day move of ${spyRow.oneDayChange.toFixed(2)}%. Z-Score indicates ${Math.abs(spyRow.zScore) > 1.5 ? 'significant' : 'moderate'} movement.` :
-        'SPY momentum analysis shows neutral conditions with moderate market participation.';
-      
-      // Analyze sector outliers
-      const outlierAnalysis = sectorOutliers.length > 0 ?
-        `Sector outliers: ${sectorOutliers.slice(0, 3).map(s => `${s.sector} (${s.oneDayChange > 0 ? '+' : ''}${s.oneDayChange.toFixed(2)}%, RSI ${s.rsi.toFixed(1)})`).join(', ')}` :
-        'No significant sector outliers detected in current session.';
-      
-      const analysis = {
-        bottomLine: spyMomentum,
-        dominantTheme: 'SPY Momentum Analysis with Sector Outliers',
-        setup: outlierAnalysis,
-        evidence: `SPY momentum metrics and sector rotation patterns with RSI/Z-Score analysis`,
-        implications: 'Monitor SPY momentum signals and sector rotation opportunities for positioning insights.',
-        confidence: 85,
-        timestamp: new Date().toISOString()
-      };
-      
-      console.log('✅ SPY momentum analysis generated successfully');
-      console.log('📊 SPY data:', spyRow ? `${spyRow.ticker} RSI ${spyRow.rsi}` : 'No SPY data');
-      console.log('🎯 Outliers:', sectorOutliers.length, 'sectors identified');
-      
-      res.json(analysis);
-    } catch (error) {
-      console.error('❌ Enhanced AI analysis error:', error);
-      // Fallback with SPY momentum structure
-      res.json({
-        bottomLine: 'SPY momentum analysis shows neutral conditions with RSI at 69.2 indicating balanced market sentiment.',
-        dominantTheme: 'SPY Momentum Analysis with Sector Outliers',
-        setup: 'Technology and Health Care sectors showing strongest momentum while Energy lags with sector rotation patterns emerging.',
-        evidence: 'SPY RSI 69.2 (neutral), sector outliers showing extreme moves in Technology (+0.9%) and Energy (-0.5%)',
-        implications: 'Monitor for momentum continuation signals and sector rotation opportunities.',
-        confidence: 75,
-        timestamp: new Date().toISOString()
-      });
-    }
-  });
 
   // Historical data accumulation API
   app.post("/api/historical-data/accumulate", async (req, res) => {

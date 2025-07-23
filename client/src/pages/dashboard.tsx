@@ -5,8 +5,7 @@ import MomentumAnalysis from "@/components/momentum-analysis";
 import { AAIISentiment } from "@/components/aaii-sentiment";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
 import { EmailSubscription } from "@/components/email-subscription";
-import { AISummary } from "@/components/ai-summary";
-import MarketSynthesis from "@/components/MarketSynthesis";
+
 import { EconomicIndicators } from "@/components/EconomicIndicators";
 
 import { TrendingUp, MessageSquare } from "lucide-react";
@@ -57,11 +56,7 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
 
-        {/* AI Summary Box */}
-        <AISummary />
 
-        {/* Market Synthesis - Advanced AI Analysis */}
-        <MarketSynthesis />
 
         {/* Simplified Momentum Analysis with Verified Calculations */}
         <MomentumAnalysis />
