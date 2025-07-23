@@ -26,7 +26,7 @@ interface FredApiResponse {
 class EconomicIndicatorsService {
   private readonly FRED_API_KEY = process.env.FRED_API_KEY;
   private readonly FRED_BASE_URL = 'https://api.stlouisfed.org/fred/series/observations';
-  private readonly CACHE_KEY = 'economic-indicators-v1';
+  private readonly CACHE_KEY = 'economic-indicators-csv-v2';
   private readonly CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 hours
 
   // FRED series mapping with metadata
@@ -194,55 +194,17 @@ class EconomicIndicatorsService {
 
   async getEconomicIndicators(): Promise<EconomicIndicator[]> {
     try {
-      // Check cache first
-      const cached = cacheService.get(this.CACHE_KEY) as EconomicIndicator[] | null;
-      if (cached) {
-        console.log('📊 Economic indicators served from cache');
-        return cached;
-      }
-
-      if (!this.FRED_API_KEY) {
-        console.warn('⚠️ FRED API key not configured, using fallback data');
-        return this.getFallbackIndicators();
-      }
-
-      console.log('🔍 Fetching fresh economic indicators from FRED API...');
-      const indicators: EconomicIndicator[] = [];
-
-      // Fetch data for each indicator
-      for (const [metricName, config] of Object.entries(this.fredSeriesMap)) {
-        try {
-          const data = await this.fetchFredSeries(config.id);
-          if (data && data.length >= 2) {
-            const indicator = this.processIndicatorData(metricName, config, data);
-            indicators.push(indicator);
-          }
-        } catch (error) {
-          console.warn(`⚠️ Failed to fetch ${metricName}:`, error);
-          // Add fallback for this specific indicator
-          indicators.push(this.createFallbackIndicator(metricName, config));
-        }
-
-        // Rate limiting - pause between requests
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-
-      // Sort indicators by type and category for consistent display
-      indicators.sort((a, b) => {
-        if (a.type !== b.type) {
-          const typeOrder = { 'Coincident': 0, 'Leading': 1, 'Lagging': 2 };
-          return (typeOrder[a.type] || 3) - (typeOrder[b.type] || 3);
-        }
-        return a.category.localeCompare(b.category);
-      });
-
-      // Cache the results
+      // Always use authentic CSV data instead of FRED API
+      console.log('📊 Using authentic CSV economic indicators data (bypassing FRED API)');
+      const indicators = this.getFallbackIndicators();
+      
+      // Cache the CSV-based results
       cacheService.set(this.CACHE_KEY, indicators, this.CACHE_DURATION);
-      console.log(`✅ Economic indicators fetched: ${indicators.length} indicators`);
+      console.log(`✅ Economic indicators from CSV: ${indicators.length} indicators`);
 
       return indicators;
     } catch (error) {
-      console.error('❌ Error fetching economic indicators:', error);
+      console.error('❌ Error loading economic indicators:', error);
       return this.getFallbackIndicators();
     }
   }
@@ -318,28 +280,20 @@ class EconomicIndicatorsService {
   }
 
   private createFallbackIndicator(metricName: string, config: any): EconomicIndicator {
-    // Create realistic fallback data based on the metric
-    const fallbackData: Record<string, { current: number; prior: number; zScore: number; yoyChange: number }> = {
-      'Industrial Production YoY': { current: 0.80, prior: 0.20, zScore: -1.20, yoyChange: -72.41 },
-      'Retail Sales MoM': { current: 0.60, prior: 1.60, zScore: 0.12, yoyChange: 0.00 },
-      'GDP Growth Rate': { current: -0.50, prior: -2.90, zScore: 0.00, yoyChange: 0.00 },
-      'Leading Economic Index': { current: 98.8, prior: 0.0, zScore: -1.82, yoyChange: -3.9 },
-      'Durable Goods Orders MoM': { current: 16.40, prior: 23.00, zScore: 2.38, yoyChange: 2160.00 }
-    };
-
-    const fallback = fallbackData[metricName] || { current: 50.0, prior: 49.5, zScore: 0.15, yoyChange: 2.5 };
-
+    // This method is no longer used - CSV data is loaded directly in getFallbackIndicators()
+    console.warn('⚠️ createFallbackIndicator called but should not be used with CSV data');
+    
     return {
       metric: metricName,
       type: config.type,
       category: config.category,
-      current: fallback.current,
-      forecast: config.forecast || null,
-      vsForecast: config.forecast ? Math.round((fallback.current - config.forecast) * 100) / 100 : null,
-      prior: fallback.prior,
-      vsPrior: Math.round((fallback.current - fallback.prior) * 100) / 100,
-      zScore: fallback.zScore,
-      yoyChange: fallback.yoyChange,
+      current: 0,
+      forecast: null,
+      vsForecast: null,
+      prior: 0,
+      vsPrior: 0,
+      zScore: 0,
+      yoyChange: 0,
       unit: config.unit,
       frequency: config.frequency
     };
