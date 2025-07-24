@@ -18,7 +18,8 @@ interface MoodData {
 export function FinancialMoodEmoji() {
   const { data: moodData, isLoading } = useQuery<MoodData>({
     queryKey: ['/api/financial-mood'],
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   if (isLoading) {

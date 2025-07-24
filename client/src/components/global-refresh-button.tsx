@@ -12,16 +12,27 @@ export function GlobalRefreshButton() {
   const [countdown, setCountdown] = useState(0);
 
   const refreshMutation = useMutation({
-    mutationFn: () => apiRequest('POST', '/api/refresh'),
+    mutationFn: async () => {
+      // Refresh all dashboard components
+      await Promise.all([
+        apiRequest('POST', '/api/refresh'),
+        // Invalidate specific caches for faster refresh
+        fetch('/api/cache/invalidate?key=financial-mood'),
+        fetch('/api/cache/invalidate?key=recent-economic-openai')
+      ]);
+    },
     onSuccess: () => {
       // Invalidate all queries to refresh all data
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ['/api/financial-mood'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/recent-economic-openai'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/momentum-analysis'] });
+      
       setRefreshCount(prev => prev + 1);
       setLastRefresh(Date.now());
       
-      // Disable for 1 minute
+      // Disable for 30 seconds instead of 1 minute for better UX
       setIsDisabled(true);
-      setCountdown(60);
+      setCountdown(30);
     },
     onError: (error) => {
       console.error('Refresh failed:', error);
@@ -52,8 +63,8 @@ export function GlobalRefreshButton() {
     const now = Date.now();
     const timeSinceLastRefresh = now - lastRefresh;
     
-    // Prevent refresh if less than 1 minute has passed
-    if (timeSinceLastRefresh < 60000 && lastRefresh > 0) {
+    // Prevent refresh if less than 30 seconds has passed
+    if (timeSinceLastRefresh < 30000 && lastRefresh > 0) {
       return;
     }
     

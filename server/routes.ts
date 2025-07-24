@@ -1925,5 +1925,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cache invalidation endpoint for refresh button
+  app.get('/api/cache/invalidate', async (req, res) => {
+    try {
+      const { smartCache } = await import('./services/smart-cache');
+      const key = req.query.key as string;
+      
+      if (key) {
+        smartCache.delete(key);
+        console.log(`🗑️ Cache invalidated for key: ${key}`);
+        res.json({ success: true, invalidated: key });
+      } else {
+        // Clear all cache
+        smartCache.clear();
+        console.log('🗑️ All cache cleared');
+        res.json({ success: true, invalidated: 'all' });
+      }
+    } catch (error) {
+      console.error('Cache invalidation failed:', error);
+      res.status(500).json({ error: 'Failed to invalidate cache' });
+    }
+  });
+
   return httpServer;
 }

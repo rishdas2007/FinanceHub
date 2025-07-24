@@ -18,7 +18,8 @@ interface EconomicIndicator {
 export function RecentEconomicReadings() {
   const { data: indicators, isLoading } = useQuery<EconomicIndicator[]>({
     queryKey: ['/api/recent-economic-openai'],
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes for stable performance
+    gcTime: 15 * 60 * 1000, // 15 minutes
   });
 
   if (isLoading) {

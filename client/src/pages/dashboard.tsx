@@ -1,7 +1,7 @@
 
 
 import MomentumAnalysis from "@/components/momentum-analysis";
-import { AISummaryOptimized } from "@/components/AISummaryOptimized";
+
 import { RecentEconomicReadings } from "@/components/RecentEconomicReadings";
 import { FinancialMoodEmoji } from "@/components/FinancialMoodEmoji";
 import { AAIISentiment } from "@/components/aaii-sentiment";
@@ -57,9 +57,6 @@ export default function Dashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
-
-        {/* AI Market Summary - Optimized with Real Data */}
-        <AISummaryOptimized />
 
         {/* Financial Mood Emoji Generator */}
         <FinancialMoodEmoji />

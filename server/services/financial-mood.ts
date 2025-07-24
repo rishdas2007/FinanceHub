@@ -32,23 +32,21 @@ class FinancialMoodService {
     try {
       log.info('🎭 Generating personalized financial mood...');
       
-      // Check cache first
+      // Check cache first - use longer cache for performance
       const cacheKey = 'financial-mood';
       const cached = smartCache.get(cacheKey);
       
       if (cached) {
-        log.info('🎭 Financial mood served from cache');
+        log.info('🎭 Financial mood served from cache (fast load)');
         return cached.data;
       }
 
-      // Gather market data
-      const marketData = await this.gatherMarketData();
+      // Generate with timeout protection for 2-second guarantee
+      const moodPromise = this.generateMoodWithTimeout();
+      const moodAnalysis = await moodPromise;
       
-      // Generate mood analysis
-      const moodAnalysis = await this.generateMoodAnalysis(marketData);
-      
-      // Cache the result for 2 minutes
-      smartCache.set(cacheKey, moodAnalysis, '2m');
+      // Cache the result for 5 minutes to reduce load times
+      smartCache.set(cacheKey, moodAnalysis, '5m');
       
       log.info(`🎭 Financial mood generated: ${moodAnalysis.emoji} ${moodAnalysis.mood}`);
       return moodAnalysis;
@@ -57,6 +55,30 @@ class FinancialMoodService {
       log.error('❌ Financial mood generation failed:', error);
       return this.getFallbackMood();
     }
+  }
+
+  private async generateMoodWithTimeout(): Promise<MoodData> {
+    return new Promise(async (resolve, reject) => {
+      const timeout = setTimeout(() => {
+        log.info('⚡ Financial mood timeout - using fallback for 2-second guarantee');
+        resolve(this.getFallbackMood());
+      }, 2000);
+
+      try {
+        // Gather market data quickly
+        const marketData = await this.gatherMarketData();
+        
+        // Try AI analysis with timeout
+        const moodAnalysis = await this.generateMoodAnalysis(marketData);
+        
+        clearTimeout(timeout);
+        resolve(moodAnalysis);
+      } catch (error) {
+        clearTimeout(timeout);
+        log.error('Mood generation error:', error);
+        resolve(this.getFallbackMood());
+      }
+    });
   }
 
   private async gatherMarketData() {
