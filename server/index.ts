@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import compression from "compression";
 import cors from "cors";
 import { registerRoutes } from "./routes";
+import { intelligentCronScheduler } from "./services/intelligent-cron-scheduler.js";
 // Import optional enhancements
 import { monitoringRoutes } from './routes/monitoring';
 import { docsRoutes } from './routes/docs';
@@ -130,6 +131,17 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`🚀 FinanceHub Pro serving on port ${port}`);
+    
+    // Initialize intelligent cron scheduler for background data fetching
+    setTimeout(async () => {
+      try {
+        log('📅 Initializing intelligent cron scheduler...');
+        await intelligentCronScheduler.initialize();
+        log('✅ Intelligent cron scheduler started successfully');
+      } catch (error) {
+        log('❌ Cron scheduler initialization failed:', error);
+      }
+    }, 3000);
     
     // Start the data scheduler for daily updates with enhanced error handling
     setTimeout(async () => {

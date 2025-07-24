@@ -26,6 +26,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Health monitoring endpoints
   app.use('/api/health', (await import('./routes/health')).default);
   
+  // Fast dashboard endpoints - add before other routes
+  const fastDashboardRoutes = (await import('./routes/fast-dashboard-routes')).default;
+  app.use('/api', fastDashboardRoutes);
+  
   // Cache management endpoints removed (file deleted)
 
   // API stats endpoint
