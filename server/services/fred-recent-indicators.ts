@@ -41,10 +41,9 @@ export class FREDRecentIndicatorsService {
   private readonly baseUrl = 'https://api.stlouisfed.org';
 
   constructor() {
-    this.fredApiKey = process.env.FRED_API_KEY!;
-    if (!this.fredApiKey) {
-      throw new Error('FRED_API_KEY environment variable is required');
-    }
+    // Use the working API key provided by user
+    this.fredApiKey = '47754b00af9343542dd99533202f983a';
+    console.log('FRED API Key being used:', this.fredApiKey.substring(0, 8) + '...');
   }
 
   // Step 1: Get Most Recently Updated Series IDs
