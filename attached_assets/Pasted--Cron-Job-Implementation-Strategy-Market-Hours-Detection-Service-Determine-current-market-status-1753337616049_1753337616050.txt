@@ -1,0 +1,45 @@
+⏰ Cron Job Implementation Strategy
+Market Hours Detection Service
+	•	Determine current market status before each job
+	•	Skip unnecessary updates during market closure
+	•	Adjust update frequencies based on market session
+	•	Handle market holidays automatically
+API Data Fetcher Jobs
+	•	Each job is independent - failure of one doesn’t affect others
+	•	Retry logic with exponential backoff for failed API calls
+	•	Store both successful and failed attempts with timestamps
+	•	Rate limit management to stay within API quotas
+Summary Generation Job (Every 30 Minutes)
+	•	Collect latest data from all cached tables
+	•	Generate momentum analysis using cached sector data
+	•	Create AI summary using OpenAI with collected data
+	•	Store complete summary in cached_ai_summaries table
+	•	Mark as current version and archive previous version
+Error Handling Strategy
+	•	If API call fails: Keep existing cached data, mark as stale
+	•	If AI summary fails: Keep previous summary, update timestamp to show age
+	•	If database write fails: Log error, retry once, then skip to preserve system stability
+	•	Never delete existing data on failure - always preserve last known good state
+🚀 Website Read Strategy
+Dashboard Data Loading
+	•	All components read exclusively from database - zero external API calls
+	•	Single database query per component with optimized indexes
+	•	Expected load time: 50-200ms per component
+	•	Total dashboard load time: Under 1 second
+Database Query Optimization
+	•	Create indexes on timestamp and is_current columns
+	•	Use connection pooling for efficient database access
+	•	Implement query result caching (1-2 minute cache for database queries)
+	•	Batch multiple component queries when possible
+Data Freshness Display
+	•	Show timestamps prominently for each component
+	•	Color-code data age:
+	•	🟢 Fresh (under 10 minutes old)
+	•	🟡 Recent (10-30 minutes old)
+	•	🟠 Stale (over 30 minutes old)
+	•	Add “last updated” indicators throughout dashboard
+Manual Refresh Capability
+	•	Trigger background job to fetch fresh data immediately
+	•	Show refresh progress to user
+	•	Update display when fresh data becomes available
+	•	Rate limit manual refreshes to prevent system overload
