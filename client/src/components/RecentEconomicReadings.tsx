@@ -10,6 +10,9 @@ interface EconomicIndicator {
   lastUpdated?: string;
   change?: string;
   zScore?: number | string;
+  forecast?: string;
+  variance?: string;
+  prior?: string;
 }
 
 export function RecentEconomicReadings() {
@@ -114,8 +117,8 @@ export function RecentEconomicReadings() {
                 </span>
               </div>
               
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
                   <span className="text-lg font-bold text-blue-400">
                     {indicator.current}
                   </span>
@@ -126,23 +129,44 @@ export function RecentEconomicReadings() {
                   </span>
                 </div>
                 
-                {indicator.change && (
-                  <span className={`text-sm font-medium ${getVarianceColor(indicator.current, indicator.change)}`}>
-                    vs {indicator.change} forecast
-                  </span>
+                {/* Forecast and Variance */}
+                {indicator.forecast && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-400">
+                      Forecast: <span className="text-gray-300">{indicator.forecast}</span>
+                    </span>
+                    {indicator.variance && (
+                      <span className={`font-medium ${
+                        indicator.variance.startsWith('+') ? 'text-green-400' : 
+                        indicator.variance.startsWith('-') ? 'text-red-400' : 'text-gray-400'
+                      }`}>
+                        {indicator.variance}
+                      </span>
+                    )}
+                  </div>
                 )}
-              </div>
-
-              {indicator.zScore !== undefined && indicator.zScore !== null && (
-                <div className="mt-2 text-xs text-gray-500">
-                  Z-Score: <span className="text-yellow-400 font-medium">
-                    {typeof indicator.zScore === 'number' 
-                      ? indicator.zScore.toFixed(2) 
-                      : parseFloat(indicator.zScore.toString()).toFixed(2)
-                    }
-                  </span>
+                
+                {/* Prior and Change */}
+                <div className="flex items-center justify-between text-xs">
+                  {indicator.prior && (
+                    <span className="text-gray-400">
+                      Prior: <span className="text-gray-300">{indicator.prior}</span>
+                    </span>
+                  )}
+                  <div className="flex items-center space-x-2">
+                    {indicator.change && (
+                      <span className="text-gray-400">
+                        {indicator.change}
+                      </span>
+                    )}
+                    {indicator.zScore && (
+                      <span className="text-xs font-mono text-gray-500">
+                        Z: {typeof indicator.zScore === 'number' ? indicator.zScore.toFixed(1) : indicator.zScore}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           ))}
         </div>
