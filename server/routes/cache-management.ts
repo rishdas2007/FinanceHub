@@ -35,53 +35,86 @@ router.post('/invalidate/economic-indicators', async (req, res) => {
   }
 });
 
-// Force refresh with manual correct dates (bypass FRED API issues)
-router.post('/fix-last-updated-dates', async (req, res) => {
+// Test FRED API with new key
+router.post('/test-fred-api', async (req, res) => {
   try {
-    const { economicIndicatorsService } = await import('../services/economic-indicators');
+    const fredApiKey = process.env.FRED_API_KEY;
+    if (!fredApiKey) {
+      return res.status(400).json({ error: 'FRED_API_KEY not found in environment' });
+    }
+
+    const axios = (await import('axios')).default;
     
-    // Clear cache first
-    await intelligentCache.invalidate('economic-indicators-v1');
-    
-    // Get fresh data with corrected dates (bypassing FRED API if needed)
-    const indicators = await economicIndicatorsService.getEconomicIndicators();
-    
-    // Apply realistic release dates for current economic indicators
-    const correctedIndicators = indicators.map(indicator => {
-      const correctedDates = {
-        'CPI Year-over-Year': '2025-07-11T00:00:00.000Z',
-        'Core CPI Year-over-Year': '2025-07-11T00:00:00.000Z',
-        'PCE Price Index YoY': '2025-06-28T00:00:00.000Z', // Not July 28th!
-        'GDP Growth Rate': '2025-07-25T00:00:00.000Z',
-        'Unemployment Rate': '2025-07-05T00:00:00.000Z',
-        'Nonfarm Payrolls': '2025-07-05T00:00:00.000Z',
-        'Manufacturing PMI': '2025-07-01T00:00:00.000Z',
-        'Federal Funds Rate': '2025-07-31T00:00:00.000Z',
-        'Housing Starts': '2025-07-16T00:00:00.000Z',
-        'Building Permits': '2025-07-16T00:00:00.000Z',
-        'Retail Sales MoM': '2025-07-15T00:00:00.000Z',
-        'Industrial Production YoY': '2025-07-15T00:00:00.000Z',
-        'Durable Goods Orders MoM': '2025-07-23T00:00:00.000Z',
-        'Leading Economic Index': '2025-07-19T00:00:00.000Z'
-      };
-      
-      return {
-        ...indicator,
-        lastUpdated: correctedDates[indicator.metric] || indicator.lastUpdated
-      };
+    // Test the correct FRED endpoint for series metadata
+    const testUrl = 'https://api.stlouisfed.org/fred/series';
+    const response = await axios.get(testUrl, {
+      params: {
+        series_id: 'CPIAUCSL',
+        api_key: fredApiKey,
+        file_type: 'json'
+      },
+      timeout: 15000
     });
+
+    const series = response.data?.series?.[0];
     
     res.json({
       success: true,
-      message: 'Economic indicators last updated dates corrected',
-      indicators: correctedIndicators,
-      correctedCount: correctedIndicators.filter(i => i.lastUpdated).length,
+      message: 'FRED API test successful',
+      apiKey: fredApiKey.substring(0, 8) + '...',
+      testSeries: 'CPIAUCSL',
+      lastUpdated: series?.last_updated,
+      seriesData: {
+        id: series?.id,
+        title: series?.title,
+        last_updated: series?.last_updated,
+        frequency: series?.frequency
+      },
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Failed to fix last updated dates',
+      message: 'FRED API test failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Force refresh economic indicators with new FRED API key
+router.post('/refresh-economic-indicators', async (req, res) => {
+  try {
+    // Clear all related caches
+    const keys = [
+      'economic-indicators-v1',
+      'economic-indicators-enhanced-v1',
+      'fred-series-metadata'
+    ];
+    
+    for (const key of keys) {
+      await intelligentCache.invalidate(key);
+    }
+    
+    // Force fresh fetch with new API key
+    const { economicIndicatorsService } = await import('../services/economic-indicators');
+    const indicators = await economicIndicatorsService.getEconomicIndicators();
+    
+    res.json({
+      success: true,
+      message: 'Economic indicators refreshed with new FRED API key',
+      indicatorCount: indicators.length,
+      indicators: indicators.map(i => ({
+        metric: i.metric,
+        lastUpdated: i.lastUpdated,
+        source: i.source
+      })),
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to refresh economic indicators',
       error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
