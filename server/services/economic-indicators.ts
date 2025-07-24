@@ -1,6 +1,8 @@
-import axios from 'axios';
-import { historicalEconomicIndicatorsService } from './historical-economic-indicators';
-import { logger } from '../utils/logger';
+// FRED and historical services removed - using OpenAI only
+const logger = {
+  info: (msg: string, ...args: any[]) => console.log(`[INFO] ${msg}`, ...args),
+  error: (msg: string, ...args: any[]) => console.error(`[ERROR] ${msg}`, ...args)
+};
 
 interface EconomicIndicator {
   metric: string;
@@ -21,14 +23,7 @@ interface EconomicIndicator {
   lastUpdated?: string;
 }
 
-interface FredApiResponse {
-  observations: Array<{
-    date: string;
-    value: string;
-    realtime_start: string;
-    realtime_end: string;
-  }>;
-}
+// FRED interface removed - using OpenAI only
 
 class EconomicIndicatorsService {
   // FRED series mapping with metadata
@@ -247,16 +242,8 @@ class EconomicIndicatorsService {
     } catch (error) {
       logger.error('❌ Error loading economic indicators from OpenAI:', error);
       
-      // Fallback to historical FRED data if available
-      try {
-        logger.info('📊 Falling back to historical FRED data...');
-        const historicalIndicators = await historicalEconomicIndicatorsService.getIndicatorsWithHistoricalContext();
-        if (historicalIndicators.length > 0) {
-          return historicalIndicators;
-        }
-      } catch (fredError) {
-        logger.error('❌ FRED fallback also failed:', fredError);
-      }
+      // No FRED fallback - go directly to static fallback data
+      logger.info('📊 Using fallback indicators (FRED eliminated)');
       
       return this.getFallbackIndicators();
     }

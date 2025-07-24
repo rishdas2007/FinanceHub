@@ -73,7 +73,7 @@ class OpenAIEconomicIndicatorsService {
       - category: Either "Growth", "Employment", "Inflation", or "Sentiment"
       - lastUpdated: A realistic past release date in July 2025 (format: YYYY-MM-DDTHH:mm:ss.sssZ)
 
-      Return ONLY a valid JSON array with exactly 17 objects. Use realistic economic values consistent with current economic conditions.`;
+      Return a JSON object with this structure: { "indicators": [array of 17 economic indicators] }. Use realistic economic values consistent with current economic conditions.`;
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -109,6 +109,8 @@ class OpenAIEconomicIndicatorsService {
       } else if (parsedData.data && Array.isArray(parsedData.data)) {
         indicators = parsedData.data;
       } else {
+        // Log the actual structure for debugging
+        log.error('OpenAI Response Structure:', JSON.stringify(parsedData, null, 2));
         throw new Error('Invalid JSON structure received from OpenAI');
       }
 

@@ -52,45 +52,18 @@ export class EconomicDataService {
       const allEvents = [...filteredFallback, ...scrapedEvents];
       const uniqueEvents = this.deduplicateEvents(allEvents);
       
-      // Auto-update actual values using FRED API for recent events
-      const updatedEvents = await this.updateEventsWithFredData(uniqueEvents);
-      
-      console.log(`✅ OPTIMIZED calendar: ${updatedEvents.length} events (${updatedEvents.filter(e => e.actual).length} with actual, ${scrapedEvents.length} cached)`);
-      return updatedEvents;
+      // FRED API removed - using static events only
+      console.log(`✅ OPTIMIZED calendar: ${uniqueEvents.length} events (${uniqueEvents.filter(e => e.actual).length} with actual, ${scrapedEvents.length} cached)`);
+      return uniqueEvents;
     } catch (error) {
       console.error('Error in automated calendar fetch, falling back to enhanced events:', error);
       const enhancedFallback = await this.getEnhancedFallbackEvents();
-      const updatedFallback = await this.updateEventsWithFredData(enhancedFallback);
-      console.log(`📋 Enhanced fallback calendar: ${updatedFallback.length} events (${updatedFallback.filter(e => e.actual).length} with actual data)`);
-      return updatedFallback;
+      console.log(`📋 Enhanced fallback calendar: ${enhancedFallback.length} events (${enhancedFallback.filter(e => e.actual).length} with actual data)`);
+      return enhancedFallback;
     }
   }
 
-  private async updateEventsWithFredData(events: EconomicEvent[]): Promise<EconomicEvent[]> {
-    const updatedEvents = [...events];
-    const today = new Date();
-    const threeDaysAgo = new Date(today.getTime() - (3 * 24 * 60 * 60 * 1000));
-
-    for (let i = 0; i < updatedEvents.length; i++) {
-      const event = updatedEvents[i];
-      const eventDate = new Date(event.date);
-      
-      // Only update events from the last 3 days that don't already have actual values
-      if (eventDate >= threeDaysAgo && eventDate <= today && !event.actual) {
-        try {
-          // FRED API service removed during optimization
-          console.log(`📊 FRED update disabled for ${event.title} (service removed during optimization)`);
-        } catch (error) {
-          console.error(`Failed to update ${event.title} with FRED data:`, error);
-        }
-        
-        // Rate limit: 120 calls per minute for FRED API
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-    }
-
-    return updatedEvents;
-  }
+  // FRED methods removed - using OpenAI for economic data instead
 
   private deduplicateEvents(events: EconomicEvent[]): EconomicEvent[] {
     const seen = new Map<string, EconomicEvent>();

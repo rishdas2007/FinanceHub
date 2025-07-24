@@ -51,7 +51,7 @@ class OpenAIEconomicReadingsService {
       - change: Brief description (e.g., "↑ vs forecast", "↓ from prior")
       - zScore: A realistic z-score between -2.5 and 2.5
 
-      Return ONLY a valid JSON array with exactly 6 objects. Use realistic economic values for July 2025.`;
+      Return a JSON object with this structure: { "readings": [array of 6 economic readings] }. Use realistic economic values for July 2025.`;
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -78,15 +78,19 @@ class OpenAIEconomicReadingsService {
       // Parse the JSON response
       const parsedData = JSON.parse(content);
       
-      // Extract the indicators array (handle different JSON structures)
+      // Extract the readings array (handle different JSON structures)
       let indicators: EconomicReading[];
       if (Array.isArray(parsedData)) {
         indicators = parsedData;
+      } else if (parsedData.readings && Array.isArray(parsedData.readings)) {
+        indicators = parsedData.readings;
       } else if (parsedData.indicators && Array.isArray(parsedData.indicators)) {
         indicators = parsedData.indicators;
       } else if (parsedData.data && Array.isArray(parsedData.data)) {
         indicators = parsedData.data;
       } else {
+        // Log the actual structure for debugging
+        log.error('OpenAI Response Structure:', JSON.stringify(parsedData, null, 2));
         throw new Error('Invalid JSON structure received from OpenAI');
       }
 

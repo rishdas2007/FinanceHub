@@ -26,130 +26,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Health monitoring endpoints
   app.use('/api/health', (await import('./routes/health')).default);
   
-  // Cache management endpoints
-  app.use('/api/cache', (await import('./routes/cache-management')).default);
+  // Cache management endpoints removed (file deleted)
 
   // API stats endpoint
   app.get("/api/stats", (req, res) => {
     res.json(getApiStats());
   });
 
-  // Historical Economic Indicators Routes
+  // Historical Economic Indicators Routes removed (FRED eliminated)
   app.post("/api/historical-economic-indicators/update", async (req, res) => {
-    try {
-      console.log('🔄 Manual FRED historical data update requested...');
-      const { historicalEconomicIndicatorsService } = await import('./services/historical-economic-indicators');
-      
-      const result = await historicalEconomicIndicatorsService.updateAllIndicators();
-      
-      res.json({
-        success: result.success,
-        message: result.message,
-        updatedCount: result.updatedCount,
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('❌ Manual FRED update failed:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Manual FRED update failed',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
+    res.json({
+      success: false,
+      message: 'FRED historical indicators removed - using OpenAI only',
+      timestamp: new Date().toISOString()
+    });
   });
 
   app.get("/api/historical-economic-indicators/summary", async (req, res) => {
-    try {
-      const { historicalEconomicIndicatorsService } = await import('./services/historical-economic-indicators');
-      const summary = await historicalEconomicIndicatorsService.getHistoricalDataSummary();
-      
-      res.json({
-        success: true,
-        data: summary,
-        totalIndicators: summary.length,
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('❌ Failed to get historical summary:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to get historical data summary',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
+    res.json({
+      success: false,
+      message: 'FRED historical indicators removed - using OpenAI only',
+      timestamp: new Date().toISOString()
+    });
   });
 
-  // FRED Data Management Routes
-  app.get("/api/fred-data/update", async (req, res) => {
-    try {
-      console.log('🚀 Manual FRED data update requested');
-      const { fredDataUpdaterService } = await import('./services/fred-data-updater');
-      
-      const result = await fredDataUpdaterService.updateFREDData();
-      
-      if (result.success) {
-        res.json({
-          success: true,
-          message: result.message,
-          indicatorsCount: result.indicatorsCount,
-          timestamp: new Date().toISOString()
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          error: result.message,
-          timestamp: new Date().toISOString()
-        });
-      }
-    } catch (error) {
-      console.error('❌ FRED data update API error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Internal server error during FRED data update',
-        timestamp: new Date().toISOString()
-      });
-    }
-  });
-
-  app.get("/api/fred-data/status", async (req, res) => {
-    try {
-      const fs = await import('fs/promises');
-      const path = 'server/data/macroeconomic_indicators_dataset.csv';
-      
-      let fileStats = null;
-      let dataAge = null;
-      
-      try {
-        const stats = await fs.stat(path);
-        fileStats = {
-          size: stats.size,
-          lastModified: stats.mtime.toISOString()
-        };
-        dataAge = Date.now() - stats.mtime.getTime();
-      } catch (error) {
-        // File doesn't exist
-      }
-      
-      res.json({
-        success: true,
-        status: {
-          dataFileExists: fileStats !== null,
-          lastUpdate: fileStats?.lastModified || null,
-          dataAgeMinutes: dataAge ? Math.floor(dataAge / (60 * 1000)) : null,
-          nextScheduledUpdate: '4 hours after last update',
-          fredApiKey: process.env.FRED_API_KEY ? 'Configured' : 'Not configured'
-        },
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('❌ FRED data status API error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Internal server error during status check',
-        timestamp: new Date().toISOString()
-      });
-    }
-  });
+  // FRED routes removed - using OpenAI only
 
   // Recent Economic Readings (OpenAI powered)
   app.get('/api/recent-economic-openai', async (req, res) => {
@@ -760,7 +661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // FRED API endpoint removed to fix crashes and rate limiting issues
+  // All FRED API endpoints removed - using OpenAI only
 
   app.get("/api/market-news", async (req, res) => {
     try {

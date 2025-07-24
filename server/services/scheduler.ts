@@ -344,14 +344,20 @@ export class DataScheduler {
       timezone: "America/New_York"
     });
 
-    // FRED Economic Data Auto-Updates: Daily at 3 PM EST (after most economic releases)
+    // FRED removed - OpenAI economic data auto-updates at 3 PM EST
     cron.schedule('0 15 * * 1-5', async () => {
-      console.log('📊 FRED: Daily economic data update at 3 PM EST...');
+      console.log('📊 OpenAI: Daily economic data refresh at 3 PM EST...');
       try {
-        await this.updateEconomicDataWithFred();
-        console.log('✅ FRED: Economic data updated successfully');
+        // Invalidate OpenAI economic indicators cache to trigger fresh generation
+        const { openaiEconomicIndicatorsService } = await import('./openai-economic-indicators');
+        await openaiEconomicIndicatorsService.invalidateCache();
+        
+        const { cacheService } = await import('./cache-unified');
+        cacheService.delete("economic-indicators-openai-daily-v1");
+        
+        console.log('✅ OpenAI: Economic data cache refreshed successfully');
       } catch (error) {
-        console.error('❌ FRED: Error updating economic data:', error);
+        console.error('❌ OpenAI: Economic data refresh failed:', error);
       }
     }, {
       timezone: "America/New_York"
@@ -364,7 +370,7 @@ export class DataScheduler {
         // Force refresh the cached scraping data
         const economicDataService = (await import('./economic-data')).EconomicDataService.getInstance();
         (economicDataService as any).lastScrapedTime = null; // Force refresh
-        await this.updateEconomicDataWithFred(); // This will trigger fresh scraping
+        // FRED updates removed - using fallback economic data only
         console.log('✅ MARKETWATCH: Daily calendar updated successfully');
       } catch (error) {
         console.error('❌ MARKETWATCH: Error updating daily calendar:', error);
