@@ -15,7 +15,6 @@ export function SpyWebSocketTracker() {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
   const wsRef = useRef<WebSocket | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Try WebSocket first, fallback to HTTP polling if needed
@@ -25,9 +24,6 @@ export function SpyWebSocketTracker() {
       if (wsRef.current) {
         wsRef.current.close();
       }
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
     };
   }, []);
 
@@ -35,22 +31,19 @@ export function SpyWebSocketTracker() {
     try {
       setConnectionStatus('connecting');
       
-      // Use Twelve Data WebSocket with correct URL format including API key
-      const apiKey = 'bdceed179a5d435ba78072dfd05f8619';
-      const wsUrl = `wss://ws.twelvedata.com/v1/quotes/price?apikey=${apiKey}`;
+      // Connect to Twelve Data WebSocket
+      const wsUrl = 'wss://ws.twelvedata.com/v1/quotes/price';
       wsRef.current = new WebSocket(wsUrl);
 
       wsRef.current.onopen = () => {
-        console.log('📡 WebSocket connected, subscribing to SPY');
-        setIsConnected(true);
-        setConnectionStatus('connected');
+        console.log('📡 WebSocket connected');
         
-        // Subscribe using the exact format provided
+        // First authorize with API key
         if (wsRef.current) {
           wsRef.current.send(JSON.stringify({
-            "action": "subscribe",
+            "action": "auth",
             "params": {
-              "symbols": "SPY"
+              "apikey": "bdceed179a5d435ba78072dfd05f8619"
             }
           }));
         }
@@ -59,12 +52,40 @@ export function SpyWebSocketTracker() {
       wsRef.current.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('📡 WebSocket data received:', data);
+          console.log('📡 WebSocket message:', data);
+          
+          // Handle authorization response
+          if (data.event === 'auth_status') {
+            if (data.status === 'authorized') {
+              console.log('📡 Authorized, subscribing to SPY');
+              setIsConnected(true);
+              setConnectionStatus('connected');
+              
+              // Now subscribe to SPY
+              wsRef.current?.send(JSON.stringify({
+                "action": "subscribe",
+                "params": {
+                  "symbols": "SPY"
+                }
+              }));
+            } else {
+              console.error('📡 Authorization failed:', data.message);
+              setConnectionStatus('error');
+              setIsConnected(false);
+            }
+            return;
+          }
+          
+          // Handle subscription confirmation
+          if (data.event === 'subscribe_status') {
+            console.log('📡 Subscription status:', data.status);
+            return;
+          }
           
           // Handle real-time price updates
-          if (data.symbol === 'SPY' && data.price) {
+          if (data.event === 'price' && data.symbol === 'SPY') {
             const currentPrice = parseFloat(data.price);
-            const change = parseFloat(data.day_change || data.change) || 0;
+            const change = parseFloat(data.day_change) || 0;
             const changePercent = parseFloat(data.percent_change) || 0;
             
             setSpyData({
@@ -80,65 +101,27 @@ export function SpyWebSocketTracker() {
         }
       };
 
-      wsRef.current.onclose = () => {
-        console.log('📡 WebSocket disconnected, falling back to HTTP');
+      wsRef.current.onclose = (event) => {
+        console.log('📡 WebSocket disconnected:', event.code, event.reason);
         setIsConnected(false);
         setConnectionStatus('disconnected');
         
-        // Fallback to HTTP polling
+        // Attempt to reconnect after 5 seconds
         setTimeout(() => {
-          startHttpPolling();
-        }, 1000);
+          connectWebSocket();
+        }, 5000);
       };
 
       wsRef.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        console.error('📡 WebSocket error:', error);
         setConnectionStatus('error');
         setIsConnected(false);
-        
-        // Fallback to HTTP polling
-        setTimeout(() => {
-          startHttpPolling();
-        }, 1000);
       };
 
     } catch (error) {
       console.error('Failed to create WebSocket:', error);
       setConnectionStatus('error');
-      startHttpPolling();
     }
-  };
-
-  const startHttpPolling = () => {
-    console.log('📊 Starting HTTP polling fallback for SPY data');
-    setConnectionStatus('connecting');
-    
-    const fetchSpyData = async () => {
-      try {
-        const response = await fetch('/api/stocks?symbols=SPY');
-        const data = await response.json();
-        
-        if (data && data.SPY) {
-          const spy = data.SPY;
-          setSpyData({
-            symbol: 'SPY',
-            price: spy.price,
-            change: spy.change,
-            changePercent: spy.changePercent,
-            timestamp: new Date().toISOString()
-          });
-          setConnectionStatus('connected');
-          setIsConnected(false); // Keep as false to indicate HTTP mode
-        }
-      } catch (error) {
-        console.error('Error fetching SPY data:', error);
-        setConnectionStatus('error');
-        setIsConnected(false);
-      }
-    };
-
-    fetchSpyData();
-    intervalRef.current = setInterval(fetchSpyData, 30000);
   };
 
   const formatPrice = (price: number) => price.toFixed(2);
