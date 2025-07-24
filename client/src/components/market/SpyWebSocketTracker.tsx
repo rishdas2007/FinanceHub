@@ -14,26 +14,107 @@ export function SpyWebSocketTracker() {
   const [spyData, setSpyData] = useState<SpyData | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
+  const wsRef = useRef<WebSocket | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Use HTTP polling for SPY data
-    startHttpPolling();
+    // Try WebSocket first, fallback to HTTP polling if needed
+    connectWebSocket();
     
     return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
   }, []);
 
+  const connectWebSocket = () => {
+    try {
+      setConnectionStatus('connecting');
+      
+      // Use Twelve Data WebSocket with correct URL format including API key
+      const apiKey = 'bdceed179a5d435ba78072dfd05f8619';
+      const wsUrl = `wss://ws.twelvedata.com/v1/quotes/price?apikey=${apiKey}`;
+      wsRef.current = new WebSocket(wsUrl);
+
+      wsRef.current.onopen = () => {
+        console.log('📡 WebSocket connected, subscribing to SPY');
+        setIsConnected(true);
+        setConnectionStatus('connected');
+        
+        // Subscribe using the exact format provided
+        if (wsRef.current) {
+          wsRef.current.send(JSON.stringify({
+            "action": "subscribe",
+            "params": {
+              "symbols": "SPY"
+            }
+          }));
+        }
+      };
+
+      wsRef.current.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('📡 WebSocket data received:', data);
+          
+          // Handle real-time price updates
+          if (data.symbol === 'SPY' && data.price) {
+            const currentPrice = parseFloat(data.price);
+            const change = parseFloat(data.day_change || data.change) || 0;
+            const changePercent = parseFloat(data.percent_change) || 0;
+            
+            setSpyData({
+              symbol: 'SPY',
+              price: currentPrice,
+              change: change,
+              changePercent: changePercent,
+              timestamp: new Date().toISOString()
+            });
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket data:', error);
+        }
+      };
+
+      wsRef.current.onclose = () => {
+        console.log('📡 WebSocket disconnected, falling back to HTTP');
+        setIsConnected(false);
+        setConnectionStatus('disconnected');
+        
+        // Fallback to HTTP polling
+        setTimeout(() => {
+          startHttpPolling();
+        }, 1000);
+      };
+
+      wsRef.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setConnectionStatus('error');
+        setIsConnected(false);
+        
+        // Fallback to HTTP polling
+        setTimeout(() => {
+          startHttpPolling();
+        }, 1000);
+      };
+
+    } catch (error) {
+      console.error('Failed to create WebSocket:', error);
+      setConnectionStatus('error');
+      startHttpPolling();
+    }
+  };
+
   const startHttpPolling = () => {
-    console.log('📊 Starting HTTP polling for SPY data');
+    console.log('📊 Starting HTTP polling fallback for SPY data');
     setConnectionStatus('connecting');
     
     const fetchSpyData = async () => {
       try {
-        // Use internal API for consistent data
         const response = await fetch('/api/stocks?symbols=SPY');
         const data = await response.json();
         
@@ -47,7 +128,7 @@ export function SpyWebSocketTracker() {
             timestamp: new Date().toISOString()
           });
           setConnectionStatus('connected');
-          setIsConnected(true);
+          setIsConnected(false); // Keep as false to indicate HTTP mode
         }
       } catch (error) {
         console.error('Error fetching SPY data:', error);
@@ -56,10 +137,7 @@ export function SpyWebSocketTracker() {
       }
     };
 
-    // Initial fetch
     fetchSpyData();
-    
-    // Poll every 30 seconds to respect API limits and maintain performance
     intervalRef.current = setInterval(fetchSpyData, 30000);
   };
 
@@ -130,7 +208,7 @@ export function SpyWebSocketTracker() {
         <div className="mt-4 pt-4 border-t border-financial-border">
           <div className="flex items-center justify-between text-sm text-gray-400">
             <span>Last Updated: {new Date(spyData.timestamp).toLocaleTimeString()}</span>
-            <span>Data Source: {connectionStatus === 'connected' && isConnected ? 'Twelve Data WebSocket' : connectionStatus === 'connected' ? 'Twelve Data API (HTTP)' : 'Fallback Data'}</span>
+            <span>Data Source: {connectionStatus === 'connected' && isConnected ? 'Twelve Data WebSocket' : connectionStatus === 'connected' ? 'Twelve Data API (HTTP)' : 'Connecting...'}</span>
           </div>
         </div>
       )}
