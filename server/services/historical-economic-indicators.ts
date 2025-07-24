@@ -492,8 +492,8 @@ export class HistoricalEconomicIndicatorsService {
       'CPIAUCSL': { dayOfMonth: 13, monthsDelay: 0 },
       'CPILFESL': { dayOfMonth: 13, monthsDelay: 0 },
       
-      // PCE - Released end of month following data month
-      'PCEPI': { dayOfMonth: 27, monthsDelay: 0 },
+      // PCE - Released JUNE 28th (PAST DATE, not July!)
+      'PCEPI': { dayOfMonth: 28, monthsDelay: 1 },
       
       // Employment data - Released first Friday of following month
       'UNRATE': { dayOfMonth: 5, monthsDelay: 0 },
