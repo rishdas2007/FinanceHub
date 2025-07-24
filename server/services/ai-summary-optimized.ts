@@ -1,29 +1,5 @@
 import OpenAI from 'openai';
-// Simple in-memory cache for this service
-class SimpleCache {
-  private cache = new Map<string, { data: any; expiry: number }>();
-
-  get(key: string, allowStale = false): any {
-    const item = this.cache.get(key);
-    if (!item) return null;
-    
-    if (!allowStale && Date.now() > item.expiry) {
-      this.cache.delete(key);
-      return null;
-    }
-    
-    return item.data;
-  }
-
-  set(key: string, data: any, ttl: number): void {
-    this.cache.set(key, {
-      data,
-      expiry: Date.now() + ttl
-    });
-  }
-}
-
-const cacheService = new SimpleCache();
+import { smartCache } from './smart-cache';
 
 const log = {
   info: (msg: string, ...args: any[]) => console.log(`[INFO] ${msg}`, ...args),
@@ -51,15 +27,18 @@ interface AISummaryResponse {
     technical: boolean;
     economic: boolean;
   };
+  cacheInfo?: {
+    cached: boolean;
+    age: number;
+    context: string;
+    dataTimestamp: string;
+    expiresIn: number;
+  };
 }
 
 class AISummaryOptimizedService {
   private openai: OpenAI;
-  private readonly CACHE_DURATIONS = {
-    marketHours: 5 * 60 * 1000,    // 5 minutes during market hours
-    afterHours: 15 * 60 * 1000,    // 15 minutes after hours
-    weekends: 30 * 60 * 1000       // 30 minutes on weekends
-  };
+
 
   constructor() {
     this.openai = new OpenAI({
@@ -71,12 +50,26 @@ class AISummaryOptimizedService {
     try {
       log.info('🤖 Starting AI Summary generation...');
       
-      // Check cache first
-      const cacheKey = this.getCacheKey();
-      const cached = cacheService.get(cacheKey);
+      // Check cache first with smart caching
+      const cacheKey = 'ai-summary-optimized';
+      const dataTimestamp = new Date().toISOString().split('T')[0]; // Daily data key
+      const cached = smartCache.get(cacheKey, dataTimestamp);
+      
       if (cached) {
-        log.info('✅ AI Summary served from cache');
-        return cached;
+        const cacheInfo = smartCache.getCacheInfo(cacheKey, dataTimestamp);
+        log.info(`✅ AI Summary served from ${cacheInfo.context} cache (age: ${Math.round(cacheInfo.age / 1000)}s)`);
+        
+        // Add cache metadata to response
+        return {
+          ...cached.data,
+          cacheInfo: {
+            cached: true,
+            age: cacheInfo.age,
+            context: cacheInfo.context,
+            dataTimestamp: smartCache.formatTimestamp(cached.dataTimestamp),
+            expiresIn: Math.round(cacheInfo.expiresIn / 1000)
+          }
+        };
       }
 
       // Collect real data from existing sources
@@ -120,24 +113,41 @@ class AISummaryOptimizedService {
         }
       };
 
-      const cacheDuration = this.getCurrentCacheDuration();
-      cacheService.set(cacheKey, response, cacheDuration);
-      
-      log.info(`✅ AI Summary generated and cached for ${cacheDuration/1000/60} minutes`);
-      return response;
+      // Cache the result using smart cache
+      smartCache.set(cacheKey, response, dataTimestamp);
+      const cacheStats = smartCache.getStats();
+      log.info(`✅ AI Summary generated and cached (${cacheStats.currentContext} context, TTL: ${Math.round(cacheStats.cacheDuration / 60000)}min)`);
+
+      // Add cache metadata to response
+      return {
+        ...response,
+        cacheInfo: {
+          cached: false,
+          age: 0,
+          context: cacheStats.currentContext,
+          dataTimestamp: smartCache.formatTimestamp(new Date().toISOString()),
+          expiresIn: Math.round(cacheStats.cacheDuration / 1000)
+        }
+      };
 
     } catch (error) {
       log.error('❌ AI Summary generation failed:', error);
       
       // Try to return stale cached data with warning
-      const staleCacheKey = this.getCacheKey();
-      const staleData = cacheService.get(staleCacheKey, true); // Allow stale
+      const staleData = smartCache.get('ai-summary-optimized', new Date().toISOString().split('T')[0]);
       
       if (staleData) {
         return {
-          ...staleData,
+          ...staleData.data,
           dataAge: 'Cached analysis (data may be stale)',
-          success: false
+          success: false,
+          cacheInfo: {
+            cached: true,
+            age: Date.now() - staleData.timestamp,
+            context: 'stale',
+            dataTimestamp: smartCache.formatTimestamp(staleData.dataTimestamp),
+            expiresIn: 0
+          }
         };
       }
 
@@ -341,44 +351,9 @@ class AISummaryOptimizedService {
     return ages.length > 0 ? ages.join(', ') : 'Data updating';
   }
 
-  private getCacheKey(): string {
-    return 'ai-summary-optimized-v1';
-  }
 
-  private getCurrentCacheDuration(): number {
-    const now = new Date();
-    const day = now.getDay();
-    const hour = now.getHours();
 
-    // Weekend cache
-    if (day === 0 || day === 6) {
-      return this.CACHE_DURATIONS.weekends;
-    }
-
-    // Market hours (9:30 AM - 4:00 PM EST)
-    if (hour >= 9 && hour < 16) {
-      return this.CACHE_DURATIONS.marketHours;
-    }
-
-    // After hours
-    return this.CACHE_DURATIONS.afterHours;
-  }
-
-  private isMarketHours(): boolean {
-    const now = new Date();
-    const day = now.getDay();
-    const hour = now.getHours();
-    const minute = now.getMinutes();
-
-    // Weekend
-    if (day === 0 || day === 6) return false;
-
-    // Market hours (9:30 AM - 4:00 PM EST)
-    if (hour < 9 || hour > 16) return false;
-    if (hour === 9 && minute < 30) return false;
-
-    return true;
-  }
+  // All caching logic now handled by SmartCache service
 }
 
 export const aiSummaryOptimizedService = new AISummaryOptimizedService();

@@ -15,6 +15,13 @@ interface AISummaryResponse {
     technical: boolean;
     economic: boolean;
   };
+  cacheInfo?: {
+    cached: boolean;
+    age: number;
+    context: string;
+    dataTimestamp: string;
+    expiresIn: number;
+  };
 }
 
 export function AISummaryOptimized() {
@@ -129,6 +136,22 @@ export function AISummaryOptimized() {
             Data: {summary.dataAge}
           </div>
         </div>
+
+        {/* Cache Information Display */}
+        {summary.cacheInfo && (
+          <div className="flex items-center justify-between text-xs mt-2 pt-2 border-t border-gray-700">
+            <div className="flex items-center text-gray-400">
+              <span className={`w-2 h-2 rounded-full mr-2 ${summary.cacheInfo.cached ? 'bg-blue-400' : 'bg-green-400'}`}></span>
+              {summary.cacheInfo.cached ? 'Cached' : 'Fresh'} ({summary.cacheInfo.context} hours)
+            </div>
+            <div className="text-gray-400">
+              {summary.cacheInfo.cached 
+                ? `${Math.round(summary.cacheInfo.age / 1000)}s old, expires in ${Math.round(summary.cacheInfo.expiresIn / 60)}m`
+                : `Cached for ${Math.round(summary.cacheInfo.expiresIn / 60)}m`
+              }
+            </div>
+          </div>
+        )}
 
         {/* Data Source Indicators */}
         <div className="flex items-center space-x-4 text-xs">

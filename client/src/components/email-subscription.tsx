@@ -82,10 +82,10 @@ export function EmailSubscription() {
       <CardHeader>
         <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
           <Mail className="w-5 h-5 text-gain-green" />
-          Daily Market Commentary
+          Daily Market Summary
         </CardTitle>
         <p className="text-gray-400 text-sm">
-          Get AI-powered market analysis delivered to your inbox every weekday morning at 8 AM EST.
+          Get key market insights delivered to your inbox every weekday morning at 8 AM EST.
         </p>
       </CardHeader>
       <CardContent>

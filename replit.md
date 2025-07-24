@@ -6,7 +6,19 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 
 ## Recent Changes (July 24, 2025)
 
-### AI SUMMARY SECTION IMPLEMENTED WITH SYSTEMATIC OPTIMIZATION (July 24, 2025 - LATEST UPDATE)
+### DAILY MARKET COMMENTARY REMOVED & SMART CACHING IMPLEMENTED (July 24, 2025 - LATEST UPDATE)
+- **DAILY MARKET COMMENTARY COMPLETELY REMOVED**: Eliminated all daily market commentary sections and dependencies throughout the application per user request
+- **SMART CACHING SYSTEM IMPLEMENTED**: Created comprehensive SmartCache service with market hours-aware caching strategy
+- **INTELLIGENT CACHE DURATION LOGIC**: Market hours (9:30 AM - 4:00 PM EST): 5-minute cache, After hours: 15-minute cache, Weekends: 30-minute cache
+- **CACHE TIMESTAMP DISPLAY**: AI Summary now shows cache information including age, context (market/afterHours/weekend), and expiration time
+- **EMAIL SUBSCRIPTION SIMPLIFIED**: Updated from "Daily Market Commentary" to "Daily Market Summary" for simplified user experience
+- **CACHE KEY STRATEGY**: Cache keys include data timestamps to ensure proper invalidation when underlying data changes
+- **PERFORMANCE OPTIMIZED**: Smart cache returns immediate responses during appropriate time windows dramatically improving dashboard performance
+- **TRANSPARENT CACHING**: Users can see cache status with visual indicators (blue=cached, green=fresh) and detailed timing information
+- **AI SUMMARY ENHANCED**: AI Summary service now uses SmartCache with comprehensive cache metadata and fallback systems
+- **STATUS**: Daily market commentary fully removed, smart caching system operational with market hours intelligence and transparent cache information display
+
+### AI SUMMARY SECTION IMPLEMENTED WITH SYSTEMATIC OPTIMIZATION (July 24, 2025 - PREVIOUS UPDATE)
 - **OPTIMIZED AI SUMMARY COMPONENT**: Created new AISummaryOptimized component above Recent Economic Readings using systematic implementation instructions
 - **REAL DATA ONLY APPROACH**: AI Summary uses only authentic data from existing cached/database sources with timestamps showing data age
 - **THREE-TIER DATA COLLECTION**: Parallel collection of momentum analysis, technical indicators (RSI, VIX), and recent economic events with validation
