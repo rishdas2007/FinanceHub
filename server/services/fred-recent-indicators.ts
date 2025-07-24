@@ -70,8 +70,8 @@ export class FREDRecentIndicatorsService {
   ];
 
   constructor() {
-    // Use the working API key provided by user
-    this.fredApiKey = '47754b00af9343542dd99533202f983a';
+    // Use environment FRED API key (fallback to user-provided key)
+    this.fredApiKey = process.env.FRED_API_KEY || '96656a0b03cb4c4979e4924e7ab69c2f';
     console.log('FRED API Key being used:', this.fredApiKey.substring(0, 8) + '...');
   }
 
