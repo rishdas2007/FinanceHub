@@ -5,7 +5,7 @@ import { AISummaryOptimized } from "@/components/AISummaryOptimized";
 import { RecentEconomicReadings } from "@/components/RecentEconomicReadings";
 import { AAIISentiment } from "@/components/aaii-sentiment";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
-import { EmailSubscription } from "@/components/email-subscription";
+
 
 
 
@@ -68,8 +68,7 @@ export default function Dashboard() {
 
 
 
-        {/* Email Subscription - Full Width */}
-        <EmailSubscription />
+
       </div>
 
       {/* Footer */}
