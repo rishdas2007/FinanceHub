@@ -1,9 +1,9 @@
 
 
 import MomentumAnalysis from "@/components/momentum-analysis";
-
 import { RecentEconomicReadings } from "@/components/RecentEconomicReadings";
 import { FinancialMoodEmoji } from "@/components/FinancialMoodEmoji";
+import { SpyWebSocketTracker } from "@/components/market/SpyWebSocketTracker";
 import { AAIISentiment } from "@/components/aaii-sentiment";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
 
@@ -58,14 +58,17 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
 
+        {/* SPY Real-Time WebSocket Tracker - Top Priority */}
+        <SpyWebSocketTracker />
+
         {/* Financial Mood Emoji Generator */}
         <FinancialMoodEmoji />
 
-        {/* Recent Economic Readings - Full Width */}
-        <RecentEconomicReadings />
-
         {/* Simplified Momentum Analysis with Verified Calculations */}
         <MomentumAnalysis />
+
+        {/* Recent Economic Readings - Moved to Bottom */}
+        <RecentEconomicReadings />
 
       </div>
 
