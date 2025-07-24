@@ -142,6 +142,10 @@ export class SmartCache {
     this.cache.clear();
   }
 
+  remove(key: string): boolean {
+    return this.cache.delete(key);
+  }
+
   getStats(): {
     totalEntries: number;
     currentContext: string;

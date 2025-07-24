@@ -1932,7 +1932,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const key = req.query.key as string;
       
       if (key) {
-        smartCache.delete(key);
+        smartCache.remove(key);
         console.log(`🗑️ Cache invalidated for key: ${key}`);
         res.json({ success: true, invalidated: key });
       } else {

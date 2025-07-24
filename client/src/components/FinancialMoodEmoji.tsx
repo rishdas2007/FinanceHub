@@ -12,7 +12,7 @@ interface MoodData {
   marketFactors: {
     momentum: string;
     technical: string;
-    sentiment: string;
+    economic: string;
   };
   color: string;
 }
@@ -155,8 +155,8 @@ export function FinancialMoodEmoji() {
             <div className="text-sm font-semibold text-white">{moodData.marketFactors.technical}</div>
           </div>
           <div className="bg-financial-dark rounded-lg p-3 text-center">
-            <div className="text-xs text-gray-400 mb-1">Sentiment</div>
-            <div className="text-sm font-semibold text-white">{moodData.marketFactors.sentiment}</div>
+            <div className="text-xs text-gray-400 mb-1">Economic</div>
+            <div className="text-sm font-semibold text-white">{moodData.marketFactors.economic}</div>
           </div>
         </div>
 

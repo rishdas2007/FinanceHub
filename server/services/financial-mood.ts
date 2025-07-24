@@ -14,7 +14,7 @@ interface MoodData {
   marketFactors: {
     momentum: string;
     technical: string;
-    sentiment: string;
+    economic: string;
   };
   color: string;
 }
@@ -83,10 +83,15 @@ class FinancialMoodService {
 
   private async gatherMarketData() {
     try {
-      // Fetch momentum data
+      // Fetch momentum data and economic readings
       const fetch = (await import('node-fetch')).default;
-      const momentumResponse = await fetch('http://localhost:5000/api/momentum-analysis');
+      const [momentumResponse, economicResponse] = await Promise.all([
+        fetch('http://localhost:5000/api/momentum-analysis'),
+        fetch('http://localhost:5000/api/recent-economic-openai')
+      ]);
+      
       const momentumData = momentumResponse.ok ? await momentumResponse.json() as any : null;
+      const economicData = economicResponse.ok ? await economicResponse.json() as any : null;
 
       // Calculate market metrics
       const bullishSectors = momentumData?.momentumStrategies?.filter((s: any) => 
@@ -101,6 +106,10 @@ class FinancialMoodService {
       
       // Get top performing sector
       const topSector = momentumData?.momentumStrategies?.[0];
+
+      // Analyze economic readings
+      const recentReadings = economicData?.slice(0, 3) || [];
+      const economicTrend = this.analyzeEconomicTrend(recentReadings);
       
       return {
         bullishSectors,
@@ -113,12 +122,33 @@ class FinancialMoodService {
           rsi: topSector.rsi,
           signal: topSector.signal
         } : null,
-        marketTrend: bullishSectors > bearishSectors ? 'bullish' : bearishSectors > bullishSectors ? 'bearish' : 'neutral'
+        marketTrend: bullishSectors > bearishSectors ? 'bullish' : bearishSectors > bullishSectors ? 'bearish' : 'neutral',
+        economicReadings: recentReadings,
+        economicTrend
       };
     } catch (error) {
       log.error('Market data gathering failed:', error);
       return null;
     }
+  }
+
+  private analyzeEconomicTrend(readings: any[]): string {
+    if (!readings || readings.length === 0) return 'neutral';
+    
+    let positiveCount = 0;
+    let negativeCount = 0;
+    
+    readings.forEach(reading => {
+      if (reading.change?.includes('↑') || reading.variance?.includes('+')) {
+        positiveCount++;
+      } else if (reading.change?.includes('↓') || reading.variance?.includes('-')) {
+        negativeCount++;
+      }
+    });
+    
+    if (positiveCount > negativeCount) return 'improving';
+    if (negativeCount > positiveCount) return 'weakening';
+    return 'mixed';
   }
 
   private async generateMoodAnalysis(marketData: any): Promise<MoodData> {
@@ -130,7 +160,7 @@ class FinancialMoodService {
         messages: [
           {
             role: 'system',
-            content: 'You are a financial mood analyzer. Based on market data, generate a personalized financial mood with emoji, sentiment, and reasoning. Respond in JSON format with: emoji, mood, confidence (0-100), reasoning, marketFactors (momentum/technical/sentiment), and color (CSS class).'
+            content: 'You are a financial mood analyzer. Based on market data and economic readings, generate a personalized financial mood with emoji, sentiment, and reasoning. Respond in JSON format with: emoji, mood, confidence (0-100), reasoning, marketFactors (momentum/technical/economic), and color (CSS class).'
           },
           {
             role: 'user',
@@ -152,7 +182,7 @@ class FinancialMoodService {
         marketFactors: {
           momentum: analysis.marketFactors?.momentum || 'Neutral',
           technical: analysis.marketFactors?.technical || 'Mixed',
-          sentiment: analysis.marketFactors?.sentiment || 'Cautious'
+          economic: analysis.marketFactors?.economic || 'Mixed'
         },
         color: analysis.color || 'text-gray-400'
       };
@@ -171,6 +201,15 @@ class FinancialMoodService {
     prompt += `Market Trend: ${marketData.marketTrend}\n`;
     prompt += `Bullish Sectors: ${marketData.bullishSectors}/${marketData.totalSectors}\n`;
     prompt += `Bearish Sectors: ${marketData.bearishSectors}/${marketData.totalSectors}\n`;
+    
+    // Add economic readings analysis
+    if (marketData.economicReadings?.length > 0) {
+      prompt += `\nECONOMIC READINGS:\n`;
+      prompt += `Economic Trend: ${marketData.economicTrend}\n`;
+      marketData.economicReadings.forEach((reading: any, index: number) => {
+        prompt += `${index + 1}. ${reading.metric}: ${reading.current} (vs ${reading.forecast}) - ${reading.change}\n`;
+      });
+    }
     
     if (marketData.topSector) {
       prompt += `Leading Sector: ${marketData.topSector.sector} (${marketData.topSector.change}%, RSI: ${marketData.topSector.rsi})\n`;
