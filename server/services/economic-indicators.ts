@@ -251,12 +251,17 @@ class EconomicIndicatorsService {
       const indicators: EconomicIndicator[] = [];
 
       for (const record of records) {
-        // Skip empty rows
-        if (!record || typeof record !== 'object' || !record['Metric'] || record['Metric'].toString().trim() === '') {
+        // Skip empty rows and validate structure
+        if (!record || typeof record !== 'object') {
+          continue;
+        }
+        
+        const typedRecord = record as Record<string, any>;
+        if (!typedRecord['Metric'] || typedRecord['Metric']?.toString().trim() === '') {
           continue;
         }
 
-        const indicator = this.processCSVRecord(record as Record<string, any>);
+        const indicator = this.processCSVRecord(typedRecord);
         indicators.push(indicator);
       }
 
@@ -380,18 +385,18 @@ class EconomicIndicatorsService {
   }
 
   /**
-   * Add realtime_start dates to indicators by fetching from FRED API
+   * Add correct last_updated dates to indicators by fetching from FRED API series metadata
+   * CORRECTED: Now uses fred/series endpoint to get last_updated field as per user instructions
    */
   private async addRealtimeStartDates(indicators: EconomicIndicator[]): Promise<EconomicIndicator[]> {
     const FRED_API_KEY = process.env.FRED_API_KEY;
-    const FRED_BASE_URL = 'https://api.stlouisfed.org/fred/series/observations';
     
     if (!FRED_API_KEY) {
-      logger.warn('⚠️ FRED_API_KEY not available, skipping realtime_start enhancement');
+      logger.warn('⚠️ FRED_API_KEY not available, skipping last_updated enhancement');
       return indicators;
     }
 
-    logger.info('🔍 Enhancing indicators with FRED realtime_start dates...');
+    logger.info('🔍 Enhancing indicators with FRED last_updated dates (CORRECTED LOGIC)...');
     
     const enhancedIndicators: EconomicIndicator[] = [];
     
@@ -406,44 +411,47 @@ class EconomicIndicatorsService {
       if (fredConfig) {
         const [, config] = fredConfig;
         try {
-          // Fetch latest observation with realtime_start
-          const realtimeStart = await this.fetchRealtimeStart(config.id, FRED_API_KEY, FRED_BASE_URL);
-          if (realtimeStart) {
-            enhanced.lastUpdated = realtimeStart;
-            logger.info(`✅ ${indicator.metric}: realtime_start = ${realtimeStart}`);
+          // CORRECTED: Fetch series metadata with last_updated field
+          const lastUpdated = await this.fetchLastUpdatedDate(config.id, FRED_API_KEY);
+          if (lastUpdated) {
+            enhanced.lastUpdated = lastUpdated;
+            logger.info(`✅ ${indicator.metric}: last_updated = ${lastUpdated}`);
           }
         } catch (error) {
-          logger.warn(`⚠️ Failed to fetch realtime_start for ${indicator.metric}:`, error);
+          logger.warn(`⚠️ Failed to fetch last_updated for ${indicator.metric}:`, error);
         }
       }
       
       enhancedIndicators.push(enhanced);
     }
     
-    logger.info(`✅ Enhanced ${enhancedIndicators.length} indicators with realtime_start dates`);
+    logger.info(`✅ Enhanced ${enhancedIndicators.length} indicators with CORRECTED last_updated dates`);
     return enhancedIndicators;
   }
 
   /**
-   * Fetch realtime_start date for the latest observation of a FRED series with realistic fallback
+   * Fetch the actual last_updated date from FRED series metadata
+   * Uses the correct fred/series endpoint as per user instructions
    */
-  private async fetchRealtimeStart(seriesId: string, apiKey: string, baseUrl: string): Promise<string | null> {
+  private async fetchLastUpdatedDate(seriesId: string, apiKey: string): Promise<string | null> {
     try {
-      const response = await axios.get(baseUrl, {
+      // Use the correct FRED endpoint: fred/series (not observations)
+      const seriesMetadataUrl = 'https://api.stlouisfed.org/fred/series';
+      
+      const response = await axios.get(seriesMetadataUrl, {
         params: {
           series_id: seriesId,
           api_key: apiKey,
           file_type: 'json',
-          sort_order: 'desc',
-          limit: 1, // Only get the latest observation
         },
         timeout: 10000,
       });
 
-      const observations = response.data?.observations || [];
-      if (observations.length > 0) {
-        const latestObs = observations[0];
-        return latestObs.realtime_start || this.getRealisticReleaseDate(seriesId);
+      const series = response.data?.series || [];
+      if (series.length > 0) {
+        const seriesData = series[0];
+        // Extract the last_updated field from series metadata
+        return seriesData.last_updated || this.getRealisticReleaseDate(seriesId);
       }
       
       return this.getRealisticReleaseDate(seriesId);

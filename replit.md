@@ -15,6 +15,7 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 - **ENHANCED API ROUTES**: Updated /api/stocks, /api/technical, /api/sectors endpoints to use intelligent caching with automatic database fallbacks
 - **CACHE MANAGEMENT ENDPOINTS**: Added /api/cache/performance, /api/cache/invalidate, and /api/cache/warmup for comprehensive cache control
 - **MEMORY OPTIMIZATION**: Smart cache cleanup with configurable TTL per data type and automatic expiration handling
+- **FRED API LOGIC CORRECTED**: Fixed Economic Indicators "Last Update" column to use correct fred/series endpoint for last_updated field instead of fred/series/observations realtime_start field
 - **PRODUCTION HARDENING**: Fixed all TypeScript/LSP errors for production-ready intelligent caching implementation
 - **CORE PRINCIPLE MAINTAINED**: Real data only approach with intelligent fallbacks instead of mock data, ensuring authentic market data integrity
 - **STATUS**: Intelligent caching system fully operational - dashboard now loads dramatically faster with database-first email generation achieving sub-second performance
