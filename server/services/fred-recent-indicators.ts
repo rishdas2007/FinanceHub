@@ -71,10 +71,8 @@ export class FREDRecentIndicatorsService {
 
   constructor() {
     // Use the working API key provided by user
-    // Use environment variable for FRED API key with fallback
-    this.fredApiKey = process.env.FRED_API_KEY || '47754b00af9343542dd99533202f983a';
+    this.fredApiKey = '47754b00af9343542dd99533202f983a';
     console.log('FRED API Key being used:', this.fredApiKey.substring(0, 8) + '...');
-    console.log('FRED API Key source:', process.env.FRED_API_KEY ? 'Environment Variable' : 'Hardcoded Fallback');
   }
 
   // Step 1: Get Most Recently Updated from Curated Series
