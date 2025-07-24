@@ -1,7 +1,7 @@
 
 
 import MomentumAnalysis from "@/components/momentum-analysis";
-import { RecentEconomicReadings } from "@/components/RecentEconomicReadings";
+
 import { FinancialMoodEmoji } from "@/components/FinancialMoodEmoji";
 import { AAIISentiment } from "@/components/aaii-sentiment";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
@@ -63,8 +63,7 @@ export default function Dashboard() {
         {/* Simplified Momentum Analysis with Verified Calculations */}
         <MomentumAnalysis />
 
-        {/* Recent Economic Readings - Moved to Bottom */}
-        <RecentEconomicReadings />
+
 
       </div>
 
