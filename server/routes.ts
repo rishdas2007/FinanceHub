@@ -151,6 +151,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Recent Economic Readings (OpenAI powered)
+  app.get('/api/recent-economic-openai', async (req, res) => {
+    try {
+      const { openaiEconomicReadingsService } = await import('./services/openai-economic-readings');
+      const readings = await openaiEconomicReadingsService.generateEconomicReadings();
+      res.json(readings);
+    } catch (error) {
+      console.error('Error fetching OpenAI economic readings:', error);
+      res.status(500).json({ error: 'Failed to fetch economic readings' });
+    }
+  });
+
+  // Economic Indicators Cache Management
+  app.post('/api/economic-indicators/refresh', async (req, res) => {
+    try {
+      const { openaiEconomicIndicatorsService } = await import('./services/openai-economic-indicators');
+      await openaiEconomicIndicatorsService.invalidateCache();
+      
+      const { cacheService } = await import('./services/cache-unified');
+      cacheService.delete("economic-indicators-openai-daily-v1");
+      
+      res.json({ message: 'Economic indicators cache refreshed' });
+    } catch (error) {
+      console.error('Error refreshing economic indicators cache:', error);
+      res.status(500).json({ error: 'Failed to refresh cache' });
+    }
+  });
+
   // Economic Indicators endpoint
   app.get("/api/economic-indicators", async (req, res) => {
     try {

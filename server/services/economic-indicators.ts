@@ -196,30 +196,68 @@ class EconomicIndicatorsService {
 
   async getEconomicIndicators(): Promise<EconomicIndicator[]> {
     try {
-      // First, try to get indicators with historical FRED data
-      logger.info('📊 Loading economic indicators with historical FRED context...');
-      const historicalIndicators = await historicalEconomicIndicatorsService.getIndicatorsWithHistoricalContext();
+      // Check cache for daily cached data
+      const { cacheService } = await import('./cache-unified');
+      const cacheKey = "economic-indicators-openai-daily-v1";
       
-      if (historicalIndicators.length > 0) {
-        logger.info(`✅ Historical indicators loaded: ${historicalIndicators.length} with FRED data`);
+      const cachedData = cacheService.get(cacheKey);
+      if (cachedData) {
+        logger.info('📊 Serving economic indicators from daily cache');
+        return cachedData as EconomicIndicator[];
+      }
+
+      logger.info('📊 Loading economic indicators from OpenAI (daily refresh)...');
+      
+      // Get base indicators from OpenAI (cached for 24 hours internally)
+      const { openaiEconomicIndicatorsService } = await import('./openai-economic-indicators');
+      const baseIndicators = await openaiEconomicIndicatorsService.generateEconomicIndicators();
+      
+      // Convert to our EconomicIndicator format
+      const convertedIndicators: EconomicIndicator[] = baseIndicators.map(indicator => {
+        // Parse current value to extract numeric part
+        const numericValue = this.parseNumericValue(indicator.current);
         
-        // Enhance with realtime_start data from FRED API
-        const enhancedIndicators = await this.addRealtimeStartDates(historicalIndicators);
-        return enhancedIndicators;
-      }
-
-      // Fallback to CSV data if no historical data available
-      logger.info('📊 Falling back to CSV data with proper calculations');
-      const csvIndicators = await this.loadFromCSVWithCalculations();
+        return {
+          metric: indicator.metric,
+          type: indicator.type,
+          category: indicator.category,
+          current: numericValue,
+          forecast: null, // OpenAI doesn't provide forecast
+          vsForecast: null,
+          prior: null,
+          vsPrior: null,
+          zScore: null, // Will be calculated if historical data available
+          yoyChange: null, // Will be calculated if historical data available
+          threeMonthAnnualized: null,
+          unit: this.extractUnit(indicator.current),
+          frequency: 'monthly', // Default frequency
+          lastUpdated: indicator.lastUpdated
+        };
+      });
       
-      if (csvIndicators.length > 0) {
-        logger.info(`✅ CSV indicators loaded: ${csvIndicators.length} indicators with verified calculations`);
-        return csvIndicators;
-      }
-
-      return this.getFallbackIndicators();
+      // Try to enhance with calculated metrics if historical data available
+      const enhancedIndicators = await this.tryAddCalculatedMetrics(convertedIndicators);
+      
+      // Cache for 24 hours (daily refresh)
+      const cacheTime = 24 * 60 * 60 * 1000; // 24 hours
+      cacheService.set(cacheKey, enhancedIndicators, cacheTime);
+      
+      logger.info(`✅ Economic indicators loaded: ${enhancedIndicators.length} indicators from OpenAI`);
+      return enhancedIndicators;
     } catch (error) {
-      logger.error('❌ Error loading economic indicators:', error);
+      logger.error('❌ Error loading economic indicators from OpenAI:', error);
+      
+      // Fallback to historical FRED data if available
+      try {
+        logger.info('📊 Falling back to historical FRED data...');
+        const historicalIndicators = await historicalEconomicIndicatorsService.getIndicatorsWithHistoricalContext();
+        if (historicalIndicators.length > 0) {
+          return historicalIndicators;
+        }
+      } catch (fredError) {
+        logger.error('❌ FRED fallback also failed:', fredError);
+      }
+      
       return this.getFallbackIndicators();
     }
   }
@@ -388,6 +426,34 @@ class EconomicIndicatorsService {
    * Add correct last_updated dates to indicators by fetching from FRED API series metadata
    * CORRECTED: Now uses fred/series endpoint to get last_updated field as per user instructions
    */
+  private parseNumericValue(valueStr: string): number | null {
+    // Extract numeric value from strings like "2.8%", "206K", "100.3"
+    const cleaned = valueStr.replace(/[^-\d.]/g, '');
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? null : parsed;
+  }
+
+  private extractUnit(valueStr: string): string {
+    // Extract unit from value string
+    if (valueStr.includes('%')) return '%';
+    if (valueStr.includes('K')) return 'K';
+    if (valueStr.includes('M')) return 'M';
+    if (valueStr.includes('B')) return 'B';
+    return 'index'; // Default for indexes
+  }
+
+  private async tryAddCalculatedMetrics(indicators: EconomicIndicator[]): Promise<EconomicIndicator[]> {
+    try {
+      // Try to add historical context if available - would need historical data service
+      // For now, return the base indicators since we're using OpenAI data
+      logger.info('📊 Using OpenAI base indicators (historical calculations not available)');
+      return indicators;
+    } catch (error) {
+      logger.info('📊 No historical data available for calculations, using base indicators');
+      return indicators;
+    }
+  }
+
   private async addRealtimeStartDates(indicators: EconomicIndicator[]): Promise<EconomicIndicator[]> {
     const FRED_API_KEY = process.env.FRED_API_KEY;
     
