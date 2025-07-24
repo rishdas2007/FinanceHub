@@ -1,30 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, TrendingUp, TrendingDown } from "lucide-react";
+import { Calendar } from "lucide-react";
 
-interface EconomicIndicator {
-  series_id: string;
-  title: string;
-  latest: number;
-  latest_date: string;
-  prior: number | null;
-  prior_date: string | null;
-  units: string;
-  change: number | null;
-  change_percent: number | null;
-}
-
-interface FREDResponse {
-  indicators: EconomicIndicator[];
+interface OpenAIEconomicReading {
+  metric: string;
+  value: string;
   analysis: string;
 }
 
 export function RecentEconomicReadings() {
-  const { data: fredData, isLoading } = useQuery<FREDResponse>({
-    queryKey: ['/api/fred-recent-readings'],
-    staleTime: 15 * 60 * 1000, // 15 minutes for FRED data (slower updates)
-    gcTime: 30 * 60 * 1000, // 30 minutes
+  // Use OpenAI-based economic readings due to FRED API access restrictions
+  const { data: economicData, isLoading } = useQuery<OpenAIEconomicReading[]>({
+    queryKey: ['/api/recent-economic-openai'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   if (isLoading) {
@@ -34,7 +24,7 @@ export function RecentEconomicReadings() {
           <CardTitle className="text-white flex items-center space-x-2">
             <Calendar className="h-5 w-5 text-blue-400" />
             <span>Recent Economic Readings</span>
-            <span className="text-xs text-gray-400">FRED API</span>
+            <span className="text-xs text-gray-400">AI-Generated</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -48,63 +38,22 @@ export function RecentEconomicReadings() {
     );
   }
 
-  if (!fredData || !fredData.indicators || fredData.indicators.length === 0) {
+  if (!economicData || !Array.isArray(economicData) || economicData.length === 0) {
     return (
       <Card className="bg-financial-card border-financial-border">
         <CardHeader>
           <CardTitle className="text-white flex items-center space-x-2">
             <Calendar className="h-5 w-5 text-blue-400" />
             <span>Recent Economic Readings</span>
-            <span className="text-xs text-red-400">FRED API Error</span>
+            <span className="text-xs text-red-400">API Error</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-400">FRED economic data temporarily unavailable</p>
+          <p className="text-gray-400">Economic data temporarily unavailable</p>
         </CardContent>
       </Card>
     );
   }
-
-  const indicators = fredData.indicators;
-  const analysis = fredData.analysis;
-
-  const formatValue = (value: number, units: string): string => {
-    if (units.includes('Percent') || units.includes('Rate')) {
-      return `${value.toFixed(2)}%`;
-    }
-    if (units.includes('Thousands')) {
-      return `${(value / 1000).toFixed(1)}K`;
-    }
-    if (units.includes('Millions')) {
-      return `${value.toFixed(1)}M`;
-    }
-    if (units.includes('Billions')) {
-      return `${value.toFixed(1)}B`;
-    }
-    return value.toLocaleString();
-  };
-
-  const formatChange = (change: number | null, changePercent: number | null): { text: string; isPositive: boolean | null } => {
-    if (change === null && changePercent === null) {
-      return { text: 'N/A', isPositive: null };
-    }
-    
-    if (changePercent !== null) {
-      return {
-        text: `${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%`,
-        isPositive: changePercent >= 0
-      };
-    }
-    
-    if (change !== null) {
-      return {
-        text: `${change >= 0 ? '+' : ''}${change.toFixed(2)}`,
-        isPositive: change >= 0
-      };
-    }
-    
-    return { text: 'N/A', isPositive: null };
-  };
 
   return (
     <Card className="bg-financial-card border-financial-border">
@@ -112,98 +61,48 @@ export function RecentEconomicReadings() {
         <CardTitle className="text-white flex items-center space-x-2">
           <Calendar className="h-5 w-5 text-blue-400" />
           <span>Recent Economic Readings</span>
-          <span className="text-xs text-green-400">FRED API • Live</span>
+          <span className="text-xs text-green-400">AI-Generated • Live</span>
         </CardTitle>
       </CardHeader>
       <CardContent>
         {/* Economic Indicators Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          {indicators.map((indicator, index) => {
-            const changeInfo = formatChange(indicator.change, indicator.change_percent);
-            
-            return (
-              <div
-                key={`${indicator.series_id}-${index}`}
-                className="bg-financial-dark rounded-lg p-4 border border-financial-border hover:border-blue-500/30 transition-colors"
-              >
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-medium text-white leading-tight">
-                      {indicator.title.replace(/\(.*?\)/g, '').trim()}
-                    </h3>
-                    <p className="text-xs text-gray-400">
-                      {indicator.series_id} • {indicator.units}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-400">Latest</span>
-                      <span className="text-lg font-bold text-blue-400">
-                        {formatValue(indicator.latest, indicator.units)}
-                      </span>
-                    </div>
-
-                    {indicator.prior !== null && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-400">Prior</span>
-                        <span className="text-sm text-gray-300">
-                          {formatValue(indicator.prior, indicator.units)}
-                        </span>
-                      </div>
-                    )}
-
-                    {changeInfo.text !== 'N/A' && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-400">Change</span>
-                        <div className="flex items-center space-x-1">
-                          {changeInfo.isPositive !== null && (
-                            changeInfo.isPositive ? 
-                              <TrendingUp className="h-3 w-3 text-gain-green" /> :
-                              <TrendingDown className="h-3 w-3 text-loss-red" />
-                          )}
-                          <span className={`text-sm font-medium ${
-                            changeInfo.isPositive === true ? 'text-gain-green' :
-                            changeInfo.isPositive === false ? 'text-loss-red' :
-                            'text-gray-300'
-                          }`}>
-                            {changeInfo.text}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pt-2 border-t border-financial-border">
-                    <span className="text-xs text-gray-500">
-                      {new Date(indicator.latest_date).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
-                    </span>
-                  </div>
+          {economicData.map((reading: OpenAIEconomicReading, index: number) => (
+            <div
+              key={`${reading.metric}-${index}`}
+              className="bg-financial-dark p-4 rounded-lg border border-financial-border"
+            >
+              <div className="flex justify-between items-start mb-2">
+                <h4 className="text-white font-semibold text-sm leading-tight">
+                  {reading.metric}
+                </h4>
+              </div>
+              
+              <div className="space-y-1">
+                <div className="text-xl font-bold text-blue-400">
+                  {reading.value}
+                </div>
+                
+                <div className="text-xs text-gray-300 leading-relaxed">
+                  {reading.analysis}
                 </div>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
 
-        {/* AI Analysis Section */}
-        {analysis && (
-          <div className="bg-financial-dark rounded-lg p-4 border border-financial-border">
-            <h4 className="text-sm font-medium text-white mb-3 flex items-center space-x-2">
-              <span>📊 Economic Analysis</span>
-              <span className="text-xs text-blue-400">GPT-4o</span>
-            </h4>
-            <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">
-              {analysis}
-            </div>
+        {/* AI Generated Note */}
+        <div className="bg-financial-dark p-4 rounded-lg border border-financial-border">
+          <h3 className="text-white font-semibold mb-3 flex items-center space-x-2">
+            <Calendar className="h-4 w-4 text-blue-400" />
+            <span>AI Economic Analysis</span>
+          </h3>
+          <div className="text-gray-300 space-y-2">
+            <p className="text-sm leading-relaxed">
+              These economic readings are AI-generated based on recent market conditions and economic trends. 
+              FRED API is temporarily unavailable due to access restrictions.
+            </p>
           </div>
-        )}
-
-        <div className="mt-4 text-xs text-gray-500 text-center">
-          Data from Federal Reserve Economic Data (FRED) • Most Recent Updates
         </div>
       </CardContent>
     </Card>
