@@ -168,36 +168,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  // Stock data endpoints with caching
+  // Enhanced stock data endpoints with intelligent caching
   app.get("/api/stocks/:symbol", async (req, res) => {
+    const startTime = Date.now();
     try {
       const { symbol } = req.params;
-      const { cacheService } = await import('./services/cache-unified');
-      const cacheKey = `stock-${symbol.toUpperCase()}`;
+      const { enhancedMarketDataService } = await import('./services/enhanced-market-data');
       
-      // Check cache first (1 minute TTL for stock quotes)
-      const cachedData = cacheService.get(cacheKey);
-      if (cachedData) {
-        return res.json(cachedData);
-      }
+      console.log(`📊 Fetching stock data for ${symbol} with intelligent caching...`);
+      const stockData = await enhancedMarketDataService.getStockQuote(symbol.toUpperCase());
       
-      console.log(`Fetching fresh data for ${symbol}...`);
-      const quote = await financialDataService.getStockQuote(symbol.toUpperCase());
-      const newStockData = await storage.createStockData({
-        symbol: quote.symbol,
-        price: quote.price.toString(),
-        change: quote.change.toString(),
-        changePercent: quote.changePercent.toString(),
-        volume: quote.volume,
+      // Store in database for future fallback
+      await storage.createStockData({
+        symbol: stockData.symbol,
+        price: stockData.price,
+        change: stockData.change,
+        changePercent: stockData.changePercent,
+        volume: stockData.volume ? parseInt(stockData.volume.replace(/[^\d]/g, '')) : undefined,
       });
       
-      // Cache the result for 1 minute
-      cacheService.set(cacheKey, newStockData, CACHE_DURATIONS.STOCK_QUOTES);
+      const responseTime = Date.now() - startTime;
+      console.log(`✅ Stock data for ${symbol} returned in ${responseTime}ms`);
       
-      res.json(newStockData);
+      res.json(stockData);
     } catch (error) {
-      console.error('Error fetching stock data:', error);
-      res.status(500).json({ message: 'Failed to fetch stock data' });
+      console.error(`❌ Stock data error for ${req.params.symbol}:`, error);
+      
+      // Try to get fallback data from database
+      try {
+        const fallbackData = await storage.getLatestStockData(req.params.symbol.toUpperCase());
+        if (fallbackData) {
+          console.log(`📦 Using database fallback for ${req.params.symbol}`);
+          return res.json(fallbackData);
+        }
+      } catch (dbError) {
+        console.error('Database fallback failed:', dbError);
+      }
+      
+      res.status(500).json({ 
+        error: 'Stock data temporarily unavailable',
+        message: 'Please try again in a moment'
+      });
     }
   });
 
@@ -237,152 +248,158 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Technical indicators with caching
+  // Enhanced technical indicators with intelligent caching
   app.get("/api/technical/:symbol", async (req, res) => {
+    const startTime = Date.now();
     try {
       const { symbol } = req.params;
-      const { cacheService } = await import('./services/cache-unified');
-      const cacheKey = `technical-${symbol.toUpperCase()}`;
+      const { enhancedMarketDataService } = await import('./services/enhanced-market-data');
       
-      // Check cache first (3 minute TTL for technical indicators)
-      const cachedData = cacheService.get(cacheKey);
-      if (cachedData) {
-        return res.json(cachedData);
-      }
+      console.log(`📊 Fetching technical indicators for ${symbol} with intelligent caching...`);
+      const techData = await enhancedMarketDataService.getTechnicalIndicators(symbol.toUpperCase());
       
-      console.log(`Fetching enhanced technical indicators for ${symbol} with 144/min API limit...`);
-      const techData = await financialDataService.getTechnicalIndicators(symbol.toUpperCase());
+      // Store in database for future fallback
       const indicators = await storage.createTechnicalIndicators({
         symbol: techData.symbol,
-        rsi: techData.rsi !== null ? String(techData.rsi) : null,
-        macd: techData.macd !== null ? String(techData.macd) : null,
-        macdSignal: techData.macdSignal !== null ? String(techData.macdSignal) : null,
-        bb_upper: techData.bb_upper !== null ? String(techData.bb_upper) : null,
-        bb_middle: techData.bb_middle !== null ? String(techData.bb_middle) : null,
-        bb_lower: techData.bb_lower !== null ? String(techData.bb_lower) : null,
-        percent_b: techData.percent_b !== null ? String(techData.percent_b) : null,
-        adx: techData.adx !== null ? String(techData.adx) : null,
-        stoch_k: techData.stoch_k !== null ? String(techData.stoch_k) : null,
-        stoch_d: techData.stoch_d !== null ? String(techData.stoch_d) : null,
-        vwap: techData.vwap !== null ? String(techData.vwap) : null,
-        atr: techData.atr !== null ? String(techData.atr) : null,
-        willr: techData.willr !== null ? String(techData.willr) : null,
-        sma_20: techData.sma_20 !== null ? String(techData.sma_20) : null,
-        sma_50: techData.sma_50 !== null ? String(techData.sma_50) : null,
+        rsi: techData.rsi,
+        macd: techData.macd,
+        macdSignal: techData.macdSignal,
+        bb_upper: techData.bb_upper,
+        bb_middle: techData.bb_middle,
+        bb_lower: techData.bb_lower,
+        percent_b: techData.percent_b,
+        adx: techData.adx,
+        stoch_k: techData.stoch_k,
+        stoch_d: techData.stoch_d,
+        vwap: techData.vwap,
+        atr: techData.atr,
+        willr: techData.willr,
+        sma_20: techData.sma20,
+        sma_50: techData.sma50,
       });
       
-      // Cache the result for 3 minutes
-      cacheService.set(cacheKey, indicators, CACHE_DURATIONS.TECHNICAL_INDICATORS);
+      const responseTime = Date.now() - startTime;
+      console.log(`✅ Technical indicators for ${symbol} returned in ${responseTime}ms`);
       
-      res.json(indicators);
+      res.json(techData);
     } catch (error) {
-      console.error('Error fetching technical indicators:', error);
-      res.status(500).json({ message: 'Failed to fetch technical indicators' });
-    }
-  });
-
-  // Market sentiment with caching
-  app.get("/api/sentiment", async (req, res) => {
-    try {
-      const { cacheService } = await import('./services/cache-unified');
-      const cacheKey = 'market-sentiment';
+      console.error(`❌ Technical indicators error for ${req.params.symbol}:`, error);
       
-      // Check cache first (2 minute TTL for sentiment data)
-      const cachedData = cacheService.get(cacheKey);
-      if (cachedData) {
-        return res.json(cachedData);
+      // Try to get fallback data from database
+      try {
+        const fallbackData = await storage.getLatestTechnicalIndicators(req.params.symbol.toUpperCase());
+        if (fallbackData) {
+          console.log(`📦 Using database fallback for ${req.params.symbol} technical indicators`);
+          return res.json(fallbackData);
+        }
+      } catch (dbError) {
+        console.error('Database fallback failed:', dbError);
       }
       
-      // Generate fresh real sentiment data using VIX and market indicators
-      const sentimentData = await financialDataService.getRealMarketSentiment();
-      
-      // Cache the result for 2 minutes  
-      cacheService.set(cacheKey, sentimentData, CACHE_DURATIONS.SENTIMENT_DATA);
-      
-      res.json(sentimentData);
-    } catch (error) {
-      console.error('Error fetching market sentiment:', error);
-      res.status(500).json({ message: 'Failed to fetch market sentiment' });
+      res.status(500).json({ 
+        error: 'Technical indicators temporarily unavailable',
+        message: 'Please try again in a moment'
+      });
     }
   });
 
-  // Sector performance with market hours awareness and weekend fallback
+  // Enhanced sector ETFs with intelligent caching
   app.get("/api/sectors", async (req, res) => {
+    const startTime = Date.now();
     try {
-      const { cacheService } = await import('./services/cache-unified');
-      const cacheKey = 'sector-data';
+      const { enhancedMarketDataService } = await import('./services/enhanced-market-data');
       
-      // Check market hours using centralized utility
-      const { isOpen: isMarketHours, isWeekend } = getMarketHoursInfo();
+      console.log(`📊 Fetching sector ETF data with intelligent caching...`);
+      const sectorData = await enhancedMarketDataService.getSectorETFs();
       
-      // During weekends or after hours, ALWAYS use cached data if available
-      if (isWeekend || !isMarketHours) {
-        const cachedData = cacheService.get(cacheKey);
-        if (cachedData) {
-          console.log(`📈 Weekend/After Hours: Using cached sector data (${isWeekend ? 'Weekend' : 'After Hours'})`);
-          return res.json(cachedData);
-        }
-        
-        // If no cache, try database fallback for weekend/after hours
-        try {
-          const dbSectors = await storage.getLatestSectorData();
-          if (dbSectors && dbSectors.length > 0) {
-            console.log(`📂 Weekend/After Hours: Using database fallback sector data`);
-            return res.json(dbSectors);
-          }
-        } catch (dbError) {
-          console.error('Database fallback failed:', dbError);
-        }
+      // Store sector data in database for future fallback
+      for (const sector of sectorData) {
+        await storage.createStockData({
+          symbol: sector.symbol,
+          price: sector.price.toString(),
+          change: (sector.price * sector.changePercent / 100).toFixed(2),
+          changePercent: sector.changePercent.toString(),
+          volume: sector.volume,
+        });
       }
       
-      // During market hours, check cache first but allow fresh data if needed
-      const bypassCache = req.headers['x-bypass-cache'] === 'true';
-      if (!bypassCache && isMarketHours) {
-        const cachedData = cacheService.get(cacheKey);
-        if (cachedData) {
-          console.log('📈 Market Hours: Using cached sector data');
-          return res.json(cachedData);
-        }
-      }
+      const responseTime = Date.now() - startTime;
+      console.log(`✅ Sector ETF data returned in ${responseTime}ms`);
       
-      // Only make API calls during market hours or when absolutely necessary
-      if (isMarketHours || (!cacheService.get(cacheKey))) {
-        console.log(`🚀 Fetching fresh sector ETF data... (Market ${isMarketHours ? 'Open' : 'Closed'})`);
-        const freshSectors = await financialDataService.getSectorETFs();
-        
-        // Cache the result for 5 minutes during market hours, longer for after hours
-        const cacheTime = isMarketHours ? CACHE_DURATIONS.SECTOR_DATA_MARKET_HOURS : CACHE_DURATIONS.SECTOR_DATA_AFTER_HOURS;
-        cacheService.set(cacheKey, freshSectors, cacheTime);
-        
-        // Store in database for fallback (background task)
-        setTimeout(async () => {
-          for (const sector of freshSectors) {
-            try {
-              await storage.createSectorData({
-                symbol: sector.symbol,
-                name: sector.name,
-                price: (typeof sector.price === 'number' ? sector.price : parseFloat(sector.price as string) || 0).toString(),
-                changePercent: (typeof sector.changePercent === 'number' ? sector.changePercent : parseFloat(sector.changePercent as string) || 0).toString(),
-                fiveDayChange: (sector.fiveDayChange || 0).toString(),
-                oneMonthChange: (sector.oneMonthChange || 0).toString(),
-                volume: sector.volume || 0,
-              });
-            } catch (error) {
-              console.error(`Error storing sector data for ${sector.symbol}:`, error);
-            }
-          }
-        }, 0);
-        
-        res.json(freshSectors);
-      } else {
-        // Fallback to last known data or emergency data
-        console.log('⚠️ No fresh data available during off hours, using fallback');
-        res.status(503).json({ message: 'Market data not available during off hours' });
-      }
-      
+      res.json(sectorData);
     } catch (error) {
-      console.error('Error fetching sectors:', error);
-      res.status(500).json({ message: 'Failed to fetch sectors' });
+      console.error(`❌ Sector ETF data error:`, error);
+      
+      // Try to get fallback data from database
+      try {
+        const fallbackData = await storage.getAllSectorData();
+        if (fallbackData && fallbackData.length > 0) {
+          console.log(`📦 Using database fallback for sector data (${fallbackData.length} sectors)`);
+          return res.json(fallbackData);
+        }
+      } catch (dbError) {
+        console.error('Database fallback failed:', dbError);
+      }
+      
+      res.status(500).json({ 
+        error: 'Sector data temporarily unavailable',
+        message: 'Please try again in a moment'
+      });
+    }
+  });
+
+  // Performance monitoring endpoint for intelligent cache
+  app.get("/api/cache/performance", async (req, res) => {
+    try {
+      const { enhancedMarketDataService } = await import('./services/enhanced-market-data');
+      const { intelligentCache } = await import('./services/intelligent-cache-system');
+      
+      const metrics = {
+        marketData: enhancedMarketDataService.getPerformanceMetrics(),
+        intelligentCache: intelligentCache.getPerformanceMetrics(),
+        timestamp: new Date().toISOString()
+      };
+      
+      res.json(metrics);
+    } catch (error) {
+      console.error('Error fetching cache performance:', error);
+      res.status(500).json({ message: 'Cache performance data unavailable' });
+    }
+  });
+
+  // Cache invalidation endpoint
+  app.post("/api/cache/invalidate", async (req, res) => {
+    try {
+      const { pattern } = req.body;
+      const { intelligentCache } = await import('./services/intelligent-cache-system');
+      
+      intelligentCache.invalidate(pattern || '');
+      
+      res.json({ 
+        success: true, 
+        message: pattern ? `Cache entries matching "${pattern}" invalidated` : 'All cache entries invalidated' 
+      });
+    } catch (error) {
+      console.error('Error invalidating cache:', error);
+      res.status(500).json({ message: 'Cache invalidation failed' });
+    }
+  });
+
+  // Cache warm-up endpoint
+  app.post("/api/cache/warmup", async (req, res) => {
+    try {
+      const { enhancedMarketDataService } = await import('./services/enhanced-market-data');
+      
+      console.log('🔥 Starting cache warm-up...');
+      await enhancedMarketDataService.warmCache();
+      
+      res.json({ 
+        success: true, 
+        message: 'Cache warm-up completed successfully' 
+      });
+    } catch (error) {
+      console.error('Error warming cache:', error);
+      res.status(500).json({ message: 'Cache warm-up failed' });
     }
   });
 
