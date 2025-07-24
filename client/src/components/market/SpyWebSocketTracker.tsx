@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Wifi, WifiOff } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 
 interface SpyData {
   symbol: string;
@@ -16,8 +17,16 @@ export function SpyWebSocketTracker() {
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
   const wsRef = useRef<WebSocket | null>(null);
 
+  // Fallback to HTTP API data since WebSocket requires Pro plan
+  const { data: fallbackData } = useQuery({
+    queryKey: ['/api/stocks', 'SPY'],
+    queryFn: () => fetch('/api/stocks?symbols=SPY').then(res => res.json()),
+    refetchInterval: 30000, // Refresh every 30 seconds
+    enabled: connectionStatus === 'error' || !isConnected
+  });
+
   useEffect(() => {
-    // Connect to Twelve Data WebSocket
+    // Connect to Twelve Data WebSocket (will fallback if subscription fails)
     connectWebSocket();
     
     return () => {
@@ -26,6 +35,22 @@ export function SpyWebSocketTracker() {
       }
     };
   }, []);
+
+  // Use fallback data if WebSocket fails
+  useEffect(() => {
+    if (connectionStatus === 'error' && fallbackData && fallbackData.length > 0) {
+      const spyStock = fallbackData[0];
+      if (spyStock) {
+        setSpyData({
+          symbol: 'SPY',
+          price: spyStock.price || 0,
+          change: spyStock.change || 0,
+          changePercent: spyStock.changePercent || 0,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+  }, [connectionStatus, fallbackData]);
 
   const connectWebSocket = () => {
     try {
@@ -57,8 +82,24 @@ export function SpyWebSocketTracker() {
           console.log('📡 WebSocket message:', data);
           
           // Handle subscription confirmation
-          if (data.event === 'subscribe_status') {
+          if (data.event === 'subscribe-status') {
             console.log('📡 Subscription status:', data.status);
+            if (data.status === 'error') {
+              console.error('📡 Subscription failed for SPY:', data.fails);
+              console.log('📡 SPY WebSocket subscription failed - likely due to plan limitations or market hours');
+              console.log('📡 Falling back to cached data from background jobs');
+              setConnectionStatus('error');
+              setIsConnected(false);
+              
+              // Close WebSocket since SPY subscription failed
+              if (wsRef.current) {
+                wsRef.current.close();
+              }
+            } else if (data.status === 'ok') {
+              console.log('📡 SPY subscription successful!');
+              setConnectionStatus('connected');
+              setIsConnected(true);
+            }
             return;
           }
           
@@ -86,11 +127,15 @@ export function SpyWebSocketTracker() {
         setIsConnected(false);
         setConnectionStatus('disconnected');
         
-        // Only reconnect if it's not a clean close (1000) and not due to going away (1001)
-        if (event.code !== 1000 && event.code !== 1001) {
+        // Don't reconnect on 1006 errors (likely plan limitations)
+        // Only reconnect on clean disconnects during market hours
+        if (event.code === 1000 || event.code === 1001) {
           setTimeout(() => {
             connectWebSocket();
-          }, 10000); // Wait 10 seconds before reconnecting
+          }, 30000); // Wait 30 seconds before reconnecting
+        } else {
+          console.log('📡 WebSocket connection terminated (likely plan limitations or market closed)');
+          setConnectionStatus('error');
         }
       };
 
@@ -173,7 +218,7 @@ export function SpyWebSocketTracker() {
         <div className="mt-4 pt-4 border-t border-financial-border">
           <div className="flex items-center justify-between text-sm text-gray-400">
             <span>Last Updated: {new Date(spyData.timestamp).toLocaleTimeString()}</span>
-            <span>Data Source: {connectionStatus === 'connected' && isConnected ? 'Twelve Data WebSocket' : connectionStatus === 'connected' ? 'Twelve Data API (HTTP)' : 'Connecting...'}</span>
+            <span>Data Source: {connectionStatus === 'connected' && isConnected ? 'Live WebSocket' : connectionStatus === 'error' ? 'Background Jobs (Cached)' : 'Connecting...'}</span>
           </div>
         </div>
       )}
