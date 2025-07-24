@@ -6,7 +6,7 @@ import { AAIISentiment } from "@/components/aaii-sentiment";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
 import { EmailSubscription } from "@/components/email-subscription";
 
-import { EconomicIndicators } from "@/components/EconomicIndicators";
+
 
 import { TrendingUp, MessageSquare } from "lucide-react";
 import { useApiTracker } from "@/hooks/useApiTracker";
@@ -62,8 +62,7 @@ export default function Dashboard() {
         {/* Simplified Momentum Analysis with Verified Calculations */}
         <MomentumAnalysis />
 
-        {/* Economic Indicators Section */}
-        <EconomicIndicators />
+
 
         {/* Email Subscription - Full Width */}
         <EmailSubscription />

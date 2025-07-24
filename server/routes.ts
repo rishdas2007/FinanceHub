@@ -80,24 +80,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Economic Indicators endpoint
-  app.get("/api/economic-indicators", async (req, res) => {
-    try {
-      console.log('📊 Fetching economic indicators...');
-      const { economicIndicatorsService } = await import('./services/economic-indicators');
-      
-      const indicators = await economicIndicatorsService.getEconomicIndicators();
-      
-      console.log(`✅ Economic indicators fetched: ${indicators.length} indicators`);
-      res.json(indicators);
-    } catch (error) {
-      console.error('❌ Economic indicators error:', error);
-      res.status(500).json({ 
-        error: 'Economic indicators temporarily unavailable',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
+  // Economic Indicators endpoint removed per user request
 
 
   // Enhanced stock data endpoints with intelligent caching
