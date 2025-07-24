@@ -17,7 +17,7 @@ export function SpyWebSocketTracker() {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    // Try WebSocket first, fallback to HTTP polling if needed
+    // Connect to Twelve Data WebSocket
     connectWebSocket();
     
     return () => {
@@ -31,19 +31,21 @@ export function SpyWebSocketTracker() {
     try {
       setConnectionStatus('connecting');
       
-      // Connect to Twelve Data WebSocket
-      const wsUrl = 'wss://ws.twelvedata.com/v1/quotes/price';
+      // Connect to Twelve Data WebSocket with API key as query parameter
+      const wsUrl = 'wss://ws.twelvedata.com/v1/quotes/price?apikey=bdceed179a5d435ba78072dfd05f8619';
       wsRef.current = new WebSocket(wsUrl);
 
       wsRef.current.onopen = () => {
-        console.log('📡 WebSocket connected');
+        console.log('📡 WebSocket connected, subscribing to SPY');
+        setIsConnected(true);
+        setConnectionStatus('connected');
         
-        // First authorize with API key
+        // Subscribe directly to SPY (no separate auth needed since API key is in URL)
         if (wsRef.current) {
           wsRef.current.send(JSON.stringify({
-            "action": "auth",
+            "action": "subscribe",
             "params": {
-              "apikey": "bdceed179a5d435ba78072dfd05f8619"
+              "symbols": "SPY"
             }
           }));
         }
@@ -53,28 +55,6 @@ export function SpyWebSocketTracker() {
         try {
           const data = JSON.parse(event.data);
           console.log('📡 WebSocket message:', data);
-          
-          // Handle authorization response
-          if (data.event === 'auth_status') {
-            if (data.status === 'authorized') {
-              console.log('📡 Authorized, subscribing to SPY');
-              setIsConnected(true);
-              setConnectionStatus('connected');
-              
-              // Now subscribe to SPY
-              wsRef.current?.send(JSON.stringify({
-                "action": "subscribe",
-                "params": {
-                  "symbols": "SPY"
-                }
-              }));
-            } else {
-              console.error('📡 Authorization failed:', data.message);
-              setConnectionStatus('error');
-              setIsConnected(false);
-            }
-            return;
-          }
           
           // Handle subscription confirmation
           if (data.event === 'subscribe_status') {
@@ -106,10 +86,12 @@ export function SpyWebSocketTracker() {
         setIsConnected(false);
         setConnectionStatus('disconnected');
         
-        // Attempt to reconnect after 5 seconds
-        setTimeout(() => {
-          connectWebSocket();
-        }, 5000);
+        // Only reconnect if it's not a clean close (1000) and not due to going away (1001)
+        if (event.code !== 1000 && event.code !== 1001) {
+          setTimeout(() => {
+            connectWebSocket();
+          }, 10000); // Wait 10 seconds before reconnecting
+        }
       };
 
       wsRef.current.onerror = (error) => {
