@@ -47,6 +47,8 @@ class AISummaryOptimizedService {
   }
 
   async generateAISummary(): Promise<AISummaryResponse> {
+    let data: AISummaryData | undefined;
+    
     try {
       log.info('🤖 Starting AI Summary generation...');
       
@@ -74,7 +76,7 @@ class AISummaryOptimizedService {
 
       // Collect real data from existing sources
       log.info('📊 Collecting real data from sources...');
-      const data = await this.collectRealData();
+      data = await this.collectRealData();
       log.info('✅ Data collection completed', { 
         momentum: !!data.momentum, 
         technical: !!data.technical, 
@@ -133,7 +135,8 @@ class AISummaryOptimizedService {
     } catch (error) {
       log.error('❌ AI Summary generation failed:', error);
       
-      // Try to return stale cached data with warning
+      // Return cached data immediately on timeout to meet 3-second requirement
+      log.info('⚡ AI analysis timeout - returning cached data for fast response');
       const staleData = smartCache.get('ai-summary-optimized', new Date().toISOString().split('T')[0]);
       
       if (staleData) {
@@ -151,15 +154,28 @@ class AISummaryOptimizedService {
         };
       }
 
+      // Generate fast fallback using available data (collect fresh if needed)
+      let fallbackData = data || { timestamps: {} };
+      if (!fallbackData || !this.validateDataCompleteness(fallbackData)) {
+        try {
+          fallbackData = await this.collectRealData();
+        } catch (collectError) {
+          log.error('Failed to collect fallback data:', collectError);
+          fallbackData = { timestamps: {} };
+        }
+      }
+      
+      const quickAnalysis = this.generateQuickFallbackAnalysis(fallbackData);
+      
       return {
-        analysis: 'AI analysis is temporarily updating',
-        dataAge: 'Service updating',
+        analysis: quickAnalysis,
+        dataAge: 'Fast analysis using available data',
         timestamp: new Date().toISOString(),
         success: false,
         dataSources: {
-          momentum: false,
-          technical: false,
-          economic: false
+          momentum: !!fallbackData.momentum,
+          technical: !!fallbackData.technical,
+          economic: !!(fallbackData.economic && fallbackData.economic.length > 0)
         }
       };
     }
@@ -268,12 +284,12 @@ class AISummaryOptimizedService {
   }
 
   private async generateAnalysisWithTimeout(data: AISummaryData): Promise<string> {
-    const prompt = this.buildAnalysisPrompt(data);
+    const prompt = this.buildHedgeFundAnalysisPrompt(data);
     
     return new Promise(async (resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error('AI analysis timeout (10 seconds)'));
-      }, 10000);
+        reject(new Error('AI analysis timeout (3 seconds) - using cached data'));
+      }, 3000);
 
       try {
         const response = await this.openai.chat.completions.create({
@@ -281,15 +297,15 @@ class AISummaryOptimizedService {
           messages: [
             {
               role: 'system',
-              content: 'You are a financial analyst. Provide concise market analysis in 3-4 sentences using only the provided real data. Include specific metrics and dates.'
+              content: 'You are a hedge fund analyst. Provide sharp, concise market analysis in 2-3 sentences. Focus on momentum trends, sector rotation signals, and positioning implications. Use specific metrics and be decisive about market outlook.'
             },
             {
               role: 'user',
               content: prompt
             }
           ],
-          temperature: 0.3,
-          max_tokens: 300
+          temperature: 0.2,
+          max_tokens: 200
         });
 
         clearTimeout(timeout);
@@ -305,28 +321,44 @@ class AISummaryOptimizedService {
     });
   }
 
-  private buildAnalysisPrompt(data: AISummaryData): string {
-    let prompt = 'Analyze the current market conditions based on this real data:\n\n';
+  private buildHedgeFundAnalysisPrompt(data: AISummaryData): string {
+    let prompt = 'HEDGE FUND POSITIONING ANALYSIS - Current Market Setup:\n\n';
 
-    if (data.momentum) {
-      prompt += `MOMENTUM DATA (${data.timestamps.momentum}):\n`;
-      prompt += `Sector performance trends from ${data.momentum.momentumStrategies?.length || 0} sectors\n\n`;
+    if (data.momentum && data.momentum.momentumStrategies) {
+      // Count momentum signals for sector rotation analysis
+      const bullishSectors = data.momentum.momentumStrategies.filter((s: any) => 
+        s.signal?.toLowerCase().includes('bullish') || s.momentum > 0
+      ).length;
+      const bearishSectors = data.momentum.momentumStrategies.filter((s: any) => 
+        s.signal?.toLowerCase().includes('bearish') || s.momentum < 0
+      ).length;
+
+      prompt += `MOMENTUM ROTATION (${data.timestamps.momentum}):\n`;
+      prompt += `${bullishSectors} sectors bullish, ${bearishSectors} bearish out of ${data.momentum.momentumStrategies.length} tracked.\n`;
+      
+      // Find top performers for specific positioning calls
+      const topPerformers = data.momentum.momentumStrategies
+        .slice(0, 3)
+        .map((s: any) => `${s.sector} (RSI: ${s.rsi}, Signal: ${s.signal})`)
+        .join(', ');
+      prompt += `Leading momentum: ${topPerformers}\n\n`;
     }
 
     if (data.technical) {
-      prompt += `TECHNICAL DATA (${data.timestamps.technical}):\n`;
-      prompt += `SPY RSI: ${data.technical.rsi || 'N/A'}, VIX: ${data.technical.vix || 'N/A'}\n\n`;
+      prompt += `TECHNICAL SETUP (${data.timestamps.technical}):\n`;
+      prompt += `SPY RSI: ${data.technical.rsi} (${data.technical.rsi > 70 ? 'OVERBOUGHT' : data.technical.rsi < 30 ? 'OVERSOLD' : 'NEUTRAL'})\n`;
+      prompt += `VIX: ${data.technical.vix} (${data.technical.vix > 20 ? 'ELEVATED FEAR' : 'COMPLACENCY'})\n\n`;
     }
 
     if (data.economic && data.economic.length > 0) {
-      prompt += `ECONOMIC DATA (${data.timestamps.economic}):\n`;
-      data.economic.forEach((reading: any) => {
-        prompt += `${reading.metric}: ${reading.value} (${reading.category})\n`;
+      prompt += `ECONOMIC CATALYSTS (${data.timestamps.economic}):\n`;
+      data.economic.slice(0, 3).forEach((reading: any) => {
+        prompt += `${reading.metric}: ${reading.value}\n`;
       });
       prompt += '\n';
     }
 
-    prompt += 'Provide a brief analysis focusing on market sentiment, momentum, and recent economic impacts. Keep to 3-4 sentences with specific data points.';
+    prompt += 'Provide hedge fund-style analysis: What is the current market regime? Where should smart money be positioned? What are the key risks to monitor? Be specific and actionable.';
 
     return prompt;
   }
@@ -352,6 +384,41 @@ class AISummaryOptimizedService {
   }
 
 
+
+  private generateQuickFallbackAnalysis(data: AISummaryData): string {
+    // Generate immediate hedge fund-style analysis without AI call
+    let analysis = 'MARKET POSITIONING: ';
+    
+    if (data.momentum && data.momentum.momentumStrategies) {
+      const bullishCount = data.momentum.momentumStrategies.filter((s: any) => 
+        s.signal?.toLowerCase().includes('bullish') || s.momentum > 0
+      ).length;
+      const totalSectors = data.momentum.momentumStrategies.length;
+      
+      if (bullishCount > totalSectors * 0.7) {
+        analysis += `Strong risk-on environment with ${bullishCount}/${totalSectors} sectors bullish. `;
+      } else if (bullishCount < totalSectors * 0.3) {
+        analysis += `Risk-off positioning with only ${bullishCount}/${totalSectors} sectors bullish. `;
+      } else {
+        analysis += `Mixed momentum signals - selective positioning required. `;
+      }
+    }
+    
+    if (data.technical) {
+      const rsi = data.technical.rsi;
+      if (rsi > 70) {
+        analysis += `SPY RSI at ${rsi} signals overbought conditions - consider profit-taking. `;
+      } else if (rsi < 30) {
+        analysis += `SPY RSI at ${rsi} presents oversold opportunity for quality longs. `;
+      } else {
+        analysis += `Technical setup remains neutral with RSI at ${rsi}. `;
+      }
+    }
+    
+    analysis += 'Monitor for regime changes and adjust position sizing accordingly.';
+    
+    return analysis;
+  }
 
   // All caching logic now handled by SmartCache service
 }
