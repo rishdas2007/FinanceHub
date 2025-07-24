@@ -3,6 +3,7 @@
 import MomentumAnalysis from "@/components/momentum-analysis";
 import { AISummaryOptimized } from "@/components/AISummaryOptimized";
 import { RecentEconomicReadings } from "@/components/RecentEconomicReadings";
+import { FinancialMoodEmoji } from "@/components/FinancialMoodEmoji";
 import { AAIISentiment } from "@/components/aaii-sentiment";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
 
@@ -60,14 +61,14 @@ export default function Dashboard() {
         {/* AI Market Summary - Optimized with Real Data */}
         <AISummaryOptimized />
 
+        {/* Financial Mood Emoji Generator */}
+        <FinancialMoodEmoji />
+
         {/* Recent Economic Readings - Full Width */}
         <RecentEconomicReadings />
 
         {/* Simplified Momentum Analysis with Verified Calculations */}
         <MomentumAnalysis />
-
-
-
 
       </div>
 

@@ -1908,5 +1908,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Financial mood endpoint
+  app.get('/api/financial-mood', async (req, res) => {
+    try {
+      console.log('🎭 Generating financial mood...');
+      const { financialMoodService } = await import('./services/financial-mood');
+      const moodData = await financialMoodService.generateFinancialMood();
+      res.json(moodData);
+    } catch (error) {
+      console.error('Financial mood generation failed:', error);
+      res.status(500).json({ 
+        error: 'Failed to generate financial mood',
+        emoji: '😐',
+        mood: 'Neutral'
+      });
+    }
+  });
+
   return httpServer;
 }
