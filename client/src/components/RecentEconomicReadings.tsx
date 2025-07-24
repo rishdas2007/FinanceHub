@@ -14,8 +14,8 @@ interface EconomicIndicator {
 
 export function RecentEconomicReadings() {
   const { data: indicators, isLoading } = useQuery<EconomicIndicator[]>({
-    queryKey: ['/api/economic-indicators'],
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    queryKey: ['/api/recent-economic-openai'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   if (isLoading) {
@@ -95,6 +95,7 @@ export function RecentEconomicReadings() {
         <CardTitle className="text-white flex items-center space-x-2">
           <Calendar className="h-5 w-5 text-blue-400" />
           <span>Recent Economic Readings</span>
+          <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded">Powered by OpenAI</span>
         </CardTitle>
       </CardHeader>
       <CardContent>

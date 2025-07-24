@@ -1927,21 +1927,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Dashboard Summary endpoint - Comprehensive AI analysis of all dashboard sections
-  app.get("/api/dashboard-summary", async (req, res) => {
+  // Recent Economic Readings using OpenAI route
+  app.get("/api/recent-economic-openai", async (req, res) => {
     try {
-      console.log('🧠 Generating comprehensive dashboard summary...');
-      const { dashboardSummaryService } = await import('./services/dashboard-summary');
+      console.log('🤖 Generating economic readings with OpenAI...');
+      const { openaiEconomicReadingsService } = await import('./services/openai-economic-readings');
       
-      const summary = await dashboardSummaryService.generateDashboardSummary();
+      const readings = await openaiEconomicReadingsService.generateEconomicReadings();
       
-      console.log(`🧠 Dashboard summary generated with ${summary.confidence}% confidence`);
-      res.json(summary);
+      console.log(`✅ Generated ${readings.length} economic readings via OpenAI`);
+      res.json(readings);
     } catch (error) {
-      console.error('❌ Dashboard summary error:', error);
+      console.error('❌ OpenAI economic readings error:', error);
       res.status(500).json({ 
-        error: 'Dashboard summary temporarily unavailable',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Failed to generate economic readings',
+        message: error instanceof Error ? error.message : 'OpenAI service temporarily unavailable'
       });
     }
   });
