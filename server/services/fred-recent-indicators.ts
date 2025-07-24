@@ -40,11 +40,33 @@ export class FREDRecentIndicatorsService {
   private readonly fredApiKey: string;
   private readonly baseUrl = 'https://api.stlouisfed.org';
   
-  // Curated series for consistent economic indicator display
+  // Curated series for comprehensive economic indicator display
   private readonly CURATED_SERIES = [
-    "CPIAUCSL", "CPILFESL", "PPIACO", "A191RL1Q225SBEA", "ICSA", "CCSA",
-    "UNRATE", "PAYEMS", "RSAFS", "DGORDER", "INDPRO", "UMCSENT",
-    "HOUST", "HSN1F", "EXHOSLUSM495S"
+    "CPIAUCSL",           // Consumer Price Index
+    "CPILFESL",           // Core CPI  
+    "PPIACO",             // Producer Price Index
+    "A191RL1Q225SBEA",    // GDP Growth Rate
+    "ICSA",               // Initial Claims
+    "CCSA",               // Continued Claims
+    "UNRATE",             // Unemployment Rate
+    "PAYEMS",             // Nonfarm Payrolls
+    "RSAFS",              // Retail Sales
+    "DGORDER",            // Durable Goods Orders
+    "INDPRO",             // Industrial Production
+    "UMCSENT",            // Consumer Sentiment
+    "HOUST",              // Housing Starts
+    "HSN1F",              // New Home Sales
+    "EXHOSLUSM495S",      // Existing Home Sales
+    "PCEPI",              // PCE Price Index YoY
+    "NAPMIMFG",           // Manufacturing PMI
+    "PMICM",              // S&P Global Manufacturing PMI
+    "FEDFUNDS",           // Federal Funds Rate
+    "DGS10",              // 10-Year Treasury Yield
+    "T10Y2Y",             // Yield Curve (10yr-2yr)
+    "CSCICP03USM665S",    // Consumer Confidence Index
+    "RSXFS",              // Retail Sales MoM
+    "PERMIT",             // Building Permits
+    "USSLIND"             // Leading Economic Index
   ];
 
   constructor() {
@@ -55,7 +77,7 @@ export class FREDRecentIndicatorsService {
 
   // Step 1: Get Curated Series IDs (replaces most recently updated approach)
   async getCuratedFREDSeries(limit: number = 6): Promise<string[]> {
-    // Return first 'limit' series from curated list
+    // Return first 'limit' series from comprehensive curated list of 25 indicators
     return this.CURATED_SERIES.slice(0, limit);
   }
 
