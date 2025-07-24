@@ -1,6 +1,7 @@
 
 
 import MomentumAnalysis from "@/components/momentum-analysis";
+import { AISummaryOptimized } from "@/components/AISummaryOptimized";
 import { RecentEconomicReadings } from "@/components/RecentEconomicReadings";
 import { AAIISentiment } from "@/components/aaii-sentiment";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
@@ -55,6 +56,9 @@ export default function Dashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
+
+        {/* AI Market Summary - Optimized with Real Data */}
+        <AISummaryOptimized />
 
         {/* Recent Economic Readings - Full Width */}
         <RecentEconomicReadings />

@@ -52,6 +52,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // FRED routes removed - using OpenAI only
 
+  // AI Summary Optimized endpoint
+  app.get("/api/ai-summary-optimized", async (req, res) => {
+    try {
+      console.log('🤖 Generating optimized AI summary...');
+      const { aiSummaryOptimizedService } = await import('./services/ai-summary-optimized');
+      
+      const summary = await aiSummaryOptimizedService.generateAISummary();
+      
+      console.log(`✅ AI Summary generated: ${summary.success ? 'Success' : 'Cached/Fallback'}`);
+      res.json(summary);
+    } catch (error) {
+      console.error('❌ AI Summary error:', error);
+      res.status(500).json({ 
+        error: 'AI analysis temporarily updating',
+        message: 'Please refresh in a moment'
+      });
+    }
+  });
+
   // Recent Economic Readings (OpenAI powered)
   app.get('/api/recent-economic-openai', async (req, res) => {
     try {
