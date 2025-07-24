@@ -1,5 +1,29 @@
 import OpenAI from 'openai';
-import { cacheService } from './cache-unified';
+// Simple in-memory cache for this service
+class SimpleCache {
+  private cache = new Map<string, { data: any; expiry: number }>();
+
+  get(key: string, allowStale = false): any {
+    const item = this.cache.get(key);
+    if (!item) return null;
+    
+    if (!allowStale && Date.now() > item.expiry) {
+      this.cache.delete(key);
+      return null;
+    }
+    
+    return item.data;
+  }
+
+  set(key: string, data: any, ttl: number): void {
+    this.cache.set(key, {
+      data,
+      expiry: Date.now() + ttl
+    });
+  }
+}
+
+const cacheService = new SimpleCache();
 
 const log = {
   info: (msg: string, ...args: any[]) => console.log(`[INFO] ${msg}`, ...args),
@@ -174,39 +198,32 @@ class AISummaryOptimizedService {
 
   private async getTechnicalData(): Promise<{ data: any; timestamp: string }> {
     try {
-      // Get cached technical indicators from existing service
-      const technicalData = cacheService.get('technical-SPY');
-      if (!technicalData) {
-        throw new Error('Technical data not cached');
-      }
-
+      // Get fresh technical data from existing service
+      const { financialDataService } = await import('./financial-data');
+      const technicalData = await financialDataService.getTechnicalIndicators('SPY');
+      
       return {
         data: technicalData,
         timestamp: new Date().toISOString()
       };
     } catch (error) {
+      log.error('Technical data fetch failed:', error);
       throw new Error('Technical data unavailable');
     }
   }
 
   private async getEconomicData(): Promise<{ data: any[]; timestamp: string }> {
     try {
-      // Use existing economic data service
-      const { economicDataService } = await import('./economic-data');
-      const economicService = economicDataService.getInstance();
-      const events = await economicService.scrapeMarketWatchCalendar();
+      // Use existing OpenAI economic readings service for consistent data
+      const { openaiEconomicReadingsService } = await import('./openai-economic-readings');
+      const economicReadings = await openaiEconomicReadingsService.generateEconomicReadings();
       
-      // Filter for events with actual values and sort by date
-      const recentEvents = events
-        .filter(event => event.actual && event.actual !== 'N/A')
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 6);
-
       return {
-        data: recentEvents,
+        data: economicReadings,
         timestamp: new Date().toISOString()
       };
     } catch (error) {
+      log.error('Economic data fetch failed:', error);
       throw new Error('Economic data unavailable');
     }
   }
@@ -269,8 +286,8 @@ class AISummaryOptimizedService {
 
     if (data.economic && data.economic.length > 0) {
       prompt += `ECONOMIC DATA (${data.timestamps.economic}):\n`;
-      data.economic.forEach(event => {
-        prompt += `${event.title}: ${event.actual} (vs ${event.forecast || 'forecast'})\n`;
+      data.economic.forEach((reading: any) => {
+        prompt += `${reading.metric}: ${reading.value} (${reading.category})\n`;
       });
       prompt += '\n';
     }
