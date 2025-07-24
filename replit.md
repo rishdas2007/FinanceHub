@@ -22,8 +22,8 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 - **API ENDPOINTS**: Added /api/fast-dashboard, /api/fast-momentum, /api/fast-economic, /api/fast-mood, /api/market-status, /api/manual-refresh for optimized data access
 - **CRON SCHEDULER INTEGRATION**: Automatic initialization of intelligent cron scheduler in main server with proper error handling and graceful shutdown
 - **DASHBOARD LAYOUT REORGANIZED**: Added SPY real-time WebSocket tracker at top, moved Recent Economic Readings to bottom for improved user experience
-- **SPY WEBSOCKET INTEGRATION**: Implemented proper SPY WebSocket tracking using Twelve Data WebSocket API with authentication flow and real-time price updates
-- **LAYOUT OPTIMIZATION**: Dashboard now displays: SPY Real-Time Tracker → Financial Mood → Momentum Analysis → Recent Economic Readings (bottom)
+- **SPY WEBSOCKET SECTION REMOVED**: Removed SPY WebSocket tracker section from dashboard per user request due to Twelve Data API plan limitations (Pro plan required for WebSocket)
+- **LAYOUT OPTIMIZATION**: Dashboard now displays: Financial Mood → Momentum Analysis → Recent Economic Readings (bottom)
 - **STATUS**: Comprehensive cron job strategy fully operational with reorganized dashboard layout - loads sub-1-second with real-time SPY tracking and background jobs maintaining fresh data
 
 ### AI MARKET SUMMARY REMOVED & INTELLIGENT CACHING OPTIMIZATION COMPLETED (July 24, 2025 - PREVIOUS UPDATE)
