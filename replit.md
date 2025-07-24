@@ -24,8 +24,9 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 - **DASHBOARD LAYOUT REORGANIZED**: Added SPY real-time WebSocket tracker at top, moved Recent Economic Readings to bottom for improved user experience
 - **SPY WEBSOCKET SECTION REMOVED**: Removed SPY WebSocket tracker section from dashboard per user request due to Twelve Data API plan limitations (Pro plan required for WebSocket)
 - **LAYOUT OPTIMIZATION**: Dashboard now displays: Financial Mood → Momentum Analysis → Recent Economic Readings (bottom)
-- **FRED API INTEGRATION COMPLETED**: Replaced fake economic data with authentic FRED API integration using 6 most recently updated economic indicators
-- **REAL ECONOMIC DATA**: Recent Economic Readings now displays live Federal Reserve data with proper change calculations and GPT-4o analysis
+- **FRED API INTEGRATION COMPLETED**: Replaced fake economic data with authentic FRED API integration using curated economic indicators for consistent, meaningful data
+- **CURATED ECONOMIC INDICATORS**: System now displays 6 key economic metrics (CPI, Core CPI, PPI, Real GDP, Initial Claims, Continued Claims) instead of random recent updates
+- **REAL ECONOMIC DATA**: Recent Economic Readings displays live Federal Reserve data with proper change calculations and GPT-4o analysis of inflation, growth, and employment trends
 - **STATUS**: Comprehensive cron job strategy fully operational with authentic FRED data integration - dashboard loads sub-1-second with real economic indicators
 
 ### AI MARKET SUMMARY REMOVED & INTELLIGENT CACHING OPTIMIZATION COMPLETED (July 24, 2025 - PREVIOUS UPDATE)

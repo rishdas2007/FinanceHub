@@ -39,6 +39,13 @@ interface EconomicIndicator {
 export class FREDRecentIndicatorsService {
   private readonly fredApiKey: string;
   private readonly baseUrl = 'https://api.stlouisfed.org';
+  
+  // Curated series for consistent economic indicator display
+  private readonly CURATED_SERIES = [
+    "CPIAUCSL", "CPILFESL", "PPIACO", "A191RL1Q225SBEA", "ICSA", "CCSA",
+    "UNRATE", "PAYEMS", "RSAFS", "DGORDER", "INDPRO", "UMCSENT",
+    "HOUST", "HSN1F", "EXHOSLUSM495S"
+  ];
 
   constructor() {
     // Use the working API key provided by user
@@ -46,24 +53,10 @@ export class FREDRecentIndicatorsService {
     console.log('FRED API Key being used:', this.fredApiKey.substring(0, 8) + '...');
   }
 
-  // Step 1: Get Most Recently Updated Series IDs
-  async getRecentFREDSeries(limit: number = 6): Promise<string[]> {
-    try {
-      const response = await axios.get(`${this.baseUrl}/fred/series/updates`, {
-        params: {
-          api_key: this.fredApiKey,
-          file_type: 'json',
-          limit: limit,
-          sort_order: 'desc'
-        }
-      });
-
-      const seriesList = response.data?.seriess || [];
-      return seriesList.map((s: any) => s.id);
-    } catch (error) {
-      console.error('Error fetching recent FRED series:', error);
-      return [];
-    }
+  // Step 1: Get Curated Series IDs (replaces most recently updated approach)
+  async getCuratedFREDSeries(limit: number = 6): Promise<string[]> {
+    // Return first 'limit' series from curated list
+    return this.CURATED_SERIES.slice(0, limit);
   }
 
   // Step 2: Get Series Metadata (Title, Units)
@@ -189,23 +182,23 @@ export class FREDRecentIndicatorsService {
   // Main Pipeline
   async getRecentEconomicReadings(): Promise<{ indicators: EconomicIndicator[], analysis: string }> {
     try {
-      console.log('🏦 Fetching most recent economic indicators from FRED...');
+      console.log('🏦 Fetching curated economic indicators from FRED...');
       
-      // Get 6 most recently updated series
-      const seriesIds = await this.getRecentFREDSeries(6);
+      // Get 6 curated series instead of most recently updated
+      const seriesIds = await this.getCuratedFREDSeries(6);
       
       if (seriesIds.length === 0) {
-        throw new Error('No recent FRED series found');
+        throw new Error('No curated FRED series found');
       }
 
-      console.log(`📊 Processing ${seriesIds.length} recent FRED series:`, seriesIds);
+      console.log(`📊 Processing ${seriesIds.length} curated FRED series:`, seriesIds);
 
       // Get detailed data for each series
-      const economicDataPromises = seriesIds.map(id => this.getRecentObservations(id));
+      const economicDataPromises = seriesIds.map((id: string) => this.getRecentObservations(id));
       const economicDataResults = await Promise.all(economicDataPromises);
       
       // Filter out null results
-      const validEconomicData = economicDataResults.filter((data): data is EconomicIndicator => data !== null);
+      const validEconomicData = economicDataResults.filter((data: EconomicIndicator | null): data is EconomicIndicator => data !== null);
 
       if (validEconomicData.length === 0) {
         throw new Error('No valid economic data retrieved');
