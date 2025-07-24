@@ -75,10 +75,88 @@ export class FREDRecentIndicatorsService {
     console.log('FRED API Key being used:', this.fredApiKey.substring(0, 8) + '...');
   }
 
-  // Step 1: Get Curated Series IDs (replaces most recently updated approach)
-  async getCuratedFREDSeries(limit: number = 6): Promise<string[]> {
-    // Return first 'limit' series from comprehensive curated list of 25 indicators
-    return this.CURATED_SERIES.slice(0, limit);
+  // Step 1: Get Most Recently Updated from Curated Series
+  async getMostRecentlyUpdatedCuratedSeries(limit: number = 6): Promise<string[]> {
+    try {
+      console.log(`🔍 Analyzing ${this.CURATED_SERIES.length} curated series for most recent updates...`);
+      
+      // Try lightweight approach first - just get latest observations without full metadata
+      const seriesWithDates = await Promise.all(
+        this.CURATED_SERIES.map(async (seriesId) => {
+          try {
+            const recentObs = await this.getLatestObservation(seriesId);
+            if (recentObs) {
+              return {
+                seriesId,
+                lastUpdated: recentObs.date,
+                value: recentObs.value
+              };
+            }
+            return null;
+          } catch (error) {
+            console.warn(`⚠️ Could not fetch latest observation for ${seriesId}:`, error);
+            return null;
+          }
+        })
+      );
+      
+      // Filter out null results and sort by most recent update
+      const validSeries = seriesWithDates
+        .filter((item): item is NonNullable<typeof item> => item !== null)
+        .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime());
+      
+      if (validSeries.length >= limit) {
+        console.log(`📊 Found ${validSeries.length} valid series with recent data, selecting top ${limit}:`);
+        validSeries.slice(0, limit).forEach((series, i) => {
+          console.log(`  ${i + 1}. ${series.seriesId} - Last updated: ${series.lastUpdated} (value: ${series.value})`);
+        });
+        
+        return validSeries.slice(0, limit).map(series => series.seriesId);
+      } else {
+        console.warn(`⚠️ Only found ${validSeries.length} series with recent data due to API issues`);
+        console.log(`🔄 Falling back to first ${limit} curated series: ${this.CURATED_SERIES.slice(0, limit).join(', ')}`);
+        return this.CURATED_SERIES.slice(0, limit);
+      }
+      
+    } catch (error) {
+      console.error('Error getting most recently updated curated series:', error);
+      console.log(`🔄 Falling back to first ${limit} curated series due to API issues`);
+      return this.CURATED_SERIES.slice(0, limit);
+    }
+  }
+
+  // Helper method to get latest observation date with better error handling
+  private async getLatestObservation(seriesId: string): Promise<{ date: string; value: number } | null> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/fred/series/observations`, {
+        params: {
+          series_id: seriesId,
+          api_key: this.fredApiKey,
+          file_type: 'json',
+          limit: 1,
+          sort_order: 'desc'
+        },
+        timeout: 5000 // 5 second timeout
+      });
+
+      const observations = response.data?.observations || [];
+      if (observations.length > 0 && observations[0].value !== '.') {
+        return {
+          date: observations[0].date,
+          value: parseFloat(observations[0].value)
+        };
+      }
+      return null;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 403) {
+          console.warn(`🚫 Access denied for ${seriesId} - possible rate limit or API restriction`);
+        } else if (error.code === 'ECONNABORTED') {
+          console.warn(`⏱️ Timeout fetching ${seriesId}`);
+        }
+      }
+      return null;
+    }
   }
 
   // Step 2: Get Series Metadata (Title, Units)
@@ -204,16 +282,16 @@ export class FREDRecentIndicatorsService {
   // Main Pipeline
   async getRecentEconomicReadings(): Promise<{ indicators: EconomicIndicator[], analysis: string }> {
     try {
-      console.log('🏦 Fetching curated economic indicators from FRED...');
+      console.log('🏦 Analyzing curated indicators for most recent updates...');
       
-      // Get 6 curated series instead of most recently updated
-      const seriesIds = await this.getCuratedFREDSeries(6);
+      // Get 6 most recently updated from curated series
+      const seriesIds = await this.getMostRecentlyUpdatedCuratedSeries(6);
       
       if (seriesIds.length === 0) {
         throw new Error('No curated FRED series found');
       }
 
-      console.log(`📊 Processing ${seriesIds.length} curated FRED series:`, seriesIds);
+      console.log(`📊 Processing ${seriesIds.length} most recently updated curated series:`, seriesIds);
 
       // Get detailed data for each series
       const economicDataPromises = seriesIds.map((id: string) => this.getRecentObservations(id));
