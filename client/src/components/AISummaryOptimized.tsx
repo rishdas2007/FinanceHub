@@ -21,7 +21,14 @@ export function AISummaryOptimized() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const { data: summary, isLoading, error, isFetching } = useQuery<AISummaryResponse>({
-    queryKey: ['/api/ai-summary-optimized', refreshKey],
+    queryKey: ['ai-summary-optimized', refreshKey],
+    queryFn: async () => {
+      const response = await fetch('/api/ai-summary-optimized');
+      if (!response.ok) {
+        throw new Error('Failed to fetch AI summary');
+      }
+      return response.json();
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 15 * 60 * 1000,   // 15 minutes
     retry: 1,
@@ -41,20 +48,22 @@ export function AISummaryOptimized() {
   };
 
   if (error) {
+    console.error('AI Summary Error:', error);
     return (
       <Card className="p-6 bg-gray-900/50 border-gray-700">
         <h3 className="text-xl font-bold mb-4 text-white flex items-center">
           <Brain className="text-blue-400 mr-2" />
           AI Market Summary
         </h3>
-        <p className="text-red-400">AI analysis temporarily unavailable</p>
+        <p className="text-red-400">AI analysis temporarily updating</p>
+        <p className="text-gray-400 text-sm mt-2">Error: {error?.message || 'Unknown error'}</p>
         <Button 
           onClick={handleRefresh}
           className="mt-4 bg-blue-600 hover:bg-blue-700 text-white"
           size="sm"
         >
           <RefreshCw className="w-4 h-4 mr-2" />
-          Retry
+          Retry Analysis
         </Button>
       </Card>
     );
