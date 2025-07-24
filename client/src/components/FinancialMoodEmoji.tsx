@@ -1,6 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Smile, TrendingUp, Activity } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Smile, TrendingUp, Activity, RefreshCw } from "lucide-react";
+import { useState } from "react";
 
 interface MoodData {
   emoji: string;
@@ -16,19 +18,50 @@ interface MoodData {
 }
 
 export function FinancialMoodEmoji() {
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
   const { data: moodData, isLoading } = useQuery<MoodData>({
     queryKey: ['/api/financial-mood'],
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    
+    setIsRefreshing(true);
+    try {
+      // Invalidate mood cache on server
+      await fetch('/api/cache/invalidate?key=financial-mood');
+      // Invalidate React Query cache
+      await queryClient.invalidateQueries({ queryKey: ['/api/financial-mood'] });
+    } catch (error) {
+      console.error('Failed to refresh mood:', error);
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 1000); // Keep spinning for visual feedback
+    }
+  };
+
   if (isLoading) {
     return (
       <Card className="bg-financial-card border-financial-border">
         <CardHeader>
-          <CardTitle className="text-white flex items-center space-x-2">
-            <Smile className="h-5 w-5 text-blue-400" />
-            <span>Financial Mood</span>
+          <CardTitle className="text-white flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Smile className="h-5 w-5 text-blue-400" />
+              <span>Financial Mood</span>
+            </div>
+            <Button
+              onClick={handleRefresh}
+              disabled={isRefreshing || isLoading}
+              variant="outline"
+              size="sm"
+              className="bg-financial-card hover:bg-financial-border text-white border-financial-border text-xs"
+            >
+              <RefreshCw className={`w-3 h-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -44,9 +77,21 @@ export function FinancialMoodEmoji() {
     return (
       <Card className="bg-financial-card border-financial-border">
         <CardHeader>
-          <CardTitle className="text-white flex items-center space-x-2">
-            <Smile className="h-5 w-5 text-blue-400" />
-            <span>Financial Mood</span>
+          <CardTitle className="text-white flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Smile className="h-5 w-5 text-blue-400" />
+              <span>Financial Mood</span>
+            </div>
+            <Button
+              onClick={handleRefresh}
+              disabled={isRefreshing || isLoading}
+              variant="outline"
+              size="sm"
+              className="bg-financial-card hover:bg-financial-border text-white border-financial-border text-xs"
+            >
+              <RefreshCw className={`w-3 h-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -67,10 +112,22 @@ export function FinancialMoodEmoji() {
             <Smile className="h-5 w-5 text-blue-400" />
             <span>Financial Mood</span>
           </div>
-          <div className="flex items-center space-x-2 text-sm">
-            <Activity size={16} className="text-blue-400" />
-            <span className="text-gray-300">Confidence:</span>
-            <span className="font-semibold text-white">{moodData.confidence}%</span>
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 text-sm">
+              <Activity size={16} className="text-blue-400" />
+              <span className="text-gray-300">Confidence:</span>
+              <span className="font-semibold text-white">{moodData.confidence}%</span>
+            </div>
+            <Button
+              onClick={handleRefresh}
+              disabled={isRefreshing || isLoading}
+              variant="outline"
+              size="sm"
+              className="bg-financial-card hover:bg-financial-border text-white border-financial-border text-xs"
+            >
+              <RefreshCw className={`w-3 h-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
           </div>
         </CardTitle>
       </CardHeader>
