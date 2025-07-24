@@ -52,26 +52,32 @@ class AISummaryOptimizedService {
     try {
       log.info('🤖 Starting AI Summary generation...');
       
-      // Check cache first with smart caching
+      // Check cache first but only use if less than 2 minutes old during market hours
       const cacheKey = 'ai-summary-optimized';
       const dataTimestamp = new Date().toISOString().split('T')[0]; // Daily data key
       const cached = smartCache.get(cacheKey, dataTimestamp);
       
       if (cached) {
         const cacheInfo = smartCache.getCacheInfo(cacheKey, dataTimestamp);
-        log.info(`✅ AI Summary served from ${cacheInfo.context} cache (age: ${Math.round(cacheInfo.age / 1000)}s)`);
+        const cacheAgeMinutes = cacheInfo.age / (1000 * 60);
         
-        // Add cache metadata to response
-        return {
-          ...cached.data,
-          cacheInfo: {
-            cached: true,
-            age: cacheInfo.age,
-            context: cacheInfo.context,
-            dataTimestamp: smartCache.formatTimestamp(cached.dataTimestamp),
-            expiresIn: Math.round(cacheInfo.expiresIn / 1000)
-          }
-        };
+        // Only use cache if very recent (under 2 minutes) to ensure fresh momentum data
+        if (cacheAgeMinutes < 2) {
+          log.info(`✅ AI Summary served from ${cacheInfo.context} cache (age: ${Math.round(cacheInfo.age / 1000)}s)`);
+          
+          return {
+            ...cached.data,
+            cacheInfo: {
+              cached: true,
+              age: cacheInfo.age,
+              context: cacheInfo.context,
+              dataTimestamp: smartCache.formatTimestamp(cached.dataTimestamp),
+              expiresIn: Math.round(cacheInfo.expiresIn / 1000)
+            }
+          };
+        } else {
+          log.info(`🔄 Cache is ${Math.round(cacheAgeMinutes)} minutes old - fetching fresh data for momentum alignment`);
+        }
       }
 
       // Collect real data from existing sources
@@ -218,22 +224,25 @@ class AISummaryOptimizedService {
 
   private async getMomentumData(): Promise<{ data: any; timestamp: string }> {
     try {
-      log.info('📊 Fetching momentum data...');
-      // Return simple fallback data for now to test the flow
-      const momentum = {
-        momentumStrategies: [
-          { sector: 'Technology', momentum: 'Bullish' },
-          { sector: 'Healthcare', momentum: 'Neutral' },
-          { sector: 'Energy', momentum: 'Bearish' }
-        ]
-      };
+      log.info('📊 Fetching LIVE momentum data from Twelve Data API...');
+      
+      // Fetch real-time momentum data from the actual API endpoint
+      const fetch = (await import('node-fetch')).default;
+      const response = await fetch('http://localhost:5000/api/momentum-analysis');
+      
+      if (!response.ok) {
+        throw new Error(`Momentum API returned ${response.status}`);
+      }
+      
+      const momentumData = await response.json() as any;
+      log.info(`✅ LIVE momentum data fetched: ${momentumData.momentumStrategies?.length || 0} strategies with real Twelve Data API`);
       
       return {
-        data: momentum,
+        data: momentumData,
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      log.error('Momentum data fetch failed:', error);
+      log.error('Live momentum data fetch failed:', error);
       throw new Error('Momentum data unavailable');
     }
   }
@@ -325,21 +334,21 @@ class AISummaryOptimizedService {
     let prompt = 'HEDGE FUND POSITIONING ANALYSIS - Current Market Setup:\n\n';
 
     if (data.momentum && data.momentum.momentumStrategies) {
-      // Count momentum signals for sector rotation analysis
+      // Count momentum signals for sector rotation analysis using REAL Twelve Data API data
       const bullishSectors = data.momentum.momentumStrategies.filter((s: any) => 
-        s.signal?.toLowerCase().includes('bullish') || s.momentum > 0
+        s.signal?.toLowerCase().includes('bullish') || s.momentum === 'bullish'
       ).length;
       const bearishSectors = data.momentum.momentumStrategies.filter((s: any) => 
-        s.signal?.toLowerCase().includes('bearish') || s.momentum < 0
+        s.signal?.toLowerCase().includes('bearish') || s.momentum === 'bearish'
       ).length;
 
-      prompt += `MOMENTUM ROTATION (${data.timestamps.momentum}):\n`;
+      prompt += `LIVE MOMENTUM ROTATION from Twelve Data API (${data.timestamps.momentum}):\n`;
       prompt += `${bullishSectors} sectors bullish, ${bearishSectors} bearish out of ${data.momentum.momentumStrategies.length} tracked.\n`;
       
-      // Find top performers for specific positioning calls
+      // Find top performers for specific positioning calls using REAL RSI data
       const topPerformers = data.momentum.momentumStrategies
         .slice(0, 3)
-        .map((s: any) => `${s.sector} (RSI: ${s.rsi}, Signal: ${s.signal})`)
+        .map((s: any) => `${s.sector} (RSI: ${s.rsi}, Change: ${s.oneDayChange}%, Signal: ${s.signal})`)
         .join(', ');
       prompt += `Leading momentum: ${topPerformers}\n\n`;
     }
