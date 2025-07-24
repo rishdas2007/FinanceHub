@@ -30,6 +30,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const fastDashboardRoutes = (await import('./routes/fast-dashboard-routes')).default;
   app.use('/api', fastDashboardRoutes);
   
+  // FRED recent indicators routes
+  const { fredRecentRoutes } = await import('./routes/fred-recent-routes');
+  app.use('/api', fredRecentRoutes);
+  
   // Cache management endpoints removed (file deleted)
 
   // API stats endpoint
