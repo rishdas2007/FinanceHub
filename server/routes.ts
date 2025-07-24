@@ -25,6 +25,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Health monitoring endpoints
   app.use('/api/health', (await import('./routes/health')).default);
+  
+  // Cache management endpoints
+  app.use('/api/cache', (await import('./routes/cache-management')).default);
 
   // API stats endpoint
   app.get("/api/stats", (req, res) => {
