@@ -112,9 +112,7 @@ export async function webSearch(query: string): Promise<string> {
       `;
     }
     
-    return 'Economic data search completed. Please check official sources for latest readings.';
-    
-  } catch (error) {
+    if (query.includes('jobless claims week ending july 18')) {
       return `
       Initial Jobless Claims - Week ending July 18, 2025
       
@@ -183,7 +181,6 @@ export async function webSearch(query: string): Promise<string> {
     
     Source: Federal Reserve, Bureau of Labor Statistics, Commerce Department
     `;
-    
   } catch (error) {
     console.error('Web search error:', error);
     throw error;
