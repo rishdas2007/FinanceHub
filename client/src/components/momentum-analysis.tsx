@@ -240,9 +240,9 @@ const MomentumAnalysis = () => {
                 />
                 {/* Reference lines for RSI levels with labels */}
                 <ReferenceLine x={30} stroke="#dc2626" strokeDasharray="2 2" strokeWidth={2} 
-                  label={{ value: "Oversold", position: "top", offset: 15, fill: "#dc2626", fontSize: 12, fontWeight: "bold" }} />
+                  label={{ value: "Oversold", position: "bottom", offset: 20, fill: "#dc2626", fontSize: 12, fontWeight: "bold" }} />
                 <ReferenceLine x={70} stroke="#dc2626" strokeDasharray="2 2" strokeWidth={2} 
-                  label={{ value: "Overbought", position: "top", offset: 15, fill: "#dc2626", fontSize: 12, fontWeight: "bold" }} />
+                  label={{ value: "Overbought", position: "bottom", offset: 20, fill: "#dc2626", fontSize: 12, fontWeight: "bold" }} />
                 {/* Reference line for Y-axis intersection at 45 RSI */}
                 <ReferenceLine x={45} stroke="#6b7280" strokeDasharray="1 1" strokeWidth={1} opacity={0.5} />
                 <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="1 1" strokeWidth={1} opacity={0.5} />
@@ -310,11 +310,7 @@ const MomentumAnalysis = () => {
               <strong>Bottom-right quadrant</strong> shows sectors with high RSI levels but negative momentum moves (overbought with recent weakness). 
               SPY (S&P 500) serves as the market benchmark with larger labels for easy identification.
             </p>
-            <div className="mt-3 pt-3 border-t border-blue-200">
-              <p className="text-xs text-gray-600">
-                <strong>ADX (Average Directional Index):</strong> Technical indicator measuring trend strength regardless of direction. Values above 25 suggest strong trending conditions, while values below 20 indicate weak or ranging markets. ADX readings above 40 signal very strong trends that may be reaching extremes. Current SPY ADX levels help assess overall market trend strength and potential continuation or reversal points.
-              </p>
-            </div>
+
           </div>
         </CardContent>
       </Card>

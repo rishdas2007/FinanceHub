@@ -155,9 +155,9 @@ export function MoodDataSources() {
         <Button 
           onClick={handleAIRefresh}
           disabled={isRefreshing}
-          variant="outline" 
+          variant="default" 
           size="sm"
-          className="text-gray-300 border-gray-600 hover:bg-gray-700"
+          className="bg-black text-white border-black hover:bg-gray-800"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
           {isRefreshing ? 'Refreshing...' : 'Refresh'}
