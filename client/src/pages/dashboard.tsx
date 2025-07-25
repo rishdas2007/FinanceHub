@@ -2,7 +2,7 @@
 
 import MomentumAnalysis from "@/components/momentum-analysis";
 import { SPYBaseline } from "@/components/SPYBaseline";
-import { FinancialMoodEmoji } from "@/components/FinancialMoodEmoji";
+
 import { MoodDataSources } from "@/components/MoodDataSources";
 import { AAIISentiment } from "@/components/aaii-sentiment";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
@@ -58,12 +58,9 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
 
-        {/* Financial Mood Emoji Generator */}
-        <FinancialMoodEmoji />
-
-        {/* Data Sources for Financial Mood Analysis */}
+        {/* AI Summary */}
         <div>
-          <h2 className="text-xl font-bold text-white mb-4">Data Sources for Financial Mood Analysis</h2>
+          <h2 className="text-xl font-bold text-white mb-4">AI Summary</h2>
           <MoodDataSources />
         </div>
 

@@ -317,6 +317,32 @@ export class UnifiedDashboardCache {
       economicCount: cached.data.economicData.length
     };
   }
+
+  /**
+   * Set economic data cache with custom TTL for daily 8am refresh strategy
+   */
+  async setEconomicDataCache(data: any[], ttlMs: number): Promise<void> {
+    const cached = smartCache.get(this.CACHE_KEY);
+    if (cached) {
+      // Update only economic data in existing cache
+      cached.data.economicData = data;
+      cached.data.lastUpdated = new Date();
+      smartCache.set(this.CACHE_KEY, cached.data, '24h');
+    } else {
+      // Create new cache entry with economic data
+      const cacheData = {
+        spyData: null,
+        sectorData: [],
+        economicData: data,
+        technicalData: null,
+        lastUpdated: new Date(),
+        freshness: 'fresh' as const
+      };
+      smartCache.set(this.CACHE_KEY, cacheData, '24h');
+    }
+    
+    logger.info(`📊 Economic data cache set with ${data.length} readings for ${Math.round(ttlMs / (60 * 60 * 1000))} hours`);
+  }
 }
 
 export const unifiedDashboardCache = UnifiedDashboardCache.getInstance();

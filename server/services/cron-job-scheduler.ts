@@ -53,15 +53,18 @@ export class CronJobScheduler {
       }
     });
 
-    // 2. Economic Data Updates - Every 30 minutes
-    this.scheduleJob('economic-data-update', '*/30 * * * *', async () => {
+    // 2. Economic Data Updates - Once daily at 8:00 AM ET, weekdays only (to save OpenAI API credits)
+    this.scheduleJob('economic-data-update', '0 8 * * 1-5', async () => {
       await this.runJobSafely('economic-data-update', async () => {
-        logger.info('📊 Updating economic data cache');
-        // Force refresh economic readings
-        const response = await fetch('http://localhost:5000/api/recent-economic-openai');
+        logger.info('📊 Updating economic data cache (daily 8am ET refresh)');
+        // Force refresh economic readings and cache for entire day
+        const response = await fetch('http://localhost:5000/api/recent-economic-openai?force=true');
         if (response.ok) {
           const economicData = await response.json();
-          logger.info(`📊 Economic data updated: ${economicData.length} readings`);
+          logger.info(`📊 Daily economic data cached: ${economicData.length} readings - valid until tomorrow 8am ET`);
+          
+          // Store with extended 24-hour cache
+          await unifiedDashboardCache.setEconomicDataCache(economicData, 24 * 60 * 60 * 1000); // 24 hours
         }
       });
     });
