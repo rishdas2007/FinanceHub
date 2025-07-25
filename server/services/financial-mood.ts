@@ -123,19 +123,27 @@ class FinancialMoodService {
       // Use faster fetch with shorter timeout for speed
       const fetch = (await import('node-fetch')).default;
       
-      // Check if we have cached momentum data first
+      // PRIORITY: Check if we have cached momentum data first
       const momentumCached = smartCache.get('momentum-analysis');
       let momentumData = null;
       
       if (momentumCached) {
         momentumData = momentumCached.data;
-        log.info('Using cached momentum data for fast mood generation');
+        log.info('✅ Using cached momentum data for fast mood generation');
       } else {
-        // Only fetch if not cached
+        log.info('⏳ No cached momentum data found, waiting for momentum analysis to complete first...');
+        // Wait longer for momentum data since it's the primary dependency
         const momentumResponse = await fetch('http://localhost:5000/api/momentum-analysis', {
-          timeout: 2000
+          timeout: 5000  // Increased timeout to wait for momentum data
         } as any);
-        momentumData = momentumResponse.ok ? await momentumResponse.json() as any : null;
+        
+        if (momentumResponse.ok) {
+          momentumData = await momentumResponse.json() as any;
+          log.info('✅ Fresh momentum data retrieved for mood analysis');
+        } else {
+          log.error('❌ Failed to fetch momentum data, using fallback');
+          return null; // Return null to trigger fallback mood
+        }
       }
 
       // Get simplified economic data (faster than full OpenAI generation)

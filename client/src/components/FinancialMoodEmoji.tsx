@@ -21,11 +21,22 @@ export function FinancialMoodEmoji() {
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
   
-  const { data: moodData, isLoading } = useQuery<MoodData>({
+  // First, check if momentum data is available
+  const { data: momentumData, isLoading: momentumLoading } = useQuery({
+    queryKey: ['/api/momentum-analysis'],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+  
+  // Only fetch mood data after momentum data is available
+  const { data: moodData, isLoading: moodLoading } = useQuery<MoodData>({
     queryKey: ['/api/financial-mood'],
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    enabled: !!momentumData, // Only run when momentum data is available
   });
+  
+  const isLoading = momentumLoading || moodLoading;
 
   const handleRefresh = async () => {
     if (isRefreshing) return;
@@ -65,8 +76,14 @@ export function FinancialMoodEmoji() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center p-8">
+          <div className="flex flex-col items-center justify-center p-8 space-y-4">
             <div className="animate-pulse text-4xl">🤔</div>
+            <div className="text-center">
+              <div className="text-lg font-semibold text-white mb-2">Analyzing</div>
+              <div className="text-sm text-gray-400">
+                {momentumLoading ? 'Waiting for market data...' : 'Processing financial mood...'}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -95,9 +112,26 @@ export function FinancialMoodEmoji() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center text-gray-400">
+          <div className="text-center text-gray-400 space-y-4">
             <div className="text-4xl mb-2">😐</div>
-            <p>Mood data unavailable</p>
+            <div>
+              <p className="text-lg font-semibold text-white mb-2">Analyzing</p>
+              <p className="text-sm">Market data is being processed. Please refresh for updated mood analysis.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+              <div className="bg-financial-dark rounded-lg p-3 text-center">
+                <div className="text-xs text-gray-400 mb-1">Momentum</div>
+                <div className="text-sm font-semibold text-white">Loading</div>
+              </div>
+              <div className="bg-financial-dark rounded-lg p-3 text-center">
+                <div className="text-xs text-gray-400 mb-1">Technical</div>
+                <div className="text-sm font-semibold text-white">Loading</div>
+              </div>
+              <div className="bg-financial-dark rounded-lg p-3 text-center">
+                <div className="text-xs text-gray-400 mb-1">Economic</div>
+                <div className="text-sm font-semibold text-white">Loading</div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
