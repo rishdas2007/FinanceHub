@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, TrendingUp, TrendingDown, ArrowRight, ChevronUp, ChevronDown } from 'lucide-react';
-import { Scatter, ScatterChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
+import { Scatter, ScatterChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList, ReferenceLine } from 'recharts';
 
 interface MomentumStrategy {
   sector: string;
@@ -27,8 +27,10 @@ interface MomentumStrategy {
 interface ChartDataPoint {
   sector: string;
   rsi: number;
+  zScore: number;
   fiveDayZScore: number;
   sharpeRatio: number;
+  annualReturn: number;
 }
 
 interface MomentumAnalysis {
@@ -223,15 +225,25 @@ const MomentumAnalysis = () => {
                 <XAxis 
                   dataKey="rsi" 
                   type="number" 
+                  domain={[0, 90]}
+                  tickCount={10}
                   stroke="#6B7280"
                   label={{ value: 'RSI', position: 'insideBottom', offset: -5, style: { fill: '#6B7280' } }}
                 />
                 <YAxis 
-                  dataKey="fiveDayZScore" 
+                  dataKey="zScore" 
                   type="number" 
+                  domain={[-1, 1]}
+                  tickCount={9}
                   stroke="#6B7280"
                   label={{ value: 'Z-Score of the Latest 1-Day Move', angle: -90, position: 'insideLeft', style: { fill: '#6B7280' } }}
                 />
+                {/* Reference lines for RSI levels */}
+                <ReferenceLine x={30} stroke="#dc2626" strokeDasharray="2 2" strokeWidth={1} />
+                <ReferenceLine x={70} stroke="#dc2626" strokeDasharray="2 2" strokeWidth={1} />
+                {/* Reference line for Y-axis intersection at 45 RSI */}
+                <ReferenceLine x={45} stroke="#6b7280" strokeDasharray="1 1" strokeWidth={1} opacity={0.5} />
+                <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="1 1" strokeWidth={1} opacity={0.5} />
                 <Tooltip 
                   content={({ active, payload }) => {
                     if (active && payload && payload[0]) {
@@ -244,7 +256,7 @@ const MomentumAnalysis = () => {
                             {data.sector} - {sectorName}
                           </p>
                           <p className="text-gray-600">RSI: {data.rsi.toFixed(1)}</p>
-                          <p className="text-gray-600">1-Day Z-Score: {data.fiveDayZScore.toFixed(2)}</p>
+                          <p className="text-gray-600">1-Day Z-Score: {data.zScore.toFixed(2)}</p>
                           <p className="text-gray-600">Sharpe Ratio: {data.sharpeRatio.toFixed(2)}</p>
                           {strategy && (
                             <p className="text-gray-600">Volatility: {strategy.volatility.toFixed(1)}%</p>
@@ -255,7 +267,7 @@ const MomentumAnalysis = () => {
                     return null;
                   }}
                 />
-                <Scatter dataKey="fiveDayZScore" fill="#8884d8">
+                <Scatter dataKey="zScore" fill="#8884d8">
                   {analysis.chartData.map((entry, index) => {
                     const color = getETFColor(entry.sector, index);
                     return <Cell key={`cell-${index}`} fill={color} />;
@@ -305,81 +317,7 @@ const MomentumAnalysis = () => {
         </CardContent>
       </Card>
 
-      {/* SPY Baseline Information */}
-      {analysis.momentumStrategies && analysis.momentumStrategies.length > 0 && (() => {
-        const spyData = analysis.momentumStrategies.find(s => s.ticker === 'SPY');
-        
-        if (spyData) {
-          return (
-            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-              <CardHeader>
-                <CardTitle className="text-lg text-gray-800 flex items-center">
-                  <ArrowRight className="w-5 h-5 mr-2 text-blue-600" />
-                  SPY Baseline (Market Benchmark)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-2xl font-bold text-blue-800">S&P 500</span>
-                      <span className="ml-2 text-lg text-gray-600">(SPY)</span>
-                    </div>
-                    <Badge className={`${getMomentumColor(spyData.momentum)} text-sm`}>
-                      {getMomentumIcon(spyData.momentum)}
-                      <span className="capitalize ml-1">{spyData.momentum}</span>
-                    </Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-white rounded-lg p-3 border">
-                      <div className="text-xs text-gray-500 uppercase">RSI</div>
-                      <div className={`text-lg font-semibold ${spyData.rsi >= 70 ? 'text-red-600' : spyData.rsi <= 30 ? 'text-green-600' : 'text-blue-600'}`}>
-                        {spyData.rsi.toFixed(1)}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {spyData.rsi >= 70 ? 'Overbought' : spyData.rsi <= 30 ? 'Oversold' : 'Neutral'}
-                      </div>
-                    </div>
-                    
-                    <div className="bg-white rounded-lg p-3 border">
-                      <div className="text-xs text-gray-500 uppercase">Sharpe Ratio</div>
-                      <div className={`text-lg font-semibold ${spyData.sharpeRatio >= 0.5 ? 'text-green-600' : 'text-yellow-600'}`}>
-                        {spyData.sharpeRatio.toFixed(2)}
-                      </div>
-                      <div className="text-xs text-gray-500">Risk-Adjusted</div>
-                    </div>
-                    
-                    <div className="bg-white rounded-lg p-3 border">
-                      <div className="text-xs text-gray-500 uppercase">1-Month Return</div>
-                      <div className={`text-lg font-semibold ${spyData.oneMonthChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {spyData.oneMonthChange >= 0 ? '+' : ''}{spyData.oneMonthChange.toFixed(1)}%
-                      </div>
-                      <div className="text-xs text-gray-500">Performance</div>
-                    </div>
-                    
-                    <div className="bg-white rounded-lg p-3 border">
-                      <div className="text-xs text-gray-500 uppercase">Z-Score</div>
-                      <div className={`text-lg font-semibold ${Math.abs(spyData.zScore) > 1.5 ? 'text-yellow-600' : 'text-gray-600'}`}>
-                        {spyData.zScore.toFixed(2)}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {Math.abs(spyData.zScore) > 1.5 ? 'Unusual Move' : 'Normal Range'}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white rounded-lg p-4 border">
-                    <div className="text-sm font-medium text-gray-700 mb-2">Market Signal Analysis:</div>
-                    <div className="text-sm text-gray-600">{spyData.signal}</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        }
-        return null;
-      })()}
+
 
       {/* Top Sector Highlight */}
       {analysis.momentumStrategies && analysis.momentumStrategies.length > 0 && (() => {

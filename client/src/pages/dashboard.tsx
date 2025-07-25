@@ -67,11 +67,7 @@ export default function Dashboard() {
           <MoodDataSources />
         </div>
 
-        {/* SPY Baseline for Market Comparison */}
-        <div>
-          <h2 className="text-xl font-bold text-white mb-4">Market Baseline</h2>
-          <SPYBaseline />
-        </div>
+
 
         {/* Simplified Momentum Analysis with Verified Calculations */}
         <MomentumAnalysis />

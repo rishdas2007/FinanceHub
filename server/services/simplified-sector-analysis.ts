@@ -403,11 +403,14 @@ export class SimplifiedSectorAnalysisService {
    * Generate chart data for RSI vs 1-day z-score visualization
    */
   private generateChartData(strategies: MomentumStrategy[]): ChartDataPoint[] {
+    // CRITICAL: Use same Z-Score as momentum table to ensure consistency between table and chart
     return strategies.map(strategy => ({
-      sector: strategy.sector,
+      sector: strategy.ticker, // Use ticker (SPY, XLK, etc.) not sector name
       rsi: strategy.rsi,
+      zScore: strategy.zScore, // Use same Z-Score as table for consistency
       fiveDayZScore: strategy.fiveDayZScore,
-      sharpeRatio: strategy.sharpeRatio
+      sharpeRatio: strategy.sharpeRatio,
+      annualReturn: strategy.annualReturn
     }));
   }
 
