@@ -1,10 +1,35 @@
 /**
- * Unified Cache Service
- * Consolidates: cache-manager.ts, smart-cache-service.ts
+ * Unified Cache Service - High-Performance In-Memory Caching
+ * 
+ * @class CacheService
+ * @description Provides intelligent caching with TTL support, access tracking, and automatic cleanup.
+ * Consolidates functionality from cache-manager.ts and smart-cache-service.ts into a single,
+ * optimized service for market data, API responses, and computed results.
+ * 
+ * @features
+ * - TTL-based expiration with automatic cleanup
+ * - Access pattern tracking and statistics
+ * - Memory usage monitoring
+ * - Hit/miss ratio analytics
+ * - Singleton pattern for global cache consistency
+ * 
+ * @author AI Agent Documentation Enhancement
+ * @version 2.0.0
+ * @since 2025-07-25
  */
 
 import { logger } from '../../shared/utils/logger';
 
+/**
+ * Cache entry structure with metadata
+ * @interface CacheEntry
+ * @template T - Type of cached data
+ * @property {T} data - The cached data payload
+ * @property {number} timestamp - Unix timestamp when entry was created
+ * @property {number} ttl - Time-to-live in milliseconds
+ * @property {number} hits - Number of times this entry has been accessed
+ * @property {number} lastAccessed - Unix timestamp of last access
+ */
 interface CacheEntry<T> {
   data: T;
   timestamp: number;
@@ -13,6 +38,17 @@ interface CacheEntry<T> {
   lastAccessed: number;
 }
 
+/**
+ * Cache performance and usage statistics
+ * @interface CacheStats
+ * @property {number} totalEntries - Current number of cached entries
+ * @property {number} totalHits - Total cache hits since startup
+ * @property {number} totalMisses - Total cache misses since startup
+ * @property {number} hitRate - Hit rate percentage (0-100)
+ * @property {number} memoryUsage - Estimated memory usage in bytes
+ * @property {number} oldestEntry - Timestamp of oldest cache entry
+ * @property {number} newestEntry - Timestamp of newest cache entry
+ */
 interface CacheStats {
   totalEntries: number;
   totalHits: number;
@@ -23,6 +59,11 @@ interface CacheStats {
   newestEntry: number;
 }
 
+/**
+ * High-performance unified cache service with intelligent features
+ * @class CacheService
+ * @implements Singleton pattern for global consistency
+ */
 export class CacheService {
   private static instance: CacheService;
   private cache = new Map<string, CacheEntry<any>>();
@@ -38,6 +79,11 @@ export class CacheService {
     setInterval(() => this.cleanup(), 5 * 60 * 1000);
   }
 
+  /**
+   * Get singleton instance of cache service
+   * @static
+   * @returns {CacheService} Singleton cache service instance
+   */
   static getInstance(): CacheService {
     if (!CacheService.instance) {
       CacheService.instance = new CacheService();
@@ -45,6 +91,16 @@ export class CacheService {
     return CacheService.instance;
   }
 
+  /**
+   * Retrieve cached data by key
+   * @async
+   * @method get
+   * @template T - Type of cached data
+   * @param {string} key - Cache key identifier
+   * @returns {T | null} Cached data or null if not found/expired
+   * @example
+   * const marketData = cache.get<MarketData>('SPY-quote');
+   */
   get<T>(key: string): T | null {
     const entry = this.cache.get(key);
     
@@ -73,6 +129,16 @@ export class CacheService {
     return entry.data as T;
   }
 
+  /**
+   * Store data in cache with TTL
+   * @method set
+   * @template T - Type of data being cached
+   * @param {string} key - Cache key identifier
+   * @param {T} data - Data to cache
+   * @param {number} ttlMs - Time-to-live in milliseconds
+   * @example
+   * cache.set('market-data', stockData, 5 * 60 * 1000); // Cache for 5 minutes
+   */
   set<T>(key: string, data: T, ttlMs: number): void {
     const now = Date.now();
     
@@ -90,6 +156,12 @@ export class CacheService {
     logger.debug(`Cache set: ${key} (TTL: ${ttlMs}ms)`, 'Cache');
   }
 
+  /**
+   * Remove entry from cache
+   * @method delete
+   * @param {string} key - Cache key to remove
+   * @returns {boolean} True if entry was deleted, false if not found
+   */
   delete(key: string): boolean {
     const deleted = this.cache.delete(key);
     if (deleted) {
@@ -99,6 +171,12 @@ export class CacheService {
     return deleted;
   }
 
+  /**
+   * Check if key exists in cache and is not expired
+   * @method has
+   * @param {string} key - Cache key to check
+   * @returns {boolean} True if key exists and is valid
+   */
   has(key: string): boolean {
     const entry = this.cache.get(key);
     if (!entry) return false;
@@ -113,17 +191,26 @@ export class CacheService {
     return true;
   }
 
+  /**
+   * Clear all cached entries
+   * @method clear
+   */
   clear(): void {
     const size = this.cache.size;
     this.cache.clear();
     logger.info(`Cache cleared: ${size} entries removed`, 'Cache');
   }
 
+  /**
+   * Remove expired entries from cache (called automatically)
+   * @method cleanup
+   * @private
+   */
   cleanup(): void {
     const now = Date.now();
     let expired = 0;
     
-    for (const [key, entry] of this.cache.entries()) {
+    for (const [key, entry] of Array.from(this.cache.entries())) {
       if (now - entry.timestamp > entry.ttl) {
         this.cache.delete(key);
         expired++;
@@ -135,13 +222,18 @@ export class CacheService {
     }
   }
 
+  /**
+   * Get comprehensive cache statistics
+   * @method getStats
+   * @returns {CacheStats} Current cache performance metrics
+   */
   getStats(): CacheStats {
     const now = Date.now();
     let memoryUsage = 0;
     let oldest = now;
     let newest = 0;
 
-    for (const [key, entry] of this.cache.entries()) {
+    for (const [key, entry] of Array.from(this.cache.entries())) {
       // Rough memory calculation
       memoryUsage += JSON.stringify(entry.data).length + key.length;
       
@@ -160,7 +252,20 @@ export class CacheService {
     };
   }
 
-  // Specialized cache methods for common patterns
+  /**
+   * Get cached value or compute and cache it if not found
+   * @method getOrSet
+   * @template T - Type of cached data
+   * @param {string} key - Cache key identifier
+   * @param {() => Promise<T>} factory - Function to compute value if not cached
+   * @param {number} ttlMs - Time-to-live for new entries
+   * @returns {Promise<T>} Cached or computed value
+   * @example
+   * const data = await cache.getOrSet('expensive-calculation', 
+   *   () => computeExpensiveResult(), 
+   *   10 * 60 * 1000
+   * );
+   */
   getOrSet<T>(
     key: string, 
     factory: () => Promise<T>, 

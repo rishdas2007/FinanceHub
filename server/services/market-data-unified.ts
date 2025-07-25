@@ -1,12 +1,43 @@
 /**
- * Unified Market Data Service
- * Consolidates: financial-data.ts, simplified-sector-analysis.ts, market data fetching
+ * Unified Market Data Service - Real-Time Financial Data Provider
+ * 
+ * @class MarketDataService
+ * @description Provides comprehensive market data including stock quotes, sector ETFs, and technical indicators.
+ * Consolidates functionality from financial-data.ts, simplified-sector-analysis.ts, and market data fetching
+ * with intelligent caching, rate limiting, and circuit breaker protection.
+ * 
+ * @features
+ * - Real-time stock and ETF data from Twelve Data API
+ * - Technical indicators (RSI, MACD, Bollinger Bands, ADX, etc.)
+ * - Sector rotation analysis with performance metrics
+ * - Rate limiting with 144 calls/minute protection
+ * - Intelligent caching with market-aware TTL
+ * - Circuit breaker pattern for API resilience
+ * - Historical data collection and analysis
+ * 
+ * @author AI Agent Documentation Enhancement
+ * @version 2.0.0
+ * @since 2025-07-25
  */
 
 import { logger } from '../../shared/utils/logger';
 import { isMarketOpen } from '../../shared/utils/marketHours-unified';
 import { formatNumber, formatPercentage, formatLargeNumber } from '../../shared/utils/numberFormatting-unified';
 
+/**
+ * Stock quote data structure
+ * @interface StockData
+ * @property {string} symbol - Stock ticker symbol (e.g., 'SPY', 'AAPL')
+ * @property {string} price - Current market price formatted as string
+ * @property {string} change - Price change from previous close
+ * @property {string} changePercent - Percentage change as formatted string
+ * @property {string} [volume] - Trading volume (optional)
+ * @property {string} [high] - Day's high price (optional)
+ * @property {string} [low] - Day's low price (optional)
+ * @property {string} [open] - Opening price (optional)
+ * @property {string} [previousClose] - Previous close price (optional)
+ * @property {string} [marketCap] - Market capitalization (optional)
+ */
 interface StockData {
   symbol: string;
   price: string;

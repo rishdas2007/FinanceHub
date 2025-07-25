@@ -10,6 +10,10 @@ import { v1Routes } from './routes/api/v1/index';
 import { v2Routes } from './routes/api/v2/index';
 import { apiVersioning, versionDeprecation, contentNegotiation } from './middleware/api-versioning';
 import { metricsMiddleware } from './utils/MetricsCollector';
+
+// Import quality monitoring services
+import qualityRoutes from './routes/quality';
+import { performanceTrackingMiddleware } from './middleware/performance-tracking';
 import { setupVite, serveStatic, log } from "./vite";
 import { registerHealthRoutes } from "./routes/health";
 
@@ -50,6 +54,9 @@ app.use('/api', apiRateLimit);
 
 // Optional Enhancements - Metrics Collection
 app.use('/api', metricsMiddleware());
+
+// Performance Monitoring - Apply to all API routes
+app.use('/api', performanceTrackingMiddleware);
 
 // Optional Enhancements - API Versioning
 app.use('/api', apiVersioning);
@@ -97,6 +104,9 @@ app.use((req, res, next) => {
   // Optional Enhancements - Monitoring and Docs
   app.use('/api/monitoring', monitoringRoutes);
   app.use('/api/docs', docsRoutes);
+  
+  // Quality Monitoring Routes (NEW)
+  app.use('/api/quality', qualityRoutes);
 
   // Register original routes (maintain backward compatibility)
   const server = await registerRoutes(app);

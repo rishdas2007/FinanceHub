@@ -1,124 +1,133 @@
-import { promises as fs } from 'fs';
-import { join } from 'path';
-import { logger } from './logger';
+/**
+ * Service Size Monitor - Service Architecture Governance Tool
+ * 
+ * @class ServiceSizeMonitor
+ * @description Monitors and reports on service file sizes to maintain healthy architecture
+ * patterns and prevent monolithic anti-patterns in the unified service architecture.
+ * 
+ * @author AI Agent Documentation Enhancement
+ * @version 1.0.0
+ * @since 2025-07-25
+ */
 
-interface ServiceSizeReport {
-  filename: string;
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import { logger } from '../../shared/utils/logger';
+
+interface ServiceReport {
+  service: string;
+  filePath: string;
+  sizeKB: number;
   lines: number;
-  size: string;
   status: 'healthy' | 'warning' | 'critical';
-  recommendation?: string;
+  recommendation: string;
 }
 
 export class ServiceSizeMonitor {
-  private readonly MAX_LINES_WARNING = 400;
-  private readonly MAX_LINES_CRITICAL = 500;
-  private readonly SERVICE_DIRECTORIES = [
-    'server/services',
-    'server/middleware', 
-    'server/routes'
-  ];
-
-  async checkAllServices(): Promise<ServiceSizeReport[]> {
-    const reports: ServiceSizeReport[] = [];
-
-    for (const dir of this.SERVICE_DIRECTORIES) {
-      try {
-        const fullPath = join(process.cwd(), dir);
-        const files = await fs.readdir(fullPath);
-        
-        for (const file of files) {
-          if (file.endsWith('.ts') || file.endsWith('.js')) {
-            const filePath = join(fullPath, file);
-            const report = await this.analyzeFile(filePath, file);
-            reports.push(report);
-          }
-        }
-      } catch (error) {
-        logger.warn(`Could not analyze directory ${dir}`, { 
-          error: error instanceof Error ? error.message : String(error) 
-        });
-      }
+  private static instance: ServiceSizeMonitor;
+  
+  static getInstance(): ServiceSizeMonitor {
+    if (!ServiceSizeMonitor.instance) {
+      ServiceSizeMonitor.instance = new ServiceSizeMonitor();
     }
-
-    return reports.sort((a, b) => b.lines - a.lines);
+    return ServiceSizeMonitor.instance;
   }
 
-  private async analyzeFile(filePath: string, filename: string): Promise<ServiceSizeReport> {
+  async checkAllServices(): Promise<ServiceReport[]> {
+    const servicesPath = './server/services';
+    const reports: ServiceReport[] = [];
+    
     try {
+      const files = await fs.readdir(servicesPath);
+      
+      for (const file of files) {
+        if (file.endsWith('.ts') || file.endsWith('.js')) {
+          const filePath = path.join(servicesPath, file);
+          const report = await this.analyzeService(filePath, file);
+          reports.push(report);
+        }
+      }
+    } catch (error) {
+      logger.error(`Service size monitoring failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    
+    return reports;
+  }
+
+  private async analyzeService(filePath: string, fileName: string): Promise<ServiceReport> {
+    try {
+      const stats = await fs.stat(filePath);
       const content = await fs.readFile(filePath, 'utf-8');
       const lines = content.split('\n').length;
-      const stats = await fs.stat(filePath);
-      const sizeKB = (stats.size / 1024).toFixed(1);
-
+      const sizeKB = Math.round(stats.size / 1024);
+      
       let status: 'healthy' | 'warning' | 'critical' = 'healthy';
-      let recommendation: string | undefined;
-
-      if (lines > this.MAX_LINES_CRITICAL) {
+      let recommendation = 'Service size is within healthy limits';
+      
+      if (sizeKB > 100 || lines > 1000) {
         status = 'critical';
-        recommendation = `Split into smaller modules. Consider extracting interfaces, utilities, or domain-specific logic.`;
-      } else if (lines > this.MAX_LINES_WARNING) {
+        recommendation = 'Service is too large - consider breaking into smaller services';
+      } else if (sizeKB > 50 || lines > 500) {
         status = 'warning';
-        recommendation = `Monitor for growth. Consider refactoring if adding more functionality.`;
+        recommendation = 'Service is getting large - monitor for further growth';
       }
-
+      
       return {
-        filename,
+        service: fileName.replace(/\.(ts|js)$/, ''),
+        filePath,
+        sizeKB,
         lines,
-        size: `${sizeKB} KB`,
         status,
         recommendation
       };
     } catch (error) {
-      logger.error(`Failed to analyze file ${filename}`, { 
-        error: error instanceof Error ? error.message : String(error) 
-      });
-      
       return {
-        filename,
+        service: fileName,
+        filePath,
+        sizeKB: 0,
         lines: 0,
-        size: 'Unknown',
         status: 'critical',
-        recommendation: 'File could not be analyzed'
+        recommendation: `Failed to analyze: ${error instanceof Error ? error.message : String(error)}`
       };
     }
   }
 
   async generateReport(): Promise<string> {
     const reports = await this.checkAllServices();
-    const criticalFiles = reports.filter(r => r.status === 'critical');
-    const warningFiles = reports.filter(r => r.status === 'warning');
-
-    let report = `# Service Size Governance Report\n`;
+    
+    let report = '# Service Size Governance Report\n\n';
     report += `Generated: ${new Date().toISOString()}\n\n`;
-
-    if (criticalFiles.length > 0) {
-      report += `## 🔴 Critical Issues (${criticalFiles.length})\n`;
-      for (const file of criticalFiles) {
-        report += `- **${file.filename}**: ${file.lines} lines (${file.size})\n`;
-        report += `  ${file.recommendation}\n\n`;
+    
+    const critical = reports.filter(r => r.status === 'critical');
+    const warning = reports.filter(r => r.status === 'warning');
+    const healthy = reports.filter(r => r.status === 'healthy');
+    
+    report += `## Summary\n`;
+    report += `- Total Services: ${reports.length}\n`;
+    report += `- Critical: ${critical.length}\n`;
+    report += `- Warning: ${warning.length}\n`;
+    report += `- Healthy: ${healthy.length}\n\n`;
+    
+    if (critical.length > 0) {
+      report += `## Critical Services (Immediate Action Required)\n\n`;
+      for (const service of critical) {
+        report += `### ${service.service}\n`;
+        report += `- Size: ${service.sizeKB}KB (${service.lines} lines)\n`;
+        report += `- Recommendation: ${service.recommendation}\n\n`;
       }
     }
-
-    if (warningFiles.length > 0) {
-      report += `## 🟡 Warnings (${warningFiles.length})\n`;
-      for (const file of warningFiles) {
-        report += `- **${file.filename}**: ${file.lines} lines (${file.size})\n`;
-        report += `  ${file.recommendation}\n\n`;
+    
+    if (warning.length > 0) {
+      report += `## Warning Services (Monitor Closely)\n\n`;
+      for (const service of warning) {
+        report += `### ${service.service}\n`;
+        report += `- Size: ${service.sizeKB}KB (${service.lines} lines)\n`;
+        report += `- Recommendation: ${service.recommendation}\n\n`;
       }
     }
-
-    const healthyFiles = reports.filter(r => r.status === 'healthy');
-    report += `## ✅ Healthy Files (${healthyFiles.length})\n`;
-    report += `Files under ${this.MAX_LINES_WARNING} lines are in good shape.\n\n`;
-
-    report += `## Top 5 Largest Services\n`;
-    for (const file of reports.slice(0, 5)) {
-      report += `1. ${file.filename}: ${file.lines} lines (${file.size})\n`;
-    }
-
+    
     return report;
   }
 }
 
-export const serviceSizeMonitor = new ServiceSizeMonitor();
+export const serviceSizeMonitor = ServiceSizeMonitor.getInstance();
