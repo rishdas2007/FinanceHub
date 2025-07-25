@@ -1109,8 +1109,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             },
             economic: economicData?.slice(0, 3).map((reading: any) => ({
               metric: reading.metric || 'N/A',
-              value: reading.value || 'N/A',
-              status: reading.status || 'N/A'
+              value: reading.current || reading.value || 'N/A',
+              status: reading.change || (reading.variance ? `${reading.variance} vs forecast` : 'Latest Reading')
             })) || []
           },
           chartData: momentumData.chartData || [],
