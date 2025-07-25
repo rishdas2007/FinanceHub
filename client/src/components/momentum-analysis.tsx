@@ -233,14 +233,16 @@ const MomentumAnalysis = () => {
                 <YAxis 
                   dataKey="zScore" 
                   type="number" 
-                  domain={[-1, 1]}
-                  tickCount={9}
+                  domain={[-1.5, 1.5]}
+                  tickCount={7}
                   stroke="#6B7280"
                   label={{ value: 'Z-Score of the Latest 1-Day Move', angle: -90, position: 'insideLeft', style: { fill: '#6B7280' } }}
                 />
-                {/* Reference lines for RSI levels */}
-                <ReferenceLine x={30} stroke="#dc2626" strokeDasharray="2 2" strokeWidth={1} />
-                <ReferenceLine x={70} stroke="#dc2626" strokeDasharray="2 2" strokeWidth={1} />
+                {/* Reference lines for RSI levels with labels */}
+                <ReferenceLine x={30} stroke="#dc2626" strokeDasharray="2 2" strokeWidth={2} 
+                  label={{ value: "Oversold", position: "top", fill: "#dc2626", fontSize: 12, fontWeight: "bold" }} />
+                <ReferenceLine x={70} stroke="#dc2626" strokeDasharray="2 2" strokeWidth={2} 
+                  label={{ value: "Overbought", position: "top", fill: "#dc2626", fontSize: 12, fontWeight: "bold" }} />
                 {/* Reference line for Y-axis intersection at 45 RSI */}
                 <ReferenceLine x={45} stroke="#6b7280" strokeDasharray="1 1" strokeWidth={1} opacity={0.5} />
                 <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="1 1" strokeWidth={1} opacity={0.5} />

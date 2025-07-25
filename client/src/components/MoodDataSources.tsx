@@ -28,9 +28,11 @@ export function MoodDataSources() {
     staleTime: 2 * 60 * 1000,
   });
 
-  // Get RSI from momentum data for consistency with table
+  // Get RSI, 1-Day Move, and Z-Score from momentum data for consistency with table
   const spyData = (momentumData as any)?.momentumStrategies?.find((s: any) => s.ticker === 'SPY');
   const rsi = spyData?.rsi || null;
+  const spyOneDayMove = spyData?.oneDayChange || null;
+  const spyZScore = spyData?.zScore || null;
 
   const dataSources: DataSource[] = [
     {
@@ -42,11 +44,11 @@ export function MoodDataSources() {
       type: 'technical',
       data: {
         rsi: rsi, // Use same RSI as momentum table
-        vix: (technicalData as any)?.vix || null,
-        adx: (technicalData as any)?.adx || null,
+        spyOneDayMove: spyOneDayMove, // Replace VIX with SPY 1-Day Move
+        spyZScore: spyZScore, // Replace ADX with SPY Z-Score
         trend: rsi ? (rsi > 70 ? 'bullish' : rsi < 30 ? 'bearish' : 'neutral') : 'neutral'
       },
-      status: technicalLoading ? 'loading' : 'success'
+      status: momentumLoading ? 'loading' : 'success'
     },
     {
       type: 'economic',
@@ -93,17 +95,19 @@ export function MoodDataSources() {
         </Badge>
       </div>
       <div className="flex justify-between">
-        <span>VIX:</span>
-        <Badge variant={data.vix && data.vix < 20 ? 'default' : 'destructive'}>
-          {data.vix ? data.vix.toFixed(1) : 'Loading...'}
+        <span>SPY 1-Day Move:</span>
+        <Badge variant={data.spyOneDayMove && data.spyOneDayMove > 0 ? 'default' : 'destructive'}>
+          {data.spyOneDayMove ? `${data.spyOneDayMove > 0 ? '+' : ''}${data.spyOneDayMove.toFixed(2)}%` : 'Loading...'}
         </Badge>
       </div>
       <div className="flex justify-between">
-        <span>ADX:</span>
-        <Badge variant="secondary">{data.adx ? data.adx.toFixed(1) : 'Loading...'}</Badge>
+        <span>SPY Z-Score:</span>
+        <Badge variant={data.spyZScore && Math.abs(data.spyZScore) < 0.5 ? 'secondary' : 'destructive'}>
+          {data.spyZScore ? data.spyZScore.toFixed(3) : 'Loading...'}
+        </Badge>
       </div>
       <div className="text-xs text-gray-400 mt-2 space-y-1">
-        <div>* ADX measures trend strength (0-100). Values above 25 indicate strong trends.</div>
+        <div>* Z-Score measures how many standard deviations current move is from average. Values above ±1 are significant.</div>
         <div className="text-blue-300">Source: Twelve Data API (SPY & VIX symbols)</div>
       </div>
     </div>
