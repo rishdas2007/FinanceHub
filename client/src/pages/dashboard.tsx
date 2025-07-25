@@ -1,7 +1,7 @@
 
 
 import MomentumAnalysis from "@/components/momentum-analysis";
-
+import { SPYBaseline } from "@/components/SPYBaseline";
 import { FinancialMoodEmoji } from "@/components/FinancialMoodEmoji";
 import { MoodDataSources } from "@/components/MoodDataSources";
 import { AAIISentiment } from "@/components/aaii-sentiment";
@@ -65,6 +65,12 @@ export default function Dashboard() {
         <div>
           <h2 className="text-xl font-bold text-white mb-4">Data Sources for Financial Mood Analysis</h2>
           <MoodDataSources />
+        </div>
+
+        {/* SPY Baseline for Market Comparison */}
+        <div>
+          <h2 className="text-xl font-bold text-white mb-4">Market Baseline</h2>
+          <SPYBaseline />
         </div>
 
         {/* Simplified Momentum Analysis with Verified Calculations */}
