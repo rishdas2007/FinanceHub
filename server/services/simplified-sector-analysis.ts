@@ -215,53 +215,81 @@ export class SimplifiedSectorAnalysisService {
 
   /**
    * Calculate z-score: (current_price - rolling_mean_20) / rolling_std_20
+   * Enhanced with proper statistical methods and data validation
    */
   private calculateZScore(sector: SectorETF, sectorHistory: HistoricalData[]): number {
-    if (sectorHistory.length < 20) {
-      // Estimate z-score from current performance
-      const dailyReturn = (sector.changePercent || 0) / 100;
-      return dailyReturn / 0.02; // Typical daily volatility estimate
+    // Validate input data - filter out invalid prices
+    const validPrices = sectorHistory
+      .filter(h => h.price && h.price > 0 && !isNaN(h.price) && h.price < 1000000)
+      .map(h => h.price);
+      
+    if (validPrices.length < 20) {
+      // Improved fallback using actual daily returns when available
+      const recentReturns = this.calculateDailyReturns(sectorHistory.slice(0, Math.min(10, sectorHistory.length)));
+      if (recentReturns.length > 1) {
+        const avgReturn = recentReturns.reduce((sum, r) => sum + r, 0) / recentReturns.length;
+        // Use sample standard deviation for better accuracy with small samples
+        const returnVolatility = Math.sqrt(
+          recentReturns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / 
+          Math.max(1, recentReturns.length - 1)
+        );
+        const currentReturn = (sector.changePercent || 0) / 100;
+        return returnVolatility > 0 ? this.capZScore((currentReturn - avgReturn) / returnVolatility) : 0;
+      }
+      return 0; // Conservative fallback instead of arbitrary estimate
     }
     
     // Use last 20 days for rolling calculation
-    const last20Prices = sectorHistory.slice(0, 20).map(h => h.price);
+    const last20Prices = validPrices.slice(0, 20);
     const mean20 = last20Prices.reduce((sum, p) => sum + p, 0) / last20Prices.length;
     
-    const variance = last20Prices.reduce((sum, p) => sum + Math.pow(p - mean20, 2), 0) / last20Prices.length;
+    // Use sample standard deviation (N-1) for better accuracy with finite samples
+    const variance = last20Prices.reduce((sum, p) => sum + Math.pow(p - mean20, 2), 0) / (last20Prices.length - 1);
     const std20 = Math.sqrt(variance);
     
     if (std20 === 0) return 0;
-    return (sector.price - mean20) / std20;
+    
+    const zScore = (sector.price - mean20) / std20;
+    
+    // Cap extreme values to prevent outlier distortion
+    return this.capZScore(zScore);
   }
 
   /**
    * Calculate 5-day move z-score for chart x-axis
+   * Enhanced with overlapping windows and proper statistical methods
    */
   private calculateFiveDayZScore(sector: SectorETF, sectorHistory: HistoricalData[]): number {
     const fiveDayReturn = (sector.fiveDayChange || 0) / 100;
     
-    if (sectorHistory.length < 20) {
-      // Estimate 5-day z-score
-      return fiveDayReturn / 0.05; // Typical 5-day volatility
+    if (sectorHistory.length < 25) {
+      // Better fallback using available data
+      const availableReturns = this.calculateDailyReturns(sectorHistory);
+      if (availableReturns.length >= 5) {
+        const recentVolatility = this.calculateStandardDeviation(availableReturns) * Math.sqrt(5);
+        return recentVolatility > 0 ? this.capZScore(fiveDayReturn / recentVolatility, 3) : 0;
+      }
+      return this.capZScore(fiveDayReturn / 0.05, 3); // Keep existing fallback but cap it
     }
     
-    // Calculate rolling 5-day returns and their z-score
+    // Calculate OVERLAPPING 5-day returns for better sample size
     const fiveDayReturns: number[] = [];
-    for (let i = 5; i < Math.min(sectorHistory.length, 25); i += 5) {
+    for (let i = 0; i < Math.min(sectorHistory.length - 5, 60); i++) {
       const current = sectorHistory[i].price;
-      const fiveDaysAgo = sectorHistory[i - 5].price;
-      if (fiveDaysAgo > 0) {
+      const fiveDaysAgo = sectorHistory[i + 5].price;
+      if (fiveDaysAgo > 0 && current > 0) {
         fiveDayReturns.push((current - fiveDaysAgo) / fiveDaysAgo);
       }
     }
     
-    if (fiveDayReturns.length < 2) return fiveDayReturn / 0.05;
+    if (fiveDayReturns.length < 10) return this.capZScore(fiveDayReturn / 0.05, 3);
     
     const mean = fiveDayReturns.reduce((sum, r) => sum + r, 0) / fiveDayReturns.length;
-    const variance = fiveDayReturns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / fiveDayReturns.length;
+    // Use sample standard deviation for better accuracy
+    const variance = fiveDayReturns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / (fiveDayReturns.length - 1);
     const std = Math.sqrt(variance);
     
-    return std > 0 ? (fiveDayReturn - mean) / std : 0;
+    return std > 0 ? this.capZScore((fiveDayReturn - mean) / std, 3) : 0;
   }
 
   /**
@@ -640,6 +668,26 @@ export class SimplifiedSectorAnalysisService {
     };
     
     return sectorNames[symbol] || symbol;
+  }
+
+  /**
+   * Calculate standard deviation using sample method (N-1) for better accuracy
+   */
+  private calculateStandardDeviation(values: number[]): number {
+    if (values.length < 2) return 0;
+    
+    const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+    // Use sample standard deviation (N-1) for better accuracy with finite samples
+    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (values.length - 1);
+    
+    return Math.sqrt(variance);
+  }
+
+  /**
+   * Cap Z-Score values to prevent extreme outliers from distorting analysis
+   */
+  private capZScore(zScore: number, maxStdDev: number = 5): number {
+    return Math.max(-maxStdDev, Math.min(maxStdDev, zScore));
   }
 }
 

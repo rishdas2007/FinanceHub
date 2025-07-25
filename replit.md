@@ -6,7 +6,23 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 
 ## Recent Changes (July 25, 2025)
 
-### FINANCIAL MOOD DATA SOURCE TRANSPARENCY & REAL DATA INTEGRATION COMPLETED (July 25, 2025 - LATEST UPDATE)
+### ENHANCED Z-SCORE STATISTICAL ACCURACY & CONSISTENCY IMPLEMENTATION COMPLETED (July 25, 2025 - LATEST UPDATE)
+- **STATISTICAL ACCURACY ENHANCED**: Upgraded Z-Score calculations from population standard deviation to sample standard deviation (N-1) for better accuracy with finite samples
+- **DATA VALIDATION IMPLEMENTED**: Added comprehensive input validation filtering invalid prices (null, NaN, negative, extreme values >$1M)
+- **OUTLIER PROTECTION ADDED**: Implemented Z-Score capping at ±5 standard deviations to prevent extreme outliers from distorting analysis
+- **OVERLAPPING WINDOWS FIXED**: Corrected 5-day Z-Score calculation to use overlapping periods instead of non-overlapping, increasing sample size from ~4 to ~60 data points
+- **IMPROVED FALLBACK LOGIC**: Enhanced fallback methods using actual daily returns and calculated volatility instead of arbitrary estimates (0.02 hardcoded)
+- **ECONOMIC INDICATORS ENHANCED**: Applied same statistical improvements to economic Z-Score calculations with sample standard deviation and outlier capping
+- **CROSS-SECTION CONSISTENCY VERIFIED**: Unified dashboard cache ensures both momentum table and scatter chart use identical Z-Score values from single calculation source
+- **MATHEMATICAL ACCURACY FORMULAS**: 
+  - **Price Z-Score**: `(current_price - 20_day_mean) / 20_day_sample_std`
+  - **5-Day Z-Score**: `(5_day_return - historical_5day_mean) / historical_5day_sample_std`
+  - **Economic Z-Score**: `(current_value - 12_month_mean) / 12_month_sample_std`
+- **DATA QUALITY FILTERING**: Removed extreme daily return outliers (>50% moves) likely representing data errors
+- **STATISTICAL UTILITY METHODS**: Added `calculateStandardDeviation()` and `capZScore()` utility methods for consistent statistical operations
+- **STATUS**: Z-Score calculations now use proper statistical methods with data validation, outlier protection, and guaranteed cross-section consistency
+
+### FINANCIAL MOOD DATA SOURCE TRANSPARENCY & REAL DATA INTEGRATION COMPLETED (July 25, 2025 - PREVIOUS UPDATE)
 - **FINANCIAL MOOD SEQUENCING FIXED**: Financial Mood now properly waits for momentum analysis data before loading, ensuring proper dependency sequencing
 - **FAKE DATA ELIMINATED**: Removed hardcoded economic indicators and replaced with real data from `/api/recent-economic-openai` endpoint
 - **REAL TECHNICAL DATA INTEGRATION**: Added authentic technical indicators (SPY RSI: 74.78, VIX: 16.2, ADX: 31.27) to mood analysis

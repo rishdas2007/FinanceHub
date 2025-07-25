@@ -1,0 +1,203 @@
+I need to see the actual code you're referring to in order to audit the z-score calculation. Let me search your project knowledge to find the relevant code files.Based on my audit of your z-score calculation code across multiple files, I found several implementations with varying degrees of accuracy. Here's my comprehensive analysis and recommendations:
+
+## **Z-Score Implementations Found**
+
+### 1. **Sector ETF Price Z-Score** (`simplified-sector-analysis.ts`)
+```typescript
+// Current implementation
+const last20Prices = sectorHistory.slice(0, 20).map(h => h.price);
+const mean20 = last20Prices.reduce((sum, p) => sum + p, 0) / last20Prices.length;
+const variance = last20Prices.reduce((sum, p) => sum + Math.pow(p - mean20, 2), 0) / last20Prices.length;
+const std20 = Math.sqrt(variance);
+return (sector.price - mean20) / std20;
+```
+
+**✅ ACCURACY**: This is mathematically correct for a population z-score.
+
+**⚠️ ISSUES IDENTIFIED**:
+- Uses **population standard deviation** (dividing by N) instead of **sample standard deviation** (dividing by N-1)
+- No validation of data quality (null/undefined prices)
+- Hard-coded fallback volatility estimate (0.02) lacks statistical basis
+
+### 2. **Economic Indicators Z-Score** (`economic-calculations.ts`)
+```typescript
+// Current implementation - CORRECT
+const last12Months = sortedData.slice(-12);
+const values = last12Months.map(d => d.value);
+const current = sortedData[sortedData.length - 1].value;
+const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+const stdDev = Math.sqrt(variance);
+const zScore = (current - mean) / stdDev;
+```
+
+**✅ ACCURACY**: This implementation is statistically sound.
+
+### 3. **5-Day Returns Z-Score** (`simplified-sector-analysis.ts`)
+```typescript
+// Current implementation - PROBLEMATIC
+const fiveDayReturns: number[] = [];
+for (let i = 5; i < Math.min(sectorHistory.length, 25); i += 5) {
+  const current = sectorHistory[i].price;
+  const fiveDaysAgo = sectorHistory[i - 5].price;
+  if (fiveDaysAgo > 0) {
+    fiveDayReturns.push((current - fiveDaysAgo) / fiveDaysAgo);
+  }
+}
+```
+
+**❌ ACCURACY ISSUES**: 
+- **Non-overlapping sampling** creates gaps in data
+- **Small sample size** (only ~4 data points from 25 days)
+- **Inconsistent time periods** due to stepping by 5
+
+## **Key Statistical Problems**
+
+### 1. **Sample vs Population Standard Deviation**
+Most of your implementations use population standard deviation (÷N) when they should use sample standard deviation (÷N-1) for small samples:
+
+```typescript
+// CURRENT (Population) - Less accurate for small samples
+const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+
+// RECOMMENDED (Sample) - More accurate for small samples
+const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (values.length - 1);
+```
+
+### 2. **Overlapping vs Non-Overlapping Windows**
+Your 5-day z-score uses non-overlapping periods, which reduces sample size and accuracy.
+
+## **Recommended Improvements**
+
+### **1. Enhanced Sector ETF Z-Score**
+```typescript
+private calculateZScore(sector: SectorETF, sectorHistory: HistoricalData[]): number {
+  // Validate input data
+  const validPrices = sectorHistory
+    .filter(h => h.price && h.price > 0 && !isNaN(h.price))
+    .map(h => h.price);
+    
+  if (validPrices.length < 20) {
+    // Improved fallback using actual daily returns
+    const recentReturns = this.calculateDailyReturns(sectorHistory.slice(0, Math.min(10, sectorHistory.length)));
+    if (recentReturns.length > 0) {
+      const avgReturn = recentReturns.reduce((sum, r) => sum + r, 0) / recentReturns.length;
+      const returnVolatility = Math.sqrt(
+        recentReturns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / 
+        Math.max(1, recentReturns.length - 1)
+      );
+      const currentReturn = (sector.changePercent || 0) / 100;
+      return returnVolatility > 0 ? (currentReturn - avgReturn) / returnVolatility : 0;
+    }
+    return 0; // Conservative fallback
+  }
+  
+  // Use last 20 days for rolling calculation
+  const last20Prices = validPrices.slice(0, 20);
+  const mean20 = last20Prices.reduce((sum, p) => sum + p, 0) / last20Prices.length;
+  
+  // Use sample standard deviation for better accuracy
+  const variance = last20Prices.reduce((sum, p) => sum + Math.pow(p - mean20, 2), 0) / (last20Prices.length - 1);
+  const std20 = Math.sqrt(variance);
+  
+  if (std20 === 0) return 0;
+  
+  const zScore = (sector.price - mean20) / std20;
+  
+  // Cap extreme values to prevent outlier distortion
+  return Math.max(-5, Math.min(5, zScore));
+}
+```
+
+### **2. Improved 5-Day Returns Z-Score**
+```typescript
+private calculateFiveDayZScore(sector: SectorETF, sectorHistory: HistoricalData[]): number {
+  const fiveDayReturn = (sector.fiveDayChange || 0) / 100;
+  
+  if (sectorHistory.length < 25) {
+    // Better fallback using available data
+    const availableReturns = this.calculateDailyReturns(sectorHistory);
+    if (availableReturns.length >= 5) {
+      const recentVolatility = this.calculateStandardDeviation(availableReturns) * Math.sqrt(5);
+      return recentVolatility > 0 ? fiveDayReturn / recentVolatility : 0;
+    }
+    return fiveDayReturn / 0.05; // Keep existing fallback
+  }
+  
+  // Calculate OVERLAPPING 5-day returns for better sample size
+  const fiveDayReturns: number[] = [];
+  for (let i = 0; i < Math.min(sectorHistory.length - 5, 60); i++) {
+    const current = sectorHistory[i].price;
+    const fiveDaysAgo = sectorHistory[i + 5].price;
+    if (fiveDaysAgo > 0 && current > 0) {
+      fiveDayReturns.push((current - fiveDaysAgo) / fiveDaysAgo);
+    }
+  }
+  
+  if (fiveDayReturns.length < 10) return fiveDayReturn / 0.05;
+  
+  const mean = fiveDayReturns.reduce((sum, r) => sum + r, 0) / fiveDayReturns.length;
+  const variance = fiveDayReturns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / (fiveDayReturns.length - 1);
+  const std = Math.sqrt(variance);
+  
+  return std > 0 ? Math.max(-3, Math.min(3, (fiveDayReturn - mean) / std)) : 0;
+}
+```
+
+### **3. Utility Function for Better Standard Deviation**
+```typescript
+private calculateStandardDeviation(values: number[]): number {
+  if (values.length < 2) return 0;
+  
+  const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+  // Use sample standard deviation (N-1) for better accuracy
+  const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (values.length - 1);
+  
+  return Math.sqrt(variance);
+}
+```
+
+## **Additional Recommendations**
+
+### **1. Data Quality Validation**
+```typescript
+private validatePriceData(prices: number[]): number[] {
+  return prices.filter(price => 
+    price !== null && 
+    price !== undefined && 
+    !isNaN(price) && 
+    price > 0 && 
+    price < 1000000 // Reasonable upper bound
+  );
+}
+```
+
+### **2. Outlier Capping**
+Your z-scores should be capped to prevent extreme outliers from distorting analysis:
+```typescript
+private capZScore(zScore: number, maxStdDev: number = 3): number {
+  return Math.max(-maxStdDev, Math.min(maxStdDev, zScore));
+}
+```
+
+### **3. Consistent Window Sizes**
+Consider standardizing your lookback periods:
+- **Short-term**: 20 days for price momentum
+- **Medium-term**: 60 days for intermediate trends  
+- **Long-term**: 252 days for annual comparisons
+
+### **4. Add Statistical Confidence Intervals**
+```typescript
+private calculateConfidenceInterval(zScore: number, sampleSize: number, confidenceLevel: number = 0.95): {lower: number, upper: number} {
+  const criticalValue = 1.96; // For 95% confidence
+  const standardError = 1 / Math.sqrt(sampleSize);
+  const margin = criticalValue * standardError;
+  
+  return {
+    lower: zScore - margin,
+    upper: zScore + margin
+  };
+}
+```
+
+Your current implementations are generally mathematically sound, but these improvements will enhance accuracy, robustness, and statistical validity. The key issues to address are using sample standard deviation for small samples, improving fallback methods, and adding proper data validation.

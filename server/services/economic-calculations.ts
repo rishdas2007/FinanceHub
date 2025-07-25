@@ -91,15 +91,28 @@ export class EconomicCalculationsService {
       return null;
     }
 
+    // Filter out invalid values
+    const validData = sortedData.filter(d => 
+      d.value !== null && 
+      d.value !== undefined && 
+      !isNaN(d.value) && 
+      isFinite(d.value)
+    );
+
+    if (validData.length < 12) {
+      logger.debug('Insufficient valid data for Z-Score calculation');
+      return null;
+    }
+
     // Use last 12 data points for rolling window
-    const last12Months = sortedData.slice(-12);
+    const last12Months = validData.slice(-12);
     const values = last12Months.map(d => d.value);
     
-    const current = sortedData[sortedData.length - 1].value;
+    const current = validData[validData.length - 1].value;
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
     
-    // Calculate standard deviation
-    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+    // Calculate sample standard deviation (N-1) for better accuracy with finite samples
+    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (values.length - 1);
     const stdDev = Math.sqrt(variance);
 
     if (stdDev === 0) {
@@ -108,7 +121,11 @@ export class EconomicCalculationsService {
     }
 
     const zScore = (current - mean) / stdDev;
-    return Math.round(zScore * 100) / 100;
+    
+    // Cap extreme Z-Score values to prevent outlier distortion
+    const cappedZScore = Math.max(-5, Math.min(5, zScore));
+    
+    return Math.round(cappedZScore * 100) / 100;
   }
 
   /**
