@@ -1228,9 +1228,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // We'll catch the specific error to diagnose the issue
         await mailService.send({
           to: 'test@example.com',
-          from: 'test@test.com', // This will fail but give us info
-          subject: 'Test',
-          text: 'test'
+          from: 'me@rishabhdas.com', // Use the actual verified sender email
+          subject: 'SendGrid Test',
+          text: 'This is a test email to verify SendGrid configuration.'
         });
       } catch (error: any) {
         res.json({
