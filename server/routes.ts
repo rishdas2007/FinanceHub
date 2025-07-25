@@ -1066,137 +1066,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-  // Test endpoint for email functionality with updated template  
+  // Test endpoint for dashboard-matching email template
   app.post("/api/email/test-daily", async (req, res) => {
     try {
-      console.log('📧 Testing updated email template with 3 sections...');
+      console.log('📧 Testing dashboard-matching email template...');
       const { email } = req.body;
       
       if (!email) {
         return res.status(400).json({ error: "Email address is required" });
       }
 
-      // Get fresh market data for email
-      const freshMarketData = await gatherMarketDataForAI();
-      
-      // Get sector data from database (last available data)
-      let sectorData = [];
+      // Fetch momentum analysis data (matches dashboard exactly)
       try {
-        const { storage } = await import('./storage.js');
-        const dbSectors = await storage.getAllSectorData();
+        const momentumResponse = await fetch('http://localhost:5000/api/momentum-analysis');
+        const momentumData = await momentumResponse.json();
         
-        sectorData = dbSectors.map(sector => ({
-          sector: sector.name || sector.symbol,
-          ticker: sector.symbol,
-          oneDay: sector.changePercent?.toFixed(2) || '0.00',
-          fiveDay: sector.fiveDayChange?.toFixed(2) || '0.00',
-          oneMonth: sector.monthlyChange?.toFixed(2) || '0.00', 
-          rsi: sector.rsi?.toFixed(1) || '50.0',
-          signal: sector.changePercent > 1 ? 'Bullish' : sector.changePercent < -1 ? 'Bearish' : 'Neutral'
-        }));
-        console.log(`📊 Database sector data for email: ${sectorData.length} sectors`);
-      } catch (error) {
-        console.error('Error fetching sector data from database:', error);
-      }
-      
-      // Get economic events from database (last available data)
-      let economicEventsData = [];
-      try {
-        const { storage } = await import('./storage.js');
-        const dbEvents = await storage.getAllEconomicEvents();
+        // Fetch economic data (matches dashboard exactly)
+        const economicResponse = await fetch('http://localhost:5000/api/recent-economic-openai');
+        const economicData = await economicResponse.json();
+
+        // Process momentum data for AI Summary
+        const spyData = momentumData.momentumStrategies?.find((s: any) => s.ticker === 'SPY');
+        const bullishSectors = momentumData.momentumStrategies?.filter((s: any) => 
+          s.momentum === 'bullish' || s.signal?.toLowerCase().includes('bullish')
+        ).length || 0;
+
+        // Prepare dashboard-matching email data
+        const dashboardEmailData = {
+          aiSummary: {
+            momentum: {
+              bullishSectors: bullishSectors,
+              totalSectors: momentumData.momentumStrategies?.length || 0,
+              topSector: momentumData.momentumStrategies?.[0]?.sector || 'N/A',
+              topSectorChange: momentumData.momentumStrategies?.[0]?.oneDayChange || 0,
+              rsi: spyData?.rsi || 0,
+              signal: spyData?.signal || 'N/A'
+            },
+            technical: {
+              rsi: spyData?.rsi || 0,
+              spyOneDayMove: spyData?.oneDayChange || 0,
+              spyZScore: spyData?.zScore || 0
+            },
+            economic: economicData?.slice(0, 3).map((reading: any) => ({
+              metric: reading.metric || 'N/A',
+              value: reading.value || 'N/A',
+              status: reading.status || 'N/A'
+            })) || []
+          },
+          chartData: momentumData.chartData || [],
+          momentumStrategies: momentumData.momentumStrategies || [],
+          timestamp: new Date().toLocaleString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZoneName: 'short'
+          })
+        };
+
+        // Send email using enhanced email service
+        const { EnhancedEmailService } = await import('./services/email-unified-enhanced.js');
+        const emailService = EnhancedEmailService.getInstance();
         
-        economicEventsData = dbEvents.slice(0, 6).map(event => ({
-          indicator: event.title || event.indicator,
-          actual: event.actual || 'N/A',
-          forecast: event.forecast || 'N/A',
-          date: event.date || event.releaseDate || 'N/A'
-        }));
-        console.log(`📅 Database economic events for email: ${economicEventsData.length} events`);
-      } catch (error) {
-        console.error('Error fetching economic events from database:', error);
-      }
-      
-      // Generate simple analysis for email test
-      const analysis = {
-        bottomLine: `Market showing ${freshMarketData.changePercent >= 0 ? 'positive' : 'negative'} momentum with SPY at $${freshMarketData.price}.`,
-        setup: `Technical indicators: RSI ${freshMarketData.rsi}, VIX ${freshMarketData.vix}. Market sentiment reflects current positioning.`,
-        evidence: `Current levels suggest balanced conditions with sector rotation favoring momentum strategies.`,
-        implications: `Focus on momentum crossover signals and risk-return positioning for optimal sector allocation.`,
-        confidence: 0.75
-      };
-
-      // Prepare email data for updated template
-      const emailData = {
-        stockData: {
-          price: freshMarketData.price,
-          changePercent: freshMarketData.changePercent
-        },
-        sentiment: {
-          vix: freshMarketData.vix,
-          vixChange: freshMarketData.vixChange,
-          aaiiBullish: freshMarketData.aaiiBullish,
-          aaiiBearish: freshMarketData.aaiiBearish
-        },
-        technical: {
-          rsi: freshMarketData.rsi,
-          macd: freshMarketData.macd
-        },
-        sectors: sectorData,
-        economicEvents: economicEventsData,
-        analysis,
-        timestamp: new Date().toISOString()
-      };
-
-      // Use simplified email service with 4 dashboard sections only
-      const { simplifiedEmailService } = await import('./services/email-simplified.js');
-      
-      const sendGridEnabled = !!process.env.SENDGRID_API_KEY;
-      
-      if (sendGridEnabled) {
-        try {
-          await simplifiedEmailService.sendDailyMarketEmail([{ 
-            id: 1, 
-            email, 
-            token: 'test', 
-            createdAt: new Date(), 
-            isActive: true 
-          }], emailData);
+        const success = await emailService.sendDashboardMatchingEmail(email, dashboardEmailData);
+        
+        if (success) {
           res.json({
             success: true,
-            message: 'Simplified dashboard email sent successfully',
-            sections: ['AI Dashboard Summary', 'Recent Economic Readings', 'Momentum Strategies with Enhanced Metrics', 'Economic Indicators'],
+            message: 'Dashboard-matching email sent successfully',
+            sections: ['AI Summary', '1-Day Z-Score vs RSI Analysis', 'Momentum Strategies with Enhanced Metrics'],
             recipient: email,
-            template: 'Simplified Dashboard Template'
+            template: 'Dashboard Matching Template'
           });
-        } catch (error) {
-          console.error('SendGrid Error Details:', error);
+        } else {
           res.json({
             success: false,
-            message: 'Email template generated but SendGrid delivery failed',
-            sections: ['AI Dashboard Summary', 'Recent Economic Readings', 'Momentum Strategies with Enhanced Metrics', 'Economic Indicators'],
+            message: 'Email template generated but delivery failed',
+            sections: ['AI Summary', '1-Day Z-Score vs RSI Analysis', 'Momentum Strategies with Enhanced Metrics'],
             recipient: email,
-            template: 'Simplified Dashboard Template',
-            sendgridError: error instanceof Error ? error.message : 'SendGrid error',
-            troubleshooting: {
-              possibleCauses: [
-                '1. From email address not verified in SendGrid',
-                '2. API key permissions insufficient (needs Mail Send permission)',
-                '3. Account suspended or limited',
-                '4. Domain authentication required'
-              ],
-              solution: 'Check SendGrid dashboard for sender verification and API permissions'
-            }
+            template: 'Dashboard Matching Template'
           });
         }
-      } else {
-        res.json({
-          success: true,
-          message: 'Simplified dashboard email template generated successfully',
-          sections: ['AI Dashboard Summary', 'Recent Economic Readings', 'Momentum Strategies with Enhanced Metrics', 'Economic Indicators'],
-          template: 'Simplified Dashboard Template',
-          note: 'Configure SENDGRID_API_KEY to send actual emails'
+        
+      } catch (fetchError) {
+        console.error('Error fetching dashboard data:', fetchError);
+        res.status(500).json({
+          error: 'Failed to fetch dashboard data for email',
+          message: fetchError instanceof Error ? fetchError.message : 'Unknown error'
         });
       }
+      
+
 
     } catch (error) {
       console.error('Error testing updated email:', error);
