@@ -1136,7 +1136,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           res.json({
             success: true,
             message: 'Dashboard-matching email sent successfully',
-            sections: ['AI Summary', '1-Day Z-Score vs RSI Analysis', 'Momentum Strategies with Enhanced Metrics'],
+            sections: ['AI Summary', 'Momentum Strategies with Enhanced Metrics'],
             recipient: email,
             template: 'Dashboard Matching Template'
           });
@@ -1144,7 +1144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           res.json({
             success: false,
             message: 'Email template generated but delivery failed',
-            sections: ['AI Summary', '1-Day Z-Score vs RSI Analysis', 'Momentum Strategies with Enhanced Metrics'],
+            sections: ['AI Summary', 'Momentum Strategies with Enhanced Metrics'],
             recipient: email,
             template: 'Dashboard Matching Template'
           });

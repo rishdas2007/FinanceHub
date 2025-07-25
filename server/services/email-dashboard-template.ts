@@ -269,7 +269,10 @@ export function generateDashboardMatchingTemplate(data: EmailTemplateData): stri
     <div class="header">
       <h1>🔥 Rishabh's Market Dashboard</h1>
       <p>Complete Financial Analysis • ${data.timestamp}</p>
-      <p><a href="https://rishabhdas.substack.com/" style="color: #60a5fa;">Follow my insights on Substack</a></p>
+      <p>
+        <a href="https://financial-tracker-rishabhdas07.replit.app/" style="color: #60a5fa; margin-right: 20px;">📊 Live Dashboard</a>
+        <a href="https://rishabhdas.substack.com/" style="color: #60a5fa;">Follow my insights on Substack</a>
+      </p>
     </div>
     
     <div class="content">
@@ -353,63 +356,7 @@ export function generateDashboardMatchingTemplate(data: EmailTemplateData): stri
         </div>
       </div>
       
-      <!-- 1-Day Z-Score vs RSI Analysis Section -->
-      <div class="section">
-        <h2 class="section-title">
-          📊 1-Day Z-Score vs RSI Analysis
-        </h2>
-        
-        <div class="chart-section">
-          <div style="text-align: center; padding: 20px; background-color: #f1f5f9; border-radius: 8px; border: 2px solid #cbd5e1;">
-            <div style="font-size: 18px; font-weight: 600; color: #475569; margin-bottom: 8px;">
-              📊 Interactive Chart Available on Live Dashboard
-            </div>
-            <div style="font-size: 14px; color: #64748b; margin-bottom: 16px;">
-              RSI (X-axis) vs Z-Score of Latest 1-Day Move (Y-axis)<br>
-              ${data.chartData ? data.chartData.length : 12} sector ETFs plotted with SPY baseline
-            </div>
-            <a href="https://financial-tracker-rishabhdas07.replit.app/" 
-               style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">
-              View Interactive Chart →
-            </a>
-          </div>
-          
-          <!-- Data Preview Table -->
-          ${data.chartData && data.chartData.length > 0 ? `
-            <div style="margin-top: 16px; overflow-x: auto;">
-              <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
-                <thead>
-                  <tr style="background-color: #374151; color: #f3f4f6;">
-                    <th style="padding: 8px; text-align: left;">Sector</th>
-                    <th style="padding: 8px; text-align: center;">RSI</th>
-                    <th style="padding: 8px; text-align: center;">Z-Score</th>
-                    <th style="padding: 8px; text-align: center;">Sharpe Ratio</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${data.chartData.slice(0, 6).map(point => `
-                    <tr style="border-bottom: 1px solid #4b5563;">
-                      <td style="padding: 8px; color: ${point.sector === 'SPY' ? '#3b82f6' : '#d1d5db'}; font-weight: ${point.sector === 'SPY' ? 'bold' : 'normal'};">
-                        ${point.sector}
-                      </td>
-                      <td style="padding: 8px; text-align: center; color: ${point.rsi > 70 ? '#dc2626' : point.rsi < 30 ? '#059669' : '#d1d5db'};">
-                        ${point.rsi.toFixed(1)}
-                      </td>
-                      <td style="padding: 8px; text-align: center; color: ${Math.abs(point.zScore) > 1 ? '#f59e0b' : '#d1d5db'};">
-                        ${point.zScore.toFixed(2)}
-                      </td>
-                      <td style="padding: 8px; text-align: center; color: ${point.sharpeRatio > 1 ? '#059669' : '#d1d5db'};">
-                        ${point.sharpeRatio.toFixed(2)}
-                      </td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>
-          ` : ''}
-        </div>
-      </div>
-      
+
       <!-- Momentum Strategies with Enhanced Metrics Section -->
       <div class="section">
         <h2 class="section-title">
@@ -434,7 +381,9 @@ export function generateDashboardMatchingTemplate(data: EmailTemplateData): stri
               </tr>
             </thead>
             <tbody>
-              ${data.momentumStrategies ? data.momentumStrategies.map(strategy => `
+              ${data.momentumStrategies ? data.momentumStrategies
+                .sort((a, b) => (b.oneDayChange || 0) - (a.oneDayChange || 0))
+                .map(strategy => `
                 <tr class="${strategy.ticker === 'SPY' ? 'spy-row' : ''}">
                   <td>${strategy.sector}</td>
                   <td><strong>${strategy.ticker}</strong></td>
