@@ -22,6 +22,16 @@ export function MoodDataSources() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Fetch technical data from same source as momentum analysis
+  const { data: technicalData, isLoading: technicalLoading } = useQuery({
+    queryKey: ['/api/technical-indicators/SPY'],
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // Get RSI from momentum data for consistency with table
+  const spyData = (momentumData as any)?.momentumStrategies?.find((s: any) => s.ticker === 'SPY');
+  const rsi = spyData?.rsi || null;
+
   const dataSources: DataSource[] = [
     {
       type: 'momentum',
@@ -31,12 +41,12 @@ export function MoodDataSources() {
     {
       type: 'technical',
       data: {
-        rsi: 74.78,
-        vix: 16.2,
-        adx: 31.27,
-        trend: 'bullish'
+        rsi: rsi, // Use same RSI as momentum table
+        vix: (technicalData as any)?.vix || null,
+        adx: (technicalData as any)?.adx || null,
+        trend: rsi ? (rsi > 70 ? 'bullish' : rsi < 30 ? 'bearish' : 'neutral') : 'neutral'
       },
-      status: 'success'
+      status: technicalLoading ? 'loading' : 'success'
     },
     {
       type: 'economic',
@@ -64,6 +74,12 @@ export function MoodDataSources() {
         <div className="text-xs text-gray-400">
           Top Sector: {data.momentumStrategies[0]?.sector} ({data.momentumStrategies[0]?.oneDayChange}%)
         </div>
+        {data.momentumStrategies[0] && (
+          <div className="text-xs text-gray-400 space-y-1">
+            <div>RSI: {data.momentumStrategies[0].rsi || 'N/A'}</div>
+            <div>Signal: {data.momentumStrategies[0].signal || 'N/A'}</div>
+          </div>
+        )}
       </div>
     );
   };
@@ -72,19 +88,22 @@ export function MoodDataSources() {
     <div className="space-y-2">
       <div className="flex justify-between">
         <span>RSI (SPY):</span>
-        <Badge variant={data.rsi > 70 ? 'destructive' : data.rsi < 30 ? 'default' : 'secondary'}>
-          {data.rsi}
+        <Badge variant={data.rsi && data.rsi > 70 ? 'destructive' : data.rsi && data.rsi < 30 ? 'default' : 'secondary'}>
+          {data.rsi ? data.rsi.toFixed(1) : 'Loading...'}
         </Badge>
       </div>
       <div className="flex justify-between">
         <span>VIX:</span>
-        <Badge variant={data.vix < 20 ? 'default' : 'destructive'}>
-          {data.vix}
+        <Badge variant={data.vix && data.vix < 20 ? 'default' : 'destructive'}>
+          {data.vix ? data.vix.toFixed(1) : 'Loading...'}
         </Badge>
       </div>
       <div className="flex justify-between">
         <span>ADX:</span>
-        <Badge variant="secondary">{data.adx}</Badge>
+        <Badge variant="secondary">{data.adx ? data.adx.toFixed(1) : 'Loading...'}</Badge>
+      </div>
+      <div className="text-xs text-gray-400 mt-2">
+        * ADX measures trend strength (0-100). Values above 25 indicate strong trends.
       </div>
     </div>
   );

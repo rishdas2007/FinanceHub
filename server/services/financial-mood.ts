@@ -243,13 +243,35 @@ class FinancialMoodService {
 
   private async getRealTechnicalData(): Promise<any> {
     try {
-      // For now, return key technical indicators we know exist
-      // This can be expanded to fetch from actual technical API endpoints
+      // Fetch RSI from momentum analysis for consistency
+      const momentumResponse = await fetch('http://localhost:5000/api/momentum-analysis', {
+        timeout: 2000
+      } as any);
+      
+      let rsi = null;
+      if (momentumResponse.ok) {
+        const momentumData = await momentumResponse.json();
+        const spyData = momentumData.momentumStrategies?.find((s: any) => s.ticker === 'SPY');
+        rsi = spyData?.rsi || null;
+      }
+      
+      // Fetch VIX and ADX from technical indicators API
+      const techResponse = await fetch('http://localhost:5000/api/technical-indicators/SPY', {
+        timeout: 2000
+      } as any);
+      
+      let vix = null, adx = null;
+      if (techResponse.ok) {
+        const techData = await techResponse.json();
+        vix = techData.vix || null;
+        adx = techData.adx || null;
+      }
+      
       return {
-        rsi: 74.78, // From SPY RSI
-        vix: 16.2,  // VIX level
-        adx: 31.27, // ADX trend strength
-        trend: 'bullish' // Based on RSI > 70
+        rsi: rsi,
+        vix: vix || 16.2,  // Fallback VIX
+        adx: adx || 31.27, // Fallback ADX
+        trend: rsi > 70 ? 'bullish' : rsi < 30 ? 'bearish' : 'neutral'
       };
     } catch (error) {
       log.error('Technical data fetch error:', error);

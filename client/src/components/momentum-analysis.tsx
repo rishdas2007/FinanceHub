@@ -296,9 +296,93 @@ const MomentumAnalysis = () => {
               <strong>Bottom-right quadrant</strong> shows sectors with high RSI levels but negative momentum moves (overbought with recent weakness). 
               SPY (S&P 500) serves as the market benchmark with larger labels for easy identification.
             </p>
+            <div className="mt-3 pt-3 border-t border-blue-200">
+              <p className="text-xs text-gray-600">
+                <strong>ADX (Average Directional Index):</strong> Technical indicator measuring trend strength regardless of direction. Values above 25 suggest strong trending conditions, while values below 20 indicate weak or ranging markets. ADX readings above 40 signal very strong trends that may be reaching extremes. Current SPY ADX levels help assess overall market trend strength and potential continuation or reversal points.
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Top Sector Highlight */}
+      {analysis.momentumStrategies && analysis.momentumStrategies.length > 0 && (() => {
+        // Find top performing sector (excluding SPY)
+        const topSector = analysis.momentumStrategies
+          .filter(s => s.ticker !== 'SPY')
+          .sort((a, b) => b.sharpeRatio - a.sharpeRatio)[0];
+        
+        if (topSector) {
+          return (
+            <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+              <CardHeader>
+                <CardTitle className="text-lg text-gray-800 flex items-center">
+                  <TrendingUp className="w-5 h-5 mr-2 text-green-600" />
+                  Top Performing Sector
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-2xl font-bold text-gray-800">{topSector.sector}</span>
+                      <span className="ml-2 text-lg text-gray-600">({topSector.ticker})</span>
+                    </div>
+                    <Badge className={`${getMomentumColor(topSector.momentum)} text-sm`}>
+                      {getMomentumIcon(topSector.momentum)}
+                      <span className="capitalize ml-1">{topSector.momentum}</span>
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-white rounded-lg p-3 border">
+                      <div className="text-xs text-gray-500 uppercase">RSI</div>
+                      <div className={`text-lg font-semibold ${topSector.rsi >= 70 ? 'text-red-600' : topSector.rsi <= 30 ? 'text-green-600' : 'text-blue-600'}`}>
+                        {topSector.rsi.toFixed(1)}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {topSector.rsi >= 70 ? 'Overbought' : topSector.rsi <= 30 ? 'Oversold' : 'Neutral'}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-3 border">
+                      <div className="text-xs text-gray-500 uppercase">Sharpe Ratio</div>
+                      <div className={`text-lg font-semibold ${topSector.sharpeRatio >= 0.5 ? 'text-green-600' : 'text-yellow-600'}`}>
+                        {topSector.sharpeRatio.toFixed(2)}
+                      </div>
+                      <div className="text-xs text-gray-500">Risk-Adjusted</div>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-3 border">
+                      <div className="text-xs text-gray-500 uppercase">1-Month Return</div>
+                      <div className={`text-lg font-semibold ${topSector.oneMonthChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {topSector.oneMonthChange >= 0 ? '+' : ''}{topSector.oneMonthChange.toFixed(2)}%
+                      </div>
+                      <div className="text-xs text-gray-500">Performance</div>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-3 border">
+                      <div className="text-xs text-gray-500 uppercase">Z-Score</div>
+                      <div className={`text-lg font-semibold ${Math.abs(topSector.zScore) > 1.5 ? 'text-yellow-600' : 'text-gray-600'}`}>
+                        {topSector.zScore.toFixed(2)}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {Math.abs(topSector.zScore) > 1.5 ? 'Unusual Move' : 'Normal Range'}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white rounded-lg p-4 border">
+                    <div className="text-sm font-medium text-gray-700 mb-2">Market Signal Analysis:</div>
+                    <div className="text-sm text-gray-600">{topSector.signal}</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        }
+        return null;
+      })()}
 
       {/* Momentum Strategies Table */}
       <Card className="bg-gray-100 border-gray-300">
