@@ -3,6 +3,7 @@
 import MomentumAnalysis from "@/components/momentum-analysis";
 
 import { FinancialMoodEmoji } from "@/components/FinancialMoodEmoji";
+import { MoodDataSources } from "@/components/MoodDataSources";
 import { AAIISentiment } from "@/components/aaii-sentiment";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
 
@@ -59,6 +60,12 @@ export default function Dashboard() {
 
         {/* Financial Mood Emoji Generator */}
         <FinancialMoodEmoji />
+
+        {/* Data Sources for Financial Mood Analysis */}
+        <div>
+          <h2 className="text-xl font-bold text-white mb-4">Data Sources for Financial Mood Analysis</h2>
+          <MoodDataSources />
+        </div>
 
         {/* Simplified Momentum Analysis with Verified Calculations */}
         <MomentumAnalysis />
