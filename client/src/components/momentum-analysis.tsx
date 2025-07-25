@@ -218,7 +218,7 @@ const MomentumAnalysis = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[500px] bg-gray-50 rounded-lg p-4">
+          <div className="h-[500px] bg-gray-50 rounded-lg p-4 pt-8">
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart data={analysis.chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#D1D5DB" />
@@ -240,9 +240,9 @@ const MomentumAnalysis = () => {
                 />
                 {/* Reference lines for RSI levels with labels */}
                 <ReferenceLine x={30} stroke="#dc2626" strokeDasharray="2 2" strokeWidth={2} 
-                  label={{ value: "Oversold", position: "top", fill: "#dc2626", fontSize: 12, fontWeight: "bold" }} />
+                  label={{ value: "Oversold", position: "top", offset: 15, fill: "#dc2626", fontSize: 12, fontWeight: "bold" }} />
                 <ReferenceLine x={70} stroke="#dc2626" strokeDasharray="2 2" strokeWidth={2} 
-                  label={{ value: "Overbought", position: "top", fill: "#dc2626", fontSize: 12, fontWeight: "bold" }} />
+                  label={{ value: "Overbought", position: "top", offset: 15, fill: "#dc2626", fontSize: 12, fontWeight: "bold" }} />
                 {/* Reference line for Y-axis intersection at 45 RSI */}
                 <ReferenceLine x={45} stroke="#6b7280" strokeDasharray="1 1" strokeWidth={1} opacity={0.5} />
                 <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="1 1" strokeWidth={1} opacity={0.5} />

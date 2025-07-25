@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, Activity, DollarSign, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { TrendingUp, Activity, DollarSign, Loader2, RefreshCw } from 'lucide-react';
 
 interface DataSource {
   type: 'momentum' | 'technical' | 'economic';
@@ -11,19 +12,19 @@ interface DataSource {
 
 export function MoodDataSources() {
   // Fetch momentum data
-  const { data: momentumData, isLoading: momentumLoading } = useQuery({
+  const { data: momentumData, isLoading: momentumLoading, refetch: refetchMomentum } = useQuery({
     queryKey: ['/api/momentum-analysis'],
     staleTime: 5 * 60 * 1000,
   });
 
   // Fetch economic data
-  const { data: economicData, isLoading: economicLoading } = useQuery({
+  const { data: economicData, isLoading: economicLoading, refetch: refetchEconomic } = useQuery({
     queryKey: ['/api/recent-economic-openai'],
     staleTime: 5 * 60 * 1000,
   });
 
   // Fetch technical data from same source as momentum analysis
-  const { data: technicalData, isLoading: technicalLoading } = useQuery({
+  const { data: technicalData, isLoading: technicalLoading, refetch: refetchTechnical } = useQuery({
     queryKey: ['/api/technical-indicators/SPY'],
     staleTime: 2 * 60 * 1000,
   });
@@ -133,9 +134,37 @@ export function MoodDataSources() {
     );
   };
 
+  const handleAIRefresh = async () => {
+    try {
+      await Promise.all([
+        refetchMomentum(),
+        refetchEconomic(), 
+        refetchTechnical()
+      ]);
+    } catch (error) {
+      console.error('AI Summary refresh failed:', error);
+    }
+  };
+
+  const isRefreshing = momentumLoading || economicLoading || technicalLoading;
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-      {dataSources.map((source, index) => {
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-white">AI Summary</h2>
+        <Button 
+          onClick={handleAIRefresh}
+          disabled={isRefreshing}
+          variant="outline" 
+          size="sm"
+          className="text-gray-300 border-gray-600 hover:bg-gray-700"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Refreshing...' : 'Refresh'}
+        </Button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {dataSources.map((source, index) => {
         const icons = {
           momentum: TrendingUp,
           technical: Activity,
@@ -153,9 +182,6 @@ export function MoodDataSources() {
                 </div>
                 {source.status === 'loading' && (
                   <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
-                )}
-                {source.status === 'success' && (
-                  <Badge variant="default" className="text-xs">Active</Badge>
                 )}
                 {source.status === 'error' && (
                   <Badge variant="destructive" className="text-xs">Error</Badge>
@@ -180,6 +206,7 @@ export function MoodDataSources() {
           </Card>
         );
       })}
+      </div>
     </div>
   );
 }

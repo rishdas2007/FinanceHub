@@ -22,10 +22,11 @@ export function GlobalRefreshButton() {
       ]);
     },
     onSuccess: () => {
-      // Invalidate all queries to refresh all data
-      queryClient.invalidateQueries({ queryKey: ['/api/financial-mood'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/recent-economic-openai'] });
+      // Invalidate all queries to refresh all dashboard sections
       queryClient.invalidateQueries({ queryKey: ['/api/momentum-analysis'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/recent-economic-openai'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/technical-indicators/SPY'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/ai-summary'] });
       
       setRefreshCount(prev => prev + 1);
       setLastRefresh(Date.now());
