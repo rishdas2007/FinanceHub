@@ -33,19 +33,22 @@ class OpenAIEconomicReadingsService {
       // Use web search for real-time data
       const searchResults = await this.searchRecentEconomicData();
       
-      const prompt = `Based on the recent economic data search results and provide these specific latest readings:
+      const prompt = `Based on the recent economic data search results, generate 6 real-time economic indicators with official release dates:
 
-      PRIORITY REAL DATA (use exact figures if available from search):
-      1. Initial Jobless Claims: Latest reading 217,000 for week ending July 19, 2025 (updated July 24, 2025 at 8:33 AM EDT) - decrease of 4,000 from prior week's 221,000
-      2. Existing Home Sales: Latest reading 3.93 million SAAR for June 2025 (updated July 23, 2025 at 10:13 AM EDT) - down 2.7% from May, median price record high $435,300
-      3. Durable Goods Orders: Latest reading -9.3% decrease in June 2025 (updated July 25, 2025 at 3:00 AM EDT) - following 16.5% increase in May, excluding transportation +0.2%
-      4. New Home Sales (most recent available)
-      5. Consumer Confidence (most recent available) 
-      6. Manufacturing PMI Flash (most recent available)
+      PRIORITY REAL DATA WITH RELEASE DATES (use exact figures if available from search):
+      1. Initial Jobless Claims: Latest reading 217,000 for week ending July 19, 2025 
+         RELEASE DATE: July 24, 2025 at 8:30 AM EDT (Department of Labor)
+      2. Existing Home Sales: Latest reading 3.93 million SAAR for June 2025 
+         RELEASE DATE: July 23, 2025 at 10:00 AM EDT (National Association of Realtors)
+      3. Durable Goods Orders: Latest reading -9.3% decrease in June 2025 
+         RELEASE DATE: July 25, 2025 at 8:30 AM EDT (U.S. Census Bureau)
+      4. New Home Sales (most recent available with NAR release date)
+      5. Consumer Confidence (most recent available with Conference Board release date) 
+      6. Manufacturing PMI Flash (most recent available with Markit/S&P Global release date)
 
       Additional search context: ${JSON.stringify(searchResults).slice(0, 500)}
 
-      Generate the 6 indicators with exact real readings where provided above
+      CRITICAL: Include official release dates next to each reading
 
       For each indicator, provide:
       - metric: Full name of the economic indicator
@@ -53,12 +56,14 @@ class OpenAIEconomicReadingsService {
       - forecast: The consensus forecast value with same units
       - variance: The difference (Actual - Forecast) with units
       - prior: The previous period's reading with units
-      - type: Either "Leading", "Coincident", or "Lagging"
-      - lastUpdated: A realistic past release date between July 21-24, 2025 (format: YYYY-MM-DDTHH:mm:ss.sssZ)
+      - type: Either "Leading", "Coincident", or "Lagging"  
+      - lastUpdated: The official release date (format: YYYY-MM-DDTHH:mm:ss.sssZ)
+      - releaseDate: Human-readable release date (e.g., "July 24, 2025 8:30 AM EDT")
       - change: Brief description (e.g., "↑ vs forecast", "↓ from prior")
       - zScore: A realistic z-score between -2.5 and 2.5
 
-      Return a JSON object with this structure: { "readings": [array of 6 economic readings] }. Use realistic economic values for July 2025.`;
+      Return a JSON object with this structure: { "readings": [array of 6 economic readings] }. 
+      IMPORTANT: Each reading MUST include both lastUpdated and releaseDate fields showing when the data was officially released.`;
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -110,6 +115,7 @@ class OpenAIEconomicReadingsService {
         prior: indicator.prior || 'N/A',
         type: ['Leading', 'Coincident', 'Lagging'].includes(indicator.type) ? indicator.type : 'Coincident',
         lastUpdated: indicator.lastUpdated || new Date().toISOString(),
+        releaseDate: indicator.releaseDate || 'Release date pending',
         change: indicator.change || 'No change data',
         zScore: indicator.zScore || 0
       }));
@@ -152,6 +158,7 @@ class OpenAIEconomicReadingsService {
         prior: '221K',
         type: 'Leading',
         lastUpdated: '2025-07-24T08:33:00.000Z',
+        releaseDate: 'July 24, 2025 8:30 AM EDT',
         change: '↓ vs prior week',
         zScore: -0.2
       },
@@ -163,6 +170,7 @@ class OpenAIEconomicReadingsService {
         prior: '4.04M',
         type: 'Coincident',
         lastUpdated: '2025-07-23T10:13:00.000Z',
+        releaseDate: 'July 23, 2025 10:00 AM EDT',
         change: '↓ 2.7% from May',
         zScore: -0.4
       },
@@ -174,6 +182,7 @@ class OpenAIEconomicReadingsService {
         prior: '16.5%',
         type: 'Leading',
         lastUpdated: '2025-07-25T03:00:00.000Z',
+        releaseDate: 'July 25, 2025 8:30 AM EDT',
         change: '↓ significant decline',
         zScore: -1.8
       },

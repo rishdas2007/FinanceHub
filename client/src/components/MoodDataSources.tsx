@@ -102,8 +102,9 @@ export function MoodDataSources() {
         <span>ADX:</span>
         <Badge variant="secondary">{data.adx ? data.adx.toFixed(1) : 'Loading...'}</Badge>
       </div>
-      <div className="text-xs text-gray-400 mt-2">
-        * ADX measures trend strength (0-100). Values above 25 indicate strong trends.
+      <div className="text-xs text-gray-400 mt-2 space-y-1">
+        <div>* ADX measures trend strength (0-100). Values above 25 indicate strong trends.</div>
+        <div className="text-blue-300">Source: Twelve Data API (SPY & VIX symbols)</div>
       </div>
     </div>
   );
@@ -116,8 +117,11 @@ export function MoodDataSources() {
         {data.slice(0, 3).map((reading, index) => (
           <div key={index} className="text-xs">
             <div className="font-semibold">{reading.metric}</div>
-            <div className="text-gray-400">
-              {reading.current || reading.value || 'N/A'} - {reading.change || reading.interpretation || ''}
+            <div className="text-gray-400 space-y-1">
+              <div>{reading.current || reading.value || 'N/A'} - {reading.change || reading.interpretation || ''}</div>
+              {reading.releaseDate && (
+                <div className="text-xs text-blue-300">Released: {reading.releaseDate}</div>
+              )}
             </div>
           </div>
         ))}

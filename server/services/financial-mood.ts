@@ -255,16 +255,27 @@ class FinancialMoodService {
         rsi = spyData?.rsi || null;
       }
       
-      // Fetch VIX and ADX from technical indicators API
-      const techResponse = await fetch('http://localhost:5000/api/technical-indicators/SPY', {
+      // Fetch ADX from Twelve Data API technical indicators for SPY
+      const techResponse = await fetch('http://localhost:5000/api/technical/SPY', {
         timeout: 2000
       } as any);
       
       let vix = null, adx = null;
       if (techResponse.ok) {
         const techData = await techResponse.json();
-        vix = techData.vix || null;
-        adx = techData.adx || null;
+        // ADX comes from Twelve Data API for SPY symbol
+        adx = techData.adx ? parseFloat(techData.adx) : null;
+      }
+      
+      // Fetch VIX separately from Twelve Data API (VIX symbol)
+      const vixResponse = await fetch('http://localhost:5000/api/stocks/VIX', {
+        timeout: 2000
+      } as any);
+      
+      if (vixResponse.ok) {
+        const vixData = await vixResponse.json();
+        // VIX comes from Twelve Data API stock quote for VIX symbol
+        vix = vixData.price ? parseFloat(vixData.price) : null;
       }
       
       return {
