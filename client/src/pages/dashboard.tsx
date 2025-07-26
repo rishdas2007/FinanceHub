@@ -2,6 +2,7 @@
 
 import MomentumAnalysis from "@/components/momentum-analysis";
 import { SPYBaseline } from "@/components/SPYBaseline";
+import MacroeconomicIndicators from "@/components/MacroeconomicIndicators";
 
 import { MoodDataSources } from "@/components/MoodDataSources";
 import { AAIISentiment } from "@/components/aaii-sentiment";
@@ -67,6 +68,8 @@ export default function Dashboard() {
         {/* Simplified Momentum Analysis with Verified Calculations */}
         <MomentumAnalysis />
 
+        {/* Macroeconomic Indicators Module */}
+        <MacroeconomicIndicators />
 
 
       </div>

@@ -26,6 +26,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Health monitoring endpoints
   app.use('/api/health', (await import('./routes/health')).default);
   
+  // Macroeconomic Indicators API - early in routing chain
+  app.get('/api/macroeconomic-indicators', async (req, res) => {
+    try {
+      console.log('🔍 Fast Dashboard Route: GET /api/macroeconomic-indicators');
+      const { macroeconomicIndicatorsService } = await import('./services/macroeconomic-indicators');
+      const data = await macroeconomicIndicatorsService.getMacroeconomicData();
+      
+      res.json(data);
+      
+    } catch (error) {
+      console.error('Failed to get macroeconomic indicators:', error);
+      res.status(500).json({
+        error: 'Failed to fetch macroeconomic indicators',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  app.post('/api/macroeconomic-indicators/refresh', async (req, res) => {
+    try {
+      console.log('🔍 Fast Dashboard Route: POST /api/macroeconomic-indicators/refresh');
+      const { macroeconomicIndicatorsService } = await import('./services/macroeconomic-indicators');
+      const data = await macroeconomicIndicatorsService.forceRefresh();
+      
+      res.json({
+        success: true,
+        data,
+        message: 'Macroeconomic data refreshed successfully',
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('Failed to refresh macroeconomic indicators:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to refresh macroeconomic indicators',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+  
   // Fast dashboard endpoints - add before other routes
   const fastDashboardRoutes = (await import('./routes/fast-dashboard-routes')).default;
   app.use('/api', fastDashboardRoutes);
@@ -1168,6 +1209,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+
 
   // SendGrid Diagnostic Route - Check API setup
   app.get("/api/email/sendgrid-status", async (req, res) => {
