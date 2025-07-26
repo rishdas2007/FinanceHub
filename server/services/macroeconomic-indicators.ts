@@ -13,13 +13,8 @@ interface MacroIndicatorData {
   category: 'Growth' | 'Inflation' | 'Monetary Policy' | 'Labor' | 'Sentiment';
   releaseDate: string;
   currentReading: number;
-  forecast: number;
-  varianceVsForecast: number;
   priorReading: number;
   varianceVsPrior: number;
-  zScore: number;
-  threeMonthAnnualized: number;
-  twelveMonthYoY: number;
   unit: string;
 }
 
@@ -71,13 +66,8 @@ export class MacroeconomicIndicatorsService {
           category: fredIndicator.category,
           releaseDate: fredIndicator.last_updated,
           currentReading: currentValue,
-          forecast: currentValue * (1 + (Math.random() - 0.5) * 0.05), // Small variance for forecast
-          varianceVsForecast: currentValue - (currentValue * (1 + (Math.random() - 0.5) * 0.05)),
-          priorReading: previousValue,
-          varianceVsPrior: fredIndicator.change || 0,
-          zScore: (Math.random() - 0.5) * 4, // Realistic z-score range
-          threeMonthAnnualized: fredIndicator.change_percent || 0,
-          twelveMonthYoY: fredIndicator.change_percent ? fredIndicator.change_percent * 4 : 0,
+          priorReading: fredIndicator.previous_raw_value || previousValue,
+          varianceVsPrior: fredIndicator.change || (currentValue - (fredIndicator.previous_raw_value || previousValue)),
           unit: fredIndicator.units
         };
       });

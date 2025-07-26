@@ -9,13 +9,8 @@ interface MacroIndicator {
   category: 'Growth' | 'Inflation' | 'Monetary Policy' | 'Labor' | 'Sentiment';
   releaseDate: string;
   currentReading: number;
-  forecast: number;
-  varianceVsForecast: number;
   priorReading: number;
   varianceVsPrior: number;
-  zScore: number;
-  threeMonthAnnualized: number;
-  twelveMonthYoY: number;
   unit: string;
 }
 
@@ -320,15 +315,15 @@ const MacroeconomicIndicators: React.FC = () => {
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400 text-sm">vs Forecast:</span>
-                    <span className={`font-medium ${getVarianceColor(indicator.varianceVsForecast)}`}>
-                      {MacroFormatUtils.formatVariance(indicator.varianceVsForecast, indicator.metric, indicator.unit)}
+                    <span className="text-gray-400 text-sm">Prior:</span>
+                    <span className="text-gray-300 font-medium">
+                      {MacroFormatUtils.formatIndicatorValue(indicator.priorReading, indicator.metric, indicator.unit)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400 text-sm">Z-Score:</span>
-                    <span className={`font-medium ${Math.abs(indicator.zScore) > 1.5 ? 'text-orange-400' : 'text-gray-300'}`}>
-                      {indicator.zScore.toFixed(2)}
+                    <span className="text-gray-400 text-sm">vs Prior:</span>
+                    <span className={`font-medium ${getVarianceColor(indicator.varianceVsPrior)}`}>
+                      {MacroFormatUtils.formatVariance(indicator.varianceVsPrior, indicator.metric, indicator.unit)}
                     </span>
                   </div>
                 </div>
@@ -394,33 +389,31 @@ const MacroeconomicIndicators: React.FC = () => {
             <table className="w-full table-auto">
               <thead>
                 <tr className="border-b border-financial-border sticky top-0 bg-financial-card">
-                  <th className="text-left py-4 px-3 text-gray-300 font-medium">Indicator</th>
-                  <th className="text-left py-4 px-3 text-gray-300 font-medium">Type</th>
-                  <th className="text-left py-4 px-3 text-gray-300 font-medium">Category</th>
-                  <th className="text-right py-4 px-3 text-gray-300 font-medium">Current</th>
-                  <th className="text-right py-4 px-3 text-gray-300 font-medium">vs Forecast</th>
-                  <th className="text-right py-4 px-3 text-gray-300 font-medium">vs Prior</th>
-                  <th className="text-right py-4 px-3 text-gray-300 font-medium">Z-Score</th>
-                  <th className="text-right py-4 px-3 text-gray-300 font-medium">12M YoY</th>
+                  <th className="text-left py-3 px-2 text-gray-300 font-medium">Indicator</th>
+                  <th className="text-center py-3 px-2 text-gray-300 font-medium">Type</th>
+                  <th className="text-center py-3 px-2 text-gray-300 font-medium">Category</th>
+                  <th className="text-right py-3 px-2 text-gray-300 font-medium">Current</th>
+                  <th className="text-right py-3 px-2 text-gray-300 font-medium">Prior</th>
+                  <th className="text-right py-3 px-2 text-gray-300 font-medium">vs Prior</th>
                 </tr>
               </thead>
               <tbody className="space-y-1">
                 {filteredIndicators.map((indicator, index) => (
                   <tr key={index} className="border-b border-financial-border hover:bg-financial-gray/50 transition-colors">
-                    <td className="py-4 px-3">
+                    <td className="py-3 px-2">
                       <div>
-                        <div className="text-white font-medium">{indicator.metric}</div>
+                        <div className="text-white font-medium text-sm">{indicator.metric}</div>
                         <div className="text-xs text-gray-400">
                           {new Date(indicator.releaseDate).toLocaleDateString()}
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-2">
+                    <td className="py-3 px-2 text-center">
                       <span className={`px-2 py-1 rounded text-xs font-medium border ${getTypeColor(indicator.type)}`}>
                         {indicator.type}
                       </span>
                     </td>
-                    <td className="py-3 px-2">
+                    <td className="py-3 px-2 text-center">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${getCategoryColor(indicator.category)}`}>
                         {indicator.category}
                       </span>
@@ -428,20 +421,11 @@ const MacroeconomicIndicators: React.FC = () => {
                     <td className="text-right py-3 px-2 text-white font-semibold">
                       {MacroFormatUtils.formatIndicatorValue(indicator.currentReading, indicator.metric, indicator.unit)}
                     </td>
-                    <td className={`text-right py-3 px-2 font-medium ${getVarianceColor(indicator.varianceVsForecast)}`}>
-                      {MacroFormatUtils.formatVariance(indicator.varianceVsForecast, indicator.metric, indicator.unit)}
+                    <td className="text-right py-3 px-2 text-gray-300 font-medium">
+                      {MacroFormatUtils.formatIndicatorValue(indicator.priorReading, indicator.metric, indicator.unit)}
                     </td>
                     <td className={`text-right py-3 px-2 font-medium ${getVarianceColor(indicator.varianceVsPrior)}`}>
                       {MacroFormatUtils.formatVariance(indicator.varianceVsPrior, indicator.metric, indicator.unit)}
-                    </td>
-                    <td className={`text-right py-3 px-2 font-medium ${
-                      Math.abs(indicator.zScore) > 2 ? 'text-red-400' :
-                      Math.abs(indicator.zScore) > 1.5 ? 'text-orange-400' : 'text-gray-300'
-                    }`}>
-                      {MacroFormatUtils.formatNumber(indicator.zScore, 2)}
-                    </td>
-                    <td className={`text-right py-3 px-2 font-medium ${getVarianceColor(indicator.twelveMonthYoY)}`}>
-                      {MacroFormatUtils.formatVariance(indicator.twelveMonthYoY, 'year over year', '%')}
                     </td>
                   </tr>
                 ))}

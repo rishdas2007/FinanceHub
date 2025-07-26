@@ -6,6 +6,7 @@ export interface FREDIndicator {
   current_value: string;
   date: string;
   previous_value?: string;
+  previous_raw_value?: number;
   change?: number;
   change_percent?: number;
   units: string;
@@ -102,6 +103,7 @@ export class FREDApiService {
               current_value: this.formatValue(current.value, indicator.units),
               date: current.date,
               previous_value: previous ? this.formatValue(previous.value, indicator.units) : undefined,
+              previous_raw_value: previous ? parseFloat(previous.value) : undefined,
               change,
               change_percent: changePercent,
               units: indicator.units,
