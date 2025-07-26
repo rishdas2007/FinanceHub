@@ -389,25 +389,25 @@ const MacroeconomicIndicators: React.FC = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="max-h-[600px] overflow-y-auto">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full table-auto">
               <thead>
-                <tr className="border-b border-financial-border">
-                  <th className="text-left py-3 px-2 text-gray-300 font-medium">Indicator</th>
-                  <th className="text-left py-3 px-2 text-gray-300 font-medium">Type</th>
-                  <th className="text-left py-3 px-2 text-gray-300 font-medium">Category</th>
-                  <th className="text-right py-3 px-2 text-gray-300 font-medium">Current</th>
-                  <th className="text-right py-3 px-2 text-gray-300 font-medium">vs Forecast</th>
-                  <th className="text-right py-3 px-2 text-gray-300 font-medium">vs Prior</th>
-                  <th className="text-right py-3 px-2 text-gray-300 font-medium">Z-Score</th>
-                  <th className="text-right py-3 px-2 text-gray-300 font-medium">12M YoY</th>
+                <tr className="border-b border-financial-border sticky top-0 bg-financial-card">
+                  <th className="text-left py-4 px-3 text-gray-300 font-medium">Indicator</th>
+                  <th className="text-left py-4 px-3 text-gray-300 font-medium">Type</th>
+                  <th className="text-left py-4 px-3 text-gray-300 font-medium">Category</th>
+                  <th className="text-right py-4 px-3 text-gray-300 font-medium">Current</th>
+                  <th className="text-right py-4 px-3 text-gray-300 font-medium">vs Forecast</th>
+                  <th className="text-right py-4 px-3 text-gray-300 font-medium">vs Prior</th>
+                  <th className="text-right py-4 px-3 text-gray-300 font-medium">Z-Score</th>
+                  <th className="text-right py-4 px-3 text-gray-300 font-medium">12M YoY</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="space-y-1">
                 {filteredIndicators.map((indicator, index) => (
                   <tr key={index} className="border-b border-financial-border hover:bg-financial-gray/50 transition-colors">
-                    <td className="py-3 px-2">
+                    <td className="py-4 px-3">
                       <div>
                         <div className="text-white font-medium">{indicator.metric}</div>
                         <div className="text-xs text-gray-400">
