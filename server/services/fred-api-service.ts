@@ -11,55 +11,50 @@ export interface FREDIndicator {
   units: string;
   frequency: string;
   last_updated: string;
-  category: 'Leading' | 'Coincident' | 'Lagging';
+  category: 'Inflation' | 'Growth' | 'Labor' | 'Sentiment' | 'Monetary Policy';
+  type: 'Leading' | 'Coincident' | 'Lagging';
 }
 
 export class FREDApiService {
   private readonly baseUrl = 'https://api.stlouisfed.org/fred';
   private readonly apiKey: string;
 
-  // Comprehensive economic indicators with proper categorization
+  // Comprehensive economic indicators with proper categorization matching dashboard
   private readonly keyIndicators = [
     // Inflation Indicators
-    { series_id: 'CPIAUCSL', title: 'Consumer Price Index', category: 'Lagging' as const, units: 'Index' },
-    { series_id: 'CPILFESL', title: 'Core CPI (Ex Food & Energy)', category: 'Lagging' as const, units: 'Index' },
-    { series_id: 'PPIACO', title: 'Producer Price Index', category: 'Leading' as const, units: 'Index' },
-    { series_id: 'PCEPI', title: 'PCE Price Index', category: 'Lagging' as const, units: 'Index' },
+    { series_id: 'CPIAUCSL', title: 'Consumer Price Index for All Urban Consumers: All Items', category: 'Inflation' as const, type: 'Lagging' as const, units: 'Index' },
+    { series_id: 'CPILFESL', title: 'Consumer Price Index for All Urban Consumers: All Items Less Food and Energy (Core CPI)', category: 'Inflation' as const, type: 'Lagging' as const, units: 'Index' },
+    { series_id: 'PPIACO', title: 'Producer Price Index by Commodity: All Commodities', category: 'Inflation' as const, type: 'Lagging' as const, units: 'Index' },
+    { series_id: 'PCEPI', title: 'Personal Consumption Expenditures Price Index', category: 'Inflation' as const, type: 'Lagging' as const, units: 'Index' },
     
-    // Growth & Production
-    { series_id: 'A191RL1Q225SBEA', title: 'GDP Growth Rate', category: 'Coincident' as const, units: '%' },
-    { series_id: 'INDPRO', title: 'Industrial Production Index', category: 'Coincident' as const, units: 'Index' },
+    // Growth Indicators
+    { series_id: 'A191RL1Q225SBEA', title: 'Gross Domestic Product, Percent Change from Preceding Period, Annualized (GDP Growth Rate)', category: 'Growth' as const, type: 'Coincident' as const, units: '%' },
+    { series_id: 'RSAFS', title: 'Retail Sales: Total', category: 'Growth' as const, type: 'Coincident' as const, units: 'Billions' },
+    { series_id: 'DGORDER', title: 'Manufacturers\' New Orders: Durable Goods', category: 'Growth' as const, type: 'Leading' as const, units: 'Billions' },
+    { series_id: 'INDPRO', title: 'Industrial Production Index', category: 'Growth' as const, type: 'Coincident' as const, units: 'Index' },
+    { series_id: 'HOUST', title: 'Housing Starts: Total', category: 'Growth' as const, type: 'Leading' as const, units: 'K Units' },
+    { series_id: 'HSN1F', title: 'New One-Family Houses Sold: United States', category: 'Growth' as const, type: 'Leading' as const, units: 'K Units' },
+    { series_id: 'EXHOSLUSM495S', title: 'Existing Home Sales: United States', category: 'Growth' as const, type: 'Leading' as const, units: 'M Units' },
+    { series_id: 'NAPMIMFG', title: 'ISM Manufacturing PMI', category: 'Growth' as const, type: 'Leading' as const, units: 'Index' },
+    { series_id: 'PMICM', title: 'S&P Global US Manufacturing PMI', category: 'Growth' as const, type: 'Leading' as const, units: 'Index' },
+    { series_id: 'RSXFS', title: 'Retail Sales: Total (Monthly Percent Change)', category: 'Growth' as const, type: 'Coincident' as const, units: '%' },
+    { series_id: 'PERMIT', title: 'New Private Housing Units Authorized by Building Permits', category: 'Growth' as const, type: 'Leading' as const, units: 'K Units' },
+    { series_id: 'USSLIND', title: 'US Leading Index (OECD)', category: 'Growth' as const, type: 'Leading' as const, units: 'Index' },
     
     // Labor Market
-    { series_id: 'UNRATE', title: 'Unemployment Rate', category: 'Lagging' as const, units: '%' },
-    { series_id: 'PAYEMS', title: 'Nonfarm Payrolls', category: 'Coincident' as const, units: 'K' },
-    { series_id: 'ICSA', title: 'Initial Jobless Claims', category: 'Leading' as const, units: 'K' },
-    { series_id: 'CCSA', title: 'Continued Claims', category: 'Lagging' as const, units: 'K' },
+    { series_id: 'ICSA', title: 'Initial Claims for Unemployment Insurance', category: 'Labor' as const, type: 'Leading' as const, units: 'K' },
+    { series_id: 'CCSA', title: 'Continued Claims for Unemployment Insurance', category: 'Labor' as const, type: 'Lagging' as const, units: 'K' },
+    { series_id: 'UNRATE', title: 'Unemployment Rate', category: 'Labor' as const, type: 'Lagging' as const, units: '%' },
+    { series_id: 'PAYEMS', title: 'All Employees, Nonfarm Payrolls', category: 'Labor' as const, type: 'Coincident' as const, units: 'K' },
     
-    // Consumer & Retail
-    { series_id: 'RSAFS', title: 'Retail Sales Total', category: 'Coincident' as const, units: 'Billions' },
-    { series_id: 'RSXFS', title: 'Retail Sales (MoM Change)', category: 'Coincident' as const, units: '%' },
-    { series_id: 'UMCSENT', title: 'Consumer Sentiment', category: 'Leading' as const, units: 'Index' },
-    { series_id: 'CSCICP03USM665S', title: 'Consumer Confidence', category: 'Leading' as const, units: 'Index' },
+    // Sentiment
+    { series_id: 'UMCSENT', title: 'University of Michigan: Consumer Sentiment', category: 'Sentiment' as const, type: 'Leading' as const, units: 'Index' },
+    { series_id: 'CSCICP03USM665S', title: 'Consumer Confidence Index (OECD)', category: 'Sentiment' as const, type: 'Leading' as const, units: 'Index' },
     
-    // Manufacturing & Orders
-    { series_id: 'DGORDER', title: 'Durable Goods Orders', category: 'Leading' as const, units: 'Billions' },
-    { series_id: 'NAPMIMFG', title: 'ISM Manufacturing PMI', category: 'Leading' as const, units: 'Index' },
-    { series_id: 'PMICM', title: 'S&P Global US Manufacturing PMI', category: 'Leading' as const, units: 'Index' },
-    
-    // Housing Market
-    { series_id: 'HOUST', title: 'Housing Starts', category: 'Leading' as const, units: 'K Units' },
-    { series_id: 'HSN1F', title: 'New Home Sales', category: 'Leading' as const, units: 'K Units' },
-    { series_id: 'EXHOSLUSM495S', title: 'Existing Home Sales', category: 'Coincident' as const, units: 'M Units' },
-    { series_id: 'PERMIT', title: 'Building Permits', category: 'Leading' as const, units: 'K Units' },
-    
-    // Financial Markets
-    { series_id: 'FEDFUNDS', title: 'Federal Funds Rate', category: 'Leading' as const, units: '%' },
-    { series_id: 'DGS10', title: '10-Year Treasury Rate', category: 'Leading' as const, units: '%' },
-    { series_id: 'T10Y2Y', title: 'Yield Curve (10Y-2Y)', category: 'Leading' as const, units: '%' },
-    
-    // Leading Indicators
-    { series_id: 'USSLIND', title: 'US Leading Index', category: 'Leading' as const, units: 'Index' }
+    // Monetary Policy
+    { series_id: 'FEDFUNDS', title: 'Federal Funds Effective Rate', category: 'Monetary Policy' as const, type: 'Coincident' as const, units: '%' },
+    { series_id: 'DGS10', title: '10-Year Treasury Constant Maturity Rate', category: 'Monetary Policy' as const, type: 'Leading' as const, units: '%' },
+    { series_id: 'T10Y2Y', title: '10-Year Treasury Constant Maturity Minus 2-Year Treasury Constant Maturity (Yield Curve)', category: 'Monetary Policy' as const, type: 'Leading' as const, units: '%' }
   ];
 
   constructor() {
@@ -112,7 +107,8 @@ export class FREDApiService {
               units: indicator.units,
               frequency: 'Monthly', // Most indicators are monthly
               last_updated: new Date().toISOString(),
-              category: indicator.category
+              category: indicator.category,
+              type: indicator.type
             });
           }
         } catch (error) {

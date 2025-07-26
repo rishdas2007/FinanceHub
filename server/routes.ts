@@ -45,13 +45,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Macroeconomic Indicators API - early in routing chain (fallback)
+  // Macroeconomic Indicators API - prioritizes FRED data with OpenAI fallback
   app.get('/api/macroeconomic-indicators', async (req, res) => {
     try {
       console.log('🔍 Fast Dashboard Route: GET /api/macroeconomic-indicators');
       const { MacroeconomicIndicatorsService } = await import('./services/macroeconomic-indicators');
       const macroeconomicIndicatorsService = MacroeconomicIndicatorsService.getInstance();
-      const data = await macroeconomicIndicatorsService.getMacroeconomicData();
+      // Prioritize authentic FRED data over OpenAI fallback
+      const data = await macroeconomicIndicatorsService.getAuthenticEconomicData();
       
       res.json(data);
       
@@ -69,6 +70,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🔍 Fast Dashboard Route: POST /api/macroeconomic-indicators/refresh');
       const { MacroeconomicIndicatorsService } = await import('./services/macroeconomic-indicators');
       const macroeconomicIndicatorsService = MacroeconomicIndicatorsService.getInstance();
+      // Force refresh prioritizes FRED data
       const data = await macroeconomicIndicatorsService.forceRefresh();
       
       res.json({

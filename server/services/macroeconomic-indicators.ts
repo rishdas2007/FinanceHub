@@ -67,8 +67,8 @@ export class MacroeconomicIndicatorsService {
         
         return {
           metric: fredIndicator.title,
-          type: fredIndicator.category,
-          category: this.mapFredToCategory(fredIndicator.series_id),
+          type: fredIndicator.type,
+          category: fredIndicator.category,
           releaseDate: fredIndicator.last_updated,
           currentReading: currentValue,
           forecast: currentValue * (1 + (Math.random() - 0.5) * 0.05), // Small variance for forecast
@@ -101,7 +101,8 @@ export class MacroeconomicIndicatorsService {
     } catch (error) {
       logger.error('Failed to fetch FRED economic data:', error);
       
-      // Fallback to OpenAI data if FRED fails
+      // Fallback to OpenAI data if FRED fails (but prefer authentic data)
+      logger.warn('FRED service failed, falling back to OpenAI-generated data');
       return this.getMacroeconomicData();
     }
   }
