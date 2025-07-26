@@ -147,6 +147,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Recent Economic Releases (from FRED data)
+  app.get('/api/recent-economic-releases', async (req, res) => {
+    try {
+      const macroData = await macroeconomicIndicators.getAuthenticEconomicData();
+      // Get 6 most recent indicators based on release date
+      const recentReleases = macroData.indicators
+        .sort((a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime())
+        .slice(0, 6)
+        .map(indicator => ({
+          metric: indicator.metric,
+          value: indicator.currentReading,
+          unit: indicator.unit,
+          category: indicator.category,
+          type: indicator.type,
+          releaseDate: indicator.releaseDate
+        }));
+      
+      res.json(recentReleases);
+    } catch (error) {
+      console.error('Failed to get recent economic releases:', error);
+      res.status(500).json({ error: 'Failed to get recent economic releases' });
+    }
+  });
+
   // Recent Economic Readings (OpenAI powered)
   app.get('/api/recent-economic-openai', async (req, res) => {
     try {

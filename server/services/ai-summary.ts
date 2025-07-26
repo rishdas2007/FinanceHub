@@ -216,19 +216,19 @@ export class AISummaryService {
         return cached.data;
       }
 
-      console.log('🔍 Fetching comprehensive economic indicators from database and web search...');
+      console.log('🔍 Fetching economic data from Recent Economic Releases endpoint...');
       
-      // Initialize and use the comprehensive economic service
-      await comprehensiveEconomicService.initializeDatabase();
-      const economicReadings = await comprehensiveEconomicService.searchForEconomicReadings();
+      // Use the new Recent Economic Releases endpoint
+      const response = await fetch('http://localhost:5000/api/recent-economic-releases');
+      const recentReleases = await response.json();
       
       // Convert to the format expected by AI analysis
-      const economicEvents: EconomicEvent[] = economicReadings.map(reading => ({
-        title: reading.indicator,
-        actual: reading.actual || '',
-        forecast: reading.forecast || '',
-        date: reading.releaseDate,
-        category: reading.category
+      const economicEvents: EconomicEvent[] = recentReleases.slice(0, 6).map((release: any) => ({
+        title: release.metric,
+        actual: release.value,
+        forecast: 'N/A', // FRED data doesn't include forecasts
+        date: new Date(release.releaseDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        category: release.category
       }));
 
       // If no comprehensive data, perform fallback web search

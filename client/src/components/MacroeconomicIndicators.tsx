@@ -272,25 +272,7 @@ const MacroeconomicIndicators: React.FC = () => {
         </CardHeader>
       </Card>
 
-      {/* AI Summary */}
-      <Card className="bg-financial-card border-financial-border">
-        <CardHeader>
-          <CardTitle className="text-blue-400 text-lg">Economic Analysis</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="prose prose-invert max-w-none">
-            <div 
-              className="text-gray-300 leading-relaxed"
-              dangerouslySetInnerHTML={{ 
-                __html: macroData.aiSummary.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>') 
-              }}
-            />
-          </div>
-          <div className="mt-4 text-xs text-gray-500">
-            Last updated: {new Date(macroData.lastUpdated).toLocaleString()} • Source: {macroData.source}
-          </div>
-        </CardContent>
-      </Card>
+
 
       {/* Recent Indicators */}
       <Card className="bg-financial-card border-financial-border">
