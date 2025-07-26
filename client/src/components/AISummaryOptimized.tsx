@@ -192,7 +192,7 @@ export function AISummaryOptimized() {
             </h4>
           </div>
           <div className="space-y-3 text-xs">
-            {summary.economic && summary.economic.length > 0 ? (
+            {summary.economic && Array.isArray(summary.economic) && summary.economic.length > 0 ? (
               summary.economic.slice(0, 3).map((indicator, index) => (
                 <div key={index} className="space-y-1">
                   <div className="font-medium text-white">{indicator.metric}</div>
