@@ -285,6 +285,8 @@ class AISummaryOptimizedService {
         LIMIT 3
       `);
       
+      log.info(`📊 Database query returned ${latestIndicators.rows?.length || 0} records`);
+      
       if (latestIndicators.rows && latestIndicators.rows.length > 0) {
         // Format the data using the same logic as the macroeconomic indicators service
         const economicData = latestIndicators.rows.map((record: any) => {
@@ -321,10 +323,13 @@ class AISummaryOptimizedService {
         });
         
         log.info(`✅ Fetched ${economicData.length} economic indicators from database`);
+        log.info(`📊 Database economic data: ${JSON.stringify(economicData.map(d => d.metric))}`);
         return {
           data: economicData,
           timestamp: new Date().toISOString()
         };
+      } else {
+        log.warn('📊 Database query returned no results, checking fallback...');
       }
       
       // Fallback to Recent Economic Releases API if database is empty
