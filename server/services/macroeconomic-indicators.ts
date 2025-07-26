@@ -13,9 +13,9 @@ interface MacroIndicatorData {
   type: 'Leading' | 'Coincident' | 'Lagging';
   category: 'Growth' | 'Inflation' | 'Monetary Policy' | 'Labor' | 'Sentiment';
   releaseDate: string;
-  currentReading: number;
-  priorReading: number;
-  varianceVsPrior: number;
+  currentReading: string | number;
+  priorReading: string | number;
+  varianceVsPrior: string | number;
   unit: string;
   forecast?: number;
   zScore?: number;
@@ -48,7 +48,7 @@ export class MacroeconomicIndicatorsService {
       const { cacheService } = await import('./cache-unified');
       
       // Check memory cache first
-      const cacheKey = 'fred-economic-indicators';
+      const cacheKey = 'fred-economic-indicators-v2'; // Updated cache version for new formatting
       const cached = cacheService.get(cacheKey) as MacroeconomicData | null;
       if (cached) {
         logger.debug('Returning cached FRED economic data');
@@ -70,17 +70,41 @@ export class MacroeconomicIndicatorsService {
       const { fredApiService } = await import('./fred-api-service');
       const fredIndicators = await fredApiService.getKeyEconomicIndicators();
       
-      // Transform FRED data to our format
-      const indicators = fredIndicators.map((fredIndicator: any) => ({
-        metric: fredIndicator.title,
-        type: fredIndicator.type,
-        category: fredIndicator.category,
-        releaseDate: fredIndicator.last_updated,
-        currentReading: this.parseNumber(fredIndicator.current_value) || 0,
-        priorReading: this.parseNumber(fredIndicator.previous_value) || 0,
-        varianceVsPrior: fredIndicator.change || 0,
-        unit: fredIndicator.units || ''
-      }));
+      // Transform FRED data to our format with proper formatting
+      const indicators = fredIndicators.map((fredIndicator: any) => {
+        const currentReading = this.parseNumber(fredIndicator.current_value) || 0;
+        const priorReading = this.parseNumber(fredIndicator.previous_value) || 0;
+        const varianceVsPrior = fredIndicator.change || 0;
+        
+        // Format unit and numbers
+        let unit = fredIndicator.units || '';
+        if (unit.includes('percent')) {
+          unit = '%';
+        } else if (unit.includes('thousands')) {
+          unit = 'K';
+        }
+
+        const formatNumber = (num: number): string => {
+          if (num === 0) return '0.0';
+          const absNum = Math.abs(num);
+          const formatted = absNum.toLocaleString('en-US', {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1
+          });
+          return num < 0 ? `(${formatted})` : formatted;
+        };
+
+        return {
+          metric: fredIndicator.title,
+          type: fredIndicator.type,
+          category: fredIndicator.category,
+          releaseDate: fredIndicator.last_updated,
+          currentReading: formatNumber(currentReading),
+          priorReading: formatNumber(priorReading),
+          varianceVsPrior: formatNumber(varianceVsPrior),
+          unit
+        };
+      });
 
       // Generate AI summary of authentic data
       const aiSummary = await this.generateFredAISummary(fredIndicators).catch(() => 'Economic data available from FRED API.');
@@ -144,15 +168,39 @@ export class MacroeconomicIndicatorsService {
         const priorReading = parseFloat(String(record.prior_value)) || 0;
         const varianceVsPrior = priorReading !== 0 ? currentReading - priorReading : 0;
 
+        // Format unit and numbers according to specifications
+        let unit = record.unit || '';
+        let formattedCurrent = currentReading;
+        let formattedPrior = priorReading;
+        let formattedVariance = varianceVsPrior;
+
+        // Handle unit formatting
+        if (unit.includes('percent')) {
+          unit = '%';
+        } else if (unit.includes('thousands')) {
+          unit = 'K';
+        }
+
+        // Apply number formatting with thousands separators and negative formatting
+        const formatNumber = (num: number): string => {
+          if (num === 0) return '0.0';
+          const absNum = Math.abs(num);
+          const formatted = absNum.toLocaleString('en-US', {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1
+          });
+          return num < 0 ? `(${formatted})` : formatted;
+        };
+
         return {
           metric: record.metric_name,
           type: record.type || 'Lagging',
           category: record.category || 'Growth',
           releaseDate: record.release_date || record.period_date,
-          currentReading,
-          priorReading,
-          varianceVsPrior,
-          unit: record.unit || ''
+          currentReading: formatNumber(currentReading),
+          priorReading: formatNumber(priorReading),
+          varianceVsPrior: formatNumber(varianceVsPrior),
+          unit
         };
       });
 

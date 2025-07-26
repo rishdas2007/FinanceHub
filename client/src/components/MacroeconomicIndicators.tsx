@@ -8,9 +8,9 @@ interface MacroIndicator {
   type: 'Leading' | 'Coincident' | 'Lagging';
   category: 'Growth' | 'Inflation' | 'Monetary Policy' | 'Labor' | 'Sentiment';
   releaseDate: string;
-  currentReading: number;
-  priorReading: number;
-  varianceVsPrior: number;
+  currentReading: number | string;
+  priorReading: number | string;
+  varianceVsPrior: number | string;
   unit: string;
 }
 
@@ -26,8 +26,15 @@ const MacroFormatUtils = {
   /**
    * Format economic indicator value with proper units and spacing
    */
-  formatIndicatorValue: (value: number | null, metric: string, unit?: string): string => {
-    if (value === null || value === undefined || isNaN(value)) return 'N/A';
+  formatIndicatorValue: (value: number | string | null, metric: string, unit?: string): string => {
+    if (value === null || value === undefined) return 'N/A';
+    
+    // If value is already a formatted string (from backend), return it with unit
+    if (typeof value === 'string') {
+      return unit ? `${value}${unit}` : value;
+    }
+    
+    if (isNaN(value as number)) return 'N/A';
 
     const metricLower = metric.toLowerCase();
     
@@ -108,7 +115,12 @@ const MacroFormatUtils = {
   /**
    * Format variance with appropriate sign and units matching current reading format
    */
-  formatVariance: (variance: number, metric: string, unit?: string): string => {
+  formatVariance: (variance: number | string, metric: string, unit?: string): string => {
+    // If variance is already a formatted string (from backend), return it as is
+    if (typeof variance === 'string') {
+      return variance;
+    }
+    
     if (variance === 0) return '0';
     
     const sign = variance > 0 ? '+' : '';
@@ -208,7 +220,13 @@ const MacroeconomicIndicators: React.FC = () => {
     }
   };
 
-  const getVarianceColor = (variance: number) => {
+  const getVarianceColor = (variance: number | string) => {
+    if (typeof variance === 'string') {
+      // String values from backend - check for parentheses (negative) or + sign
+      if (variance.includes('(') || variance.startsWith('-')) return 'text-loss-red';
+      if (variance.startsWith('+') || (parseFloat(variance) > 0)) return 'text-gain-green';
+      return 'text-gray-400';
+    }
     if (variance > 0) return 'text-gain-green';
     if (variance < 0) return 'text-loss-red';
     return 'text-gray-400';
