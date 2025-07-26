@@ -107,10 +107,10 @@ export class MomentumAnalysisService {
       // Use verified Sharpe ratio from accuracy check document
       const sharpeRatio = this.getVerifiedSharpeRatio(sector.symbol);
       
-      // Use verified z-scores from accuracy check document
-      const zScore = this.getVerifiedZScore(sector.symbol);
-      const fiveDayZScore = this.getVerifiedZScore(sector.symbol); // Use same z-score for both
-      console.log(`📊 Using verified z-score for ${sector.symbol}: ${zScore}`);
+      // Use real-time z-score calculations
+      const zScore = this.calculateZScore(sector, sectorHistory);
+      const fiveDayZScore = this.calculateFiveDayZScore(sector, sectorHistory);
+      console.log(`📊 Calculated real-time z-score for ${sector.symbol}: ${zScore}`);
       
       // Correlation with SPY
       const sectorReturns = this.calculateDailyReturns(sectorHistory);
@@ -354,6 +354,64 @@ export class MomentumAnalysisService {
     };
     
     return verifiedZScores[symbol] || 0;
+  }
+
+  /**
+   * Calculate z-score: (current_price - rolling_mean_20) / rolling_std_20
+   */
+  private calculateZScore(sector: SectorETF, sectorHistory: HistoricalData[]): number {
+    // Validate input data - filter out invalid prices
+    const validPrices = sectorHistory
+      .filter(h => h.price && h.price > 0 && !isNaN(h.price) && h.price < 1000000)
+      .map(h => h.price);
+      
+    if (validPrices.length < 20) {
+      return 0; // Conservative fallback
+    }
+    
+    // Use last 20 days for rolling calculation
+    const last20Prices = validPrices.slice(0, 20);
+    const mean20 = last20Prices.reduce((sum, p) => sum + p, 0) / last20Prices.length;
+    
+    // Use sample standard deviation (N-1) for better accuracy
+    const variance = last20Prices.reduce((sum, p) => sum + Math.pow(p - mean20, 2), 0) / (last20Prices.length - 1);
+    const std20 = Math.sqrt(variance);
+    
+    if (std20 === 0) return 0;
+    
+    const zScore = (sector.price - mean20) / std20;
+    
+    // Cap extreme values to prevent outlier distortion
+    return Math.max(-5, Math.min(5, zScore));
+  }
+
+  /**
+   * Calculate 5-day move z-score for chart x-axis
+   */
+  private calculateFiveDayZScore(sector: SectorETF, sectorHistory: HistoricalData[]): number {
+    const fiveDayReturn = (sector.fiveDayChange || 0) / 100;
+    
+    if (sectorHistory.length < 25) {
+      return 0; // Conservative fallback
+    }
+    
+    // Calculate OVERLAPPING 5-day returns for better sample size
+    const fiveDayReturns: number[] = [];
+    for (let i = 0; i < Math.min(sectorHistory.length - 5, 60); i++) {
+      const current = sectorHistory[i].price;
+      const fiveDaysAgo = sectorHistory[i + 5].price;
+      if (fiveDaysAgo > 0 && current > 0) {
+        fiveDayReturns.push((current - fiveDaysAgo) / fiveDaysAgo);
+      }
+    }
+    
+    if (fiveDayReturns.length < 10) return 0;
+    
+    const mean = fiveDayReturns.reduce((sum, r) => sum + r, 0) / fiveDayReturns.length;
+    const variance = fiveDayReturns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / (fiveDayReturns.length - 1);
+    const std = Math.sqrt(variance);
+    
+    return std > 0 ? Math.max(-3, Math.min(3, (fiveDayReturn - mean) / std)) : 0;
   }
 
   private calculateConfidence(sectorCount: number, historicalDataCount: number): number {
