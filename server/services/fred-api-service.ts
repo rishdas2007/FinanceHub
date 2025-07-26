@@ -160,14 +160,34 @@ export class FREDApiService {
                   vsPrior = previousVal ? `${(currentVal - previousVal > 0 ? '+' : '')}${(currentVal - previousVal).toFixed(1)}%` : '0%';
                   break;
                 case 'thousands':
-                  formattedCurrent = `${currentVal.toFixed(0)}K`;
-                  formattedPrevious = previousVal ? `${previousVal.toFixed(0)}K` : 'N/A';
-                  vsPrior = previousVal ? `${(currentVal - previousVal > 0 ? '+' : '')}${(currentVal - previousVal).toFixed(0)}K` : '0K';
+                  // Handle large numbers in thousands - convert to appropriate units
+                  if (currentVal >= 1000000) {
+                    // Values in millions (like 3930000 -> 3.93M)
+                    formattedCurrent = `${(currentVal / 1000000).toFixed(2)}M`;
+                    formattedPrevious = previousVal ? `${(previousVal / 1000000).toFixed(2)}M` : 'N/A';
+                    vsPrior = previousVal ? `${((currentVal - previousVal) / 1000000 > 0 ? '+' : '')}${((currentVal - previousVal) / 1000000).toFixed(2)}M` : '0M';
+                  } else if (currentVal >= 1000) {
+                    // Values in thousands (like 1321 -> 1321K or 1.32M)
+                    if (currentVal >= 10000) {
+                      formattedCurrent = `${(currentVal / 1000).toFixed(0)}K`;
+                      formattedPrevious = previousVal ? `${(previousVal / 1000).toFixed(0)}K` : 'N/A';
+                      vsPrior = previousVal ? `${((currentVal - previousVal) / 1000 > 0 ? '+' : '')}${((currentVal - previousVal) / 1000).toFixed(0)}K` : '0K';
+                    } else {
+                      formattedCurrent = `${currentVal.toFixed(0)}K`;
+                      formattedPrevious = previousVal ? `${previousVal.toFixed(0)}K` : 'N/A';
+                      vsPrior = previousVal ? `${(currentVal - previousVal > 0 ? '+' : '')}${(currentVal - previousVal).toFixed(0)}K` : '0K';
+                    }
+                  } else {
+                    formattedCurrent = `${currentVal.toFixed(0)}K`;
+                    formattedPrevious = previousVal ? `${previousVal.toFixed(0)}K` : 'N/A';
+                    vsPrior = previousVal ? `${(currentVal - previousVal > 0 ? '+' : '')}${(currentVal - previousVal).toFixed(0)}K` : '0K';
+                  }
                   break;
                 case 'millions_dollars':
-                  formattedCurrent = `$${(currentVal / 1000).toFixed(1)}B`;
-                  formattedPrevious = previousVal ? `$${(previousVal / 1000).toFixed(1)}B` : 'N/A';
-                  vsPrior = previousVal ? `${((currentVal - previousVal) / 1000 > 0 ? '+' : '')}$${((currentVal - previousVal) / 1000).toFixed(1)}B` : '$0B';
+                  // Convert millions to billions for display (311848 millions -> 311.8B)
+                  formattedCurrent = `${(currentVal / 1000).toFixed(1)}B`;
+                  formattedPrevious = previousVal ? `${(previousVal / 1000).toFixed(1)}B` : 'N/A';
+                  vsPrior = previousVal ? `${((currentVal - previousVal) / 1000 > 0 ? '+' : '')}${((currentVal - previousVal) / 1000).toFixed(1)}B` : '0B';
                   break;
                 case 'index':
                   formattedCurrent = currentVal.toFixed(1);

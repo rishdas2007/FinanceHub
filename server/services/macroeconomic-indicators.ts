@@ -57,37 +57,18 @@ export class MacroeconomicIndicatorsService {
       
       // Transform FRED data to our format - the FRED service now handles proper formatting
       const indicators = fredIndicators.map((fredIndicator: FREDIndicator) => {
-        // For YoY indicators, current_value is already formatted (e.g., "3.9%")
-        // For regular indicators, current_value is the raw number
-        let currentReading: number;
-        let priorReading: number;
-        
-        if (fredIndicator.current_value.includes('%')) {
-          // Parse percentage value (e.g., "3.9%" -> 3.9)
-          currentReading = parseFloat(fredIndicator.current_value.replace('%', ''));
-        } else {
-          currentReading = this.parseNumber(fredIndicator.current_value) || 0;
-        }
-        
-        if (fredIndicator.previous_value && fredIndicator.previous_value !== 'N/A') {
-          if (fredIndicator.previous_value.includes('%')) {
-            priorReading = parseFloat(fredIndicator.previous_value.replace('%', ''));
-          } else {
-            priorReading = this.parseNumber(fredIndicator.previous_value) || 0;
-          }
-        } else {
-          priorReading = fredIndicator.previous_raw_value || currentReading;
-        }
-        
+        // Use the already formatted values from FRED service instead of re-parsing
+        // The FRED service handles proper formatting for display
         return {
           metric: fredIndicator.title,
           type: fredIndicator.type,
           category: fredIndicator.category,
           releaseDate: fredIndicator.last_updated,
-          currentReading: currentReading,
-          priorReading: priorReading,
-          varianceVsPrior: fredIndicator.change || (currentReading - priorReading),
-          unit: fredIndicator.current_value.includes('%') ? '%' : (fredIndicator.units || '')
+          // Parse numerical values but preserve units from formatted strings
+          currentReading: this.parseNumber(fredIndicator.current_value) || 0,
+          priorReading: this.parseNumber(fredIndicator.previous_value) || 0,
+          varianceVsPrior: fredIndicator.change || 0,
+          unit: this.extractUnit(fredIndicator.current_value)
         };
       });
 
@@ -629,6 +610,19 @@ export class MacroeconomicIndicatorsService {
       logger.error('Failed to force refresh macroeconomic data:', error);
       return this.getFallbackData();
     }
+  }
+}
+
+  /**
+   * Extract unit from formatted value string
+   */
+  private extractUnit(formattedValue: string | number): string {
+    const str = String(formattedValue);
+    if (str.includes('%')) return '%';
+    if (str.includes('B')) return 'B';
+    if (str.includes('M')) return 'M';  
+    if (str.includes('K')) return 'K';
+    return '';
   }
 }
 

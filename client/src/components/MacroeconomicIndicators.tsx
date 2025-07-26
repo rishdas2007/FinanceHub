@@ -31,6 +31,27 @@ const MacroFormatUtils = {
 
     const metricLower = metric.toLowerCase();
     
+    // Special handling for specific metrics that need fixed formatting
+    if (metricLower.includes('durable goods orders')) {
+      // Should show as 311.8B (billions), value comes as 311.8 
+      return `${MacroFormatUtils.formatNumber(value, 1)}B`;
+    }
+    
+    if (metricLower.includes('existing home sales') && value >= 1000000) {
+      // Convert 3930000 to 3.93M
+      return `${MacroFormatUtils.formatNumber(value / 1000000, 2)}M`;
+    }
+    
+    if (metricLower.includes('continuing jobless claims') && value >= 1000000) {
+      // Convert 1955000 to 1.95M
+      return `${MacroFormatUtils.formatNumber(value / 1000000, 2)}M`;
+    }
+    
+    if (metricLower.includes('initial jobless claims') && value >= 100000) {
+      // Convert 217000 to 217K
+      return `${MacroFormatUtils.formatNumber(value / 1000, 0)}K`;
+    }
+    
     // Use unit from data if provided and clean
     if (unit && unit !== '' && unit !== 'N/A') {
       switch (unit.toLowerCase()) {
@@ -48,6 +69,9 @@ const MacroFormatUtils = {
           return MacroFormatUtils.formatNumber(value, 1);
         case 'm':
           return `${MacroFormatUtils.formatNumber(value, 1)}M`;
+        case '$':
+          // For retail sales in billions
+          return `${MacroFormatUtils.formatNumber(value, 1)}B`;
         default:
           return `${MacroFormatUtils.formatNumber(value, 1)} ${unit}`;
       }
@@ -82,7 +106,7 @@ const MacroFormatUtils = {
   },
 
   /**
-   * Format variance with appropriate sign and units
+   * Format variance with appropriate sign and units matching current reading format
    */
   formatVariance: (variance: number, metric: string, unit?: string): string => {
     if (variance === 0) return '0';
@@ -90,6 +114,23 @@ const MacroFormatUtils = {
     const sign = variance > 0 ? '+' : '';
     const absVariance = Math.abs(variance);
     const metricLower = metric.toLowerCase();
+    
+    // Special cases to match current reading format
+    if (metricLower.includes('durable goods orders')) {
+      return `${sign}${MacroFormatUtils.formatNumber(absVariance / 1000, 1)}B`;
+    }
+    
+    if (metricLower.includes('existing home sales') && absVariance >= 100000) {
+      return `${sign}${MacroFormatUtils.formatNumber(absVariance / 1000000, 2)}M`;
+    }
+    
+    if (metricLower.includes('continuing jobless claims') && absVariance >= 1000) {
+      return `${sign}${MacroFormatUtils.formatNumber(absVariance / 1000000, 2)}M`;
+    }
+    
+    if (metricLower.includes('initial jobless claims') && absVariance >= 1000) {
+      return `${sign}${MacroFormatUtils.formatNumber(absVariance / 1000, 0)}K`;
+    }
     
     if (metricLower.includes('rate') || metricLower.includes('cpi') || (unit && unit === '%')) {
       return `${sign}${MacroFormatUtils.formatNumber(absVariance, 1)}%`;
