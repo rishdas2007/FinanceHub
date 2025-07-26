@@ -181,6 +181,10 @@ export class MacroeconomicIndicatorsService {
           unit = 'K';
         } else if (unit.includes('index')) {
           unit = ''; // Don't display "index" in the output
+        } else if (unit.includes('basis_points')) {
+          unit = ''; // Don't display "basis_points" in the output
+        } else if (unit.includes('basis_points')) {
+          unit = ''; // Don't display "basis_points" in the output
         }
 
         // Apply number formatting with thousands separators and negative formatting
