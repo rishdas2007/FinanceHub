@@ -46,8 +46,8 @@ export function AISummaryOptimized() {
       }
       return response.json();
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 15 * 60 * 1000,   // 15 minutes
+    staleTime: 0, // Always fetch fresh data to see database changes
+    gcTime: 60 * 1000,   // 1 minute
     retry: 1,
   });
 
@@ -198,7 +198,15 @@ export function AISummaryOptimized() {
                   <div className="font-medium text-white">{indicator.metric}</div>
                   <div className="text-blue-400 font-semibold">{indicator.value}</div>
                   <div className="text-gray-500">
-                    Released: {indicator.releaseDate}
+                    Released: {new Date(indicator.releaseDate).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })} {new Date(indicator.releaseDate).toLocaleTimeString('en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      timeZoneName: 'short'
+                    })}
                   </div>
                 </div>
               ))
