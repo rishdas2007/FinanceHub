@@ -35,7 +35,7 @@ export class FREDApiService {
     { series_id: 'INDPRO', title: 'Industrial Production', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'index' },
     { series_id: 'HOUST', title: 'Housing Starts', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'thousands' },
     { series_id: 'HSN1F', title: 'New Home Sales', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'thousands' },
-    { series_id: 'EXHOSLUSM495S', title: 'Existing Home Sales', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'thousands' },
+    { series_id: 'EXHOSLUSM495S', title: 'Existing Home Sales', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'units_annual_rate' },
     { series_id: 'NAPMIMFG', title: 'ISM Manufacturing PMI', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'index' },
     { series_id: 'PMICM', title: 'S&P Global Mfg PMI', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'index' },
     { series_id: 'PERMIT', title: 'Building Permits', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'thousands' },
