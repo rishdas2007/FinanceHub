@@ -611,19 +611,8 @@ export class MacroeconomicIndicatorsService {
       return this.getFallbackData();
     }
   }
-}
 
-  /**
-   * Extract unit from formatted value string
-   */
-  private extractUnit(formattedValue: string | number): string {
-    const str = String(formattedValue);
-    if (str.includes('%')) return '%';
-    if (str.includes('B')) return 'B';
-    if (str.includes('M')) return 'M';  
-    if (str.includes('K')) return 'K';
-    return '';
-  }
+
 }
 
 export const macroeconomicIndicatorsService = MacroeconomicIndicatorsService.getInstance();
