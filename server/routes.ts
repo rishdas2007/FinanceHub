@@ -26,6 +26,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Health monitoring endpoints
   app.use('/api/health', (await import('./routes/health')).default);
   
+  // FRED Cache Management endpoints
+  app.use('/api/fred-cache', (await import('./routes/fred-cache-routes')).fredCacheRoutes);
+  
   // Authentic FRED Economic Data API - prioritized endpoint
   app.get('/api/fred-economic-data', async (req, res) => {
     try {

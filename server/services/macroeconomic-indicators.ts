@@ -43,8 +43,9 @@ export class MacroeconomicIndicatorsService {
   async getAuthenticEconomicData(): Promise<MacroeconomicData> {
     try {
       const { cacheService } = await import('./cache-unified');
+      const { fredCacheStrategy } = await import('./fred-cache-strategy');
       
-      // Check cache first
+      // Check cache first with extended TTL
       const cacheKey = 'fred-economic-indicators';
       const cached = cacheService.get(cacheKey) as MacroeconomicData | null;
       if (cached) {
@@ -52,26 +53,39 @@ export class MacroeconomicIndicatorsService {
         return cached;
       }
 
-      // Import and fetch authentic data from FRED API
+      // Import and fetch authentic data from FRED API with intelligent caching
       const { fredApiService } = await import('./fred-api-service');
       const fredIndicators = await fredApiService.getKeyEconomicIndicators();
       
-      // Transform FRED data to our format - the FRED service now handles proper formatting
-      const indicators = fredIndicators.map((fredIndicator: any) => {
-        // Use the already formatted values from FRED service instead of re-parsing
-        // The FRED service handles proper formatting for display
-        return {
-          metric: fredIndicator.title,
-          type: fredIndicator.type,
-          category: fredIndicator.category,
-          releaseDate: fredIndicator.last_updated,
-          // Parse numerical values but preserve units from formatted strings
-          currentReading: this.parseNumber(fredIndicator.current_value) || 0,
-          priorReading: this.parseNumber(fredIndicator.previous_value) || 0,
-          varianceVsPrior: fredIndicator.change || 0,
-          unit: fredIndicator.units || ''
-        };
-      });
+      // Transform FRED data to our format using cache strategy
+      const indicators = await Promise.all(
+        fredIndicators.map(async (fredIndicator: any) => {
+          const seriesId = fredIndicator.series_id || fredIndicator.title?.replace(/[^A-Z0-9]/g, '');
+          
+          // Try to get cached current reading first
+          let currentReading = fredIndicator.current_value;
+          let priorReading = fredIndicator.previous_value;
+          
+          // Use intelligent caching for YoY calculations if needed
+          if (fredIndicator.title?.includes('(YoY)')) {
+            const yoyCalc = await fredCacheStrategy.getYoYCalculation(seriesId);
+            if (yoyCalc) {
+              currentReading = yoyCalc.yoy_percent;
+            }
+          }
+          
+          return {
+            metric: fredIndicator.title,
+            type: fredIndicator.type,
+            category: fredIndicator.category,
+            releaseDate: fredIndicator.last_updated,
+            currentReading: this.parseNumber(currentReading) || 0,
+            priorReading: this.parseNumber(priorReading) || 0,
+            varianceVsPrior: fredIndicator.change || 0,
+            unit: fredIndicator.units || ''
+          };
+        })
+      );
 
       // Generate AI summary of authentic data
       const aiSummary = await this.generateFredAISummary(fredIndicators);
@@ -83,10 +97,10 @@ export class MacroeconomicIndicatorsService {
         source: 'Federal Reserve Economic Data (FRED)'
       };
 
-      // Cache for 30 minutes (FRED data doesn't update very frequently)
-      cacheService.set(cacheKey, data, 30 * 60 * 1000);
+      // Cache for 24 hours using extended TTL configuration
+      cacheService.set(cacheKey, data, 24 * 60 * 60 * 1000);
       
-      logger.info(`✅ FRED economic data updated: ${indicators.length} authentic indicators`);
+      logger.info(`✅ FRED economic data updated: ${indicators.length} authentic indicators with intelligent caching`);
       return data;
 
     } catch (error) {

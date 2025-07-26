@@ -73,6 +73,15 @@ export class CacheService {
     sets: 0,
     deletes: 0
   };
+  
+  // Extended TTL configurations for economic data caching
+  private readonly ECONOMIC_CONFIG = {
+    memoryTtl: 86400000, // 24 hours during market hours
+    databaseTtl: 604800000, // 7 days for database fallback
+    maxStaleAge: 2592000000, // 30 days max stale
+    afterHoursMultiplier: 1, // Keep 1x since daily refresh is conservative
+    weekendMultiplier: 1
+  };
 
   private constructor() {
     // Clean up expired entries every 5 minutes
