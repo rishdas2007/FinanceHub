@@ -26,11 +26,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Health monitoring endpoints
   app.use('/api/health', (await import('./routes/health')).default);
   
-  // Macroeconomic Indicators API - early in routing chain
+  // Authentic FRED Economic Data API - prioritized endpoint
+  app.get('/api/fred-economic-data', async (req, res) => {
+    try {
+      console.log('🔍 FRED API Route: GET /api/fred-economic-data');
+      const { MacroeconomicIndicatorsService } = await import('./services/macroeconomic-indicators');
+      const macroeconomicIndicatorsService = MacroeconomicIndicatorsService.getInstance();
+      const data = await macroeconomicIndicatorsService.getAuthenticEconomicData();
+      
+      res.json(data);
+      
+    } catch (error) {
+      console.error('Failed to get FRED economic data:', error);
+      res.status(500).json({
+        error: 'Failed to fetch Federal Reserve economic data',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Macroeconomic Indicators API - early in routing chain (fallback)
   app.get('/api/macroeconomic-indicators', async (req, res) => {
     try {
       console.log('🔍 Fast Dashboard Route: GET /api/macroeconomic-indicators');
-      const { macroeconomicIndicatorsService } = await import('./services/macroeconomic-indicators');
+      const { MacroeconomicIndicatorsService } = await import('./services/macroeconomic-indicators');
+      const macroeconomicIndicatorsService = MacroeconomicIndicatorsService.getInstance();
       const data = await macroeconomicIndicatorsService.getMacroeconomicData();
       
       res.json(data);
@@ -47,7 +67,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/macroeconomic-indicators/refresh', async (req, res) => {
     try {
       console.log('🔍 Fast Dashboard Route: POST /api/macroeconomic-indicators/refresh');
-      const { macroeconomicIndicatorsService } = await import('./services/macroeconomic-indicators');
+      const { MacroeconomicIndicatorsService } = await import('./services/macroeconomic-indicators');
+      const macroeconomicIndicatorsService = MacroeconomicIndicatorsService.getInstance();
       const data = await macroeconomicIndicatorsService.forceRefresh();
       
       res.json({
