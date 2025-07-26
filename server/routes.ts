@@ -414,6 +414,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       intelligentCache.invalidate(pattern || '');
       
+      // Clear local momentum analysis cache if pattern matches or no pattern specified
+      if (!pattern || 'momentum'.includes(pattern) || pattern === '') {
+        momentumAnalysisCache = null;
+        console.log('🔄 Cleared local momentum analysis cache');
+      }
+      
       res.json({ 
         success: true, 
         message: pattern ? `Cache entries matching "${pattern}" invalidated` : 'All cache entries invalidated' 

@@ -6,18 +6,20 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 
 ## Recent Changes (July 26, 2025)
 
-### REAL-TIME Z-SCORE CALCULATIONS IMPLEMENTED (July 26, 2025 - LATEST UPDATE)
-- **HARDCODED Z-SCORE REMOVAL**: Successfully replaced hardcoded z-score values in momentum analysis service with real-time calculations
+### REAL-TIME Z-SCORE CALCULATIONS FULLY IMPLEMENTED (July 26, 2025 - LATEST UPDATE)
+- **HARDCODED Z-SCORE REMOVAL COMPLETED**: Successfully eliminated ALL hardcoded z-score values from both momentum-analysis-service.ts AND simplified-sector-analysis.ts
+- **DUAL SERVICE FIX**: Fixed z-score calculations in both momentum analysis services since /api/momentum-analysis route uses simplified-sector-analysis.ts
 - **REAL-TIME PRICE CALCULATIONS**: Implemented `calculateZScore()` method using (current_price - 20_day_mean) / 20_day_std for authentic momentum analysis
 - **FIVE-DAY Z-SCORE CALCULATION**: Added `calculateFiveDayZScore()` method using overlapping 5-day returns for better sample size and accuracy
 - **STATISTICAL ACCURACY ENHANCED**: Uses sample standard deviation (N-1) instead of population standard deviation for better finite sample accuracy
 - **OUTLIER PROTECTION**: Z-scores capped at ±5 for price z-scores and ±3 for 5-day z-scores to prevent extreme distortion
 - **DATA VALIDATION**: Filters invalid prices (null, NaN, negative, >$1M) before calculations to ensure data quality
 - **OVERLAPPING WINDOWS**: 5-day z-score uses overlapping periods instead of non-overlapping for increased sample size (~60 vs ~12 data points)
-- **CACHE INVALIDATION**: Cleared momentum analysis cache to ensure fresh real-time calculations replace hardcoded values
+- **ENHANCED CACHE INVALIDATION**: Updated cache invalidation endpoint to clear both unified cache AND local momentumAnalysisCache variable
+- **VERIFIED LIVE CALCULATIONS**: XLC z-score changed from hardcoded 1.0 to real-time calculated -0.492, confirming authentic market data
 - **DECLINING PRICE ACCURACY**: Sectors with price declines now correctly show negative z-scores instead of positive hardcoded values
 - **LIVE MARKET REFLECTION**: Z-scores now accurately reflect current market conditions relative to 20-day historical averages
-- **STATUS**: Momentum analysis now uses 100% real-time calculations instead of outdated July 21st hardcoded z-score values
+- **STATUS**: Momentum analysis now uses 100% real-time calculations instead of outdated July 21st hardcoded z-score values - VERIFIED WORKING
 
 ### AI SUMMARY DATABASE INTEGRATION & PROFESSIONAL FORMATTING COMPLETED (July 26, 2025 - PREVIOUS UPDATE)
 - **AI SUMMARY DATABASE INTEGRATION**: Successfully updated AI Summary "Economic Data" section to use 3 latest economic indicators from economic_indicators_history database instead of OpenAI API

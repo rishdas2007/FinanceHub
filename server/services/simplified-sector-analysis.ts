@@ -147,14 +147,16 @@ export class SimplifiedSectorAnalysisService {
   }
 
   /**
-   * Get verified metrics from accuracy check document - ZERO TOLERANCE FOR CALCULATED VALUES
+   * Get verified metrics from accuracy check document with REAL-TIME Z-SCORE CALCULATIONS
    */
   private calculateVerifiedMetrics(sector: SectorETF, sectorHistory: HistoricalData[]) {
-    // USE ONLY VERIFIED VALUES FROM ACCURACY CHECK DOCUMENT
+    // USE ONLY VERIFIED VALUES FROM ACCURACY CHECK DOCUMENT FOR STATIC METRICS
     const annualReturn = this.getVerifiedAnnualReturn(sector.symbol);
     const volatility = this.getVerifiedVolatility(sector.symbol);
     const sharpeRatio = this.getVerifiedSharpeRatio(sector.symbol);
-    const zScore = this.getVerifiedZScore(sector.symbol);
+    
+    // USE REAL-TIME CALCULATION FOR Z-SCORE INSTEAD OF HARDCODED VALUES
+    const zScore = this.calculateZScore(sector, sectorHistory);
 
     console.log(`📊 VERIFIED METRICS for ${sector.symbol}: Return=${annualReturn}%, Volatility=${volatility}%, Sharpe=${sharpeRatio}, Z-Score=${zScore}`);
 
@@ -162,7 +164,7 @@ export class SimplifiedSectorAnalysisService {
       volatility: parseFloat(volatility.toFixed(2)),
       annualReturn: parseFloat(annualReturn.toFixed(2)),
       sharpeRatio: parseFloat(sharpeRatio.toFixed(2)),
-      zScore: parseFloat(zScore.toFixed(2))
+      zScore: parseFloat(zScore.toFixed(3))
     };
   }
 
