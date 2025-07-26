@@ -195,9 +195,30 @@ export class FREDApiService {
                   vsPrior = previousVal ? `${(currentVal - previousVal > 0 ? '+' : '')}${(currentVal - previousVal).toFixed(1)}` : '0';
                   break;
                 case 'basis_points':
-                  formattedCurrent = `${currentVal.toFixed(2)}%`;
-                  formattedPrevious = previousVal ? `${previousVal.toFixed(2)}%` : 'N/A';
-                  vsPrior = previousVal ? `${(currentVal - previousVal > 0 ? '+' : '')}${(currentVal - previousVal).toFixed(2)}%` : '0%';
+                  // Format basis points without any suffix for clean display
+                  if (currentVal < 0) {
+                    formattedCurrent = `(${Math.abs(currentVal).toFixed(1)})`;
+                  } else {
+                    formattedCurrent = `${currentVal.toFixed(1)}`;
+                  }
+                  
+                  if (previousVal !== undefined && previousVal !== null) {
+                    if (previousVal < 0) {
+                      formattedPrevious = `(${Math.abs(previousVal).toFixed(1)})`;
+                    } else {
+                      formattedPrevious = `${previousVal.toFixed(1)}`;
+                    }
+                    
+                    const variance = currentVal - previousVal;
+                    if (variance < 0) {
+                      vsPrior = `(${Math.abs(variance).toFixed(1)})`;
+                    } else {
+                      vsPrior = `${variance.toFixed(1)}`;
+                    }
+                  } else {
+                    formattedPrevious = 'N/A';
+                    vsPrior = '0';
+                  }
                   break;
                 default:
                   formattedCurrent = currentVal.toFixed(2);
@@ -215,7 +236,7 @@ export class FREDApiService {
               previous_raw_value: previousVal,
               change,
               change_percent: changePercent,
-              units: formattedCurrent.includes('%') ? '%' : (formattedCurrent.includes('K') ? 'K' : (formattedCurrent.includes('$') ? '$' : '')),
+              units: formattedCurrent.includes('%') ? '%' : (formattedCurrent.includes('K') ? 'K' : (formattedCurrent.includes('$') ? '$' : (indicator.display_unit === 'basis_points' ? '' : ''))),
               frequency: 'Monthly',
               last_updated: new Date().toISOString(),
               category: indicator.category,
