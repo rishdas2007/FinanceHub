@@ -55,20 +55,39 @@ export class MacroeconomicIndicatorsService {
       // Fetch authentic data from FRED API
       const fredIndicators = await fredApiService.getKeyEconomicIndicators();
       
-      // Transform FRED data to our format
+      // Transform FRED data to our format - the FRED service now handles proper formatting
       const indicators = fredIndicators.map((fredIndicator: FREDIndicator) => {
-        const currentValue = this.parseNumber(fredIndicator.current_value) || 0;
-        const previousValue = fredIndicator.previous_value ? this.parseNumber(fredIndicator.previous_value) || 0 : currentValue;
+        // For YoY indicators, current_value is already formatted (e.g., "3.9%")
+        // For regular indicators, current_value is the raw number
+        let currentReading: number;
+        let priorReading: number;
+        
+        if (fredIndicator.current_value.includes('%')) {
+          // Parse percentage value (e.g., "3.9%" -> 3.9)
+          currentReading = parseFloat(fredIndicator.current_value.replace('%', ''));
+        } else {
+          currentReading = this.parseNumber(fredIndicator.current_value) || 0;
+        }
+        
+        if (fredIndicator.previous_value && fredIndicator.previous_value !== 'N/A') {
+          if (fredIndicator.previous_value.includes('%')) {
+            priorReading = parseFloat(fredIndicator.previous_value.replace('%', ''));
+          } else {
+            priorReading = this.parseNumber(fredIndicator.previous_value) || 0;
+          }
+        } else {
+          priorReading = fredIndicator.previous_raw_value || currentReading;
+        }
         
         return {
           metric: fredIndicator.title,
           type: fredIndicator.type,
           category: fredIndicator.category,
           releaseDate: fredIndicator.last_updated,
-          currentReading: currentValue,
-          priorReading: fredIndicator.previous_raw_value || previousValue,
-          varianceVsPrior: fredIndicator.change || (currentValue - (fredIndicator.previous_raw_value || previousValue)),
-          unit: fredIndicator.units
+          currentReading: currentReading,
+          priorReading: priorReading,
+          varianceVsPrior: fredIndicator.change || (currentReading - priorReading),
+          unit: fredIndicator.current_value.includes('%') ? '%' : (fredIndicator.units || '')
         };
       });
 

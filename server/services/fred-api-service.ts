@@ -20,41 +20,41 @@ export class FREDApiService {
   private readonly baseUrl = 'https://api.stlouisfed.org/fred';
   private readonly apiKey: string;
 
-  // Updated CURATED_SERIES based on user specifications
+  // EXACT USER-PROVIDED CURATED_SERIES CONFIGURATION
   private readonly keyIndicators = [
     // Inflation Indicators (4)
-    { series_id: 'CPIAUCSL', title: 'CPI All Items (YoY)', category: 'Inflation' as const, type: 'Lagging' as const, units: '%' },
-    { series_id: 'CPILFESL', title: 'Core CPI (YoY)', category: 'Inflation' as const, type: 'Lagging' as const, units: '%' },
-    { series_id: 'PPIACO', title: 'PPI All Commodities (YoY)', category: 'Inflation' as const, type: 'Lagging' as const, units: '%' },
-    { series_id: 'PCEPI', title: 'PCE Price Index (YoY)', category: 'Inflation' as const, type: 'Lagging' as const, units: '%' },
+    { series_id: 'CPIAUCSL', title: 'CPI All Items (YoY)', category: 'Inflation' as const, type: 'Lagging' as const, display_unit: 'percent' },
+    { series_id: 'CPILFESL', title: 'Core CPI (YoY)', category: 'Inflation' as const, type: 'Lagging' as const, display_unit: 'percent' },
+    { series_id: 'PPIACO', title: 'PPI All Commodities (YoY)', category: 'Inflation' as const, type: 'Lagging' as const, display_unit: 'percent' },
+    { series_id: 'PCEPI', title: 'PCE Price Index (YoY)', category: 'Inflation' as const, type: 'Lagging' as const, display_unit: 'percent' },
     
-    // Growth Indicators (10)
-    { series_id: 'A191RL1Q225SBEA', title: 'GDP Growth Rate (Annualized)', category: 'Growth' as const, type: 'Coincident' as const, units: '%' },
-    { series_id: 'RSAFS', title: 'Retail Sales (YoY)', category: 'Growth' as const, type: 'Coincident' as const, units: '%' },
-    { series_id: 'DGORDER', title: 'Durable Goods Orders (YoY)', category: 'Growth' as const, type: 'Leading' as const, units: '%' },
-    { series_id: 'INDPRO', title: 'Industrial Production (YoY)', category: 'Growth' as const, type: 'Coincident' as const, units: '%' },
-    { series_id: 'HOUST', title: 'Housing Starts (YoY)', category: 'Growth' as const, type: 'Leading' as const, units: '%' },
-    { series_id: 'HSN1F', title: 'New Home Sales (YoY)', category: 'Growth' as const, type: 'Leading' as const, units: '%' },
-    { series_id: 'EXHOSLUSM495S', title: 'Existing Home Sales (YoY)', category: 'Growth' as const, type: 'Leading' as const, units: '%' },
-    { series_id: 'NAPMIMFG', title: 'ISM Manufacturing PMI', category: 'Growth' as const, type: 'Leading' as const, units: 'Index' },
-    { series_id: 'PMICM', title: 'S&P Global Mfg PMI', category: 'Growth' as const, type: 'Leading' as const, units: 'Index' },
-    { series_id: 'PERMIT', title: 'Building Permits (YoY)', category: 'Growth' as const, type: 'Leading' as const, units: '%' },
-    { series_id: 'USSLIND', title: 'US Leading Economic Index', category: 'Growth' as const, type: 'Leading' as const, units: 'Index' },
+    // Growth Indicators (10) 
+    { series_id: 'A191RL1Q225SBEA', title: 'GDP Growth Rate (Annualized)', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'percent' },
+    { series_id: 'RSAFS', title: 'Retail Sales', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'millions_dollars' },
+    { series_id: 'DGORDER', title: 'Durable Goods Orders', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'millions_dollars' },
+    { series_id: 'INDPRO', title: 'Industrial Production', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'index' },
+    { series_id: 'HOUST', title: 'Housing Starts', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'thousands' },
+    { series_id: 'HSN1F', title: 'New Home Sales', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'thousands' },
+    { series_id: 'EXHOSLUSM495S', title: 'Existing Home Sales', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'thousands' },
+    { series_id: 'NAPMIMFG', title: 'ISM Manufacturing PMI', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'index' },
+    { series_id: 'PMICM', title: 'S&P Global Mfg PMI', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'index' },
+    { series_id: 'PERMIT', title: 'Building Permits', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'thousands' },
+    { series_id: 'USSLIND', title: 'US Leading Economic Index', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'index' },
     
     // Labor Market (4)
-    { series_id: 'ICSA', title: 'Initial Jobless Claims', category: 'Labor' as const, type: 'Leading' as const, units: 'K' },
-    { series_id: 'CCSA', title: 'Continuing Jobless Claims', category: 'Labor' as const, type: 'Lagging' as const, units: 'K' },
-    { series_id: 'UNRATE', title: 'Unemployment Rate', category: 'Labor' as const, type: 'Lagging' as const, units: '%' },
-    { series_id: 'PAYEMS', title: 'Nonfarm Payrolls (YoY)', category: 'Labor' as const, type: 'Coincident' as const, units: '%' },
+    { series_id: 'ICSA', title: 'Initial Jobless Claims', category: 'Labor' as const, type: 'Leading' as const, display_unit: 'thousands' },
+    { series_id: 'CCSA', title: 'Continuing Jobless Claims', category: 'Labor' as const, type: 'Lagging' as const, display_unit: 'thousands' },
+    { series_id: 'UNRATE', title: 'Unemployment Rate', category: 'Labor' as const, type: 'Lagging' as const, display_unit: 'percent' },
+    { series_id: 'PAYEMS', title: 'Nonfarm Payrolls', category: 'Labor' as const, type: 'Coincident' as const, display_unit: 'thousands' },
     
     // Monetary Policy (3)
-    { series_id: 'FEDFUNDS', title: 'Federal Funds Rate', category: 'Monetary Policy' as const, type: 'Coincident' as const, units: '%' },
-    { series_id: 'DGS10', title: '10-Year Treasury Yield', category: 'Monetary Policy' as const, type: 'Leading' as const, units: '%' },
-    { series_id: 'T10Y2Y', title: 'Yield Curve (10yr-2yr)', category: 'Monetary Policy' as const, type: 'Leading' as const, units: '%' },
+    { series_id: 'FEDFUNDS', title: 'Federal Funds Rate', category: 'Monetary Policy' as const, type: 'Coincident' as const, display_unit: 'percent' },
+    { series_id: 'DGS10', title: '10-Year Treasury Yield', category: 'Monetary Policy' as const, type: 'Leading' as const, display_unit: 'percent' },
+    { series_id: 'T10Y2Y', title: 'Yield Curve (10yr-2yr)', category: 'Monetary Policy' as const, type: 'Leading' as const, display_unit: 'basis_points' },
     
     // Sentiment (2)
-    { series_id: 'UMCSENT', title: 'Michigan Consumer Sentiment', category: 'Sentiment' as const, type: 'Leading' as const, units: 'Index' },
-    { series_id: 'CSCICP03USM665S', title: 'Consumer Confidence Index', category: 'Sentiment' as const, type: 'Leading' as const, units: 'Index' }
+    { series_id: 'UMCSENT', title: 'Michigan Consumer Sentiment', category: 'Sentiment' as const, type: 'Leading' as const, display_unit: 'index' },
+    { series_id: 'CSCICP03USM665S', title: 'Consumer Confidence Index', category: 'Sentiment' as const, type: 'Leading' as const, display_unit: 'index' }
   ];
 
   constructor() {
@@ -76,11 +76,21 @@ export class FREDApiService {
       // Fetch data for each indicator
       for (const indicator of this.keyIndicators) {
         try {
-          const data = await this.fetchSeriesData(indicator.series_id, 3);
+          // For YoY calculations, we need at least 13 months of data (current + 12 months ago)
+          const limit = indicator.title.includes('(YoY)') ? 15 : 3;
+          const data = await this.fetchSeriesData(indicator.series_id, limit);
           
           if (data && data.length > 0) {
             const current = data[0];
             const previous = data[1];
+            
+            // For YoY calculations, find data from 12 months ago
+            let yearAgo = null;
+            if (indicator.title.includes('(YoY)') && data.length >= 13) {
+              // Find data from approximately 12 months ago
+              yearAgo = data[12]; // 12 months ago
+              logger.debug(`YoY calculation for ${indicator.title}: Current=${current.value} (${current.date}), YearAgo=${yearAgo.value} (${yearAgo.date})`);
+            }
             
             // Calculate change if previous data exists
             let change: number | undefined;
@@ -96,17 +106,97 @@ export class FREDApiService {
               }
             }
             
+            // Calculate proper values based on display_unit
+            const currentVal = parseFloat(current.value);
+            const previousVal = previous ? parseFloat(previous.value) : null;
+            
+            let formattedCurrent: string;
+            let formattedPrevious: string;
+            let vsPrior: string;
+            
+            // Handle YoY calculations for specific indicators that need it
+            if (indicator.title.includes('(YoY)')) {
+              if (yearAgo && yearAgo.value !== '.' && current.value !== '.') {
+                const currentVal = parseFloat(current.value);
+                const yearAgoVal = parseFloat(yearAgo.value);
+                
+                if (!isNaN(currentVal) && !isNaN(yearAgoVal) && yearAgoVal !== 0) {
+                  // Calculate proper YoY percentage change
+                  const yoyChange = ((currentVal - yearAgoVal) / yearAgoVal) * 100;
+                  formattedCurrent = `${yoyChange.toFixed(1)}%`;
+                  
+                  // Calculate previous period YoY if possible
+                  if (previous && data[13] && previous.value !== '.' && data[13].value !== '.') {
+                    const prevVal = parseFloat(previous.value);
+                    const prevYearAgoVal = parseFloat(data[13].value);
+                    if (!isNaN(prevVal) && !isNaN(prevYearAgoVal) && prevYearAgoVal !== 0) {
+                      const prevYoyChange = ((prevVal - prevYearAgoVal) / prevYearAgoVal) * 100;
+                      formattedPrevious = `${prevYoyChange.toFixed(1)}%`;
+                      vsPrior = `${(yoyChange - prevYoyChange > 0 ? '+' : '')}${(yoyChange - prevYoyChange).toFixed(1)}%`;
+                    } else {
+                      formattedPrevious = 'N/A';
+                      vsPrior = `${yoyChange.toFixed(1)}%`;
+                    }
+                  } else {
+                    formattedPrevious = 'N/A';
+                    vsPrior = `${yoyChange.toFixed(1)}%`;
+                  }
+                } else {
+                  formattedCurrent = '0.0%';
+                  formattedPrevious = 'N/A';
+                  vsPrior = '0%';
+                }
+              } else {
+                formattedCurrent = 'N/A';
+                formattedPrevious = 'N/A';
+                vsPrior = 'N/A';
+              }
+            } else {
+              // Format based on display_unit
+              switch (indicator.display_unit) {
+                case 'percent':
+                  formattedCurrent = `${currentVal.toFixed(1)}%`;
+                  formattedPrevious = previousVal ? `${previousVal.toFixed(1)}%` : 'N/A';
+                  vsPrior = previousVal ? `${(currentVal - previousVal > 0 ? '+' : '')}${(currentVal - previousVal).toFixed(1)}%` : '0%';
+                  break;
+                case 'thousands':
+                  formattedCurrent = `${currentVal.toFixed(0)}K`;
+                  formattedPrevious = previousVal ? `${previousVal.toFixed(0)}K` : 'N/A';
+                  vsPrior = previousVal ? `${(currentVal - previousVal > 0 ? '+' : '')}${(currentVal - previousVal).toFixed(0)}K` : '0K';
+                  break;
+                case 'millions_dollars':
+                  formattedCurrent = `$${(currentVal / 1000).toFixed(1)}B`;
+                  formattedPrevious = previousVal ? `$${(previousVal / 1000).toFixed(1)}B` : 'N/A';
+                  vsPrior = previousVal ? `${((currentVal - previousVal) / 1000 > 0 ? '+' : '')}$${((currentVal - previousVal) / 1000).toFixed(1)}B` : '$0B';
+                  break;
+                case 'index':
+                  formattedCurrent = currentVal.toFixed(1);
+                  formattedPrevious = previousVal ? previousVal.toFixed(1) : 'N/A';
+                  vsPrior = previousVal ? `${(currentVal - previousVal > 0 ? '+' : '')}${(currentVal - previousVal).toFixed(1)}` : '0';
+                  break;
+                case 'basis_points':
+                  formattedCurrent = `${currentVal.toFixed(2)}%`;
+                  formattedPrevious = previousVal ? `${previousVal.toFixed(2)}%` : 'N/A';
+                  vsPrior = previousVal ? `${(currentVal - previousVal > 0 ? '+' : '')}${(currentVal - previousVal).toFixed(2)}%` : '0%';
+                  break;
+                default:
+                  formattedCurrent = currentVal.toFixed(2);
+                  formattedPrevious = previousVal ? previousVal.toFixed(2) : 'N/A';
+                  vsPrior = previousVal ? `${(currentVal - previousVal > 0 ? '+' : '')}${(currentVal - previousVal).toFixed(2)}` : '0';
+              }
+            }
+
             indicators.push({
               series_id: indicator.series_id,
               title: indicator.title,
-              current_value: this.formatValue(current.value, indicator.units),
+              current_value: formattedCurrent,
               date: current.date,
-              previous_value: previous ? this.formatValue(previous.value, indicator.units) : undefined,
-              previous_raw_value: previous ? parseFloat(previous.value) : undefined,
+              previous_value: formattedPrevious,
+              previous_raw_value: previousVal,
               change,
               change_percent: changePercent,
-              units: indicator.units,
-              frequency: 'Monthly', // Most indicators are monthly
+              units: formattedCurrent.includes('%') ? '%' : (formattedCurrent.includes('K') ? 'K' : (formattedCurrent.includes('$') ? '$' : '')),
+              frequency: 'Monthly',
               last_updated: new Date().toISOString(),
               category: indicator.category,
               type: indicator.type
@@ -160,15 +250,16 @@ export class FREDApiService {
       return {
         series_id: seriesId,
         title: indicatorMeta?.title || seriesId,
-        current_value: this.formatValue(current.value, indicatorMeta?.units || ''),
+        current_value: current.value,
         date: current.date,
-        previous_value: previous ? this.formatValue(previous.value, indicatorMeta?.units || '') : undefined,
+        previous_value: previous ? previous.value : undefined,
         change,
         change_percent: changePercent,
-        units: indicatorMeta?.units || '',
+        units: indicatorMeta?.display_unit || '',
         frequency: 'Monthly',
         last_updated: new Date().toISOString(),
-        category: indicatorMeta?.category || 'Coincident'
+        category: indicatorMeta?.category || 'Growth',
+        type: indicatorMeta?.type || 'Coincident'
       };
       
     } catch (error) {

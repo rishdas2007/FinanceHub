@@ -150,7 +150,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Recent Economic Releases (from FRED data)
   app.get('/api/recent-economic-releases', async (req, res) => {
     try {
-      const macroData = await macroeconomicIndicators.getAuthenticEconomicData();
+      const { MacroeconomicIndicatorsService } = await import('./services/macroeconomic-indicators');
+      const macroService = MacroeconomicIndicatorsService.getInstance();
+      const macroData = await macroService.getAuthenticEconomicData();
       // Get 6 most recent indicators based on release date
       const recentReleases = macroData.indicators
         .sort((a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime())
