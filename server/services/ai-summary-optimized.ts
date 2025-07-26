@@ -27,6 +27,16 @@ interface AISummaryResponse {
     technical: boolean;
     economic: boolean;
   };
+  economic?: Array<{
+    metric: string;
+    value: string;
+    category: string;
+    releaseDate: string;
+    priorReading?: string;
+    varianceVsPrior?: string;
+  }>;
+  momentum?: any;
+  technical?: any;
   cacheInfo?: {
     cached: boolean;
     age: number;
@@ -118,7 +128,10 @@ class AISummaryOptimizedService {
           momentum: !!data.momentum,
           technical: !!data.technical,
           economic: !!(data.economic && data.economic.length > 0)
-        }
+        },
+        economic: data.economic || [],
+        momentum: data.momentum,
+        technical: data.technical
       };
 
       // Cache the result using smart cache
@@ -182,7 +195,10 @@ class AISummaryOptimizedService {
           momentum: !!fallbackData.momentum,
           technical: !!fallbackData.technical,
           economic: !!(fallbackData.economic && fallbackData.economic.length > 0)
-        }
+        },
+        economic: fallbackData.economic || [],
+        momentum: fallbackData.momentum,
+        technical: fallbackData.technical
       };
     }
   }
@@ -329,7 +345,7 @@ class AISummaryOptimizedService {
           timestamp: new Date().toISOString()
         };
       } else {
-        log.warn('📊 Database query returned no results, checking fallback...');
+        log.info('📊 Database query returned no results, checking fallback...');
       }
       
       // Fallback to Recent Economic Releases API if database is empty

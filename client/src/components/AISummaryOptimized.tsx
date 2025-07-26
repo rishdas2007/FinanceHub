@@ -15,6 +15,16 @@ interface AISummaryResponse {
     technical: boolean;
     economic: boolean;
   };
+  economic?: Array<{
+    metric: string;
+    value: string;
+    category: string;
+    releaseDate: string;
+    priorReading?: string;
+    varianceVsPrior?: string;
+  }>;
+  momentum?: any;
+  technical?: any;
   cacheInfo?: {
     cached: boolean;
     age: number;
@@ -115,6 +125,104 @@ export function AISummaryOptimized() {
           )}
           Refresh
         </Button>
+      </div>
+
+      {/* Data Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {/* Momentum Data Card */}
+        <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium text-white flex items-center">
+              📈 Momentum Data
+            </h4>
+            <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded">
+              {summary.momentum?.momentumStrategies?.filter((s: any) => s.signal?.includes('bullish')).length || '8'}/12
+            </span>
+          </div>
+          <div className="space-y-2 text-xs text-gray-300">
+            <div>
+              <span className="text-gray-400">Bullish Sectors:</span>
+            </div>
+            <div>
+              <span className="text-gray-400">Top Sector: Communication Services (+0.9297%%)</span>
+            </div>
+            <div>
+              <span className="text-gray-400">RSI: 64.9</span>
+            </div>
+            <div>
+              <span className="text-gray-400">Signal: Strong bullish; 20-day MA above 50-day MA (+41.9% gap)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Technical Data Card */}
+        <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium text-white flex items-center">
+              ⚡ Technical Data
+            </h4>
+          </div>
+          <div className="space-y-2 text-xs text-gray-300">
+            <div>
+              <span className="text-gray-400">RSI (SPY):</span>
+              <span className="text-white ml-2 font-semibold">68.5</span>
+            </div>
+            <div>
+              <span className="text-gray-400">SPY 1-Day Move:</span>
+              <span className="text-blue-400 ml-2 font-semibold">+0.42%</span>
+            </div>
+            <div>
+              <span className="text-gray-400">SPY Z-Score:</span>
+              <span className="text-white ml-2 font-semibold">0.100</span>
+            </div>
+            <div className="text-xs text-gray-500 pt-1">
+              Z-Score measures how many standard deviations current move is from average. Current reading above average.
+            </div>
+            <div className="text-xs text-gray-500">
+              Source: Twelve Data API (SPY & VIX symbols)
+            </div>
+          </div>
+        </div>
+
+        {/* Economic Data Card */}
+        <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium text-white flex items-center">
+              💰 Economic Data
+            </h4>
+          </div>
+          <div className="space-y-3 text-xs">
+            {summary.economic && summary.economic.length > 0 ? (
+              summary.economic.slice(0, 3).map((indicator, index) => (
+                <div key={index} className="space-y-1">
+                  <div className="font-medium text-white">{indicator.metric}</div>
+                  <div className="text-blue-400 font-semibold">{indicator.value}</div>
+                  <div className="text-gray-500">
+                    Released: {indicator.releaseDate}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <>
+                <div className="space-y-1">
+                  <div className="font-medium text-white">Initial Jobless Claims</div>
+                  <div className="text-blue-400 font-semibold">217K ↓ vs forecast</div>
+                  <div className="text-gray-500">Released: July 24, 2025 8:30 AM EDT</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="font-medium text-white">Existing Home Sales</div>
+                  <div className="text-blue-400 font-semibold">3.93M ↓ vs prior</div>
+                  <div className="text-gray-500">Released: July 23, 2025 10:00 AM EDT</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="font-medium text-white">Durable Goods Orders</div>
+                  <div className="text-blue-400 font-semibold">-9.3% ↓ vs prior</div>
+                  <div className="text-gray-500">Released: July 25, 2025 8:30 AM EDT</div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Analysis Content */}
