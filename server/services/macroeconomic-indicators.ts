@@ -4,6 +4,7 @@
  */
 
 import { logger } from '../../shared/utils/logger';
+import { sql } from 'drizzle-orm';
 import { fredApiService, FREDIndicator } from './fred-api-service';
 import { openaiEconomicReadingsService } from './openai-economic-readings';
 
@@ -16,6 +17,8 @@ interface MacroIndicatorData {
   priorReading: number;
   varianceVsPrior: number;
   unit: string;
+  forecast?: number;
+  zScore?: number;
 }
 
 interface MacroeconomicData {
@@ -38,14 +41,13 @@ export class MacroeconomicIndicatorsService {
   }
 
   /**
-   * Get authentic FRED economic data instead of OpenAI-generated data
+   * Get authentic economic data prioritizing database cache over FRED API
    */
   async getAuthenticEconomicData(): Promise<MacroeconomicData> {
     try {
       const { cacheService } = await import('./cache-unified');
-      const { fredCacheStrategy } = await import('./fred-cache-strategy');
       
-      // Check cache first with extended TTL
+      // Check memory cache first
       const cacheKey = 'fred-economic-indicators';
       const cached = cacheService.get(cacheKey) as MacroeconomicData | null;
       if (cached) {
@@ -53,42 +55,35 @@ export class MacroeconomicIndicatorsService {
         return cached;
       }
 
-      // Import and fetch authentic data from FRED API with intelligent caching
+      // Try to get data from database first (using existing historical data)
+      const databaseData = await this.getDataFromDatabase();
+      if (databaseData && databaseData.indicators.length > 0) {
+        logger.info(`✅ Using database economic data: ${databaseData.indicators.length} indicators`);
+        
+        // Cache database result for 30 minutes
+        cacheService.set(cacheKey, databaseData, 30 * 60 * 1000);
+        return databaseData;
+      }
+
+      // Fallback to FRED API if database is empty
+      logger.info('Database empty, attempting FRED API...');
       const { fredApiService } = await import('./fred-api-service');
       const fredIndicators = await fredApiService.getKeyEconomicIndicators();
       
-      // Transform FRED data to our format using cache strategy
-      const indicators = await Promise.all(
-        fredIndicators.map(async (fredIndicator: any) => {
-          const seriesId = fredIndicator.series_id || fredIndicator.title?.replace(/[^A-Z0-9]/g, '');
-          
-          // Try to get cached current reading first
-          let currentReading = fredIndicator.current_value;
-          let priorReading = fredIndicator.previous_value;
-          
-          // Use intelligent caching for YoY calculations if needed
-          if (fredIndicator.title?.includes('(YoY)')) {
-            const yoyCalc = await fredCacheStrategy.getYoYCalculation(seriesId);
-            if (yoyCalc) {
-              currentReading = yoyCalc.yoy_percent;
-            }
-          }
-          
-          return {
-            metric: fredIndicator.title,
-            type: fredIndicator.type,
-            category: fredIndicator.category,
-            releaseDate: fredIndicator.last_updated,
-            currentReading: this.parseNumber(currentReading) || 0,
-            priorReading: this.parseNumber(priorReading) || 0,
-            varianceVsPrior: fredIndicator.change || 0,
-            unit: fredIndicator.units || ''
-          };
-        })
-      );
+      // Transform FRED data to our format
+      const indicators = fredIndicators.map((fredIndicator: any) => ({
+        metric: fredIndicator.title,
+        type: fredIndicator.type,
+        category: fredIndicator.category,
+        releaseDate: fredIndicator.last_updated,
+        currentReading: this.parseNumber(fredIndicator.current_value) || 0,
+        priorReading: this.parseNumber(fredIndicator.previous_value) || 0,
+        varianceVsPrior: fredIndicator.change || 0,
+        unit: fredIndicator.units || ''
+      }));
 
       // Generate AI summary of authentic data
-      const aiSummary = await this.generateFredAISummary(fredIndicators);
+      const aiSummary = await this.generateFredAISummary(fredIndicators).catch(() => 'Economic data available from FRED API.');
       
       const data: MacroeconomicData = {
         indicators,
@@ -97,18 +92,99 @@ export class MacroeconomicIndicatorsService {
         source: 'Federal Reserve Economic Data (FRED)'
       };
 
-      // Cache for 24 hours using extended TTL configuration
+      // Cache for 24 hours
       cacheService.set(cacheKey, data, 24 * 60 * 60 * 1000);
       
-      logger.info(`✅ FRED economic data updated: ${indicators.length} authentic indicators with intelligent caching`);
+      logger.info(`✅ FRED API economic data updated: ${indicators.length} authentic indicators`);
       return data;
 
     } catch (error) {
-      logger.error('Failed to fetch FRED economic data:', error);
+      logger.error('Failed to fetch economic data from database and FRED API:', error);
       
-      // Fallback to OpenAI data if FRED fails (but prefer authentic data)
-      logger.warn('FRED service failed, falling back to OpenAI-generated data');
+      // Final fallback to OpenAI data
+      logger.warn('All authentic sources failed, falling back to OpenAI-generated data');
       return this.getMacroeconomicData();
+    }
+  }
+
+  /**
+   * Get economic data from the database cache
+   */
+  private async getDataFromDatabase(): Promise<MacroeconomicData | null> {
+    try {
+      const { db } = await import('../db');
+      
+      // Query the economic_indicators_history table directly
+      const latestData = await db.execute(sql`
+        SELECT series_id, metric_name, value, prior_value, period_date, release_date, 
+               type, category, unit
+        FROM economic_indicators_history 
+        WHERE period_date >= '2025-05-01'
+        ORDER BY period_date DESC
+      `);
+      
+      if (!latestData.rows || latestData.rows.length === 0) {
+        logger.debug('No recent database data found');
+        return null;
+      }
+      
+      logger.info(`📊 Found ${latestData.rows.length} database records for economic indicators`);
+
+      // Group by series_id and get latest for each
+      const latestByIndicator = new Map();
+      for (const record of latestData.rows) {
+        if (!latestByIndicator.has(record.series_id)) {
+          latestByIndicator.set(record.series_id, record);
+        }
+      }
+
+      const indicators = Array.from(latestByIndicator.values()).map((record: any) => {
+        // Calculate variance vs prior if we have prior_value
+        const currentReading = parseFloat(String(record.value)) || 0;
+        const priorReading = parseFloat(String(record.prior_value)) || 0;
+        const varianceVsPrior = priorReading !== 0 ? currentReading - priorReading : 0;
+
+        return {
+          metric: record.metric_name,
+          type: record.type || 'Lagging',
+          category: record.category || 'Growth',
+          releaseDate: record.release_date || record.period_date,
+          currentReading,
+          priorReading,
+          varianceVsPrior,
+          unit: record.unit || ''
+        };
+      });
+
+      // Generate AI summary from database data
+      const aiSummary = await this.generateDatabaseAISummary(indicators);
+
+      return {
+        indicators,
+        aiSummary,
+        lastUpdated: new Date().toISOString(),
+        source: 'Database Cache (Historical Economic Data)'
+      };
+
+    } catch (error) {
+      logger.error('Failed to get data from database:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Generate AI summary from database indicators
+   */
+  private async generateDatabaseAISummary(indicators: any[]): Promise<string> {
+    try {
+      const keyMetrics = indicators.slice(0, 6).map(ind => 
+        `${ind.metric}: ${ind.currentReading}${ind.unit}`
+      ).join(', ');
+
+      return `Economic Overview: ${keyMetrics}. Data sourced from historical database with ${indicators.length} indicators showing current economic conditions.`;
+    } catch (error) {
+      logger.error('Failed to generate database AI summary:', error);
+      return 'Economic data available from database cache.';
     }
   }
 
