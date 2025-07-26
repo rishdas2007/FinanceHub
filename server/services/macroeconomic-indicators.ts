@@ -169,7 +169,7 @@ export class MacroeconomicIndicatorsService {
         const varianceVsPrior = priorReading !== 0 ? currentReading - priorReading : 0;
 
         // Format unit and numbers according to specifications
-        let unit = record.unit || '';
+        let unit = String(record.unit || '');
         let formattedCurrent = currentReading;
         let formattedPrior = priorReading;
         let formattedVariance = varianceVsPrior;
@@ -179,6 +179,8 @@ export class MacroeconomicIndicatorsService {
           unit = '%';
         } else if (unit.includes('thousands')) {
           unit = 'K';
+        } else if (unit.includes('index')) {
+          unit = ''; // Don't display "index" in the output
         }
 
         // Apply number formatting with thousands separators and negative formatting
@@ -299,7 +301,7 @@ export class MacroeconomicIndicatorsService {
           releaseDate: event.releaseDate || new Date().toISOString(),
           currentReading: this.normalizeValue(rawCurrent, event.metric),
           forecast: this.normalizeValue(rawForecast, event.metric),
-          varianceVsForecast: rawVariance,
+          // varianceVsForecast: rawVariance,
           priorReading: this.normalizeValue(rawPrior, event.metric),
           varianceVsPrior: rawCurrent - rawPrior,
           zScore: parseFloat(event.zScore) || (Math.random() - 0.5) * 4,
@@ -628,7 +630,7 @@ export class MacroeconomicIndicatorsService {
         releaseDate: "2025-07-26",
         currentReading: 2.1,
         forecast: 2.3,
-        varianceVsForecast: -0.2,
+        // // varianceVsForecast: -0.2,
         priorReading: 1.8,
         varianceVsPrior: 0.3,
         zScore: -0.4,
@@ -643,7 +645,7 @@ export class MacroeconomicIndicatorsService {
         releaseDate: "2025-07-25",
         currentReading: 2.9,
         forecast: 2.8,
-        varianceVsForecast: 0.1,
+        // // varianceVsForecast: 0.1,
         priorReading: 3.1,
         varianceVsPrior: -0.2,
         zScore: 0.6,
@@ -658,7 +660,7 @@ export class MacroeconomicIndicatorsService {
         releaseDate: "2025-07-24",
         currentReading: 3.8,
         forecast: 3.9,
-        varianceVsForecast: -0.1,
+        // // varianceVsForecast: -0.1,
         priorReading: 3.9,
         varianceVsPrior: -0.1,
         zScore: -0.8,
@@ -673,7 +675,7 @@ export class MacroeconomicIndicatorsService {
         releaseDate: "2025-07-25",
         currentReading: 217,
         forecast: 220,
-        varianceVsForecast: -3,
+        // varianceVsForecast: -3,
         priorReading: 221,
         varianceVsPrior: -4,
         zScore: -0.5,
@@ -688,7 +690,7 @@ export class MacroeconomicIndicatorsService {
         releaseDate: "2025-07-23",
         currentReading: 49.2,
         forecast: 50.1,
-        varianceVsForecast: -0.9,
+        // varianceVsForecast: -0.9,
         priorReading: 48.8,
         varianceVsPrior: 0.4,
         zScore: -1.2,
@@ -703,7 +705,7 @@ export class MacroeconomicIndicatorsService {
         releaseDate: "2025-07-22",
         currentReading: 102.8,
         forecast: 103.5,
-        varianceVsForecast: -0.7,
+        // varianceVsForecast: -0.7,
         priorReading: 101.9,
         varianceVsPrior: 0.9,
         zScore: 0.3,

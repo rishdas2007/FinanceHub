@@ -31,7 +31,8 @@ const MacroFormatUtils = {
     
     // If value is already a formatted string (from backend), return it with unit
     if (typeof value === 'string') {
-      return unit ? `${value}${unit}` : value;
+      // Don't add unit if it's empty or if the value already contains unit info
+      return (unit && unit !== '' && !value.includes('%') && !value.includes('K')) ? `${value}${unit}` : value;
     }
     
     if (isNaN(value as number)) return 'N/A';
