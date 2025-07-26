@@ -26,6 +26,123 @@ interface MacroData {
   source: string;
 }
 
+// Enhanced formatting utilities for economic indicators
+const MacroFormatUtils = {
+  /**
+   * Format economic indicator value with proper units and spacing
+   */
+  formatIndicatorValue: (value: number | null, metric: string, unit?: string): string => {
+    if (value === null || value === undefined || isNaN(value)) return 'N/A';
+
+    const metricLower = metric.toLowerCase();
+    
+    // Use unit from data if provided and clean
+    if (unit && unit !== '' && unit !== 'N/A') {
+      switch (unit.toLowerCase()) {
+        case '%':
+          return `${MacroFormatUtils.formatNumber(value, 1)}%`;
+        case 'k':
+          // Avoid double-scaling
+          if (value > 100000) {
+            return `${MacroFormatUtils.formatNumber(value / 1000, 0)}K`;
+          }
+          return `${MacroFormatUtils.formatNumber(value, 0)}K`;
+        case 'k units':
+          return `${MacroFormatUtils.formatNumber(value, 1)}K Units`;
+        case 'index':
+          return MacroFormatUtils.formatNumber(value, 1);
+        case 'm':
+          return `${MacroFormatUtils.formatNumber(value, 1)}M`;
+        default:
+          return `${MacroFormatUtils.formatNumber(value, 1)} ${unit}`;
+      }
+    }
+    
+    // Context-aware formatting based on metric name
+    if (metricLower.includes('rate') || metricLower.includes('cpi') || metricLower.includes('growth') || metricLower.includes('inflation')) {
+      return `${MacroFormatUtils.formatNumber(value, 1)}%`;
+    }
+    
+    if (metricLower.includes('payroll') || metricLower.includes('jobless') || metricLower.includes('claims')) {
+      return MacroFormatUtils.formatLargeNumber(value);
+    }
+    
+    if (metricLower.includes('pmi') || metricLower.includes('confidence') || metricLower.includes('index')) {
+      return MacroFormatUtils.formatNumber(value, 1);
+    }
+    
+    if (metricLower.includes('housing') || metricLower.includes('starts') || metricLower.includes('permits') || metricLower.includes('sales')) {
+      if (value < 10000) {
+        return `${MacroFormatUtils.formatNumber(value, 1)}K Units`;
+      } else {
+        return `${MacroFormatUtils.formatNumber(value / 1000, 1)}K Units`;
+      }
+    }
+    
+    if (metricLower.includes('durable') && metricLower.includes('orders')) {
+      return `${MacroFormatUtils.formatNumber(value, 1)}%`;
+    }
+    
+    return MacroFormatUtils.formatNumber(value, 2);
+  },
+
+  /**
+   * Format variance with appropriate sign and units
+   */
+  formatVariance: (variance: number, metric: string, unit?: string): string => {
+    if (variance === 0) return '0';
+    
+    const sign = variance > 0 ? '+' : '';
+    const absVariance = Math.abs(variance);
+    const metricLower = metric.toLowerCase();
+    
+    if (metricLower.includes('rate') || metricLower.includes('cpi') || (unit && unit === '%')) {
+      return `${sign}${MacroFormatUtils.formatNumber(absVariance, 1)}%`;
+    }
+    
+    if (metricLower.includes('payroll') || metricLower.includes('jobless') || metricLower.includes('claims')) {
+      return `${sign}${MacroFormatUtils.formatLargeNumber(absVariance)}`;
+    }
+    
+    if (metricLower.includes('housing') || metricLower.includes('starts') || metricLower.includes('permits')) {
+      return `${sign}${MacroFormatUtils.formatNumber(absVariance, 0)} Units`;
+    }
+    
+    return `${sign}${MacroFormatUtils.formatNumber(absVariance, 1)}`;
+  },
+
+  /**
+   * Format number with specified decimal places, removing trailing zeros
+   */
+  formatNumber: (value: number, decimals: number): string => {
+    return value.toFixed(decimals).replace(/\.0+$/, '');
+  },
+
+  /**
+   * Format large numbers with K/M notation
+   */
+  formatLargeNumber: (value: number): string => {
+    if (Math.abs(value) >= 1000000) {
+      return `${MacroFormatUtils.formatNumber(value / 1000000, 1)}M`;
+    } else if (Math.abs(value) >= 1000) {
+      return `${MacroFormatUtils.formatNumber(value / 1000, 0)}K`;
+    }
+    return MacroFormatUtils.formatNumber(value, 0);
+  },
+
+  /**
+   * Format date consistently
+   */
+  formatDate: (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+};
+
 const MacroeconomicIndicators: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('Growth');
   const [searchTerm, setSearchTerm] = useState('');
@@ -199,13 +316,13 @@ const MacroeconomicIndicators: React.FC = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-gray-400 text-sm">Current:</span>
                     <span className="text-white font-semibold">
-                      {indicator.currentReading.toFixed(1)}{indicator.unit}
+                      {MacroFormatUtils.formatIndicatorValue(indicator.currentReading, indicator.metric, indicator.unit)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-400 text-sm">vs Forecast:</span>
                     <span className={`font-medium ${getVarianceColor(indicator.varianceVsForecast)}`}>
-                      {indicator.varianceVsForecast > 0 ? '+' : ''}{indicator.varianceVsForecast.toFixed(1)}{indicator.unit}
+                      {MacroFormatUtils.formatVariance(indicator.varianceVsForecast, indicator.metric, indicator.unit)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -309,22 +426,22 @@ const MacroeconomicIndicators: React.FC = () => {
                       </span>
                     </td>
                     <td className="text-right py-3 px-2 text-white font-semibold">
-                      {indicator.currentReading.toFixed(1)}{indicator.unit}
+                      {MacroFormatUtils.formatIndicatorValue(indicator.currentReading, indicator.metric, indicator.unit)}
                     </td>
                     <td className={`text-right py-3 px-2 font-medium ${getVarianceColor(indicator.varianceVsForecast)}`}>
-                      {indicator.varianceVsForecast > 0 ? '+' : ''}{indicator.varianceVsForecast.toFixed(1)}
+                      {MacroFormatUtils.formatVariance(indicator.varianceVsForecast, indicator.metric, indicator.unit)}
                     </td>
                     <td className={`text-right py-3 px-2 font-medium ${getVarianceColor(indicator.varianceVsPrior)}`}>
-                      {indicator.varianceVsPrior > 0 ? '+' : ''}{indicator.varianceVsPrior.toFixed(1)}
+                      {MacroFormatUtils.formatVariance(indicator.varianceVsPrior, indicator.metric, indicator.unit)}
                     </td>
                     <td className={`text-right py-3 px-2 font-medium ${
                       Math.abs(indicator.zScore) > 2 ? 'text-red-400' :
                       Math.abs(indicator.zScore) > 1.5 ? 'text-orange-400' : 'text-gray-300'
                     }`}>
-                      {indicator.zScore.toFixed(2)}
+                      {MacroFormatUtils.formatNumber(indicator.zScore, 2)}
                     </td>
                     <td className={`text-right py-3 px-2 font-medium ${getVarianceColor(indicator.twelveMonthYoY)}`}>
-                      {indicator.twelveMonthYoY > 0 ? '+' : ''}{indicator.twelveMonthYoY.toFixed(1)}%
+                      {MacroFormatUtils.formatVariance(indicator.twelveMonthYoY, 'year over year', '%')}
                     </td>
                   </tr>
                 ))}

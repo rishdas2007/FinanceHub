@@ -36,9 +36,9 @@ class OpenAIEconomicReadingsService {
       const prompt = `Based on the recent economic data search results, generate 6 real-time economic indicators with official release dates:
 
       PRIORITY REAL DATA WITH RELEASE DATES (use exact figures if available from search):
-      1. Initial Jobless Claims: Latest reading 217,000 for week ending July 19, 2025 
+      1. Initial Jobless Claims: Latest reading 217K for week ending July 19, 2025 
          RELEASE DATE: July 24, 2025 at 8:30 AM EDT (Department of Labor)
-      2. Existing Home Sales: Latest reading 3.93 million SAAR for June 2025 
+      2. Existing Home Sales: Latest reading 3.93M SAAR for June 2025 
          RELEASE DATE: July 23, 2025 at 10:00 AM EDT (National Association of Realtors)
       3. Durable Goods Orders: Latest reading -9.3% decrease in June 2025 
          RELEASE DATE: July 25, 2025 at 8:30 AM EDT (U.S. Census Bureau)
@@ -52,10 +52,16 @@ class OpenAIEconomicReadingsService {
 
       For each indicator, provide:
       - metric: Full name of the economic indicator
-      - current: The actual reading with units (%, K for thousands, M for millions)
-      - forecast: The consensus forecast value with same units
-      - variance: The difference (Actual - Forecast) with units
-      - prior: The previous period's reading with units
+      - current: The actual reading with SCALED units (use 217K not 217000, use 3.9M not 3900000)
+      - forecast: The consensus forecast value with same SCALED units
+      - variance: The difference (Actual - Forecast) with same SCALED units
+      - prior: The previous period's reading with same SCALED units
+      
+      CRITICAL SCALING RULES:
+      - Employment data: Use K format (217K, not 217000 or 217,000)
+      - Housing data: Use M format (3.9M, not 3900000 or 3,900,000) 
+      - Percentages: Use % format (-9.3%, not -9.3)
+      - Index values: Use plain numbers (49.2, not 49.2 index)
       - type: Either "Leading", "Coincident", or "Lagging"  
       - lastUpdated: The official release date (format: YYYY-MM-DDTHH:mm:ss.sssZ)
       - releaseDate: Human-readable release date (e.g., "July 24, 2025 8:30 AM EDT")

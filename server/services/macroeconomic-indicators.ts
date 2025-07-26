@@ -49,7 +49,7 @@ export class MacroeconomicIndicatorsService {
       const { cacheService } = await import('./cache-unified');
       
       // Check cache first
-      const cached = cacheService.get(this.CACHE_KEY);
+      const cached = cacheService.get(this.CACHE_KEY) as MacroeconomicData | null;
       if (cached) {
         logger.debug('Returning cached macroeconomic data');
         return cached;
@@ -73,7 +73,7 @@ export class MacroeconomicIndicatorsService {
       return data;
 
     } catch (error) {
-      logger.error('Failed to fetch macroeconomic data', { error });
+      logger.error('Failed to fetch macroeconomic data', String(error));
       
       // Return fallback data
       return this.getFallbackData();
@@ -89,27 +89,34 @@ export class MacroeconomicIndicatorsService {
       const { openaiEconomicReadingsService } = await import('./openai-economic-readings');
       const economicEvents = await openaiEconomicReadingsService.generateEconomicReadings();
       
-      // Transform to macro indicators format
-      const indicators = economicEvents.slice(0, 12).map((event: any, index: number) => ({
-        metric: event.metric || `Economic Indicator ${index + 1}`,
-        type: this.determineIndicatorType(event.metric),
-        category: this.categorizeIndicator(event.metric),
-        releaseDate: event.releaseDate || new Date().toISOString(),
-        currentReading: this.parseNumber(event.current) || Math.random() * 100,
-        forecast: this.parseNumber(event.forecast) || Math.random() * 100,
-        varianceVsForecast: this.parseNumber(event.variance) || 0,
-        priorReading: this.parseNumber(event.prior) || Math.random() * 100,
-        varianceVsPrior: 0,
-        zScore: parseFloat(event.zScore) || (Math.random() - 0.5) * 4,
-        threeMonthAnnualized: Math.random() * 10 - 5,
-        twelveMonthYoY: Math.random() * 8 - 4,
-        unit: this.determineUnit(event.metric)
-      }));
+      // Transform to macro indicators format with proper scaling
+      const indicators = economicEvents.slice(0, 12).map((event: any, index: number) => {
+        const rawCurrent = this.parseNumber(event.current) || Math.random() * 100;
+        const rawForecast = this.parseNumber(event.forecast) || Math.random() * 100;
+        const rawPrior = this.parseNumber(event.prior) || Math.random() * 100;
+        const rawVariance = this.parseNumber(event.variance) || 0;
+        
+        return {
+          metric: event.metric || `Economic Indicator ${index + 1}`,
+          type: this.determineIndicatorType(event.metric),
+          category: this.categorizeIndicator(event.metric),
+          releaseDate: event.releaseDate || new Date().toISOString(),
+          currentReading: this.normalizeValue(rawCurrent, event.metric),
+          forecast: this.normalizeValue(rawForecast, event.metric),
+          varianceVsForecast: rawVariance,
+          priorReading: this.normalizeValue(rawPrior, event.metric),
+          varianceVsPrior: rawCurrent - rawPrior,
+          zScore: parseFloat(event.zScore) || (Math.random() - 0.5) * 4,
+          threeMonthAnnualized: Math.random() * 10 - 5,
+          twelveMonthYoY: Math.random() * 8 - 4,
+          unit: this.normalizeUnit(event.metric)
+        };
+      });
 
       return indicators.length > 0 ? indicators : this.getFallbackIndicators();
       
     } catch (error) {
-      logger.error('Failed to fetch indicators from economic service', { error });
+      logger.error('Failed to fetch indicators from economic service', String(error));
       return this.getFallbackIndicators();
     }
   }
@@ -130,22 +137,157 @@ export class MacroeconomicIndicatorsService {
       return summary;
       
     } catch (error) {
-      logger.error('Failed to generate AI summary', { error });
+      logger.error('Failed to generate AI summary', String(error));
       return 'Economic analysis temporarily unavailable. Macroeconomic indicators are being monitored for key trends in growth, inflation, and monetary policy conditions.';
     }
   }
 
   /**
-   * Parse numeric values from strings
+   * Parse numeric values from strings, intelligently handling units and scaling
    */
   private parseNumber(value: any): number | null {
     if (typeof value === 'number') return value;
     if (typeof value === 'string') {
-      const cleaned = value.replace(/[,%$]/g, '');
-      const parsed = parseFloat(cleaned);
-      return isNaN(parsed) ? null : parsed;
+      const stringValue = value.trim();
+      if (stringValue === '' || stringValue === 'N/A') return null;
+      
+      // Remove commas and extract numeric part
+      const cleanValue = stringValue.replace(/,/g, '');
+      const numericPart = cleanValue.replace(/[^\d.-]/g, '');
+      const parsed = parseFloat(numericPart);
+      
+      if (isNaN(parsed)) return null;
+      
+      // If the value already has K/M notation, don't scale further
+      // Return the numeric part as-is since it represents the intended display value
+      if (cleanValue.toUpperCase().includes('K') || cleanValue.toUpperCase().includes('M')) {
+        return parsed;
+      }
+      
+      return parsed;
     }
     return null;
+  }
+
+  /**
+   * Format economic value with proper units and spacing
+   */
+  private formatEconomicValue(value: number | null, metric: string, unit?: string): string {
+    if (value === null || value === undefined || isNaN(value)) return 'N/A';
+
+    // Use provided unit if available and valid
+    if (unit && unit !== '' && unit !== 'N/A') {
+      return this.formatWithUnit(value, unit, metric);
+    }
+
+    // Context-aware formatting based on metric name
+    const metricLower = metric.toLowerCase();
+    
+    // Percentage-based indicators
+    if (metricLower.includes('rate') || 
+        metricLower.includes('cpi') || 
+        metricLower.includes('inflation') ||
+        metricLower.includes('yield') ||
+        metricLower.includes('mom') ||
+        metricLower.includes('growth') ||
+        metricLower.includes('change')) {
+      return `${this.formatNumber(value, 1)}%`;
+    }
+    
+    // Employment indicators (in thousands)
+    if (metricLower.includes('payroll') || 
+        metricLower.includes('jobless') || 
+        metricLower.includes('claims')) {
+      return this.formatLargeNumber(value);
+    }
+    
+    // Housing indicators (in thousands of units)
+    if (metricLower.includes('housing') || 
+        metricLower.includes('starts') || 
+        metricLower.includes('permits') ||
+        metricLower.includes('sales')) {
+      // Check if value is already in thousands
+      if (value < 10000) {
+        return `${this.formatNumber(value, 1)}K Units`;
+      } else {
+        return `${this.formatNumber(value / 1000, 1)}K Units`;
+      }
+    }
+    
+    // Index-based indicators (no unit, just the number)
+    if (metricLower.includes('pmi') || 
+        metricLower.includes('confidence') || 
+        metricLower.includes('index')) {
+      return this.formatNumber(value, 1);
+    }
+    
+    // Durable goods orders (percentage)
+    if (metricLower.includes('durable') && metricLower.includes('orders')) {
+      return `${this.formatNumber(value, 1)}%`;
+    }
+    
+    // Federal funds rate (percentage)
+    if (metricLower.includes('federal') && metricLower.includes('funds')) {
+      return `${this.formatNumber(value, 2)}%`;
+    }
+    
+    // Default: return number with appropriate scaling
+    return this.formatLargeNumber(value);
+  }
+
+  /**
+   * Format value with specific unit, handling edge cases
+   */
+  private formatWithUnit(value: number, unit: string, metric: string): string {
+    const unitLower = unit.toLowerCase();
+    
+    switch (unitLower) {
+      case '%':
+      case 'percent':
+        return `${this.formatNumber(value, 1)}%`;
+        
+      case 'k':
+        // Avoid double-scaling: if value is already in thousands, don't divide again
+        if (value > 100000) {
+          return `${this.formatNumber(value / 1000, 0)}K`;
+        }
+        return `${this.formatNumber(value, 0)}K`;
+        
+      case 'k units':
+        return `${this.formatNumber(value, 1)}K Units`;
+        
+      case 'm':
+        return `${this.formatNumber(value, 1)}M`;
+        
+      case 'index':
+        return this.formatNumber(value, 1);
+        
+      case 'points':
+        return `${this.formatNumber(value, 1)} pts`;
+        
+      default:
+        // For unknown units, return number + space + unit
+        return `${this.formatNumber(value, 1)} ${unit}`;
+    }
+  }
+
+  /**
+   * Format number with specified decimal places
+   */
+  private formatNumber(value: number, decimals: number): string {
+    return value.toFixed(decimals).replace(/\.0+$/, '');
+  }
+
+  /**
+   * Format large numbers with K/M notation
+   */
+  private formatLargeNumber(value: number): string {
+    if (Math.abs(value) >= 1000000) {
+      return `${this.formatNumber(value / 1000000, 1)}M`;
+    } else if (Math.abs(value) >= 1000) {
+      return `${this.formatNumber(value / 1000, 0)}K`;
+    }
+    return this.formatNumber(value, 0);
   }
 
   /**
@@ -179,17 +321,57 @@ export class MacroeconomicIndicatorsService {
   }
 
   /**
-   * Determine appropriate unit for indicator
+   * Normalize unit for proper formatting
    */
-  private determineUnit(indicator: string): string {
-    if (!indicator) return 'Index';
+  private normalizeUnit(indicator: string): string {
+    if (!indicator) return '';
     const lower = indicator.toLowerCase();
     
-    if (lower.includes('rate') || lower.includes('cpi') || lower.includes('%')) return '%';
+    if (lower.includes('rate') || lower.includes('cpi') || lower.includes('growth') || lower.includes('inflation')) return '%';
     if (lower.includes('payroll') || lower.includes('claims') || lower.includes('jobs')) return 'K';
     if (lower.includes('permits') || lower.includes('starts') || lower.includes('sales')) return 'K Units';
+    if (lower.includes('pmi') || lower.includes('confidence') || lower.includes('index')) return '';
+    if (lower.includes('durable') && lower.includes('orders')) return '%';
     if (lower.includes('gdp') || lower.includes('spending')) return '$B';
-    return 'Index';
+    return '';
+  }
+
+  /**
+   * Normalize values to proper scale for display
+   */
+  private normalizeValue(value: number, metric: string): number {
+    if (!metric) return value;
+    const lower = metric.toLowerCase();
+    
+    // Employment indicators - scale to thousands
+    if (lower.includes('payroll') || lower.includes('claims') || lower.includes('jobs')) {
+      // Values from OpenAI often come in actual units, scale to thousands
+      if (value > 10000) {
+        return Math.round(value / 1000);
+      }
+      return Math.round(value);
+    }
+    
+    // Housing indicators - scale to thousands of units
+    if (lower.includes('permits') || lower.includes('starts') || lower.includes('sales')) {
+      // Housing values often come in millions, scale to thousands for display
+      if (value > 10000) {
+        return Math.round(value / 1000 * 10) / 10; // Round to 1 decimal
+      }
+      return Math.round(value * 10) / 10;
+    }
+    
+    // Percentage indicators - keep as-is or ensure proper scaling
+    if (lower.includes('rate') || lower.includes('cpi') || lower.includes('growth') || lower.includes('inflation')) {
+      return Math.round(value * 10) / 10;
+    }
+    
+    // Index/PMI indicators - round to 1 decimal
+    if (lower.includes('pmi') || lower.includes('confidence') || lower.includes('index')) {
+      return Math.round(value * 10) / 10;
+    }
+    
+    return Math.round(value * 10) / 10;
   }
 
   /**
