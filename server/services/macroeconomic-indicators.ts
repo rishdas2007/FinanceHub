@@ -52,11 +52,12 @@ export class MacroeconomicIndicatorsService {
         return cached;
       }
 
-      // Fetch authentic data from FRED API
+      // Import and fetch authentic data from FRED API
+      const { fredApiService } = await import('./fred-api-service');
       const fredIndicators = await fredApiService.getKeyEconomicIndicators();
       
       // Transform FRED data to our format - the FRED service now handles proper formatting
-      const indicators = fredIndicators.map((fredIndicator: FREDIndicator) => {
+      const indicators = fredIndicators.map((fredIndicator: any) => {
         // Use the already formatted values from FRED service instead of re-parsing
         // The FRED service handles proper formatting for display
         return {
@@ -68,7 +69,7 @@ export class MacroeconomicIndicatorsService {
           currentReading: this.parseNumber(fredIndicator.current_value) || 0,
           priorReading: this.parseNumber(fredIndicator.previous_value) || 0,
           varianceVsPrior: fredIndicator.change || 0,
-          unit: this.extractUnit(fredIndicator.current_value)
+          unit: fredIndicator.units || ''
         };
       });
 
@@ -612,7 +613,17 @@ export class MacroeconomicIndicatorsService {
     }
   }
 
-
+  /**
+   * Extract unit from formatted value string
+   */
+  private extractUnit(formattedValue: string | number): string {
+    const str = String(formattedValue);
+    if (str.includes('%')) return '%';
+    if (str.includes('B')) return 'B';
+    if (str.includes('M')) return 'M';  
+    if (str.includes('K')) return 'K';
+    return '';
+  }
 }
 
 export const macroeconomicIndicatorsService = MacroeconomicIndicatorsService.getInstance();
