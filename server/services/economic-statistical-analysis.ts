@@ -1,5 +1,6 @@
 import { db } from '../db';
 import { sql } from 'drizzle-orm';
+import { economicStatisticalAlerts } from '../../shared/schema';
 
 interface StatisticalData {
   metric: string;
@@ -38,6 +39,19 @@ interface AnalysisResults {
   [category: string]: CategoryAnalysis;
 }
 
+interface AlertMetric {
+  metric: string;
+  category: string;
+  currentValue: number;
+  mean: number;
+  std: number;
+  zScore: number;
+  trend: string;
+  alertType: string;
+  periodStartDate: string;
+  periodEndDate: string;
+}
+
 const log = {
   info: (msg: string, ...args: any[]) => console.log(`[INFO] ${msg}`, ...args),
   error: (msg: string, ...args: any[]) => console.error(`[ERROR] ${msg}`, ...args)
@@ -62,12 +76,15 @@ export class EconomicStatisticalAnalysisService {
 
       log.info(`✅ Fetched ${economicData.length} economic data points from database`);
 
-      // Perform statistical analysis
-      const analysisResults = this.analyzeEconomicData(economicData);
+      // Perform statistical analysis on all data
+      const fullAnalysisResults = this.analyzeEconomicData(economicData);
       
-      log.info(`✅ Statistical analysis completed for ${Object.keys(analysisResults).length} categories`);
+      // Store all statistics to database and filter for alerts (>1 std dev)
+      const alertResults = await this.processAlertsAndFilter(fullAnalysisResults);
       
-      return analysisResults;
+      log.info(`✅ Statistical analysis completed for ${Object.keys(fullAnalysisResults).length} categories, showing ${Object.keys(alertResults).reduce((count, cat) => count + Object.keys(alertResults[cat]).length, 0)} alert metrics`);
+      
+      return alertResults;
     } catch (error) {
       log.error('❌ Error performing statistical analysis:', error);
       return {};
@@ -91,18 +108,13 @@ export class EconomicStatisticalAnalysisService {
       `;
       
       const results = await db.execute(query);
-      log.info(`📊 Raw query results type: ${typeof results}, length: ${results?.length}`);
+      log.info(`📊 Raw query results type: ${typeof results}`);
       
-      // Handle different result formats from Drizzle
-      let rows;
-      if (Array.isArray(results)) {
-        rows = results;
-      } else if (results && results.rows) {
-        rows = results.rows;
-      } else if (results && Array.isArray(results.data)) {
-        rows = results.data;
-      } else {
-        log.error('❌ Unexpected result format:', results);
+      // Handle Drizzle query result format
+      const rows = (results as any).rows || (results as any) || [];
+      
+      if (!Array.isArray(rows)) {
+        log.error('❌ Query results not in expected array format');
         return [];
       }
 
@@ -121,6 +133,81 @@ export class EconomicStatisticalAnalysisService {
     }
   }
 
+  private async processAlertsAndFilter(fullResults: AnalysisResults): Promise<AnalysisResults> {
+    try {
+      // Clear existing alerts
+      await db.execute(sql`DELETE FROM economic_statistical_alerts WHERE is_active = true`);
+      
+      const alertResults: AnalysisResults = {};
+      const alertsToInsert: AlertMetric[] = [];
+
+      // Process each category and metric
+      for (const [category, categoryAnalysis] of Object.entries(fullResults)) {
+        for (const [metric, analysis] of Object.entries(categoryAnalysis)) {
+          const stats = analysis.statistics;
+          
+          if (stats.mean !== null && stats.std !== null && stats.end_value !== null) {
+            // Calculate z-score for current (end) value
+            const zScore = (stats.end_value - stats.mean) / stats.std;
+            const absZScore = Math.abs(zScore);
+            
+            // Store all metrics to database
+            const alertMetric: AlertMetric = {
+              metric,
+              category,
+              currentValue: stats.end_value,
+              mean: stats.mean,
+              std: stats.std,
+              zScore,
+              trend: analysis.trend,
+              alertType: this.getAlertType(zScore),
+              periodStartDate: stats.period_start_date,
+              periodEndDate: stats.period_end_date
+            };
+            
+            alertsToInsert.push(alertMetric);
+            
+            // Only include in results if >1 standard deviation from mean
+            if (absZScore > 1.0) {
+              if (!alertResults[category]) {
+                alertResults[category] = {};
+              }
+              alertResults[category][metric] = analysis;
+              log.info(`🚨 Alert: ${metric} (${category}) - Z-Score: ${zScore.toFixed(2)} (${absZScore > 2 ? 'EXTREME' : 'MODERATE'} deviation)`);
+            }
+          }
+        }
+      }
+
+      // Insert all alerts to database
+      if (alertsToInsert.length > 0) {
+        for (const alert of alertsToInsert) {
+          await db.execute(sql`
+            INSERT INTO economic_statistical_alerts 
+            (metric_name, category, current_value, mean, std, z_score, trend, alert_type, period_start_date, period_end_date)
+            VALUES (${alert.metric}, ${alert.category}, ${alert.currentValue}, ${alert.mean}, ${alert.std}, ${alert.zScore}, ${alert.trend}, ${alert.alertType}, ${alert.periodStartDate}, ${alert.periodEndDate})
+          `);
+        }
+        log.info(`💾 Stored ${alertsToInsert.length} statistical analyses to database`);
+      }
+
+      return alertResults;
+    } catch (error) {
+      log.error('❌ Error processing alerts and filtering:', error);
+      return fullResults; // Return all results if alert processing fails
+    }
+  }
+
+  private getAlertType(zScore: number): string {
+    const abs = Math.abs(zScore);
+    if (abs > 2) {
+      return zScore > 0 ? 'above_2std' : 'below_2std';
+    } else if (abs > 1) {
+      return zScore > 0 ? 'above_1std' : 'below_1std';
+    }
+    return 'normal';
+  }
+
   private analyzeEconomicData(economicData: StatisticalData[]): AnalysisResults {
     const scriptAnalysisResults: AnalysisResults = {};
 
@@ -130,7 +217,7 @@ export class EconomicStatisticalAnalysisService {
       scriptAnalysisResults[category] = {};
 
       // Get unique metrics for this category
-      const uniqueMetrics = [...new Set(categoryData.map(row => row.metric))];
+      const uniqueMetrics = Array.from(new Set(categoryData.map(row => row.metric)));
 
       for (const metric of uniqueMetrics) {
         const metricData = categoryData

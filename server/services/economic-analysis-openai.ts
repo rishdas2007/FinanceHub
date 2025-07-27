@@ -79,7 +79,7 @@ export class EconomicAnalysisOpenAIService {
             content: prompt
           }
         ],
-        max_tokens: 800,
+        max_tokens: 500,
         temperature: 0.3,
         response_format: { type: "text" }
       });
@@ -112,12 +112,15 @@ ${JSON.stringify(this.analysisInstructions.contextual_data_schema, null, 2)}
 Statistical Data for Analysis (${dataCount} metrics across ${Object.keys(statisticalData).length} categories):
 ${JSON.stringify(statisticalData, null, 2)}
 
-Please provide a comprehensive economic analysis based on the statistical data above, following the analysis instructions. Focus on:
-1. Category-specific trends and anomalies
-2. Cross-category economic health synthesis
-3. Overall economic outlook based on the statistical evidence
+Please provide a focused economic analysis with ONLY these two sections:
 
-Keep your analysis professional, data-driven, and concise (under 600 words).
+## Cross-Category Economic Health Synthesis
+Analyze trends across all categories to identify key economic themes and interconnections.
+
+## Overall Economic Outlook
+Provide a concise outlook based on the statistical evidence.
+
+Keep your response under 400 words total, focusing only on these two sections.
 `;
 
     return prompt;

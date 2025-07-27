@@ -113,10 +113,15 @@ export function EconomicDataAnalysis() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white flex items-center space-x-2">
-          <BarChart3 className="h-6 w-6 text-blue-400" />
-          <span>Economic Data Analysis</span>
-        </h2>
+        <div>
+          <h2 className="text-xl font-bold text-white flex items-center space-x-2">
+            <BarChart3 className="h-6 w-6 text-blue-400" />
+            <span>Economic Data Analysis</span>
+          </h2>
+          <p className="text-gray-400 text-sm mt-1">
+            Statistical alert system - showing only metrics &gt;1 standard deviation from mean
+          </p>
+        </div>
         <Button 
           onClick={handleRefresh}
           disabled={isLoading}

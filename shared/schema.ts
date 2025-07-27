@@ -544,5 +544,30 @@ export type EconomicDataReading = typeof economicDataReadings.$inferSelect;
 export type InsertEconomicDataReading = typeof economicDataReadings.$inferInsert;
 export type EconomicSearchCacheEntry = typeof economicSearchCache.$inferSelect;
 export type InsertEconomicSearchCache = typeof economicSearchCache.$inferInsert;
+// Economic Statistical Alerts - Only show metrics >1 std dev from mean
+export const economicStatisticalAlerts = pgTable("economic_statistical_alerts", {
+  id: serial("id").primaryKey(),
+  metricName: text("metric_name").notNull(),
+  category: text("category").notNull(),
+  currentValue: decimal("current_value", { precision: 15, scale: 4 }).notNull(),
+  mean: decimal("mean", { precision: 15, scale: 4 }).notNull(),
+  std: decimal("std", { precision: 15, scale: 4 }).notNull(),
+  zScore: decimal("z_score", { precision: 8, scale: 4 }).notNull(),
+  trend: text("trend").notNull(), // increasing, decreasing, stable
+  alertType: text("alert_type").notNull(), // "above_1std", "below_1std", "above_2std", "below_2std"
+  periodStartDate: text("period_start_date").notNull(),
+  periodEndDate: text("period_end_date").notNull(),
+  analysisDate: timestamp("analysis_date").notNull().defaultNow(),
+  isActive: boolean("is_active").notNull().default(true),
+}, (table) => ({
+  categoryIndex: index("idx_alerts_category").on(table.category),
+  metricIndex: index("idx_alerts_metric").on(table.metricName),
+  alertTypeIndex: index("idx_alerts_type").on(table.alertType),
+  analysisDateIndex: index("idx_alerts_analysis_date").on(table.analysisDate),
+}));
+
+export type EconomicStatisticalAlert = typeof economicStatisticalAlerts.$inferSelect;
+export type InsertEconomicStatisticalAlert = typeof economicStatisticalAlerts.$inferInsert;
+
 export type EconomicIndicatorHistory = typeof economicIndicatorsHistory.$inferSelect;
 export type InsertEconomicIndicatorHistory = typeof economicIndicatorsHistory.$inferInsert;
