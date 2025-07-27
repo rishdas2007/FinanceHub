@@ -1,0 +1,136 @@
+import pandas as pd
+import datetime
+import numpy as np # Import numpy for numerical operations like handling std=0
+
+def perform_statistical_analysis(df_economic_data):
+    """
+    Performs statistical analysis on economic data for the trailing 12 months,
+    including the calculation of the Z-score for the current reading.
+
+    Args:
+        df_economic_data (pd.DataFrame): DataFrame containing economic indicator data.
+                                         Expected columns: 'metric', 'category',
+                                         'value_numeric', 'period_date_desc',
+                                         'release_date_desc'.
+
+    Returns:
+        dict: A dictionary containing statistical analysis results for each category and metric.
+              Each metric's entry includes 'statistics' (mean, median, std, min, max,
+              start_value, end_value, period_start_date, period_end_date, z_score),
+              'trend' (increasing, decreasing, stable, not enough data),
+              and 'data_points_12_months' (raw data for the period).
+    """
+
+    # Ensure date columns are in datetime format
+    df_economic_data['period_date_desc'] = pd.to_datetime(df_economic_data['period_date_desc'])
+    df_economic_data['release_date_desc'] = pd.to_datetime(df_economic_data['release_date_desc'])
+
+    # Define the categories to analyze
+    categories_to_analyze = [
+        'Consumer Spending', 'Employment', 'Housing', 'Manufacturing',
+        'Inflation', 'Growth', 'Monetary Policy', 'Sentiment'
+    ]
+
+    # Filter the DataFrame to include only the specified categories
+    filtered_df = df_economic_data[df_economic_data['category'].isin(categories_to_analyze)].copy()
+
+    # Dictionary to store results of the statistical analysis
+    script_analysis_results = {}
+
+    # Process each unique metric within the filtered categories
+    for category in categories_to_analyze:
+        category_data = filtered_df[filtered_df['category'] == category]
+        script_analysis_results[category] = {}
+
+        for metric in category_data['metric'].unique():
+            # Sort by release date to ensure we get the latest data for each period
+            metric_full_data = category_data[category_data['metric'] == metric].sort_values(by=['release_date_desc', 'period_date_desc'])
+
+            if metric_full_data.empty:
+                continue
+
+            # Find the latest release date for this specific metric
+            latest_release_date = metric_full_data['release_date_desc'].max()
+
+            # Get the corresponding period_date_desc for the latest release date.
+            # If multiple period_date_desc exist for the same latest_release_date,
+            # we consider the latest period_date_desc as the most recent reading.
+            latest_reading_period_date = metric_full_data[
+                metric_full_data['release_date_desc'] == latest_release_date
+            ]['period_date_desc'].max()
+
+            # Define the end date for the trailing 12 months window as the latest reading's period_date
+            end_date_12_months = latest_reading_period_date
+            # Calculate the start date for the trailing 12 months window
+            # This ensures we get 12 months of data, including the end_date.
+            start_date_12_months = end_date_12_months - pd.DateOffset(months=11)
+
+            # Filter data for the trailing 12 months period based on `period_date_desc`
+            trailing_12_months_data = metric_full_data[
+                (metric_full_data['period_date_desc'] >= start_date_12_months) &
+                (metric_full_data['period_date_desc'] <= end_date_12_months)
+            ].sort_values(by='period_date_desc')
+
+            values = trailing_12_months_data['value_numeric']
+
+            if values.empty:
+                stats = {
+                    'mean': None,
+                    'median': None,
+                    'std': None,
+                    'min': None,
+                    'max': None,
+                    'start_value': None,
+                    'end_value': None,
+                    'period_start_date': start_date_12_months.strftime('%Y-%m-%d'),
+                    'period_end_date': end_date_12_months.strftime('%Y-%m-%d'),
+                    'z_score': None # Initialize z_score
+                }
+                trend = 'not enough data'
+            else:
+                current_mean = values.mean()
+                current_std = values.std()
+                current_end_value = values.iloc[-1]
+
+                # Calculate Z-score
+                z_score = None
+                if current_std is not None and current_std != 0:
+                    z_score = (current_end_value - current_mean) / current_std
+                elif current_std == 0 and current_end_value == current_mean:
+                    z_score = 0.0 # If std is 0 and value is the mean, z-score is 0
+                # If std is 0 and value is not the mean, z-score is undefined (remains None)
+
+                stats = {
+                    'mean': current_mean,
+                    'median': values.median(),
+                    'std': current_std,
+                    'min': values.min(),
+                    'max': values.max(),
+                    'start_value': values.iloc[0],
+                    'end_value': current_end_value,
+                    'period_start_date': trailing_12_months_data['period_date_desc'].min().strftime('%Y-%m-%d'),
+                    'period_end_date': trailing_12_months_data['period_date_desc'].max().strftime('%Y-%m-%d'),
+                    'z_score': z_score # Add z_score to the statistics
+                }
+
+                # Determine the trend by comparing the start and end values of the 12-month period
+                trend = 'stable'
+                if stats['end_value'] > stats['start_value']:
+                    trend = 'increasing'
+                elif stats['end_value'] < stats['start_value']:
+                    trend = 'decreasing'
+
+            script_analysis_results[category][metric] = {
+                'statistics': stats,
+                'trend': trend,
+                'data_points_12_months': trailing_12_months_data[['period_date_desc', 'value_numeric']].to_dict(orient='records')
+            }
+    return script_analysis_results
+
+# Example usage (assuming 'economic_indicators_data_jan2024_jun2025.csv' simulates the database data)
+# In a real scenario, you would fetch data from 'economic_indicators_history' database here.
+# df_from_db = fetch_data_from_database("economic_indicators_history")
+# For demonstration, we'll load from the CSV:
+# df_economic_data = pd.read_csv('economic_indicators_data_jan2024_jun2025.csv')
+# analysis_output = perform_statistical_analysis(df_economic_data)
+# print(json.dumps(analysis_output, indent=4, default=str)) # This line would be used to see the output

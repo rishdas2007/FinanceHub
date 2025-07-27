@@ -14,6 +14,7 @@ interface MetricStatistics {
   end_value: number | null;
   period_start_date: string;
   period_end_date: string;
+  z_score: number | null;
 }
 
 interface MetricAnalysis {
@@ -158,7 +159,7 @@ export function EconomicDataAnalysis() {
           </Card>
 
           {/* Statistical Data Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {Object.entries(economicData.statisticalData).map(([category, metrics]) => (
               <Card key={category} className="bg-financial-card border-financial-border">
                 <CardHeader className="pb-3">
@@ -180,6 +181,9 @@ export function EconomicDataAnalysis() {
                       </div>
                       <div className="text-xs text-gray-400 space-y-1">
                         <div>Current: {formatValue(analysis.statistics.end_value)}</div>
+                        <div className="text-blue-400 font-medium">
+                          Z-Score: {analysis.statistics.z_score !== null ? formatValue(analysis.statistics.z_score) : 'N/A'}
+                        </div>
                         <div>Mean: {formatValue(analysis.statistics.mean)}</div>
                         <div>Std Dev: {formatValue(analysis.statistics.std)}</div>
                       </div>

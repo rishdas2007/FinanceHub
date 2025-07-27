@@ -20,6 +20,7 @@ interface MetricStatistics {
   end_value: number | null;
   period_start_date: string;
   period_end_date: string;
+  z_score: number | null;
 }
 
 interface MetricAnalysis {
@@ -59,7 +60,7 @@ const log = {
 
 export class EconomicStatisticalAnalysisService {
   private categoriesToAnalyze = [
-    'Growth', 'Labor', 'Inflation', 'Monetary Policy', 'Sentiment'
+    'Growth', 'Labor', 'Inflation', 'Sentiment', 'Monetary Policy'
   ];
 
   async performStatisticalAnalysis(): Promise<AnalysisResults> {
@@ -263,7 +264,8 @@ export class EconomicStatisticalAnalysisService {
             start_value: null,
             end_value: null,
             period_start_date: startDate.toISOString().split('T')[0],
-            period_end_date: endDate.toISOString().split('T')[0]
+            period_end_date: endDate.toISOString().split('T')[0],
+            z_score: null
           };
           trend = 'not enough data';
         } else {
@@ -275,6 +277,17 @@ export class EconomicStatisticalAnalysisService {
           
           const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
           const std = Math.sqrt(variance);
+          
+          const currentValue = values[values.length - 1];
+          let zScore: number | null = null;
+          
+          // Calculate Z-score
+          if (std !== null && std !== 0) {
+            zScore = (currentValue - mean) / std;
+          } else if (std === 0 && currentValue === mean) {
+            zScore = 0.0; // If std is 0 and value is the mean, z-score is 0
+          }
+          // If std is 0 and value is not the mean, z-score remains null (undefined)
 
           statistics = {
             mean,
@@ -285,7 +298,8 @@ export class EconomicStatisticalAnalysisService {
             start_value: values[0],
             end_value: values[values.length - 1],
             period_start_date: new Date(trailing12MonthsData[0].period_date_desc).toISOString().split('T')[0],
-            period_end_date: new Date(trailing12MonthsData[trailing12MonthsData.length - 1].period_date_desc).toISOString().split('T')[0]
+            period_end_date: new Date(trailing12MonthsData[trailing12MonthsData.length - 1].period_date_desc).toISOString().split('T')[0],
+            z_score: zScore
           };
 
           // Determine trend
