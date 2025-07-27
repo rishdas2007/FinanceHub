@@ -7,6 +7,7 @@ import { getMarketHoursInfo } from '@shared/utils/marketHours';
 import { CACHE_DURATIONS } from '@shared/constants';
 
 import { apiLogger, getApiStats } from "./middleware/apiLogger";
+import path from 'path';
 // FRED routes removed to fix crashes
 
 
@@ -127,6 +128,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       message: 'FRED historical indicators removed - using OpenAI only',
       timestamp: new Date().toISOString()
     });
+  });
+
+  // Expanded Economic Data Import endpoint
+  app.post("/api/import-expanded-economic-data", async (req, res) => {
+    try {
+      console.log('📊 Starting expanded economic data import...');
+      const { expandedEconomicDataImporter } = await import('./services/expanded-economic-data-importer');
+      
+      // Use the CSV file path from attached assets
+      const csvFilePath = path.join(process.cwd(), 'attached_assets', 'economic_indicators_data_jan2024_jun2025_1753652769450.csv');
+      
+      await expandedEconomicDataImporter.importCSVData(csvFilePath);
+      
+      res.json({
+        success: true,
+        message: 'Expanded economic data imported successfully',
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('❌ Import failed:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to import expanded economic data',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
   });
 
   // FRED routes removed - using OpenAI only
