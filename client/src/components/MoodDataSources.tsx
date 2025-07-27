@@ -178,7 +178,9 @@ export function MoodDataSources() {
               <CardTitle className="text-white flex items-center justify-between text-sm">
                 <div className="flex items-center space-x-2">
                   <Icon className="h-4 w-4 text-blue-400" />
-                  <span className="capitalize">{source.type} Data</span>
+                  <span className="capitalize">
+                    {source.type === 'economic' ? 'Economic Readings' : `${source.type} Data`}
+                  </span>
                 </div>
                 {source.status === 'loading' && (
                   <Loader2 className="h-4 w-4 animate-spin text-blue-400" />

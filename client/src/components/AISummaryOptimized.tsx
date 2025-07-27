@@ -46,12 +46,18 @@ interface AISummaryResponse {
 }
 
 export function AISummaryOptimized() {
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(Date.now());
 
   const { data: summary, isLoading, error, isFetching } = useQuery<AISummaryResponse>({
     queryKey: ['ai-summary-optimized', refreshKey],
     queryFn: async () => {
-      const response = await fetch(`/api/ai-summary-optimized?_t=${Date.now()}`);
+      const response = await fetch(`/api/ai-summary-optimized?_t=${Date.now()}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch AI summary');
       }
@@ -65,7 +71,12 @@ export function AISummaryOptimized() {
   });
 
   const handleRefresh = () => {
-    setRefreshKey(prev => prev + 1);
+    // Force cache invalidation
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    } else {
+      setRefreshKey(prev => prev + 1);
+    }
   };
 
   const formatTimestamp = (timestamp: string) => {
@@ -201,7 +212,7 @@ export function AISummaryOptimized() {
         <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-medium text-white flex items-center">
-              📊 Economic Readings
+              📊 Economic Readings  
             </h4>
             <span className="bg-green-600 text-white text-xs px-2 py-1 rounded">
               {summary.economicReadings?.length || 6} FRED
