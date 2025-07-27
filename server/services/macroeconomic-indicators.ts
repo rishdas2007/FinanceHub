@@ -48,7 +48,7 @@ export class MacroeconomicIndicatorsService {
       const { cacheService } = await import('./cache-unified');
       
       // Check memory cache first
-      const cacheKey = 'fred-economic-indicators-v2'; // Updated cache version for new formatting
+      const cacheKey = 'fred-economic-indicators-v4'; // Updated cache version for smart prior calculations
       const cached = cacheService.get(cacheKey) as MacroeconomicData | null;
       if (cached) {
         logger.debug('Returning cached FRED economic data');
@@ -138,12 +138,37 @@ export class MacroeconomicIndicatorsService {
     try {
       const { db } = await import('../db');
       
-      // Query the economic_indicators_history table directly
+      // Query to get latest data with prior period values calculated using window functions
       const latestData = await db.execute(sql`
-        SELECT series_id, metric_name, value, prior_value, period_date, release_date, 
-               type, category, unit
-        FROM economic_indicators_history 
-        WHERE period_date >= '2025-05-01'
+        WITH latest_by_series AS (
+          SELECT 
+            series_id, 
+            metric_name, 
+            value, 
+            period_date, 
+            release_date, 
+            type, 
+            category, 
+            unit,
+            LAG(value, 1) OVER (PARTITION BY series_id ORDER BY period_date) as prior_value,
+            LAG(value, 2) OVER (PARTITION BY series_id ORDER BY period_date) as prior_value_2,
+            ROW_NUMBER() OVER (PARTITION BY series_id ORDER BY period_date DESC) as rn
+          FROM economic_indicators_history 
+          WHERE period_date >= '2024-01-01'
+        )
+        SELECT 
+          series_id, 
+          metric_name, 
+          value, 
+          prior_value,
+          prior_value_2, 
+          period_date, 
+          release_date, 
+          type, 
+          category, 
+          unit
+        FROM latest_by_series 
+        WHERE rn = 1
         ORDER BY period_date DESC
       `);
       
@@ -154,19 +179,19 @@ export class MacroeconomicIndicatorsService {
       
       logger.info(`📊 Found ${latestData.rows.length} database records for economic indicators`);
 
-      // Group by series_id and get latest for each
-      const latestByIndicator = new Map();
-      for (const record of latestData.rows) {
-        if (!latestByIndicator.has(record.series_id)) {
-          latestByIndicator.set(record.series_id, record);
-        }
-      }
-
-      const indicators = Array.from(latestByIndicator.values()).map((record: any) => {
-        // Calculate variance vs prior if we have prior_value
+      const indicators = latestData.rows.map((record: any) => {
+        // Calculate variance vs prior using smart prior logic
         const currentReading = parseFloat(String(record.value)) || 0;
-        const priorReading = parseFloat(String(record.prior_value)) || 0;
-        const varianceVsPrior = priorReading !== 0 ? currentReading - priorReading : 0;
+        const immediatePrior = parseFloat(String(record.prior_value)) || 0;
+        const twoPeriodsBackPrior = parseFloat(String(record.prior_value_2)) || 0;
+        
+        // Use intelligent prior: if current == immediate prior, use prior_value_2 for meaningful comparison
+        let priorReading = immediatePrior;
+        if (currentReading === immediatePrior && twoPeriodsBackPrior !== 0) {
+          priorReading = twoPeriodsBackPrior;
+        }
+        
+        const varianceVsPrior = currentReading - priorReading;
 
         // Format unit and numbers according to specifications
         let unit = String(record.unit || '');
