@@ -152,8 +152,28 @@ export function EconomicDataAnalysis() {
               <CardTitle className="text-white text-lg">AI Economic Analysis</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
-                {economicData.aiAnalysis}
+              <div className="text-gray-300 leading-relaxed">
+                {economicData.aiAnalysis.split('\n').map((line, index) => {
+                  // Check if line contains section headers (starts with capital letters and common header words)
+                  const isHeader = line.trim().match(/^(Cross-Category|Overall|Economic|Market|Analysis|Synthesis|Outlook)/i) && 
+                                  !line.includes(':') && !line.includes('.') && line.trim().length < 80;
+                  
+                  if (isHeader) {
+                    return (
+                      <div key={index} className="font-bold text-white text-base mb-3 mt-4">
+                        {line.trim()}
+                      </div>
+                    );
+                  } else if (line.trim()) {
+                    return (
+                      <p key={index} className="mb-2">
+                        {line.trim()}
+                      </p>
+                    );
+                  } else {
+                    return <div key={index} className="mb-2"></div>;
+                  }
+                })}
               </div>
             </CardContent>
           </Card>

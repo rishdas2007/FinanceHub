@@ -18,7 +18,7 @@ interface MacroIndicatorData {
   varianceVsPrior: string | number;
   unit: string;
   forecast?: number;
-  zScore?: number;
+  zScore?: number | null;
 }
 
 interface MacroeconomicData {
@@ -138,20 +138,22 @@ export class MacroeconomicIndicatorsService {
     try {
       const { db } = await import('../db');
       
-      // Query to get latest data with prior period values calculated using window functions
+      // Query to get latest data with prior period values and z-scores calculated using window functions
       const latestData = await db.execute(sql`
-        WITH latest_by_series AS (
+        WITH historical_stats AS (
           SELECT 
-            series_id, 
-            metric_name, 
-            value, 
-            period_date, 
-            release_date, 
-            type, 
-            category, 
+            series_id,
+            metric_name,
+            value,
+            period_date,
+            release_date,
+            type,
+            category,
             unit,
             LAG(value, 1) OVER (PARTITION BY series_id ORDER BY period_date) as prior_value,
             LAG(value, 2) OVER (PARTITION BY series_id ORDER BY period_date) as prior_value_2,
+            AVG(value) OVER (PARTITION BY series_id ORDER BY period_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) as rolling_mean_12m,
+            STDDEV(value) OVER (PARTITION BY series_id ORDER BY period_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) as rolling_std_12m,
             ROW_NUMBER() OVER (PARTITION BY series_id ORDER BY period_date DESC) as rn
           FROM economic_indicators_history 
           WHERE period_date >= '2024-01-01'
@@ -166,8 +168,14 @@ export class MacroeconomicIndicatorsService {
           release_date, 
           type, 
           category, 
-          unit
-        FROM latest_by_series 
+          unit,
+          rolling_mean_12m,
+          rolling_std_12m,
+          CASE 
+            WHEN rolling_std_12m > 0 THEN (value - rolling_mean_12m) / rolling_std_12m
+            ELSE 0
+          END as z_score
+        FROM historical_stats 
         WHERE rn = 1
         ORDER BY period_date DESC
       `);
@@ -185,7 +193,9 @@ export class MacroeconomicIndicatorsService {
         const immediatePrior = parseFloat(String(record.prior_value)) || 0;
         const twoPeriodsBackPrior = parseFloat(String(record.prior_value_2)) || 0;
         
-
+        // Extract z-score from database calculation
+        const zScore = record.z_score !== null && record.z_score !== undefined ? 
+          parseFloat(String(record.z_score)) : null;
         
         // Use intelligent prior: if current == immediate prior, use prior_value_2 for meaningful comparison
         let priorReading = immediatePrior;
@@ -246,7 +256,8 @@ export class MacroeconomicIndicatorsService {
           currentReading: formatNumber(currentReading, unit),
           priorReading: formatNumber(priorReading, unit),
           varianceVsPrior: formatVariance(varianceVsPrior, unit),
-          unit: '' // Don't display unit suffix since it's already included in formatted values
+          unit: '', // Don't display unit suffix since it's already included in formatted values
+          zScore: zScore
         };
       });
 

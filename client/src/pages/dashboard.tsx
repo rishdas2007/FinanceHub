@@ -64,14 +64,14 @@ export default function Dashboard() {
         {/* AI Summary */}
         <MoodDataSources />
 
-        {/* Economic Data Analysis */}
-        <EconomicDataAnalysis />
-
         {/* Simplified Momentum Analysis with Verified Calculations */}
         <MomentumAnalysis />
 
         {/* Macroeconomic Indicators Module */}
         <MacroeconomicIndicators />
+
+        {/* Economic Data Analysis - moved to bottom */}
+        <EconomicDataAnalysis />
 
 
       </div>

@@ -114,13 +114,16 @@ ${JSON.stringify(statisticalData, null, 2)}
 
 Please provide a focused economic analysis with ONLY these two sections:
 
-## Cross-Category Economic Health Synthesis
+Cross-Category Economic Health Synthesis
 Analyze trends across all categories to identify key economic themes and interconnections.
 
-## Overall Economic Outlook
+Overall Economic Outlook
 Provide a concise outlook based on the statistical evidence.
 
-Keep your response under 400 words total, focusing only on these two sections.
+FORMAT REQUIREMENTS:
+- Use plain text with section headers in bold (no markdown symbols like ## or **)
+- Keep your response under 400 words total, focusing only on these two sections.
+- Make section headers stand out but use plain formatting without symbols
 `;
 
     return prompt;

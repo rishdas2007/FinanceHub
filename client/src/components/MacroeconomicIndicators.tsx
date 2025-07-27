@@ -12,6 +12,7 @@ interface MacroIndicator {
   priorReading: number | string;
   varianceVsPrior: number | string;
   unit: string;
+  zScore?: number | null;
 }
 
 interface MacroData {
@@ -189,6 +190,38 @@ const MacroFormatUtils = {
       day: 'numeric',
       year: 'numeric'
     });
+  },
+
+  /**
+   * Format z-score with proper colors and styling
+   */
+  formatZScore: (zScore: number | null): JSX.Element => {
+    if (zScore === null || zScore === undefined || isNaN(zScore)) {
+      return <span className="text-gray-400">N/A</span>;
+    }
+
+    const value = Number(zScore.toFixed(2));
+    const absValue = Math.abs(value);
+    
+    // Determine color based on positive/negative
+    let colorClass = '';
+    if (value > 0) {
+      colorClass = 'text-green-400';
+    } else if (value < 0) {
+      colorClass = 'text-red-400';
+    } else {
+      colorClass = 'text-gray-300';
+    }
+    
+    // Bold for extreme values (>2 std dev)
+    const isBold = absValue >= 2.0;
+    const fontClass = isBold ? 'font-bold' : 'font-medium';
+    
+    return (
+      <span className={`${colorClass} ${fontClass}`}>
+        {value.toFixed(2)}
+      </span>
+    );
   }
 };
 
@@ -431,10 +464,11 @@ const MacroeconomicIndicators: React.FC = () => {
             <table className="w-full table-auto">
               <thead>
                 <tr className="border-b border-financial-border sticky top-0 bg-financial-card">
-                  <th className="text-left py-3 px-2 text-gray-300 font-medium">Indicator</th>
+                  <th className="text-left py-3 px-2 text-gray-300 font-medium w-1/4">Indicator</th>
                   <th className="text-center py-3 px-2 text-gray-300 font-medium">Type</th>
                   <th className="text-center py-3 px-2 text-gray-300 font-medium">Category</th>
                   <th className="text-right py-3 px-2 text-gray-300 font-medium">Current</th>
+                  <th className="text-right py-3 px-2 text-gray-300 font-medium">Z-Score</th>
                   <th className="text-right py-3 px-2 text-gray-300 font-medium">Prior</th>
                   <th className="text-right py-3 px-2 text-gray-300 font-medium">vs Prior</th>
                 </tr>
@@ -442,9 +476,9 @@ const MacroeconomicIndicators: React.FC = () => {
               <tbody className="space-y-1">
                 {filteredIndicators.map((indicator, index) => (
                   <tr key={index} className="border-b border-financial-border hover:bg-financial-gray/50 transition-colors">
-                    <td className="py-3 px-2">
+                    <td className="py-3 px-2 w-1/4">
                       <div>
-                        <div className="text-white font-medium text-sm">{indicator.metric}</div>
+                        <div className="text-white font-medium text-sm break-words">{indicator.metric}</div>
                         <div className="text-xs text-gray-400">
                           {new Date(indicator.releaseDate).toLocaleDateString()}
                         </div>
@@ -462,6 +496,9 @@ const MacroeconomicIndicators: React.FC = () => {
                     </td>
                     <td className="text-right py-3 px-2 text-white font-semibold">
                       {MacroFormatUtils.formatIndicatorValue(indicator.currentReading, indicator.metric, indicator.unit)}
+                    </td>
+                    <td className="text-right py-3 px-2">
+                      {MacroFormatUtils.formatZScore(indicator.zScore)}
                     </td>
                     <td className="text-right py-3 px-2 text-gray-300 font-medium">
                       {MacroFormatUtils.formatIndicatorValue(indicator.priorReading, indicator.metric, indicator.unit)}
