@@ -48,7 +48,7 @@ export class MacroeconomicIndicatorsService {
       const { cacheService } = await import('./cache-unified');
       
       // Check memory cache first
-      const cacheKey = 'fred-economic-indicators-v4'; // Updated cache version for smart prior calculations
+      const cacheKey = 'fred-economic-indicators-v7'; // Updated cache version for comprehensive unit formatting
       const cached = cacheService.get(cacheKey) as MacroeconomicData | null;
       if (cached) {
         logger.debug('Returning cached FRED economic data');
@@ -185,6 +185,8 @@ export class MacroeconomicIndicatorsService {
         const immediatePrior = parseFloat(String(record.prior_value)) || 0;
         const twoPeriodsBackPrior = parseFloat(String(record.prior_value_2)) || 0;
         
+
+        
         // Use intelligent prior: if current == immediate prior, use prior_value_2 for meaningful comparison
         let priorReading = immediatePrior;
         if (currentReading === immediatePrior && twoPeriodsBackPrior !== 0) {
@@ -193,45 +195,58 @@ export class MacroeconomicIndicatorsService {
         
         const varianceVsPrior = currentReading - priorReading;
 
-        // Format unit and numbers according to specifications
-        let unit = String(record.unit || '');
-        let formattedCurrent = currentReading;
-        let formattedPrior = priorReading;
-        let formattedVariance = varianceVsPrior;
+        // Comprehensive unit-based formatting function
+        const formatNumber = (value: number | null | undefined, unit: string): string => {
+          if (value === null || value === undefined || isNaN(value)) {
+            return 'N/A';
+          }
+          const numValue = parseFloat(String(value));
 
-        // Handle unit formatting
-        if (unit.includes('percent')) {
-          unit = '%';
-        } else if (unit.includes('thousands')) {
-          unit = 'K';
-        } else if (unit.includes('index')) {
-          unit = ''; // Don't display "index" in the output
-        } else if (unit.includes('basis_points')) {
-          unit = ''; // Don't display "basis_points" in the output
-        } else if (unit.includes('basis_points')) {
-          unit = ''; // Don't display "basis_points" in the output
-        }
-
-        // Apply number formatting with thousands separators and negative formatting
-        const formatNumber = (num: number): string => {
-          if (num === 0) return '0.0';
-          const absNum = Math.abs(num);
-          const formatted = absNum.toLocaleString('en-US', {
-            minimumFractionDigits: 1,
-            maximumFractionDigits: 1
-          });
-          return num < 0 ? `(${formatted})` : formatted;
+          switch (unit) {
+            case 'percent':
+              return numValue.toFixed(2) + '%';
+            case 'thousands':
+              return numValue.toFixed(1) + 'K'; // Data is already in thousands, just add K
+            case 'millions_dollars':
+              return '$' + numValue.toFixed(1) + 'M'; // Data is already in millions, just add $M
+            case 'billions_dollars':
+              return '$' + (numValue / 1000).toFixed(1) + 'B'; // Convert billions to readable format
+            case 'index':
+              return numValue.toFixed(1);
+            case 'basis_points':
+              return numValue.toFixed(0) + ' bps';
+            case 'dollars_per_hour':
+              return '$' + numValue.toFixed(2);
+            case 'hours':
+              return numValue.toFixed(1) + ' hrs';
+            case 'months_supply':
+              return numValue.toFixed(1) + ' months';
+            case 'chained_dollars': // For Real Disposable Personal Income (trillions)
+              return '$' + numValue.toFixed(2) + 'T'; // Data is in trillions
+            case 'units': // Generic units, e.g., for counts without specific suffix
+              return numValue.toLocaleString(); // Use locale string for thousands separator
+            default:
+              return numValue.toFixed(2); // Default to 2 decimal places
+          }
         };
+
+        // Format variance with negative in parentheses
+        const formatVariance = (value: number, unit: string): string => {
+          const formatted = formatNumber(Math.abs(value), unit);
+          return value < 0 ? `(${formatted})` : formatted;
+        };
+
+        const unit = String(record.unit || '');
 
         return {
           metric: record.metric_name,
           type: record.type || 'Lagging',
           category: record.category || 'Growth',
           releaseDate: record.release_date || record.period_date,
-          currentReading: formatNumber(currentReading),
-          priorReading: formatNumber(priorReading),
-          varianceVsPrior: formatNumber(varianceVsPrior),
-          unit
+          currentReading: formatNumber(currentReading, unit),
+          priorReading: formatNumber(priorReading, unit),
+          varianceVsPrior: formatVariance(varianceVsPrior, unit),
+          unit: '' // Don't display unit suffix since it's already included in formatted values
         };
       });
 
@@ -257,7 +272,7 @@ export class MacroeconomicIndicatorsService {
   private async generateDatabaseAISummary(indicators: any[]): Promise<string> {
     try {
       const keyMetrics = indicators.slice(0, 6).map(ind => 
-        `${ind.metric}: ${ind.currentReading}${ind.unit}`
+        `${ind.metric}: ${ind.currentReading}`
       ).join(', ');
 
       return `Economic Overview: ${keyMetrics}. Data sourced from historical database with ${indicators.length} indicators showing current economic conditions.`;
