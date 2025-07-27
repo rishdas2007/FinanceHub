@@ -415,6 +415,32 @@ export const economicTimeSeries = pgTable("economic_time_series", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Economic indicators history table for statistical analysis
+export const economicIndicatorsHistory = pgTable("economic_indicators_history", {
+  id: serial("id").primaryKey(),
+  metricName: text("metric_name").notNull(),
+  seriesId: text("series_id").notNull(),
+  type: text("type").notNull(),
+  category: text("category").notNull(),
+  unit: text("unit").notNull(),
+  frequency: text("frequency").notNull(),
+  value: decimal("value", { precision: 15, scale: 4 }).notNull(),
+  periodDate: timestamp("period_date").notNull(),
+  releaseDate: timestamp("release_date").notNull(),
+  forecast: decimal("forecast", { precision: 15, scale: 4 }),
+  priorValue: decimal("prior_value", { precision: 15, scale: 4 }),
+  monthlyChange: decimal("monthly_change", { precision: 8, scale: 4 }),
+  annualChange: decimal("annual_change", { precision: 8, scale: 4 }),
+  zScore12m: decimal("z_score_12m", { precision: 8, scale: 4 }),
+  threeMonthAnnualized: decimal("three_month_annualized", { precision: 8, scale: 4 }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  seriesIdIndex: index("idx_econ_history_series_id").on(table.seriesId),
+  categoryIndex: index("idx_econ_history_category").on(table.category),
+  releaseDateIndex: index("idx_econ_history_release_date").on(table.releaseDate),
+}));
+
 // Historical context snapshots for AI analysis
 export const historicalContextSnapshots = pgTable("historical_context_snapshots", {
   id: serial("id").primaryKey(),
@@ -518,3 +544,5 @@ export type EconomicDataReading = typeof economicDataReadings.$inferSelect;
 export type InsertEconomicDataReading = typeof economicDataReadings.$inferInsert;
 export type EconomicSearchCacheEntry = typeof economicSearchCache.$inferSelect;
 export type InsertEconomicSearchCache = typeof economicSearchCache.$inferInsert;
+export type EconomicIndicatorHistory = typeof economicIndicatorsHistory.$inferSelect;
+export type InsertEconomicIndicatorHistory = typeof economicIndicatorsHistory.$inferInsert;

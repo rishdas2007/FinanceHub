@@ -1,5 +1,4 @@
 import { db } from '../db';
-import { economicIndicatorsHistory } from '../../shared/schema';
 import { sql } from 'drizzle-orm';
 
 interface StatisticalData {
@@ -46,8 +45,7 @@ const log = {
 
 export class EconomicStatisticalAnalysisService {
   private categoriesToAnalyze = [
-    'Consumer Spending', 'Employment', 'Housing', 'Manufacturing',
-    'Inflation', 'Growth', 'Monetary Policy', 'Sentiment'
+    'Growth', 'Labor', 'Inflation', 'Monetary Policy', 'Sentiment'
   ];
 
   async performStatisticalAnalysis(): Promise<AnalysisResults> {
@@ -78,24 +76,44 @@ export class EconomicStatisticalAnalysisService {
 
   private async fetchEconomicData(): Promise<StatisticalData[]> {
     try {
-      const results = await db
-        .select({
-          metric: economicIndicatorsHistory.metric,
-          category: economicIndicatorsHistory.category,
-          value_numeric: economicIndicatorsHistory.value,
-          period_date_desc: economicIndicatorsHistory.periodDate,
-          release_date_desc: economicIndicatorsHistory.releaseDate,
-        })
-        .from(economicIndicatorsHistory)
-        .where(sql`${economicIndicatorsHistory.category} IN ${this.categoriesToAnalyze}`)
-        .orderBy(economicIndicatorsHistory.releaseDate, economicIndicatorsHistory.periodDate);
+      const query = sql`
+        SELECT 
+          metric_name as metric,
+          category,
+          value::numeric as value_numeric,
+          TO_CHAR(period_date, 'Mon DD, YYYY') as period_date_desc,
+          TO_CHAR(release_date, 'Mon DD, YYYY') as release_date_desc
+        FROM economic_indicators_history
+        WHERE period_date >= CURRENT_DATE - INTERVAL '18 months'
+          AND value IS NOT NULL
+          AND value::numeric > 0
+        ORDER BY category, metric_name, period_date DESC
+      `;
+      
+      const results = await db.execute(query);
+      log.info(`📊 Raw query results type: ${typeof results}, length: ${results?.length}`);
+      
+      // Handle different result formats from Drizzle
+      let rows;
+      if (Array.isArray(results)) {
+        rows = results;
+      } else if (results && results.rows) {
+        rows = results.rows;
+      } else if (results && Array.isArray(results.data)) {
+        rows = results.data;
+      } else {
+        log.error('❌ Unexpected result format:', results);
+        return [];
+      }
 
-      return results.map(row => ({
+      log.info(`📊 Processing ${rows.length} rows from database`);
+
+      return rows.map((row: any) => ({
         metric: row.metric,
         category: row.category,
         value_numeric: parseFloat(row.value_numeric?.toString() || '0'),
-        period_date_desc: row.period_date_desc?.toISOString() || new Date().toISOString(),
-        release_date_desc: row.release_date_desc?.toISOString() || new Date().toISOString(),
+        period_date_desc: row.period_date_desc || '',
+        release_date_desc: row.release_date_desc || '',
       }));
     } catch (error) {
       log.error('❌ Error fetching economic data from database:', error);
