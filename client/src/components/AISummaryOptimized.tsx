@@ -51,15 +51,17 @@ export function AISummaryOptimized() {
   const { data: summary, isLoading, error, isFetching } = useQuery<AISummaryResponse>({
     queryKey: ['ai-summary-optimized', refreshKey],
     queryFn: async () => {
-      const response = await fetch('/api/ai-summary-optimized');
+      const response = await fetch(`/api/ai-summary-optimized?_t=${Date.now()}`);
       if (!response.ok) {
         throw new Error('Failed to fetch AI summary');
       }
       return response.json();
     },
     staleTime: 0, // Always fetch fresh data to see database changes
-    gcTime: 60 * 1000,   // 1 minute
+    gcTime: 0,   // No caching to ensure fresh data
     retry: 1,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const handleRefresh = () => {

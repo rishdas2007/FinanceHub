@@ -24,6 +24,7 @@ interface AISummaryData {
     momentum?: string;
     technical?: string;
     economic?: string;
+    economicReadings?: string;
   };
 }
 
@@ -229,11 +230,10 @@ class AISummaryOptimizedService {
     };
 
     try {
-      // Collect momentum data (parallel execution)
-      const [momentumResult, technicalResult, economicResult, economicReadingsResult] = await Promise.allSettled([
+      // Collect momentum data (parallel execution) - focus on economicReadings only
+      const [momentumResult, technicalResult, economicReadingsResult] = await Promise.allSettled([
         this.getMomentumData(),
         this.getTechnicalData(),
-        this.getEconomicData(),
         this.getEconomicReadings()
       ]);
 
@@ -247,13 +247,16 @@ class AISummaryOptimizedService {
         data.timestamps.technical = technicalResult.value.timestamp;
       }
 
-      if (economicResult.status === 'fulfilled') {
-        data.economic = economicResult.value.data;
-        data.timestamps.economic = economicResult.value.timestamp;
-      }
-
       if (economicReadingsResult.status === 'fulfilled') {
         data.economicReadings = economicReadingsResult.value.data;
+        data.timestamps.economicReadings = economicReadingsResult.value.timestamp;
+        // Also set economic data for backward compatibility with some parts of the analysis
+        data.economic = economicReadingsResult.value.data.slice(0, 3).map((reading: any) => ({
+          metric: reading.metric,
+          value: reading.value,
+          category: reading.category,
+          releaseDate: reading.releaseDate
+        }));
         data.timestamps.economic = economicReadingsResult.value.timestamp;
       }
 
