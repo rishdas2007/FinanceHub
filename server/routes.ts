@@ -210,6 +210,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('🔍 Economic Data Analysis Route: GET /api/economic-data-analysis');
       
+      // Import cache service directly from the unified cache
+      const { CacheService } = await import('./services/cache-unified');
+      const cacheService = CacheService.getInstance();
+      
       // Check for daily cache first
       const cacheKey = `economic-data-analysis-${new Date().toDateString()}`;
       const cachedResult = cacheService.get(cacheKey);
