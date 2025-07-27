@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, BarChart3, TrendingUp, TrendingDown, Minus, ChevronUp, ChevronDown } from 'lucide-react';
+import { RefreshCw, BarChart3, TrendingUp, TrendingDown, Minus, ChevronUp, ChevronDown, Search, Filter } from 'lucide-react';
 import { useState } from 'react';
 
 interface MetricStatistics {
@@ -44,6 +44,8 @@ type SortColumn = 'metric' | 'trend' | 'current' | 'zscore' | 'mean' | 'std';
 export function StatisticalAlertSystem() {
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
 
   const {
     data: economicData,
@@ -89,64 +91,77 @@ export function StatisticalAlertSystem() {
   };
 
   const getSortedData = () => {
-    if (!economicData?.statisticalData || !sortColumn || !sortDirection) {
-      return economicData?.statisticalData || {};
+    if (!economicData?.statisticalData) {
+      return {};
     }
 
     const allMetrics: Array<{category: string, metric: string, analysis: MetricAnalysis}> = [];
     
     Object.entries(economicData.statisticalData).forEach(([category, metrics]) => {
       Object.entries(metrics).forEach(([metric, analysis]) => {
-        allMetrics.push({ category, metric, analysis });
+        // Apply search filter
+        const matchesSearch = searchTerm === '' || 
+          metric.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          category.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        // Apply category filter
+        const matchesCategory = categoryFilter === 'all' || category === categoryFilter;
+        
+        if (matchesSearch && matchesCategory) {
+          allMetrics.push({ category, metric, analysis });
+        }
       });
     });
 
-    const sorted = allMetrics.sort((a, b) => {
-      let aValue: any, bValue: any;
-      
-      switch (sortColumn) {
-        case 'metric':
-          aValue = a.metric.toLowerCase();
-          bValue = b.metric.toLowerCase();
-          break;
-        case 'trend':
-          aValue = a.analysis.trend;
-          bValue = b.analysis.trend;
-          break;
-        case 'current':
-          aValue = a.analysis.statistics.end_value || 0;
-          bValue = b.analysis.statistics.end_value || 0;
-          break;
-        case 'zscore':
-          aValue = a.analysis.statistics.z_score || 0;
-          bValue = b.analysis.statistics.z_score || 0;
-          break;
-        case 'mean':
-          aValue = a.analysis.statistics.mean || 0;
-          bValue = b.analysis.statistics.mean || 0;
-          break;
-        case 'std':
-          aValue = a.analysis.statistics.std || 0;
-          bValue = b.analysis.statistics.std || 0;
-          break;
-        default:
-          return 0;
-      }
+    // Apply sorting if specified
+    if (sortColumn && sortDirection) {
+      allMetrics.sort((a, b) => {
+        let aValue: any, bValue: any;
+        
+        switch (sortColumn) {
+          case 'metric':
+            aValue = a.metric.toLowerCase();
+            bValue = b.metric.toLowerCase();
+            break;
+          case 'trend':
+            aValue = a.analysis.trend;
+            bValue = b.analysis.trend;
+            break;
+          case 'current':
+            aValue = a.analysis.statistics.end_value || 0;
+            bValue = b.analysis.statistics.end_value || 0;
+            break;
+          case 'zscore':
+            aValue = a.analysis.statistics.z_score || 0;
+            bValue = b.analysis.statistics.z_score || 0;
+            break;
+          case 'mean':
+            aValue = a.analysis.statistics.mean || 0;
+            bValue = b.analysis.statistics.mean || 0;
+            break;
+          case 'std':
+            aValue = a.analysis.statistics.std || 0;
+            bValue = b.analysis.statistics.std || 0;
+            break;
+          default:
+            return 0;
+        }
 
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection === 'asc' 
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
-      } else {
-        return sortDirection === 'asc' 
-          ? (aValue - bValue)
-          : (bValue - aValue);
-      }
-    });
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          return sortDirection === 'asc' 
+            ? aValue.localeCompare(bValue)
+            : bValue.localeCompare(aValue);
+        } else {
+          return sortDirection === 'asc' 
+            ? (aValue - bValue)
+            : (bValue - aValue);
+        }
+      });
+    }
 
     // Group back by category
     const groupedData: {[category: string]: CategoryAnalysis} = {};
-    sorted.forEach(({category, metric, analysis}) => {
+    allMetrics.forEach(({category, metric, analysis}) => {
       if (!groupedData[category]) {
         groupedData[category] = {};
       }
@@ -231,6 +246,38 @@ export function StatisticalAlertSystem() {
           <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
           {isLoading ? 'Analyzing...' : 'Refresh'}
         </Button>
+      </div>
+
+      {/* Search and Filter Controls */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        {/* Search Input */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search indicators..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-gray-800 text-white border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-blue-400 placeholder-gray-400"
+          />
+        </div>
+        
+        {/* Category Filter */}
+        <div className="flex items-center space-x-2">
+          <Filter className="h-4 w-4 text-gray-400" />
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="px-3 py-2 bg-gray-800 text-white border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+          >
+            <option value="all">All Categories</option>
+            <option value="Growth">Growth</option>
+            <option value="Inflation">Inflation</option>
+            <option value="Labor">Labor</option>
+            <option value="Monetary Policy">Monetary Policy</option>
+            <option value="Sentiment">Sentiment</option>
+          </select>
+        </div>
       </div>
 
       {isLoading ? (

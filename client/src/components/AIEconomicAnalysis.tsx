@@ -18,8 +18,8 @@ export function AIEconomicAnalysis() {
     refetch
   } = useQuery<EconomicDataResponse>({
     queryKey: ['/api/economic-data-analysis'],
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 24 * 60 * 60 * 1000, // 24 hours - refresh only once per day
+    gcTime: 48 * 60 * 60 * 1000, // 48 hours - keep in cache for 2 days
   });
 
   const handleRefresh = () => {

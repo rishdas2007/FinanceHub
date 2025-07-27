@@ -205,10 +205,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Economic Data Analysis (Statistical Analysis + OpenAI)
+  // Economic Data Analysis (Statistical Analysis + OpenAI) - Daily Caching
   app.get('/api/economic-data-analysis', async (req, res) => {
     try {
       console.log('🔍 Economic Data Analysis Route: GET /api/economic-data-analysis');
+      
+      // Check for daily cache first
+      const cacheKey = `economic-data-analysis-${new Date().toDateString()}`;
+      const cachedResult = cacheService.get(cacheKey);
+      
+      if (cachedResult) {
+        console.log('✅ Returning cached daily economic data analysis');
+        return res.json(cachedResult);
+      }
       
       // Import services
       const { economicStatisticalAnalysisService } = await import('./services/economic-statistical-analysis');
@@ -220,10 +229,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate AI analysis
       const aiAnalysis = await economicAnalysisOpenAIService.generateEconomicAnalysis(statisticalData);
       
-      res.json({
+      const result = {
         statisticalData,
         aiAnalysis
-      });
+      };
+      
+      // Cache for the rest of the day (24 hours)
+      cacheService.set(cacheKey, result, 24 * 60 * 60);
+      console.log('💾 Cached economic data analysis for daily refresh');
+      
+      res.json(result);
       
     } catch (error) {
       console.error('Error in economic data analysis:', error);
