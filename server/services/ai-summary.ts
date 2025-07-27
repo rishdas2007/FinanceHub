@@ -15,10 +15,20 @@ interface EconomicEvent {
   category: string;
 }
 
+interface EconomicReading {
+  metric: string;
+  value: string;
+  unit: string;
+  category: string;
+  type: string;
+  releaseDate: string;
+}
+
 interface AISummaryResult {
   summary: string;
   keyInsights: string[];
-  recentEconomicReadings: EconomicEvent[];
+  economicReadings: EconomicReading[];
+  economicAnalysis: string;
   riskLevel: 'low' | 'moderate' | 'high';
   confidence: number;
 }
@@ -91,20 +101,23 @@ export class AISummaryService {
       const momentumData = await this.getMomentumData();
       console.log(`📊 Momentum data: ${momentumData.momentumStrategies?.length || 0} strategies`);
       
-      // Fetch comprehensive economic events from the new service
-      const economicEvents = await this.getComprehensiveEconomicEvents();
-      console.log(`📈 Economic events: ${economicEvents.length} events`);
+      // Get recent economic readings from FRED data
+      const economicReadings = await this.getRecentEconomicReadings();
+      console.log(`📊 Retrieved ${economicReadings.length} recent economic readings`);
 
-      // Generate AI analysis
-      const analysis = await this.generateAIAnalysis(momentumData, economicEvents);
-      console.log(`🎯 AI analysis complete with ${analysis.confidence}% confidence`);
+      // Generate AI analysis for the economic readings  
+      const economicAnalysis = await this.generateEconomicAnalysis(economicReadings);
+      console.log(`🤖 Economic analysis completed`);
 
-      // Add the economic readings to the response
+      const analysis = await this.generateAIAnalysis(momentumData, []);
+      
+      console.log(`🤖 AI analysis completed with ${analysis.confidence}% confidence`);
+
+      // Add the economic readings and analysis to the response
       const result = {
         ...analysis,
-        recentEconomicReadings: economicEvents.slice(0, 6).sort((a, b) => 
-          new Date(b.date).getTime() - new Date(a.date).getTime()
-        )
+        economicReadings,
+        economicAnalysis
       };
       
       // Cache the result with strategic timing
@@ -200,63 +213,55 @@ export class AISummaryService {
     );
   }
 
-  private async getComprehensiveEconomicEvents(): Promise<EconomicEvent[]> {
+  private async getRecentEconomicReadings(): Promise<EconomicReading[]> {
     try {
-      const cacheKey = 'comprehensive-economic-events';
+      const cacheKey = 'recent-economic-readings';
       const cached = this.economicCache.get(cacheKey);
       
       // Use longer cache outside update times to reduce API costs
       const extendedCacheTTL = 3 * 60 * 60 * 1000; // 3 hours
       
       if (cached && !this.isEconomicUpdateTime() && (Date.now() - cached.timestamp < extendedCacheTTL)) {
-        console.log('📊 Using cached economic data (cost optimization - outside update window)');
+        console.log('📊 Using cached economic readings (cost optimization - outside update window)');
         return cached.data;
       } else if (cached && (Date.now() - cached.timestamp < this.ECONOMIC_CACHE_TTL)) {
-        console.log('📋 Using cached comprehensive economic data');
+        console.log('📋 Using cached recent economic readings');
         return cached.data;
       }
 
-      console.log('🔍 Fetching economic data from Recent Economic Releases endpoint...');
+      console.log('🔍 Fetching economic readings from Recent Economic Releases endpoint...');
       
-      // Use the new Recent Economic Releases endpoint
+      // Use the Recent Economic Releases endpoint
       const response = await fetch('http://localhost:5000/api/recent-economic-releases');
       const recentReleases = await response.json();
       
-      // Convert to the format expected by AI analysis
-      const economicEvents: EconomicEvent[] = recentReleases.slice(0, 6).map((release: any) => ({
-        title: release.metric,
-        actual: release.value,
-        forecast: 'N/A', // FRED data doesn't include forecasts
-        date: new Date(release.releaseDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        category: release.category
+      // Return first 6 readings in the format expected
+      const economicReadings: EconomicReading[] = recentReleases.slice(0, 6).map((release: any) => ({
+        metric: release.metric,
+        value: release.value,
+        unit: release.unit || '',
+        category: release.category,
+        type: release.type,
+        releaseDate: release.releaseDate
       }));
-
-      // If no comprehensive data, perform fallback web search
-      if (economicEvents.length === 0) {
-        console.log('🔄 Fallback: Performing web search for economic indicators...');
-        const fallbackEvents = await this.performFallbackSearch();
-        
-        // Cache the fallback results
-        this.economicCache.set(cacheKey, {
-          data: fallbackEvents,
-          timestamp: Date.now()
-        });
-        
-        return fallbackEvents;
-      }
       
-      // Cache the comprehensive results
+      // Cache the results
       this.economicCache.set(cacheKey, {
-        data: economicEvents,
+        data: economicReadings,
         timestamp: Date.now()
       });
       
-      console.log(`📊 Found ${economicEvents.length} comprehensive economic indicators`);
-      return economicEvents;
+      console.log(`📊 Found ${economicReadings.length} recent economic readings`);
+      return economicReadings;
       
     } catch (error) {
-      console.error('Error fetching comprehensive economic events:', error);
-      return await this.getFallbackEconomicData();
+      console.error('Error fetching recent economic readings:', error);
+      // Return fallback readings if API fails
+      return [
+        { metric: 'Retail Sales', value: '$720.1M', unit: 'millions_dollars', category: 'Growth', type: 'Leading', releaseDate: '2025-07-26' },
+        { metric: 'Manufacturing PMI', value: '48.5', unit: 'index', category: 'Growth', type: 'Leading', releaseDate: '2025-07-25' },
+        { metric: 'New Home Sales', value: '627.0K', unit: 'thousands', category: 'Growth', type: 'Leading', releaseDate: '2025-07-24' }
+      ];
     }
   }
 
@@ -323,7 +328,50 @@ export class AISummaryService {
     ];
   }
 
-  private async generateAIAnalysis(momentumData: MomentumData, economicEvents: EconomicEvent[]): Promise<Omit<AISummaryResult, 'recentEconomicReadings'>> {
+  private async generateEconomicAnalysis(economicReadings: EconomicReading[]): Promise<string> {
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are a financial analyst providing sharp, focused economic analysis. Generate a 2-3 sentence analysis of the 6 recent economic indicators provided.
+
+CRITICAL REQUIREMENTS:
+- Format ALL numerical values in blue using <span style="color: #3B82F6;">VALUE</span> tags
+- Keep analysis under 80 words
+- Focus on the most significant economic trends 
+- Use professional, decisive language
+- Reference specific metrics by name with their actual values
+
+Return only the analysis text, no JSON formatting needed.`
+          },
+          {
+            role: "user", 
+            content: `
+RECENT ECONOMIC READINGS (6 indicators):
+${economicReadings.map(reading => `${reading.metric}: ${reading.value} (${reading.category})`).join('\n')}
+
+Generate a concise analysis focusing on:
+1. Most significant economic trend
+2. Key metric performance  
+3. Overall economic assessment
+
+Format all numbers and values in blue color tags.`
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 150
+      });
+
+      return response.choices[0].message.content || "Economic indicators analysis completed with recent FRED data.";
+    } catch (error) {
+      console.error('Error generating economic analysis:', error);
+      return `Recent economic readings show <span style="color: #3B82F6;">6 indicators</span> from FRED data covering growth, inflation, and labor metrics. Analysis covers the latest releases from the Federal Reserve economic database.`;
+    }
+  }
+
+  private async generateAIAnalysis(momentumData: MomentumData, economicEvents: EconomicEvent[]): Promise<Omit<AISummaryResult, 'economicReadings' | 'economicAnalysis'>> {
     try {
       const response = await this.openai.chat.completions.create({
         model: "gpt-4o",

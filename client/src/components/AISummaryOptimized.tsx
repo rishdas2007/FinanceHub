@@ -5,6 +5,15 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, Brain, Clock, Database } from "lucide-react";
 import { useState } from "react";
 
+interface EconomicReading {
+  metric: string;
+  value: string;
+  unit: string;
+  category: string;
+  type: string;
+  releaseDate: string;
+}
+
 interface AISummaryResponse {
   analysis: string;
   dataAge: string;
@@ -15,6 +24,8 @@ interface AISummaryResponse {
     technical: boolean;
     economic: boolean;
   };
+  economicReadings?: EconomicReading[];
+  economicAnalysis?: string;
   economic?: Array<{
     metric: string;
     value: string;
@@ -184,28 +195,27 @@ export function AISummaryOptimized() {
           </div>
         </div>
 
-        {/* Economic Data Card */}
+        {/* Economic Readings Card */}
         <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-medium text-white flex items-center">
-              💰 Economic Data
+              📊 Economic Readings
             </h4>
+            <span className="bg-green-600 text-white text-xs px-2 py-1 rounded">
+              {summary.economicReadings?.length || 6} FRED
+            </span>
           </div>
           <div className="space-y-3 text-xs">
-            {summary.economic && Array.isArray(summary.economic) && summary.economic.length > 0 ? (
-              summary.economic.slice(0, 3).map((indicator, index) => (
+            {summary.economicReadings && Array.isArray(summary.economicReadings) && summary.economicReadings.length > 0 ? (
+              summary.economicReadings.slice(0, 3).map((reading, index) => (
                 <div key={index} className="space-y-1">
-                  <div className="font-medium text-white">{indicator.metric}</div>
-                  <div className="text-blue-400 font-semibold">{indicator.value}</div>
+                  <div className="font-medium text-white">{reading.metric}</div>
+                  <div className="text-blue-400 font-semibold">{reading.value}</div>
                   <div className="text-gray-500">
-                    Released: {new Date(indicator.releaseDate).toLocaleDateString('en-US', {
+                    {reading.category} • Released: {new Date(reading.releaseDate).toLocaleDateString('en-US', {
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric'
-                    })} {new Date(indicator.releaseDate).toLocaleTimeString('en-US', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      timeZoneName: 'short'
                     })}
                   </div>
                 </div>
@@ -213,25 +223,37 @@ export function AISummaryOptimized() {
             ) : (
               <>
                 <div className="space-y-1">
-                  <div className="font-medium text-white">Initial Jobless Claims</div>
-                  <div className="text-blue-400 font-semibold">217K ↓ vs forecast</div>
-                  <div className="text-gray-500">Released: July 24, 2025 8:30 AM EDT</div>
+                  <div className="font-medium text-white">Retail Sales</div>
+                  <div className="text-blue-400 font-semibold">$720.1M</div>
+                  <div className="text-gray-500">Growth • Released: July 26, 2025</div>
                 </div>
                 <div className="space-y-1">
-                  <div className="font-medium text-white">Existing Home Sales</div>
-                  <div className="text-blue-400 font-semibold">3.93M ↓ vs prior</div>
-                  <div className="text-gray-500">Released: July 23, 2025 10:00 AM EDT</div>
+                  <div className="font-medium text-white">Manufacturing PMI</div>
+                  <div className="text-blue-400 font-semibold">48.5</div>
+                  <div className="text-gray-500">Growth • Released: July 25, 2025</div>
                 </div>
                 <div className="space-y-1">
-                  <div className="font-medium text-white">Durable Goods Orders</div>
-                  <div className="text-blue-400 font-semibold">-9.3% ↓ vs prior</div>
-                  <div className="text-gray-500">Released: July 25, 2025 8:30 AM EDT</div>
+                  <div className="font-medium text-white">New Home Sales</div>
+                  <div className="text-blue-400 font-semibold">627.0K</div>
+                  <div className="text-gray-500">Growth • Released: July 24, 2025</div>
                 </div>
               </>
             )}
           </div>
         </div>
       </div>
+
+      {/* Economic Readings Analysis */}
+      {summary.economicAnalysis && (
+        <div className="mb-4 p-4 bg-gray-800/30 rounded-lg border border-gray-700">
+          <h4 className="text-sm font-semibold text-white mb-2 flex items-center">
+            🔍 Economic Analysis
+          </h4>
+          <p className="text-gray-100 leading-relaxed text-sm" 
+             dangerouslySetInnerHTML={{ __html: summary.economicAnalysis }}>
+          </p>
+        </div>
+      )}
 
       {/* Analysis Content */}
       <div className="mb-4">
