@@ -163,8 +163,8 @@ export function MoodDataSources() {
           {isRefreshing ? 'Refreshing...' : 'Refresh'}
         </Button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {dataSources.map((source, index) => {
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {dataSources.filter(source => source.type !== 'economic').map((source, index) => {
         const icons = {
           momentum: TrendingUp,
           technical: Activity,
@@ -178,9 +178,7 @@ export function MoodDataSources() {
               <CardTitle className="text-white flex items-center justify-between text-sm">
                 <div className="flex items-center space-x-2">
                   <Icon className="h-4 w-4 text-blue-400" />
-                  <span className="capitalize">
-                    {source.type === 'economic' ? 'Economic Readings' : `${source.type} Data`}
-                  </span>
+                  <span className="capitalize">{source.type} Data</span>
                 </div>
                 {source.status === 'loading' && (
                   <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
@@ -198,7 +196,6 @@ export function MoodDataSources() {
                 <>
                   {source.type === 'momentum' && renderMomentumData(source.data)}
                   {source.type === 'technical' && renderTechnicalData(source.data)}
-                  {source.type === 'economic' && renderEconomicData(source.data)}
                 </>
               )}
               {source.status === 'error' && (

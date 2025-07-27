@@ -205,6 +205,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Economic Data Analysis (Statistical Analysis + OpenAI)
+  app.get('/api/economic-data-analysis', async (req, res) => {
+    try {
+      console.log('🔍 Economic Data Analysis Route: GET /api/economic-data-analysis');
+      
+      // Import services
+      const { economicStatisticalAnalysisService } = await import('./services/economic-statistical-analysis');
+      const { economicAnalysisOpenAIService } = await import('./services/economic-analysis-openai');
+      
+      // Perform statistical analysis
+      const statisticalData = await economicStatisticalAnalysisService.performStatisticalAnalysis();
+      
+      // Generate AI analysis
+      const aiAnalysis = await economicAnalysisOpenAIService.generateEconomicAnalysis(statisticalData);
+      
+      res.json({
+        statisticalData,
+        aiAnalysis
+      });
+      
+    } catch (error) {
+      console.error('Error in economic data analysis:', error);
+      res.status(500).json({ 
+        error: 'Failed to perform economic data analysis',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // Recent Economic Readings (OpenAI powered)
   app.get('/api/recent-economic-openai', async (req, res) => {
     try {
