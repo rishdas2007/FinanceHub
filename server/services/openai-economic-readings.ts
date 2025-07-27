@@ -122,6 +122,7 @@ class OpenAIEconomicReadingsService {
         type: ['Leading', 'Coincident', 'Lagging'].includes(indicator.type) ? indicator.type : 'Coincident',
         lastUpdated: indicator.lastUpdated || new Date().toISOString(),
         releaseDate: indicator.releaseDate || 'Release date pending',
+        period_date: indicator.period_date || indicator.lastUpdated || new Date().toISOString(),
         change: indicator.change || 'No change data',
         zScore: indicator.zScore || 0
       }));
@@ -165,6 +166,7 @@ class OpenAIEconomicReadingsService {
         type: 'Leading',
         lastUpdated: '2025-07-24T08:33:00.000Z',
         releaseDate: 'July 24, 2025 8:30 AM EDT',
+        period_date: '2025-07-19T00:00:00.000Z',
         change: '↓ vs prior week',
         zScore: -0.2
       },
@@ -177,6 +179,7 @@ class OpenAIEconomicReadingsService {
         type: 'Coincident',
         lastUpdated: '2025-07-23T10:13:00.000Z',
         releaseDate: 'July 23, 2025 10:00 AM EDT',
+        period_date: '2025-06-01T00:00:00.000Z',
         change: '↓ 2.7% from May',
         zScore: -0.4
       },
@@ -189,6 +192,7 @@ class OpenAIEconomicReadingsService {
         type: 'Leading',
         lastUpdated: '2025-07-25T03:00:00.000Z',
         releaseDate: 'July 25, 2025 8:30 AM EDT',
+        period_date: '2025-06-01T00:00:00.000Z',
         change: '↓ significant decline',
         zScore: -1.8
       },
@@ -200,6 +204,7 @@ class OpenAIEconomicReadingsService {
         prior: '631K',
         type: 'Leading',
         lastUpdated: '2025-07-22T10:00:00.000Z',
+        period_date: '2025-06-01T00:00:00.000Z',
         change: '↓ vs forecast',
         zScore: -0.5
       },
@@ -211,6 +216,7 @@ class OpenAIEconomicReadingsService {
         prior: '100.4',
         type: 'Leading',
         lastUpdated: '2025-07-22T10:00:00.000Z',
+        period_date: '2025-07-01T00:00:00.000Z',
         change: '↑ vs forecast',
         zScore: 0.2
       },
@@ -222,6 +228,7 @@ class OpenAIEconomicReadingsService {
         prior: '48.5',
         type: 'Leading',
         lastUpdated: '2025-07-21T09:45:00.000Z',
+        period_date: '2025-07-01T00:00:00.000Z',
         change: '↑ vs forecast',
         zScore: 0.4
       }

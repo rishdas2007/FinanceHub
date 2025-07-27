@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, AlertCircle, RefreshCw, Search, Filter } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertCircle, RefreshCw, Search, Filter, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface MacroIndicator {
   metric: string;
@@ -225,11 +225,16 @@ const MacroFormatUtils = {
   }
 };
 
+type SortDirection = 'asc' | 'desc' | null;
+type SortColumn = 'metric' | 'type' | 'category' | 'current' | 'zscore' | 'prior' | 'variance';
+
 const MacroeconomicIndicators: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('Growth');
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
   const queryClient = useQueryClient();
 
@@ -252,6 +257,34 @@ const MacroeconomicIndicators: React.FC = () => {
     } finally {
       setIsRefreshing(false);
     }
+  };
+
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else if (sortDirection === 'desc') {
+        setSortColumn(null);
+        setSortDirection(null);
+      } else {
+        setSortDirection('asc');
+      }
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (column: SortColumn) => {
+    if (sortColumn !== column) {
+      return <ChevronUp className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />;
+    }
+    if (sortDirection === 'asc') {
+      return <ChevronUp className="h-4 w-4 text-blue-400" />;
+    } else if (sortDirection === 'desc') {
+      return <ChevronDown className="h-4 w-4 text-blue-400" />;
+    }
+    return null;
   };
 
   const getVarianceColor = (variance: number | string) => {
@@ -286,12 +319,67 @@ const MacroeconomicIndicators: React.FC = () => {
     }
   };
 
-  const filteredIndicators = macroData?.indicators.filter(indicator => {
-    const matchesSearch = indicator.metric.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === 'all' || indicator.type === typeFilter;
-    const matchesCategory = activeCategory === 'All' || indicator.category === activeCategory;
-    return matchesSearch && matchesType && matchesCategory;
-  }) || [];
+  // Filter and sort indicators
+  const filteredAndSortedIndicators = (() => {
+    let filtered = macroData?.indicators.filter(indicator => {
+      const matchesCategory = activeCategory === 'All' || indicator.category === activeCategory;
+      const matchesSearch = indicator.metric.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = typeFilter === 'all' || indicator.type === typeFilter;
+      return matchesCategory && matchesSearch && matchesType;
+    }) || [];
+
+    // Sort if column and direction are selected
+    if (sortColumn && sortDirection) {
+      filtered = [...filtered].sort((a, b) => {
+        let aValue: any, bValue: any;
+        
+        switch (sortColumn) {
+          case 'metric':
+            aValue = a.metric.toLowerCase();
+            bValue = b.metric.toLowerCase();
+            break;
+          case 'type':
+            aValue = a.type;
+            bValue = b.type;
+            break;
+          case 'category':
+            aValue = a.category;
+            bValue = b.category;
+            break;
+          case 'current':
+            aValue = typeof a.currentReading === 'number' ? a.currentReading : parseFloat(String(a.currentReading)) || 0;
+            bValue = typeof b.currentReading === 'number' ? b.currentReading : parseFloat(String(b.currentReading)) || 0;
+            break;
+          case 'zscore':
+            aValue = a.zScore || 0;
+            bValue = b.zScore || 0;
+            break;
+          case 'prior':
+            aValue = typeof a.priorReading === 'number' ? a.priorReading : parseFloat(String(a.priorReading)) || 0;
+            bValue = typeof b.priorReading === 'number' ? b.priorReading : parseFloat(String(b.priorReading)) || 0;
+            break;
+          case 'variance':
+            aValue = typeof a.varianceVsPrior === 'number' ? a.varianceVsPrior : parseFloat(String(a.varianceVsPrior)) || 0;
+            bValue = typeof b.varianceVsPrior === 'number' ? b.varianceVsPrior : parseFloat(String(b.varianceVsPrior)) || 0;
+            break;
+          default:
+            return 0;
+        }
+
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          return sortDirection === 'asc' 
+            ? aValue.localeCompare(bValue)
+            : bValue.localeCompare(aValue);
+        } else {
+          return sortDirection === 'asc' 
+            ? (aValue - bValue)
+            : (bValue - aValue);
+        }
+      });
+    }
+
+    return filtered;
+  })();
 
   const categories = ['All', 'Growth', 'Inflation', 'Labor', 'Monetary Policy', 'Sentiment'];
   const recentIndicators = macroData?.indicators
@@ -401,6 +489,14 @@ const MacroeconomicIndicators: React.FC = () => {
                       {MacroFormatUtils.formatVariance(indicator.varianceVsPrior, indicator.metric, indicator.unit)}
                     </span>
                   </div>
+                  {indicator.period_date && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 text-sm">Period:</span>
+                      <span className="text-gray-300 text-sm">
+                        {new Date(indicator.period_date).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -412,7 +508,7 @@ const MacroeconomicIndicators: React.FC = () => {
       <Card className="bg-financial-card border-financial-border">
         <CardHeader>
           <div className="space-y-4">
-            <CardTitle className="text-white">Detailed Analysis</CardTitle>
+            <CardTitle className="text-white">Economic Indicators Table</CardTitle>
             
             {/* Controls */}
             <div className="flex flex-wrap gap-4 items-center">
@@ -464,23 +560,81 @@ const MacroeconomicIndicators: React.FC = () => {
             <table className="w-full table-auto">
               <thead>
                 <tr className="border-b border-financial-border sticky top-0 bg-financial-card">
-                  <th className="text-left py-3 px-2 text-gray-300 font-medium w-1/4">Indicator</th>
-                  <th className="text-center py-3 px-2 text-gray-300 font-medium">Type</th>
-                  <th className="text-center py-3 px-2 text-gray-300 font-medium">Category</th>
-                  <th className="text-right py-3 px-2 text-gray-300 font-medium">Current</th>
-                  <th className="text-right py-3 px-2 text-gray-300 font-medium">Z-Score</th>
-                  <th className="text-right py-3 px-2 text-gray-300 font-medium">Prior</th>
-                  <th className="text-right py-3 px-2 text-gray-300 font-medium">vs Prior</th>
+                  <th className="text-left py-3 px-2 w-1/4">
+                    <button 
+                      onClick={() => handleSort('metric')}
+                      className="text-gray-300 font-medium hover:text-white transition-colors flex items-center group"
+                    >
+                      Indicator
+                      {getSortIcon('metric')}
+                    </button>
+                  </th>
+                  <th className="text-center py-3 px-2">
+                    <button 
+                      onClick={() => handleSort('type')}
+                      className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-center group"
+                    >
+                      Type
+                      {getSortIcon('type')}
+                    </button>
+                  </th>
+                  <th className="text-center py-3 px-2">
+                    <button 
+                      onClick={() => handleSort('category')}
+                      className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-center group"
+                    >
+                      Category
+                      {getSortIcon('category')}
+                    </button>
+                  </th>
+                  <th className="text-right py-3 px-2">
+                    <button 
+                      onClick={() => handleSort('current')}
+                      className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-end group w-full"
+                    >
+                      Current
+                      {getSortIcon('current')}
+                    </button>
+                  </th>
+                  <th className="text-right py-3 px-2">
+                    <button 
+                      onClick={() => handleSort('zscore')}
+                      className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-end group w-full"
+                    >
+                      Z-Score
+                      {getSortIcon('zscore')}
+                    </button>
+                  </th>
+                  <th className="text-right py-3 px-2">
+                    <button 
+                      onClick={() => handleSort('prior')}
+                      className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-end group w-full"
+                    >
+                      Prior
+                      {getSortIcon('prior')}
+                    </button>
+                  </th>
+                  <th className="text-right py-3 px-2">
+                    <button 
+                      onClick={() => handleSort('variance')}
+                      className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-end group w-full"
+                    >
+                      vs Prior
+                      {getSortIcon('variance')}
+                    </button>
+                  </th>
                 </tr>
               </thead>
               <tbody className="space-y-1">
-                {filteredIndicators.map((indicator, index) => (
+                {filteredAndSortedIndicators.map((indicator, index) => (
                   <tr key={index} className="border-b border-financial-border hover:bg-financial-gray/50 transition-colors">
                     <td className="py-3 px-2 w-1/4">
                       <div>
                         <div className="text-white font-medium text-sm break-words">{indicator.metric}</div>
                         <div className="text-xs text-gray-400">
-                          {new Date(indicator.releaseDate).toLocaleDateString()}
+                          {indicator.period_date ? `Period: ${new Date(indicator.period_date).toLocaleDateString()}` : ''}
+                          {indicator.period_date && indicator.releaseDate && ' • '}
+                          {indicator.releaseDate ? `Released: ${new Date(indicator.releaseDate).toLocaleDateString()}` : ''}
                         </div>
                       </div>
                     </td>
@@ -510,7 +664,7 @@ const MacroeconomicIndicators: React.FC = () => {
                 ))}
               </tbody>
             </table>
-            {filteredIndicators.length === 0 && (
+            {filteredAndSortedIndicators.length === 0 && (
               <div className="text-center py-8 text-gray-400">
                 No indicators match your current filters
               </div>
