@@ -6,6 +6,21 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 
 ## Recent Changes (July 27, 2025)
 
+### AI ECONOMIC ANALYSIS SECTION SEPARATED & ECONOMIC INDICATORS TABLE SORTING IMPLEMENTED (July 27, 2025 - LATEST UPDATE)
+- **AI ECONOMIC ANALYSIS MOVED TO TOP**: Successfully separated AI Economic Analysis (OpenAI-powered) from Statistical Alert System and moved to top of dashboard
+- **STATISTICAL ALERT SYSTEM REMAINS AT BOTTOM**: Database-driven statistical analysis with z-score calculations stays at bottom with proper separation
+- **ECONOMIC INDICATORS TABLE RENAMED**: Changed "Detailed Analysis" table title to "Economic Indicators Table" as requested
+- **COMPREHENSIVE COLUMN SORTING**: Added full sorting functionality to Economic Indicators Table with ascending/descending for all columns (Indicator, Trend, Current, Z-Score, Mean, Std Dev)
+- **INTERACTIVE SORT HEADERS**: Clickable column headers with hover effects and chevron icons (up/down) showing current sort direction
+- **COMPONENT ARCHITECTURE ENHANCED**: Created separate AIEconomicAnalysis.tsx and StatisticalAlertSystem.tsx components for better organization
+- **DASHBOARD LAYOUT REORGANIZED**: Dashboard now flows: AI Economic Analysis → AI Summary → Momentum Analysis → Macroeconomic Indicators → Statistical Alert System
+- **Z-SCORE COLOR CODING MAINTAINED**: Green/red color coding with bold text for values >2 standard deviations preserved in sortable table
+- **HEADER FORMATTING FIXED**: AI Economic Analysis section headers now display as bold HTML without "##" markdown symbols
+- **USER EXPERIENCE IMPROVED**: Clear visual distinction between OpenAI-powered analysis (top) and database-driven statistical alerts (bottom)
+- **STATUS**: Dashboard successfully reorganized with AI analysis at top, sortable Economic Indicators Table, and database-driven alerts at bottom
+
+## Previous Changes (July 27, 2025)
+
 ### COMPREHENSIVE UNIT-BASED FORMATTING SYSTEM IMPLEMENTED (July 27, 2025 - LATEST UPDATE)
 - **FORMATTING CONSISTENCY ACHIEVED**: Successfully implemented comprehensive unit-based formatNumber function with proper scaling for all economic indicator types
 - **AUTHENTIC VALUE DISPLAY**: Fixed major formatting issues - Retail Sales now shows $720.1M (was $0.0M), Total Construction Spending shows $2.1M (was $0.0M)
