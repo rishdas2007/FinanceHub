@@ -119,7 +119,7 @@ export class LiveZScoreCalculator {
       return results;
 
     } catch (error) {
-      logger.error('❌ Failed to calculate live z-scores:', error);
+      logger.error('❌ Failed to calculate live z-scores:', String(error));
       return [];
     }
   }
