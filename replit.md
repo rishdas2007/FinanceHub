@@ -6,7 +6,16 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 
 ## Recent Changes (July 28, 2025)
 
-### FRED INCREMENTAL API INTEGRATION STEPS 1-10 COMPLETED (July 28, 2025 - LATEST UPDATE)
+### ECONOMIC ANALYSIS THRESHOLD UPDATED & GROWTH SECTION EXPANDED (July 28, 2025 - LATEST UPDATE)
+- **STATISTICAL THRESHOLD INCREASED**: Successfully updated statistical alert threshold from 0.5 to 1.0 standard deviations for more significant alerts
+- **GROWTH SECTION EXPANSION**: Expanded Growth category display limit from 4 to 8 metrics to accommodate more indicators and prevent cutoff
+- **PERIOD COLUMN FIX COMPLETED**: Fixed Economic Indicators Table "Period" column to display actual dates instead of "N/A" by adding period_date field mapping
+- **CACHE VERSION UPDATED**: Incremented cache to v15 ensuring fresh data display with updated threshold and expanded Growth section
+- **UI IMPROVEMENTS**: Growth section now shows up to 8 positive and 8 negative z-score alerts while other categories remain at 4 for optimal layout
+- **THRESHOLD DOCUMENTATION**: Updated description text to reflect new 1.0 standard deviation threshold for statistical significance
+- **STATUS**: Economic Analysis now displays more Growth metrics with higher statistical significance threshold (1.0 vs 0.5 standard deviations)
+
+### FRED INCREMENTAL API INTEGRATION STEPS 1-10 COMPLETED (July 28, 2025 - PREVIOUS UPDATE)
 - **INCREMENTAL FRED API SYSTEM IMPLEMENTED**: Successfully completed all 10 steps from RTF documentation for comprehensive FRED API incremental updates
 - **DATABASE ARCHITECTURE ENHANCED**: Added fredUpdateLog and economicIndicatorsCurrent table schemas with proper TypeScript interfaces and validation
 - **COMPREHENSIVE FRED SERVICE CREATED**: Built fred-api-service-incremental.ts with performIncrementalUpdate(), API usage tracking, and health monitoring

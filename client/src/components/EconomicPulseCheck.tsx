@@ -204,10 +204,10 @@ export function EconomicPulseCheck() {
 
     console.log(`📊 Processing ${economicData.indicators.length} indicators for statistical alerts`);
 
-    // Process indicators that have z-scores exceeding 0.5 standard deviation
+    // Process indicators that have z-scores exceeding 1.0 standard deviation
     let alertCount = 0;
     economicData.indicators.forEach(indicator => {
-      if (indicator.zScore && Math.abs(indicator.zScore) >= 0.5) {
+      if (indicator.zScore && Math.abs(indicator.zScore) >= 1.0) {
         alertCount++;
         console.log(`📈 Alert for ${indicator.metric}: z-score ${indicator.zScore}, category ${indicator.category}`);
         // Parse numeric values from formatted strings
@@ -354,7 +354,7 @@ export function EconomicPulseCheck() {
         </div>
         
         <p className="text-gray-400 text-sm mt-4">
-          Statistical alerts for indicators exceeding 0.5 standard deviations from historical mean
+          Statistical alerts for indicators exceeding 1.0 standard deviations from historical mean
         </p>
         
         {/* Z-Score Definition Note */}
@@ -396,7 +396,7 @@ export function EconomicPulseCheck() {
                   </td>
                   <td className="px-4 py-4 align-top">
                     <div className="space-y-2 min-h-[60px]">
-                      {pulseData[category]?.positive.slice(0, 4).map((metric, idx) => (
+                      {pulseData[category]?.positive.slice(0, category === 'Growth' ? 8 : 4).map((metric, idx) => (
                         <div key={idx} className="bg-financial-gray rounded-lg p-3 border-l-2 border-gain-green">
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex-1 mr-3">
@@ -434,7 +434,7 @@ export function EconomicPulseCheck() {
                   </td>
                   <td className="px-4 py-4 align-top">
                     <div className="space-y-2 min-h-[60px]">
-                      {pulseData[category]?.negative.slice(0, 4).map((metric, idx) => (
+                      {pulseData[category]?.negative.slice(0, category === 'Growth' ? 8 : 4).map((metric, idx) => (
                         <div key={idx} className="bg-financial-gray rounded-lg p-3 border-l-2 border-loss-red">
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex-1 mr-3">
