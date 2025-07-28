@@ -43,19 +43,9 @@ interface PulseMetric {
 }
 
 interface PulseData {
-  positive: {
-    Growth: PulseMetric[];
-    Inflation: PulseMetric[];
-    Labor: PulseMetric[];
-    'Monetary Policy': PulseMetric[];
-    Sentiment: PulseMetric[];
-  };
-  negative: {
-    Growth: PulseMetric[];
-    Inflation: PulseMetric[];
-    Labor: PulseMetric[];
-    'Monetary Policy': PulseMetric[];
-    Sentiment: PulseMetric[];
+  [category: string]: {
+    positive: PulseMetric[];
+    negative: PulseMetric[];
   };
 }
 
@@ -104,20 +94,11 @@ export function EconomicPulseCheck() {
 
   const processPulseData = (): PulseData => {
     const pulseData: PulseData = {
-      positive: {
-        Growth: [],
-        Inflation: [],
-        Labor: [],
-        'Monetary Policy': [],
-        Sentiment: []
-      },
-      negative: {
-        Growth: [],
-        Inflation: [],
-        Labor: [],
-        'Monetary Policy': [],
-        Sentiment: []
-      }
+      Growth: { positive: [], negative: [] },
+      Inflation: { positive: [], negative: [] },
+      Labor: { positive: [], negative: [] },
+      'Monetary Policy': { positive: [], negative: [] },
+      Sentiment: { positive: [], negative: [] }
     };
 
     if (!economicData?.statisticalData) return pulseData;
@@ -137,21 +118,21 @@ export function EconomicPulseCheck() {
             formattedValue: formatValue(currentValue, metricName)
           };
 
-          const categoryKey = category as keyof typeof pulseData.positive;
-          if (zScore > 0) {
-            pulseData.positive[categoryKey]?.push(pulseMetric);
-          } else {
-            pulseData.negative[categoryKey]?.push(pulseMetric);
+          if (pulseData[category]) {
+            if (zScore > 0) {
+              pulseData[category].positive.push(pulseMetric);
+            } else {
+              pulseData[category].negative.push(pulseMetric);
+            }
           }
         }
       });
     });
 
     // Sort by z-score descending for each category
-    Object.keys(pulseData.positive).forEach(category => {
-      const categoryKey = category as keyof typeof pulseData.positive;
-      pulseData.positive[categoryKey].sort((a, b) => b.zScore - a.zScore);
-      pulseData.negative[categoryKey].sort((a, b) => Math.abs(b.zScore) - Math.abs(a.zScore));
+    Object.keys(pulseData).forEach(category => {
+      pulseData[category].positive.sort((a, b) => b.zScore - a.zScore);
+      pulseData[category].negative.sort((a, b) => Math.abs(b.zScore) - Math.abs(a.zScore));
     });
 
     return pulseData;
@@ -215,82 +196,89 @@ export function EconomicPulseCheck() {
           <table className="w-full">
             <thead>
               <tr>
-                <th className="text-left text-sm font-medium text-gray-400 px-3 py-2 w-24">Z-Score</th>
-                {categories.map(category => (
-                  <th key={category} className="text-center text-sm font-medium text-gray-400 px-3 py-2 min-w-32">
-                    {category}
-                  </th>
-                ))}
+                <th className="text-left text-sm font-medium text-gray-400 px-4 py-2 w-32">Category</th>
+                <th className="text-left text-sm font-medium text-gain-green px-4 py-2">
+                  <div className="flex items-center space-x-2">
+                    <TrendingUp className="h-4 w-4" />
+                    <span>Positive Z-Scores</span>
+                  </div>
+                </th>
+                <th className="text-left text-sm font-medium text-loss-red px-4 py-2">
+                  <div className="flex items-center space-x-2">
+                    <TrendingDown className="h-4 w-4" />
+                    <span>Negative Z-Scores</span>
+                  </div>
+                </th>
               </tr>
             </thead>
-            <tbody className="space-y-2">
-              {/* Positive Z-Scores Row */}
-              <tr className="border-t border-financial-border">
-                <td className="px-3 py-4 align-top">
-                  <div className="flex items-center space-x-2 text-gain-green">
-                    <TrendingUp className="h-4 w-4" />
-                    <span className="text-sm font-medium">Positive</span>
-                  </div>
-                </td>
-                {categories.map(category => (
-                  <td key={`positive-${category}`} className="px-3 py-4 align-top">
-                    <div className="space-y-2 min-h-[80px]">
-                      {pulseData.positive[category as keyof typeof pulseData.positive]?.slice(0, 3).map((metric, idx) => (
-                        <div key={idx} className="bg-financial-gray rounded p-2 text-xs">
-                          <div className="font-medium text-white truncate" title={metric.name}>
-                            {metric.name.length > 20 ? `${metric.name.substring(0, 17)}...` : metric.name}
-                          </div>
-                          <div className="text-gain-green font-bold">
-                            {metric.formattedValue}
-                          </div>
-                          <div className="text-gray-400">
-                            z: {metric.zScore.toFixed(2)}
+            <tbody>
+              {categories.map(category => (
+                <tr key={category} className="border-t border-financial-border">
+                  <td className="px-4 py-4 align-top">
+                    <div className="text-sm font-medium text-white">
+                      {category}
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 align-top">
+                    <div className="space-y-2 min-h-[60px]">
+                      {pulseData[category]?.positive.slice(0, 4).map((metric, idx) => (
+                        <div key={idx} className="bg-financial-gray rounded-lg p-3 border-l-2 border-gain-green">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1 mr-3">
+                              <div className="font-medium text-white text-sm mb-1" title={metric.name}>
+                                {metric.name}
+                              </div>
+                              <div className="text-gain-green font-bold text-lg">
+                                {metric.formattedValue}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-xs text-gray-400">z-score</div>
+                              <div className="text-sm font-bold text-gain-green">
+                                +{metric.zScore.toFixed(2)}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))}
-                      {pulseData.positive[category as keyof typeof pulseData.positive]?.length === 0 && (
-                        <div className="text-gray-500 text-xs italic text-center py-4">
+                      {pulseData[category]?.positive.length === 0 && (
+                        <div className="text-gray-500 text-sm italic py-4">
                           No positive outliers
                         </div>
                       )}
                     </div>
                   </td>
-                ))}
-              </tr>
-              
-              {/* Negative Z-Scores Row */}
-              <tr className="border-t border-financial-border">
-                <td className="px-3 py-4 align-top">
-                  <div className="flex items-center space-x-2 text-loss-red">
-                    <TrendingDown className="h-4 w-4" />
-                    <span className="text-sm font-medium">Negative</span>
-                  </div>
-                </td>
-                {categories.map(category => (
-                  <td key={`negative-${category}`} className="px-3 py-4 align-top">
-                    <div className="space-y-2 min-h-[80px]">
-                      {pulseData.negative[category as keyof typeof pulseData.negative]?.slice(0, 3).map((metric, idx) => (
-                        <div key={idx} className="bg-financial-gray rounded p-2 text-xs">
-                          <div className="font-medium text-white truncate" title={metric.name}>
-                            {metric.name.length > 20 ? `${metric.name.substring(0, 17)}...` : metric.name}
-                          </div>
-                          <div className="text-loss-red font-bold">
-                            {metric.formattedValue}
-                          </div>
-                          <div className="text-gray-400">
-                            z: {metric.zScore.toFixed(2)}
+                  <td className="px-4 py-4 align-top">
+                    <div className="space-y-2 min-h-[60px]">
+                      {pulseData[category]?.negative.slice(0, 4).map((metric, idx) => (
+                        <div key={idx} className="bg-financial-gray rounded-lg p-3 border-l-2 border-loss-red">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1 mr-3">
+                              <div className="font-medium text-white text-sm mb-1" title={metric.name}>
+                                {metric.name}
+                              </div>
+                              <div className="text-loss-red font-bold text-lg">
+                                {metric.formattedValue}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-xs text-gray-400">z-score</div>
+                              <div className="text-sm font-bold text-loss-red">
+                                {metric.zScore.toFixed(2)}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))}
-                      {pulseData.negative[category as keyof typeof pulseData.negative]?.length === 0 && (
-                        <div className="text-gray-500 text-xs italic text-center py-4">
+                      {pulseData[category]?.negative.length === 0 && (
+                        <div className="text-gray-500 text-sm italic py-4">
                           No negative outliers
                         </div>
                       )}
                     </div>
                   </td>
-                ))}
-              </tr>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
