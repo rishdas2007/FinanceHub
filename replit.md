@@ -6,11 +6,12 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 
 ## Recent Changes (July 28, 2025)
 
-### CRITICAL Z-SCORE CALCULATION CONSISTENCY FIX COMPLETED & VERIFIED (July 28, 2025 - LATEST UPDATE)
-- **LIVE Z-SCORE CALCULATOR IMPLEMENTED**: Successfully created live-zscore-calculator.ts using direct SQL subqueries for authentic statistical calculations
-- **VARIANCE CALCULATION CONSISTENCY FIXED**: Completely resolved critical issue where positive z-scores showed negative variances in "vs Prior" column
-- **STATISTICAL METHODOLOGY VERIFIED**: Z-scores now measure variance from 18-month historical mean, with "vs Prior" column displaying variance from mean ensuring directional consistency
-- **LIVE CALCULATION GUARANTEE**: All z-score calculations computed fresh (never cached) using 18-month rolling statistics with 930 database records
+### Z-SCORE CALCULATION PERIOD UPDATED TO 12-MONTH & FOOTNOTE DEFINITIONS ADDED (July 28, 2025 - LATEST UPDATE)
+- **Z-SCORE PERIOD STANDARDIZED**: Successfully updated all z-score calculations from 18-month to 12-month historical period across live-zscore-calculator.ts and macroeconomic-indicators.ts
+- **FOOTNOTE DEFINITIONS IMPLEMENTED**: Added comprehensive z-score definition footnotes to both "Economic Analysis" and "Economic Indicators Table" sections explaining calculation methodology
+- **MATHEMATICAL CLARIFICATION**: Clear distinction between z-score (deviation from 12-month mean) and vs Prior (current - previous period) with proper footnote documentation
+- **CACHE INVALIDATION COMPLETED**: Updated cache version and cleared all cached data to ensure 12-month calculations take effect immediately
+- **LIVE CALCULATION GUARANTEE**: All z-score calculations computed fresh (never cached) using 12-month rolling statistics with 930 database records
 - **SQL QUERY OPTIMIZATION**: Replaced complex CTEs with direct subqueries for PostgreSQL compatibility and eliminated column reference errors
 - **AUTHENTIC STATISTICAL ANALYSIS**: System processes authentic Federal Reserve data with proper historical mean and standard deviation calculations
 - **CACHE VERSION v14**: Updated cache system ensuring fresh live z-score calculations replace any cached inconsistent calculations

@@ -39,7 +39,7 @@ export class MacroeconomicService {
       // Fallback to getMacroeconomicData if needed
       return this.getMacroeconomicData();
     } catch (error) {
-      logger.error('Failed to get authentic economic data:', error);
+      logger.error('Failed to get authentic economic data:', String(error));
       return this.getMacroeconomicData();
     }
   }
@@ -136,16 +136,16 @@ export class MacroeconomicService {
 
       const data: MacroeconomicData = {
         indicators,
-        aiSummary: `Live z-score analysis computed for ${indicators.length} economic indicators using 18-month historical statistics. Z-scores measure deviation from historical mean.`,
+        aiSummary: `Live z-score analysis computed for ${indicators.length} economic indicators using 12-month historical statistics. Z-scores measure deviation from historical mean.`,
         lastUpdated: new Date().toISOString(),
-        source: 'Live Database Calculation (18-month rolling statistics)'
+        source: 'Live Database Calculation (12-month rolling statistics)'
       };
 
       logger.info(`✅ Live z-score database data ready: ${indicators.length} indicators`);
       return data;
 
     } catch (error) {
-      logger.error('Failed to get live z-score data from database:', error);
+      logger.error('Failed to get live z-score data from database:', String(error));
       return null;
     }
   }
@@ -163,7 +163,7 @@ export class MacroeconomicService {
         source: 'Fallback'
       };
     } catch (error) {
-      logger.error('Failed to get fallback macroeconomic data:', error);
+      logger.error('Failed to get fallback macroeconomic data:', String(error));
       throw error;
     }
   }

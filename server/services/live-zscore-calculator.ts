@@ -47,22 +47,22 @@ export class LiveZScoreCalculator {
             LIMIT 1
           ) as prior_value,
           
-          -- Calculate historical mean from last 18 months
+          -- Calculate historical mean from last 12 months
           (
             SELECT AVG(value) 
             FROM economic_indicators_history e3 
             WHERE e3.series_id = e1.series_id 
               AND e3.period_date < e1.period_date 
-              AND e3.period_date >= e1.period_date - INTERVAL '18 months'
+              AND e3.period_date >= e1.period_date - INTERVAL '12 months'
           ) as historical_mean,
           
-          -- Calculate historical standard deviation from last 18 months
+          -- Calculate historical standard deviation from last 12 months
           (
             SELECT STDDEV(value) 
             FROM economic_indicators_history e4 
             WHERE e4.series_id = e1.series_id 
               AND e4.period_date < e1.period_date 
-              AND e4.period_date >= e1.period_date - INTERVAL '18 months'
+              AND e4.period_date >= e1.period_date - INTERVAL '12 months'
           ) as historical_std
           
         FROM economic_indicators_history e1

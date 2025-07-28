@@ -415,6 +415,15 @@ export function StatisticalAlertSystem() {
               </div>
             </CardContent>
           </Card>
+          
+          {/* Z-Score Definition Footnote */}
+          <div className="mt-4 p-4 bg-gray-900 border border-gray-700 rounded-lg">
+            <p className="text-sm text-gray-400">
+              <strong className="text-white">Z-Score Definition:</strong> Measures how many standard deviations the current value is from its 12-month historical average. 
+              Calculation: (Current Value - 12-Month Average) ÷ 12-Month Standard Deviation. 
+              Values above ±2.0 indicate statistically significant deviations from the historical norm.
+            </p>
+          </div>
         </>
       ) : (
         <Card className="bg-financial-card border-financial-border">
