@@ -217,28 +217,42 @@ export function EconomicPulseCheck() {
 
     if (!economicData?.indicators) return pulseData;
 
-    // Process indicators that have z-scores exceeding 1 standard deviation
+    // Process indicators that have z-scores exceeding 0.5 standard deviation
     economicData.indicators.forEach(indicator => {
-      if (indicator.zScore && Math.abs(indicator.zScore) >= 1) {
-        const currentValue = typeof indicator.currentReading === 'string' ? parseFloat(indicator.currentReading) : indicator.currentReading;
-        const priorValue = typeof indicator.priorReading === 'string' ? parseFloat(indicator.priorReading) : indicator.priorReading;
+      if (indicator.zScore && Math.abs(indicator.zScore) >= 0.5) {
+        // Parse numeric values from formatted strings
+        const currentValueStr = indicator.currentReading.replace(/[^\d.\-]/g, '');
+        const priorValueStr = indicator.priorReading.replace(/[^\d.\-]/g, '');
+        const currentValue = parseFloat(currentValueStr) || 0;
+        const priorValue = parseFloat(priorValueStr) || 0;
+        
+        // Parse variance handling parentheses for negative values
+        let varianceValue = 0;
+        if (indicator.varianceVsPrior && indicator.varianceVsPrior !== 'N/A') {
+          const varianceStr = indicator.varianceVsPrior.replace(/[^\d.\-()]/g, '');
+          if (varianceStr.includes('(') && varianceStr.includes(')')) {
+            varianceValue = -parseFloat(varianceStr.replace(/[()]/g, ''));
+          } else {
+            varianceValue = parseFloat(varianceStr) || 0;
+          }
+        }
         
         const pulseMetric: PulseMetric = {
           name: indicator.metric,
-          currentValue: currentValue || 0,
-          priorValue: priorValue || null,
+          currentValue: currentValue,
+          priorValue: priorValue,
           zScore: indicator.zScore,
-          formattedValue: indicator.currentReading.toString(),
-          formattedPriorValue: indicator.priorReading.toString(),
+          formattedValue: indicator.currentReading,
+          formattedPriorValue: indicator.priorReading,
           periodDate: indicator.releaseDate || '',
-          changeFromPrior: parseFloat(indicator.varianceVsPrior) || null,
+          changeFromPrior: varianceValue,
           formattedChange: indicator.varianceVsPrior || 'N/A'
         };
 
         if (pulseData[indicator.category]) {
-          if (indicator.zScore > 1) {
+          if (indicator.zScore > 0.5) {
             pulseData[indicator.category].positive.push(pulseMetric);
-          } else if (indicator.zScore < -1) {
+          } else if (indicator.zScore < -0.5) {
             pulseData[indicator.category].negative.push(pulseMetric);
           }
         }
@@ -260,7 +274,7 @@ export function EconomicPulseCheck() {
         <CardHeader>
           <CardTitle className="text-white flex items-center space-x-2">
             <Activity className="h-5 w-5 text-blue-400" />
-            <span>Economic Pulse Check</span>
+            <span>Statistical Alert System</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -283,11 +297,11 @@ export function EconomicPulseCheck() {
         <CardHeader>
           <CardTitle className="text-white flex items-center space-x-2">
             <Activity className="h-5 w-5 text-blue-400" />
-            <span>Economic Pulse Check</span>
+            <span>Statistical Alert System</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-red-400">Failed to load economic pulse data. Please try again.</p>
+          <p className="text-red-400">Failed to load statistical analysis. Please try again.</p>
         </CardContent>
       </Card>
     );
@@ -301,10 +315,10 @@ export function EconomicPulseCheck() {
       <CardHeader>
         <CardTitle className="text-white flex items-center space-x-2">
           <Activity className="h-5 w-5 text-blue-400" />
-          <span>Economic Pulse Check</span>
+          <span>Statistical Alert System</span>
         </CardTitle>
         <p className="text-gray-400 text-sm mt-1">
-          Real-time z-score analysis by category - showing indicators with |z-score| ≥ 0.5
+          Statistical alerts for indicators exceeding 0.5 standard deviations from historical mean
         </p>
       </CardHeader>
       <CardContent>
