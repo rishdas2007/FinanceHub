@@ -5,6 +5,7 @@ import { SPYBaseline } from "@/components/SPYBaseline";
 import MacroeconomicIndicators from "@/components/MacroeconomicIndicators";
 import { AIEconomicAnalysis } from "@/components/AIEconomicAnalysis";
 import { StatisticalAlertSystem } from "@/components/StatisticalAlertSystem";
+import { EconomicPulseCheck } from "@/components/EconomicPulseCheck";
 
 import { MoodDataSources } from "@/components/MoodDataSources";
 import { AAIISentiment } from "@/components/aaii-sentiment";
@@ -64,6 +65,9 @@ export default function Dashboard() {
 
         {/* AI Technical Analysis - moved to top */}
         <MoodDataSources />
+
+        {/* Economic Pulse Check - 2x5 grid above AI Economic Analysis */}
+        <EconomicPulseCheck />
 
         {/* AI Economic Analysis */}
         <AIEconomicAnalysis />
