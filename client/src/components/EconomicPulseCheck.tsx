@@ -49,36 +49,131 @@ interface PulseData {
   };
 }
 
+// Comprehensive metric name to unit mapping - same as Economic Indicators Table
+const getMetricDisplayUnit = (metricName: string): string => {
+  const metricToUnitMap: Record<string, string> = {
+    // Growth - millions_dollars
+    'Retail Sales': 'millions_dollars',
+    'Retail Sales: Food Services': 'millions_dollars',
+    'Retail Sales Ex-Auto': 'millions_dollars',
+    'E-commerce Retail Sales': 'millions_dollars',
+    'Total Construction Spending': 'millions_dollars',
+    'Durable Goods Orders': 'millions_dollars',
+    'Consumer Durable Goods New Orders': 'millions_dollars',
+    
+    // Growth - thousands
+    'Housing Starts': 'thousands',
+    'New Home Sales': 'thousands',
+    'Existing Home Sales': 'thousands',
+    'Building Permits': 'thousands',
+    'Nonfarm Payrolls': 'thousands',
+    'Initial Jobless Claims': 'thousands',
+    'Continuing Jobless Claims': 'thousands',
+    'JOLTS Hires': 'thousands',
+    'JOLTS Job Openings': 'thousands',
+    
+    // Growth - percent
+    'GDP Growth Rate (Annualized)': 'percent',
+    'Capacity Utilization (Mfg)': 'percent',
+    'Personal Savings Rate': 'percent',
+    'Industrial Production YoY': 'percent',
+    
+    // Growth - index
+    'Industrial Production': 'index',
+    'US Leading Economic Index': 'index',
+    'Leading Economic Index': 'index',
+    'ISM Manufacturing PMI': 'index',
+    'S&P Global Mfg PMI': 'index',
+    
+    // Growth - chained_dollars (trillions)
+    'Real Disposable Personal Income': 'chained_dollars',
+    
+    // Growth - months_supply
+    'Months Supply of Homes': 'months_supply',
+    
+    // Labor - percent
+    'Unemployment Rate': 'percent',
+    'U-6 Unemployment Rate': 'percent',
+    'Employment Population Ratio': 'percent',
+    'Labor Force Participation Rate': 'percent',
+    'JOLTS Quit Rate': 'percent',
+    
+    // Labor - dollars_per_hour
+    'Average Hourly Earnings': 'dollars_per_hour',
+    
+    // Labor - hours
+    'Average Weekly Hours': 'hours',
+    
+    // Inflation - index
+    'CPI All Items': 'index',
+    'Core CPI': 'index',
+    'PPI All Commodities': 'index',
+    'Core PPI': 'index',
+    'PCE Price Index': 'index',
+    'Core PCE Price Index': 'index',
+    'CPI Energy': 'index',
+    
+    // Inflation - dollars_per_gallon
+    'US Regular Gasoline Price': 'dollars_per_gallon',
+    
+    // Monetary Policy - percent
+    'Federal Funds Rate': 'percent',
+    '10-Year Treasury Yield': 'percent',
+    '30-Year Fixed Mortgage Rate': 'percent',
+    
+    // Monetary Policy - basis_points
+    'Yield Curve (10yr-2yr)': 'basis_points',
+    
+    // Monetary Policy - billions_dollars
+    'Commercial & Industrial Loans': 'billions_dollars',
+    
+    // Sentiment - index
+    'Michigan Consumer Sentiment': 'index',
+    'Consumer Confidence Index': 'index'
+  };
+
+  return metricToUnitMap[metricName] || 'index';
+};
+
+const formatNumber = (value: number | null | undefined, unit: string): string => {
+  if (value === null || value === undefined || isNaN(value)) {
+    return 'N/A';
+  }
+  const numValue = parseFloat(String(value));
+
+  switch (unit) {
+    case 'percent':
+      return numValue.toFixed(2) + '%';
+    case 'thousands':
+      return numValue.toFixed(1) + 'K'; // Data is already in thousands
+    case 'millions_dollars':
+      return '$' + numValue.toFixed(1) + 'M'; // Data is already in millions
+    case 'billions_dollars':
+      return '$' + (numValue / 1000).toFixed(1) + 'B';
+    case 'index':
+      return numValue.toFixed(1);
+    case 'basis_points':
+      return numValue.toFixed(0) + ' bps';
+    case 'dollars_per_hour':
+      return '$' + numValue.toFixed(2);
+    case 'hours':
+      return numValue.toFixed(1) + ' hrs';
+    case 'months_supply':
+      return numValue.toFixed(1) + ' months';
+    case 'chained_dollars': // For Real Disposable Personal Income (trillions)
+      return '$' + numValue.toFixed(2) + 'T';
+    case 'dollars_per_gallon':
+      return '$' + numValue.toFixed(2) + '/gal';
+    case 'units': // Generic units
+      return numValue.toLocaleString();
+    default:
+      return numValue.toFixed(2);
+  }
+};
+
 const formatValue = (value: number, metricName: string): string => {
-  // Simple formatting based on metric name patterns
-  if (metricName.toLowerCase().includes('rate') || 
-      metricName.toLowerCase().includes('unemployment') ||
-      metricName.toLowerCase().includes('inflation') ||
-      metricName.toLowerCase().includes('growth')) {
-    return `${value.toFixed(1)}%`;
-  }
-  
-  if (metricName.toLowerCase().includes('claims') ||
-      metricName.toLowerCase().includes('jobs') ||
-      metricName.toLowerCase().includes('payrolls')) {
-    return `${(value / 1000).toFixed(0)}K`;
-  }
-  
-  if (metricName.toLowerCase().includes('housing') ||
-      metricName.toLowerCase().includes('sales') ||
-      metricName.toLowerCase().includes('permits')) {
-    return `${(value / 1000000).toFixed(2)}M`;
-  }
-  
-  if (metricName.toLowerCase().includes('index') ||
-      metricName.toLowerCase().includes('pmi') ||
-      metricName.toLowerCase().includes('sentiment') ||
-      metricName.toLowerCase().includes('confidence')) {
-    return value.toFixed(1);
-  }
-  
-  // Default formatting
-  return value.toFixed(1);
+  const unit = getMetricDisplayUnit(metricName);
+  return formatNumber(value, unit);
 };
 
 export function EconomicPulseCheck() {
