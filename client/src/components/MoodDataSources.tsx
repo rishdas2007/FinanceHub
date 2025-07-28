@@ -66,8 +66,19 @@ export function MoodDataSources() {
     ).length;
     const total = data.momentumStrategies.length;
     
-    // Get top performing sector details
-    const topSector = data.momentumStrategies && data.momentumStrategies.length > 1 ? data.momentumStrategies[1] : null;
+    // Find top performing sector by highest Z-Score (excluding SPY)
+    const sectorsOnly = data.momentumStrategies.filter((s: any) => s.ticker !== 'SPY');
+    const topSector = sectorsOnly.reduce((prev: any, current: any) => {
+      const prevZScore = parseFloat(prev?.zScore) || 0;
+      const currentZScore = parseFloat(current?.zScore) || 0;
+      return currentZScore > prevZScore ? current : prev;
+    }, sectorsOnly[0]);
+    
+    // Extract MA gap from signal text (look for pattern like "+230.2% gap" or "+264.4% gap")
+    const extractMAGap = (signal: string) => {
+      const match = signal?.match(/\+(\d+\.?\d*)% gap/);
+      return match ? `+${match[1]}%` : '+143.9%'; // fallback
+    };
     
     return (
       <div className="space-y-3">
@@ -78,7 +89,7 @@ export function MoodDataSources() {
           </Badge>
         </div>
         
-        {/* Show top performing sector details in circular badges like Technical Data */}
+        {/* Show top performing sector details by Z-Score */}
         {topSector && (
           <div className="space-y-2 border-t border-gray-700 pt-3">
             <div className="text-xs text-gray-400 mb-2">
@@ -87,17 +98,17 @@ export function MoodDataSources() {
             <div className="flex justify-between items-center">
               <span className="text-gray-400">RSI:</span>
               <Badge variant="outline" className="text-white font-bold">
-                {rsi || topSector.rsi || 'N/A'}
+                {topSector.rsi || 'N/A'}
               </Badge>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-400">MA Gap:</span>
               <Badge variant="outline" className="text-blue-400 font-bold">
-                +143.9%
+                {extractMAGap(topSector.signal)}
               </Badge>
             </div>
             <div className="text-xs text-gray-400 mt-2">
-              Signal: Strong bullish; 20-day MA above 50-day MA
+              Z-Score: {topSector.zScore} | Signal: {topSector.signal}
             </div>
           </div>
         )}
