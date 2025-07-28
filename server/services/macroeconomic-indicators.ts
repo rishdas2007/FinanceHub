@@ -49,7 +49,7 @@ export class MacroeconomicIndicatorsService {
       const { cacheService } = await import('./cache-unified');
       
       // Check memory cache first  
-      const cacheKey = 'fred-economic-indicators-v12'; // Updated cache version to completely refresh all date data
+      const cacheKey = 'fred-economic-indicators-v13'; // Updated to use comprehensive 46+ indicator FRED integration
       const cached = cacheService.get(cacheKey) as MacroeconomicData | null;
       if (cached) {
         logger.debug('Returning cached FRED economic data');

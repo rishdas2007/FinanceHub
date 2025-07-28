@@ -20,59 +20,68 @@ export class FREDApiService {
   private readonly baseUrl = 'https://api.stlouisfed.org/fred';
   private readonly apiKey: string;
 
-  // EXPANDED USER-PROVIDED CURATED_SERIES CONFIGURATION - 43 INDICATORS
+  // COMPLETE 46+ ECONOMIC INDICATORS WITH FULL FRED API INTEGRATION
   private readonly keyIndicators = [
-    // Core Inflation Indicators (8)
-    { series_id: 'CPIAUCSL', title: 'CPI All Items', category: 'Inflation' as const, type: 'Lagging' as const, display_unit: 'index' },
+    // Growth Indicators (18)
+    { series_id: 'A191RL1Q225SBEA', title: 'GDP Growth Rate', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'percent' },
+    { series_id: 'RSAFS', title: 'Retail Sales', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'millions_dollars' },
+    { series_id: 'MRTSSM44W72USN', title: 'Retail Sales Ex-Auto', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'millions_dollars' },
+    { series_id: 'RSFSDP', title: 'Retail Sales: Food Services', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'millions_dollars' },
+    { series_id: 'INDPRO', title: 'Industrial Production', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'index' },
+    { series_id: 'CAPUTLG2211S', title: 'Capacity Utilization (Mfg)', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'percent' },
+    { series_id: 'PI', title: 'Personal Income', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'billions_dollars' },
+    { series_id: 'PCE', title: 'Personal Spending', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'billions_dollars' },
+    { series_id: 'DGORDER', title: 'Durable Goods Orders', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'millions_dollars' },
+    { series_id: 'NEWORDER', title: 'Consumer Durable Goods New Orders', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'millions_dollars' },
+    { series_id: 'AMTMNO', title: 'Factory Orders', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'millions_dollars' },
+    { series_id: 'BUSINV', title: 'Business Inventories', category: 'Growth' as const, type: 'Lagging' as const, display_unit: 'millions_dollars' },
+    { series_id: 'USSLIND', title: 'Leading Economic Index', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'index' },
+    { series_id: 'DSPIC96', title: 'Real Disposable Personal Income', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'chained_dollars' },
+    { series_id: 'ECRST', title: 'E-commerce Retail Sales', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'millions_dollars' },
+    { series_id: 'TTLCON', title: 'Total Construction Spending', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'millions_dollars' },
+    { series_id: 'NAPMIMFG', title: 'Manufacturing PMI', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'index' },
+    { series_id: 'NAPMNOI', title: 'ISM Services PMI', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'index' },
+
+    // Housing & Real Estate (8)
+    { series_id: 'HOUST', title: 'Housing Starts', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'thousands' },
+    { series_id: 'PERMIT', title: 'Building Permits', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'thousands' },
+    { series_id: 'EXHOSLUSM495S', title: 'Existing Home Sales', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'thousands' },
+    { series_id: 'HSN1F', title: 'New Home Sales', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'thousands' },
+    { series_id: 'PHSI', title: 'Pending Home Sales', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'index' },
+    { series_id: 'CSUSHPINSA', title: 'Home Price Index', category: 'Growth' as const, type: 'Lagging' as const, display_unit: 'index' },
+    { series_id: 'MSACSR', title: 'Months Supply of Homes', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'months_supply' },
+
+    // Inflation Indicators (8)
+    { series_id: 'CPIAUCSL', title: 'CPI', category: 'Inflation' as const, type: 'Lagging' as const, display_unit: 'index' },
     { series_id: 'CPILFESL', title: 'Core CPI', category: 'Inflation' as const, type: 'Lagging' as const, display_unit: 'index' },
     { series_id: 'PPIACO', title: 'PPI All Commodities', category: 'Inflation' as const, type: 'Lagging' as const, display_unit: 'index' },
-    { series_id: 'PCEPI', title: 'PCE Price Index', category: 'Inflation' as const, type: 'Lagging' as const, display_unit: 'index' },
-    { series_id: 'CPIENGSL', title: 'CPI Energy', category: 'Inflation' as const, type: 'Lagging' as const, display_unit: 'index' },
-    { series_id: 'PCEPILFE', title: 'Core PCE Price Index', category: 'Inflation' as const, type: 'Lagging' as const, display_unit: 'index' },
     { series_id: 'WPUSOP3000', title: 'Core PPI', category: 'Inflation' as const, type: 'Lagging' as const, display_unit: 'index' },
-    { series_id: 'GASREGCOVA', title: 'US Regular Gasoline Price', category: 'Inflation' as const, type: 'Lagging' as const, display_unit: 'dollars_per_gallon' },
-    
-    // Growth Indicators (18) 
-    { series_id: 'A191RL1Q225SBEA', title: 'GDP Growth Rate (Annualized)', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'percent' },
-    { series_id: 'RSAFS', title: 'Retail Sales', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'millions_dollars' },
-    { series_id: 'DGORDER', title: 'Durable Goods Orders', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'millions_dollars' },
-    { series_id: 'INDPRO', title: 'Industrial Production', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'index' },
-    { series_id: 'HOUST', title: 'Housing Starts', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'thousands' },
-    { series_id: 'HSN1F', title: 'New Home Sales', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'thousands' },
-    { series_id: 'EXHOSLUSM495S', title: 'Existing Home Sales', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'thousands' },
-    { series_id: 'PERMIT', title: 'Building Permits', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'thousands' },
-    { series_id: 'NAPMIMFG', title: 'ISM Manufacturing PMI', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'index' },
-    { series_id: 'PMICM', title: 'S&P Global Mfg PMI', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'index' },
-    { series_id: 'USSLIND', title: 'US Leading Economic Index', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'index' },
-    { series_id: 'ECRST', title: 'E-commerce Retail Sales', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'millions_dollars' },
-    { series_id: 'DSPIC96', title: 'Real Disposable Personal Income', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'chained_dollars' },
-    { series_id: 'MRTSSM44W72USN', title: 'Retail Sales Ex-Auto', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'millions_dollars' },
-    { series_id: 'CSUSHPINSA', title: 'Case-Shiller Home Price Index', category: 'Growth' as const, type: 'Lagging' as const, display_unit: 'index' },
-    { series_id: 'MSACSR', title: 'Months Supply of Homes', category: 'Growth' as const, type: 'Leading' as const, display_unit: 'months_supply' },
-    { series_id: 'TTLCON', title: 'Total Construction Spending', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'millions_dollars' },
-    { series_id: 'CAPUTLG2211S', title: 'Capacity Utilization (Mfg)', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'percent' },
-    
-    // Labor Indicators (13)
+    { series_id: 'PCEPI', title: 'PCE Price Index YoY', category: 'Inflation' as const, type: 'Lagging' as const, display_unit: 'percent' },
+    { series_id: 'PCEPILFE', title: 'Core PCE Price Index', category: 'Inflation' as const, type: 'Lagging' as const, display_unit: 'index' },
+    { series_id: 'CPIENGSL', title: 'CPI Energy', category: 'Inflation' as const, type: 'Leading' as const, display_unit: 'index' },
+    { series_id: 'GASREGCOVA', title: 'Personal Savings Rate', category: 'Inflation' as const, type: 'Lagging' as const, display_unit: 'percent' },
+
+    // Labor Market Indicators (13)
     { series_id: 'UNRATE', title: 'Unemployment Rate', category: 'Labor' as const, type: 'Lagging' as const, display_unit: 'percent' },
     { series_id: 'PAYEMS', title: 'Nonfarm Payrolls', category: 'Labor' as const, type: 'Coincident' as const, display_unit: 'thousands' },
     { series_id: 'ICSA', title: 'Initial Jobless Claims', category: 'Labor' as const, type: 'Leading' as const, display_unit: 'thousands' },
     { series_id: 'CCSA', title: 'Continuing Jobless Claims', category: 'Labor' as const, type: 'Lagging' as const, display_unit: 'thousands' },
     { series_id: 'CES0500000003', title: 'Average Hourly Earnings', category: 'Labor' as const, type: 'Lagging' as const, display_unit: 'dollars_per_hour' },
     { series_id: 'AWHAETP', title: 'Average Weekly Hours', category: 'Labor' as const, type: 'Coincident' as const, display_unit: 'hours' },
-    { series_id: 'JTSHIR', title: 'JOLTS Hires', category: 'Labor' as const, type: 'Coincident' as const, display_unit: 'thousands' },
-    { series_id: 'JTSJOL', title: 'JOLTS Job Openings', category: 'Labor' as const, type: 'Leading' as const, display_unit: 'thousands' },
-    { series_id: 'JTSQUR', title: 'JOLTS Quit Rate', category: 'Labor' as const, type: 'Lagging' as const, display_unit: 'percent' },
     { series_id: 'CIVPART', title: 'Labor Force Participation Rate', category: 'Labor' as const, type: 'Lagging' as const, display_unit: 'percent' },
+    { series_id: 'JTSJOL', title: 'Job Openings (JOLTS)', category: 'Labor' as const, type: 'Leading' as const, display_unit: 'thousands' },
+    { series_id: 'JTSHIR', title: 'JOLTS Hires', category: 'Labor' as const, type: 'Coincident' as const, display_unit: 'thousands' },
+    { series_id: 'JTSQUR', title: 'Quits Rate', category: 'Labor' as const, type: 'Leading' as const, display_unit: 'percent' },
     { series_id: 'U6RATE', title: 'U-6 Unemployment Rate', category: 'Labor' as const, type: 'Lagging' as const, display_unit: 'percent' },
-    
+
     // Monetary Policy (5)
     { series_id: 'FEDFUNDS', title: 'Federal Funds Rate', category: 'Monetary Policy' as const, type: 'Coincident' as const, display_unit: 'percent' },
     { series_id: 'DGS10', title: '10-Year Treasury Yield', category: 'Monetary Policy' as const, type: 'Leading' as const, display_unit: 'percent' },
     { series_id: 'T10Y2Y', title: 'Yield Curve (10yr-2yr)', category: 'Monetary Policy' as const, type: 'Leading' as const, display_unit: 'basis_points' },
     { series_id: 'MORTGAGE30US', title: '30-Year Fixed Mortgage Rate', category: 'Monetary Policy' as const, type: 'Leading' as const, display_unit: 'percent' },
     { series_id: 'BUSLOANS', title: 'Commercial & Industrial Loans', category: 'Monetary Policy' as const, type: 'Coincident' as const, display_unit: 'billions_dollars' },
-    
-    // Sentiment (3)
+
+    // Sentiment (2)
     { series_id: 'UMCSENT', title: 'Michigan Consumer Sentiment', category: 'Sentiment' as const, type: 'Leading' as const, display_unit: 'index' },
     { series_id: 'CSCICP03USM665S', title: 'Consumer Confidence Index', category: 'Sentiment' as const, type: 'Leading' as const, display_unit: 'index' },
     { series_id: 'PSAVERT', title: 'Personal Savings Rate', category: 'Sentiment' as const, type: 'Lagging' as const, display_unit: 'percent' }
@@ -129,7 +138,7 @@ export class FREDApiService {
             
             // Calculate proper values based on display_unit
             const currentVal = parseFloat(current.value);
-            const previousVal = previous ? parseFloat(previous.value) : null;
+            const previousVal = previous ? parseFloat(previous.value) : undefined;
             
             let formattedCurrent: string;
             let formattedPrevious: string;
