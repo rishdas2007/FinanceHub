@@ -497,221 +497,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  // AI Analysis - Generate comprehensive market analysis with enhanced formatting
-  app.get("/api/analysis", async (req, res) => {
+  // AI Analysis routes removed during system optimization
+
+  // Invalidate cache endpoint for manual refresh
+  app.post("/api/cache/invalidate", async (req, res) => {
     try {
-      console.log('🧠 Generating enhanced AI analysis with FRESH real-time data... [DATA SYNC FIX ACTIVE]');
-      
       const { cacheService } = await import('./services/cache-unified');
-      const cacheKey = 'ai-analysis-data-v2-spy-focus';
+      cacheService.clear(); // Clear all cache entries
       
-      // Check cache first (2 minute TTL for AI analysis data)
-      const bypassCache = req.headers['x-bypass-cache'] === 'true';
-      let cachedData = null;
-      if (!bypassCache) {
-        cachedData = cacheService.get(cacheKey) as any;
-        if (cachedData && cachedData.analysisResult) {
-          console.log('✅ Using cached AI analysis data');
-          return res.json(cachedData.analysisResult);
-        }
-      }
-      
-      // Fetch fresh real-time data for AI analysis (use database cache for performance)
-      let finalStockData, finalSentiment, finalTechnical;
-      
+      // Also clear local momentum cache if exists
       try {
-        // Get SPY data from database cache first
-        const latestSpy = await storage.getLatestStockData('SPY');
-        if (latestSpy) {
-          finalStockData = {
-            symbol: 'SPY',
-            price: latestSpy.price,
-            change: latestSpy.change,
-            changePercent: latestSpy.changePercent
-          };
-          console.log(`🔄 AI using cached SPY data: $${finalStockData.price} (${finalStockData.changePercent}%)`);
-        } else {
-          // Fallback to fresh API call
-          const spyData = await financialDataService.getStockQuote('SPY');
-          finalStockData = {
-            symbol: 'SPY',
-            price: spyData.price.toString(),
-            change: spyData.change.toString(),
-            changePercent: spyData.changePercent.toString()
-          };
-        }
-        
-        // Get technical indicators from database cache
-        const latestTech = await storage.getLatestTechnicalIndicators('SPY');
-        if (latestTech) {
-          finalTechnical = {
-            rsi: latestTech.rsi || '68.16',
-            macd: latestTech.macd || '8.256',
-            macdSignal: latestTech.macdSignal || '8.722',
-            percent_b: latestTech.percent_b || '0.65',
-            adx: latestTech.adx || '25.3',
-            stoch_k: latestTech.stoch_k || '65.4',
-            stoch_d: latestTech.stoch_d || '68.2',
-            vwap: latestTech.vwap || '626.87',
-            atr: latestTech.atr || '12.45',
-            willr: latestTech.willr || '-28.5',
-            bb_upper: latestTech.bb_upper || '640.25',
-            bb_middle: latestTech.bb_middle || '628.15',
-            bb_lower: latestTech.bb_lower || '616.05'
-          };
-          console.log(`🔄 AI using enhanced technical data: RSI ${finalTechnical.rsi}, ADX ${finalTechnical.adx}, %B ${finalTechnical.percent_b}`);
-        } else {
-          // Fallback to fresh API call with enhanced indicators
-          const techData = await financialDataService.getTechnicalIndicators('SPY');
-          finalTechnical = {
-            rsi: techData.rsi?.toString() || '68.16',
-            macd: techData.macd?.toString() || '8.256',
-            macdSignal: techData.macdSignal?.toString() || '8.722',
-            percent_b: techData.percent_b?.toString() || '0.65',
-            adx: techData.adx?.toString() || '25.3',
-            stoch_k: techData.stoch_k?.toString() || '65.4',
-            stoch_d: techData.stoch_d?.toString() || '68.2',
-            vwap: techData.vwap?.toString() || '626.87',
-            atr: techData.atr?.toString() || '12.45',
-            willr: techData.willr?.toString() || '-28.5',
-            bb_upper: techData.bb_upper?.toString() || '640.25',
-            bb_middle: techData.bb_middle?.toString() || '628.15',
-            bb_lower: techData.bb_lower?.toString() || '616.05'
-          };
-        }
-        
-        // Get sentiment data from database cache
-        const latestSentiment = await storage.getLatestMarketSentiment();
-        if (latestSentiment) {
-          finalSentiment = {
-            vix: latestSentiment.vix || '17.16',
-            putCallRatio: latestSentiment.putCallRatio || '0.85',
-            aaiiBullish: latestSentiment.aaiiBullish || '41.4',
-            aaiiBearish: latestSentiment.aaiiBearish || '35.6'
-          };
-          console.log(`🔄 AI using cached sentiment data: VIX ${finalSentiment.vix}, AAII ${finalSentiment.aaiiBullish}%`);
-        } else {
-          // Fallback to fresh API call
-          const sentimentData = await financialDataService.getRealMarketSentiment();
-          finalSentiment = {
-            vix: sentimentData.vix?.toString() || '17.16',
-            putCallRatio: sentimentData.putCallRatio?.toString() || '0.85',
-            aaiiBullish: sentimentData.aaiiBullish?.toString() || '41.4',
-            aaiiBearish: sentimentData.aaiiBearish?.toString() || '35.6'
-          };
-        }
-        
+        const { clearLocalCache } = await import('./services/momentum-analysis');
+        clearLocalCache();
+        console.log('🔄 Cleared local momentum analysis cache');
       } catch (error) {
-        console.error('Error fetching data for AI analysis, using fallback:', error);
-        // Only use fallback if real-time fetch fails
-        finalStockData = { symbol: 'SPY', price: '628.04', change: '3.82', changePercent: '0.61' };
-        finalSentiment = { vix: '17.16', putCallRatio: '0.85', aaiiBullish: '41.4', aaiiBearish: '35.6' };
-        finalTechnical = { rsi: '68.95', macd: '8.244', macdSignal: '8.627' };
+        // Ignore if momentum service doesn't have clearLocalCache
       }
       
-      // Get current sector data from cache
-      let finalSectors;
-      try {
-        const sectorCacheKey = 'sector-data';
-        const cachedSectors = cacheService.get(sectorCacheKey);
-        if (cachedSectors) {
-          finalSectors = cachedSectors;
-          console.log('✅ Using cached sector data for enhanced analysis');
-        } else {
-          finalSectors = await financialDataService.getSectorETFs();
-          console.log('✅ Using fresh sector data for enhanced analysis');
-        }
-      } catch (error) {
-        console.log('Using fallback sector data for enhanced analysis');
-        finalSectors = [
-          { name: 'Financials', symbol: 'XLF', oneDayChange: '0.96', fiveDayChange: '2.1' },
-          { name: 'Technology', symbol: 'XLK', oneDayChange: '0.91', fiveDayChange: '2.8' },
-          { name: 'Industrials', symbol: 'XLI', oneDayChange: '0.92', fiveDayChange: '1.4' },
-          { name: 'Health Care', symbol: 'XLV', oneDayChange: '-1.14', fiveDayChange: '0.3' },
-          { name: 'Consumer Discretionary', symbol: 'XLY', oneDayChange: '0.82', fiveDayChange: '1.9' },
-          { name: 'Communication Services', symbol: 'XLC', oneDayChange: '0.75', fiveDayChange: '2.2' },
-          { name: 'Consumer Staples', symbol: 'XLP', oneDayChange: '0.34', fiveDayChange: '0.8' },
-          { name: 'Energy', symbol: 'XLE', oneDayChange: '0.61', fiveDayChange: '-2.1' },
-          { name: 'Utilities', symbol: 'XLU', oneDayChange: '-0.45', fiveDayChange: '0.2' },
-          { name: 'Real Estate', symbol: 'XLRE', oneDayChange: '0.28', fiveDayChange: '1.1' },
-          { name: 'Materials', symbol: 'XLB', oneDayChange: '0.73', fiveDayChange: '1.6' }
-        ];
-      }
-        
-      const marketData = {
-        symbol: finalStockData.symbol,
-        price: parseFloat(finalStockData.price),
-        change: parseFloat(finalStockData.change),
-        changePercent: parseFloat(finalStockData.changePercent),
-        rsi: finalTechnical?.rsi ? parseFloat(finalTechnical.rsi) : 68.95,
-        macd: finalTechnical?.macd ? parseFloat(finalTechnical.macd) : 8.24,
-        macdSignal: finalTechnical?.macdSignal ? parseFloat(finalTechnical.macdSignal) : 8.62,
-        vix: finalSentiment?.vix ? parseFloat(finalSentiment.vix) : 17.16,
-        putCallRatio: finalSentiment?.putCallRatio ? parseFloat(finalSentiment.putCallRatio) : 0.85,
-        aaiiBullish: finalSentiment?.aaiiBullish ? parseFloat(finalSentiment.aaiiBullish) : 41.4,
-        aaiiBearish: finalSentiment?.aaiiBearish ? parseFloat(finalSentiment.aaiiBearish) : 35.6,
-        // Enhanced technical indicators for comprehensive analysis
-        percent_b: finalTechnical?.percent_b ? parseFloat(finalTechnical.percent_b) : 0.65,
-        adx: finalTechnical?.adx ? parseFloat(finalTechnical.adx) : 25.3,
-        stoch_k: finalTechnical?.stoch_k ? parseFloat(finalTechnical.stoch_k) : 65.4,
-        stoch_d: finalTechnical?.stoch_d ? parseFloat(finalTechnical.stoch_d) : 68.2,
-        vwap: finalTechnical?.vwap ? parseFloat(finalTechnical.vwap) : 626.87,
-        atr: finalTechnical?.atr ? parseFloat(finalTechnical.atr) : 12.45,
-        willr: finalTechnical?.willr ? parseFloat(finalTechnical.willr) : -28.5,
-        bb_upper: finalTechnical?.bb_upper ? parseFloat(finalTechnical.bb_upper) : 640.25,
-        bb_middle: finalTechnical?.bb_middle ? parseFloat(finalTechnical.bb_middle) : 628.15,
-        bb_lower: finalTechnical?.bb_lower ? parseFloat(finalTechnical.bb_lower) : 616.05,
-      };
+      res.json({ success: true, message: 'All cache entries invalidated' });
+    } catch (error) {
+      console.error('❌ Error during cache invalidation:', error);
+      res.status(500).json({ message: 'Failed to invalidate cache' });
+    }
+  });
+
+  // Force refresh endpoint
+  app.post("/api/force-refresh", async (req, res) => {
+    try {
+      const { cacheService } = await import('./services/cache-unified');
+      cacheService.clear();
       
-      console.log('📊 Market data for AI analysis:', marketData);
+      // Trigger fresh data fetching by making background calls
+      const financialDataService = await import('./services/financial-data');
       
-      // Get economic events from simplified reliable calendar for comprehensive analysis
-      let economicEvents: any[] = [];
-      try {
-        console.log('Fetching economic events from reliable calendar...');
-        const { simplifiedEconomicCalendarService } = await import('./services/simplified-economic-calendar');
-        
-        // Get market hours-aware economic events for AI analysis
-        const economicAnalysisData = await simplifiedEconomicCalendarService.getAIAnalysisEvents();
-        economicEvents = [
-          ...economicAnalysisData.currentTradingDay,
-          ...economicAnalysisData.recent,
-          ...economicAnalysisData.highImpact
-        ];
-        
-        console.log(`📊 AI Analysis Events: ${economicEvents.length} total economic events from reliable calendar`);
-      } catch (error) {
-        console.log('Error with reliable calendar, using fallback:', error);
-      }
+      console.log('🔄 Force refreshing all dashboard data...');
       
-      const enhancedMarketData = {
-        ...marketData,
-        economicEvents: economicEvents
-      };
+      // Fetch fresh data in parallel
+      const [stockData, sectorData] = await Promise.allSettled([
+        financialDataService.getStockQuote('SPY'),
+        financialDataService.getSectorETFs()
+      ]);
       
-      // Generate simple AI analysis fallback
-      const aiResult = {
-        marketConditions: `SPY at $${marketData.spyPrice} (${marketData.spyChange > 0 ? '+' : ''}${marketData.spyChange}%), VIX ${marketData.vix}`,
-        technicalAnalysis: `RSI ${marketData.rsi}, MACD ${marketData.macd}`,
-        economicAnalysis: `Market analysis with ${economicEvents.length} economic indicators`
-      };
-      console.log('✅ AI analysis generated with fallback data');
-      
-      const analysisData = await storage.createAiAnalysis({
-        marketConditions: aiResult.marketConditions || 'Market analysis unavailable',
-        technicalOutlook: aiResult.technicalAnalysis || 'Technical analysis unavailable',  
-        riskAssessment: aiResult.economicAnalysis || 'Economic analysis unavailable',
-        sectorRotation: (aiResult as any).sectorRotation || 'Sector analysis unavailable',
-        confidence: ((aiResult as any).confidence || 0.5).toString(),
+      res.json({ 
+        message: 'Data refresh initiated',
+        timestamp: new Date().toISOString(),
+        refreshedSections: ['Stock Data', 'Sector Data', 'Cache Cleared']
       });
       
-      // Cache the result for 2 minutes to improve performance
-      cacheService.set(cacheKey, { analysisResult: analysisData }, 120);
-      
-      res.json(analysisData);
     } catch (error) {
-      console.error('Error fetching AI analysis:', error);
-      res.status(500).json({ message: 'Failed to fetch AI analysis' });
+      console.error('❌ Error during force refresh:', error);
+      res.status(500).json({ message: 'Failed to refresh data' });
+    }
+  });
+
+  // Removed AI analysis section during optimization
+
+  // Force refresh endpoint for immediate data updates
+  app.post("/api/force-refresh", async (req, res) => {
+    try {
+      console.log('🔄 Force refresh triggered...');
+      
+      // Import and use the scheduler for comprehensive updates
+      const { dataScheduler } = await import('./services/scheduler');
+      await dataScheduler.forceUpdate();
+      
+      res.json({ 
+        message: 'All data refreshed successfully via scheduler',
+        timestamp: new Date().toISOString(),
+        schedule: {
+          realtime: 'Every 2 minutes (8:30 AM - 6 PM EST, weekdays)',
+          forecast: 'Every 6 hours',
+          comprehensive: 'Daily at 6 AM EST',
+          cleanup: 'Daily at 2 AM EST'
+        }
+      });
+    } catch (error) {
+      console.error('❌ Error during force refresh:', error);
+      res.status(500).json({ message: 'Failed to refresh data' });
     }
   });
 

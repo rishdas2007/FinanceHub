@@ -227,8 +227,8 @@ export function EconomicPulseCheck() {
           }
         }
         
-        // Debug log the date values
-        const actualPeriodDate = indicator.period_date || indicator.releaseDate || '2025-07-22';
+        // Use the most recent period_date from backend data
+        const actualPeriodDate = indicator.period_date || indicator.releaseDate || new Date().toISOString().split('T')[0];
         console.log(`📅 Date for ${indicator.metric}: period_date=${indicator.period_date}, releaseDate=${indicator.releaseDate}, using=${actualPeriodDate}`);
         
         const pulseMetric: PulseMetric = {
