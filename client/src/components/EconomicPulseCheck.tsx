@@ -28,8 +28,19 @@ interface CategoryAnalysis {
   [metric: string]: MetricAnalysis;
 }
 
+interface EconomicIndicator {
+  metric: string;
+  category: string;
+  type: string;
+  unit: string;
+  currentReading: string;
+  priorReading: string;
+  varianceVsPrior: string;
+  zScore?: number;
+}
+
 interface EconomicDataResponse {
-  indicators: any[];
+  indicators: EconomicIndicator[];
   aiSummary: string;
   lastUpdated: string;
   source: string;
@@ -206,6 +217,10 @@ export function EconomicPulseCheck() {
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
+  console.log('📊 EconomicPulseCheck - Data:', economicData);
+  console.log('📊 EconomicPulseCheck - Loading:', isLoading);
+  console.log('📊 EconomicPulseCheck - Error:', error);
+
   const processPulseData = (): PulseData => {
     const pulseData: PulseData = {
       Growth: { positive: [], negative: [] },
@@ -215,11 +230,19 @@ export function EconomicPulseCheck() {
       Sentiment: { positive: [], negative: [] }
     };
 
-    if (!economicData?.indicators) return pulseData;
+    if (!economicData?.indicators) {
+      console.log('📊 No economic data indicators found');
+      return pulseData;
+    }
+
+    console.log(`📊 Processing ${economicData.indicators.length} indicators for statistical alerts`);
 
     // Process indicators that have z-scores exceeding 0.5 standard deviation
+    let alertCount = 0;
     economicData.indicators.forEach(indicator => {
       if (indicator.zScore && Math.abs(indicator.zScore) >= 0.5) {
+        alertCount++;
+        console.log(`📈 Alert for ${indicator.metric}: z-score ${indicator.zScore}, category ${indicator.category}`);
         // Parse numeric values from formatted strings
         const currentValueStr = indicator.currentReading.replace(/[^\d.\-]/g, '');
         const priorValueStr = indicator.priorReading.replace(/[^\d.\-]/g, '');
@@ -258,6 +281,8 @@ export function EconomicPulseCheck() {
         }
       }
     });
+
+    console.log(`📊 Total statistical alerts found: ${alertCount}`);
 
     // Sort by z-score descending for each category
     Object.keys(pulseData).forEach(category => {
@@ -309,6 +334,8 @@ export function EconomicPulseCheck() {
 
   const pulseData = processPulseData();
   const categories = ['Growth', 'Inflation', 'Labor', 'Monetary Policy', 'Sentiment'];
+  
+  console.log('📊 Processed pulse data:', pulseData);
 
   return (
     <Card className="bg-financial-card border-financial-border">
