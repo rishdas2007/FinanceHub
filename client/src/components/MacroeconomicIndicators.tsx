@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, AlertCircle, RefreshCw, Search, Filter, ChevronUp, ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { TrendingUp, TrendingDown, AlertCircle, RefreshCw, Search, Filter, ChevronUp, ChevronDown, MessageSquare } from 'lucide-react';
 
 interface MacroIndicator {
   metric: string;
@@ -20,6 +21,13 @@ interface MacroData {
   aiSummary: string;
   lastUpdated: string;
   source: string;
+}
+
+interface EconomicDataResponse {
+  statisticalData: {
+    [category: string]: any;
+  };
+  aiAnalysis: string;
 }
 
 // Enhanced formatting utilities for economic indicators
@@ -249,6 +257,18 @@ const MacroeconomicIndicators: React.FC = () => {
     staleTime: 2 * 60 * 1000,
   });
 
+  // AI Economic Analysis query
+  const {
+    data: economicData,
+    isLoading: aiLoading,
+    error: aiError,
+    refetch: refetchAI
+  } = useQuery<EconomicDataResponse>({
+    queryKey: ['/api/economic-data-analysis'],
+    staleTime: 24 * 60 * 60 * 1000, // 24 hours - refresh only once per day
+    gcTime: 48 * 60 * 60 * 1000, // 48 hours - keep in cache for 2 days
+  });
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
@@ -453,7 +473,49 @@ const MacroeconomicIndicators: React.FC = () => {
         </CardHeader>
       </Card>
 
-
+      {/* AI Economic Analysis Section */}
+      <Card className="bg-financial-card border-financial-border">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-white flex items-center space-x-2">
+              <MessageSquare className="h-5 w-5 text-blue-400" />
+              <span>AI Economic Analysis</span>
+            </CardTitle>
+            <Button 
+              onClick={refetchAI}
+              disabled={aiLoading}
+              variant="default" 
+              size="sm"
+              className="bg-black text-white border-black hover:bg-gray-800"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${aiLoading ? 'animate-spin' : ''}`} />
+              {aiLoading ? 'Analyzing...' : 'Refresh'}
+            </Button>
+          </div>
+          <p className="text-gray-400 text-sm mt-1">
+            OpenAI-powered analysis of current economic conditions
+          </p>
+        </CardHeader>
+        <CardContent>
+          {aiLoading ? (
+            <div className="animate-pulse space-y-3">
+              <div className="h-4 bg-gray-700 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-700 rounded w-1/2"></div>
+              <div className="h-4 bg-gray-700 rounded w-5/6"></div>
+            </div>
+          ) : aiError ? (
+            <p className="text-red-400">Failed to load AI economic analysis. Please try again.</p>
+          ) : economicData?.aiAnalysis ? (
+            <div className="prose prose-invert max-w-none">
+              <div className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+                {economicData.aiAnalysis}
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-400 italic">AI analysis is being generated...</p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent Indicators */}
       <Card className="bg-financial-card border-financial-border">

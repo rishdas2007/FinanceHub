@@ -112,8 +112,8 @@ const getMetricDisplayUnit = (metricName: string): string => {
     // Inflation - index
     'CPI All Items': 'index',
     'Core CPI': 'index',
-    'PPI All Commodities': 'index',
-    'Core PPI': 'index',
+    'PPI All Commodities': 'percent',
+    'Core PPI': 'percent',
     'PCE Price Index': 'index',
     'Core PCE Price Index': 'index',
     'CPI Energy': 'index',
@@ -148,13 +148,27 @@ const formatNumber = (value: number | null | undefined, unit: string): string =>
 
   switch (unit) {
     case 'percent':
-      return numValue.toFixed(2) + '%';
+      return numValue.toFixed(1) + '%';
     case 'thousands':
-      return numValue.toFixed(1) + 'K'; // Data is already in thousands
+      // Convert from actual values to thousands format
+      if (numValue >= 1000000) {
+        return (numValue / 1000000).toFixed(2) + 'M'; // Convert millions to M format
+      } else if (numValue >= 1000) {
+        return (numValue / 1000).toFixed(1) + 'K'; // Convert thousands to K format
+      } else {
+        return numValue.toFixed(1) + 'K'; // Data is already in thousands
+      }
     case 'millions_dollars':
       return '$' + numValue.toFixed(1) + 'M'; // Data is already in millions
     case 'billions_dollars':
-      return '$' + (numValue / 1000).toFixed(1) + 'B';
+      // Handle different scales of billions data
+      if (numValue >= 1000) {
+        return '$' + (numValue / 1000).toFixed(1) + 'T'; // Convert to trillions
+      } else if (numValue >= 1) {
+        return '$' + numValue.toFixed(1) + 'B'; // Already in billions
+      } else {
+        return '$' + (numValue * 1000).toFixed(1) + 'B'; // Convert from trillions to billions
+      }
     case 'index':
       return numValue.toFixed(1);
     case 'basis_points':

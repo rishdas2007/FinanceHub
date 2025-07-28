@@ -214,13 +214,21 @@ export class MacroeconomicIndicatorsService {
 
           switch (unit) {
             case 'percent':
-              return numValue.toFixed(2) + '%';
+              return numValue.toFixed(1) + '%';
             case 'thousands':
-              return numValue.toFixed(1) + 'K'; // Data is already in thousands, just add K
+              // Handle different scales for thousands data
+              if (numValue >= 1000000) {
+                return (numValue / 1000000).toFixed(2) + 'M'; // Convert to millions
+              } else if (numValue >= 1000) {
+                return (numValue / 1000).toFixed(1) + 'K'; // Convert to thousands
+              } else {
+                return numValue.toFixed(1) + 'K'; // Data already in thousands
+              }
             case 'millions_dollars':
               return '$' + numValue.toFixed(1) + 'M'; // Data is already in millions, just add $M
             case 'billions_dollars':
-              return '$' + (numValue / 1000).toFixed(1) + 'B'; // Convert billions to readable format
+              // Commercial & Industrial Loans data is already in trillions, display as trillions
+              return '$' + numValue.toFixed(2) + 'T';
             case 'index':
               return numValue.toFixed(1);
             case 'basis_points':

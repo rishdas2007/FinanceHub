@@ -69,13 +69,10 @@ export default function Dashboard() {
         {/* Economic Pulse Check - 2x5 grid above AI Economic Analysis */}
         <EconomicPulseCheck />
 
-        {/* AI Economic Analysis */}
-        <AIEconomicAnalysis />
-
         {/* Simplified Momentum Analysis with Verified Calculations */}
         <MomentumAnalysis />
 
-        {/* Macroeconomic Indicators Module */}
+        {/* Macroeconomic Indicators Module - now includes AI Economic Analysis */}
         <MacroeconomicIndicators />
 
         {/* Statistical Alert System - database-driven (stays at bottom) */}
