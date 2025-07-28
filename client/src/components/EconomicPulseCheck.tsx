@@ -38,8 +38,13 @@ interface EconomicDataResponse {
 interface PulseMetric {
   name: string;
   currentValue: number;
+  priorValue: number | null;
   zScore: number;
   formattedValue: string;
+  formattedPriorValue: string;
+  periodDate: string;
+  changeFromPrior: number | null;
+  formattedChange: string;
 }
 
 interface PulseData {
@@ -206,11 +211,32 @@ export function EconomicPulseCheck() {
         const zScore = stats.z_score;
 
         if (currentValue !== null && zScore !== null && Math.abs(zScore) >= 0.5) {
+          const priorValue = stats.start_value;
+          const periodDate = stats.period_end_date;
+          
+          // Calculate change from prior
+          const changeFromPrior = (priorValue !== null && priorValue !== 0) ? 
+            currentValue - priorValue : null;
+          
+          // Format change with proper sign and units
+          let formattedChange = 'N/A';
+          if (changeFromPrior !== null) {
+            const unit = getMetricDisplayUnit(metricName);
+            const absChange = Math.abs(changeFromPrior);
+            const sign = changeFromPrior >= 0 ? '+' : '-';
+            formattedChange = `${sign}${formatNumber(absChange, unit)}`;
+          }
+
           const pulseMetric: PulseMetric = {
             name: metricName,
             currentValue,
+            priorValue,
             zScore,
-            formattedValue: formatValue(currentValue, metricName)
+            formattedValue: formatValue(currentValue, metricName),
+            formattedPriorValue: priorValue !== null ? formatValue(priorValue, metricName) : 'N/A',
+            periodDate: periodDate || 'N/A',
+            changeFromPrior,
+            formattedChange
           };
 
           if (pulseData[category]) {
@@ -318,7 +344,7 @@ export function EconomicPulseCheck() {
                     <div className="space-y-2 min-h-[60px]">
                       {pulseData[category]?.positive.slice(0, 4).map((metric, idx) => (
                         <div key={idx} className="bg-financial-gray rounded-lg p-3 border-l-2 border-gain-green">
-                          <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start mb-2">
                             <div className="flex-1 mr-3">
                               <div className="font-medium text-white text-sm mb-1" title={metric.name}>
                                 {metric.name}
@@ -334,6 +360,15 @@ export function EconomicPulseCheck() {
                               </div>
                             </div>
                           </div>
+                          <div className="flex justify-between items-center text-xs text-gray-400">
+                            <div>
+                              <span className="text-gray-500">Prior:</span> <span className="text-white">{metric.formattedPriorValue}</span>
+                              <span className="ml-2 text-gray-500">Change:</span> <span className={`ml-1 ${metric.changeFromPrior && metric.changeFromPrior >= 0 ? 'text-gain-green' : 'text-loss-red'}`}>{metric.formattedChange}</span>
+                            </div>
+                            <div className="text-gray-500">
+                              {metric.periodDate !== 'N/A' ? new Date(metric.periodDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
+                            </div>
+                          </div>
                         </div>
                       ))}
                       {pulseData[category]?.positive.length === 0 && (
@@ -347,7 +382,7 @@ export function EconomicPulseCheck() {
                     <div className="space-y-2 min-h-[60px]">
                       {pulseData[category]?.negative.slice(0, 4).map((metric, idx) => (
                         <div key={idx} className="bg-financial-gray rounded-lg p-3 border-l-2 border-loss-red">
-                          <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start mb-2">
                             <div className="flex-1 mr-3">
                               <div className="font-medium text-white text-sm mb-1" title={metric.name}>
                                 {metric.name}
@@ -361,6 +396,15 @@ export function EconomicPulseCheck() {
                               <div className="text-sm font-bold text-loss-red">
                                 {metric.zScore.toFixed(2)}
                               </div>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center text-xs text-gray-400">
+                            <div>
+                              <span className="text-gray-500">Prior:</span> <span className="text-white">{metric.formattedPriorValue}</span>
+                              <span className="ml-2 text-gray-500">Change:</span> <span className={`ml-1 ${metric.changeFromPrior && metric.changeFromPrior >= 0 ? 'text-gain-green' : 'text-loss-red'}`}>{metric.formattedChange}</span>
+                            </div>
+                            <div className="text-gray-500">
+                              {metric.periodDate !== 'N/A' ? new Date(metric.periodDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
                             </div>
                           </div>
                         </div>
