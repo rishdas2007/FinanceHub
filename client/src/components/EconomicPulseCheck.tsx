@@ -170,13 +170,23 @@ export function EconomicPulseCheck() {
     error
   } = useQuery<EconomicDataResponse>({
     queryKey: ['/api/macroeconomic-indicators'],
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 0, // Always fetch fresh data to avoid caching issues
+    gcTime: 1 * 60 * 1000, // 1 minute
   });
 
   console.log('📊 EconomicPulseCheck - Data:', economicData);
   console.log('📊 EconomicPulseCheck - Loading:', isLoading);
   console.log('📊 EconomicPulseCheck - Error:', error);
+  
+  // Log first few indicators to check period_date values
+  if (economicData?.indicators?.length > 0) {
+    console.log('📅 Sample indicators with dates:', economicData.indicators.slice(0, 3).map(ind => ({
+      metric: ind.metric,
+      period_date: ind.period_date,
+      releaseDate: ind.releaseDate,
+      zScore: ind.zScore
+    })));
+  }
 
   const processPulseData = (): PulseData => {
     const pulseData: PulseData = {
@@ -217,6 +227,10 @@ export function EconomicPulseCheck() {
           }
         }
         
+        // Debug log the date values
+        const actualPeriodDate = indicator.period_date || indicator.releaseDate || '2025-07-22';
+        console.log(`📅 Date for ${indicator.metric}: period_date=${indicator.period_date}, releaseDate=${indicator.releaseDate}, using=${actualPeriodDate}`);
+        
         const pulseMetric: PulseMetric = {
           name: indicator.metric,
           currentValue: currentValue,
@@ -224,7 +238,7 @@ export function EconomicPulseCheck() {
           zScore: indicator.zScore,
           formattedValue: indicator.currentReading,
           formattedPriorValue: indicator.priorReading,
-          periodDate: indicator.period_date || indicator.releaseDate || '2025-07-21', // Use actual period_date from database
+          periodDate: actualPeriodDate, // Use actual period_date from database
           changeFromPrior: varianceValue,
           formattedChange: indicator.varianceVsPrior || 'N/A'
         };
