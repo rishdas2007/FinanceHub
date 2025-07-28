@@ -66,10 +66,10 @@ export class MacroeconomicService {
         const currentReading = zData.currentValue;
         const priorReading = zData.priorValue;
         
-        // CRITICAL FIX: Use variance from historical mean (what z-score measures) instead of variance from prior
-        // This ensures consistency between z-score direction and variance direction
-        const varianceFromMean = zData.varianceFromMean;
-        const consistentVariance = varianceFromMean;
+        // Calculate simple vs Prior variance: currentReading - priorReading
+        const actualVariance = currentReading !== null && priorReading !== null 
+          ? currentReading - priorReading 
+          : null;
 
         // Comprehensive unit-based formatting function
         const formatNumber = (value: number | null | undefined, unit: string): string => {
@@ -113,8 +113,9 @@ export class MacroeconomicService {
           }
         };
 
-        // Enhanced variance formatting to match z-score direction
-        const formatVariance = (value: number): string => {
+        // Enhanced variance formatting for vs Prior calculation
+        const formatVariance = (value: number | null): string => {
+          if (value === null || value === undefined) return 'N/A';
           if (Math.abs(value) < 0.01) return '0.0';
           const formatted = formatNumber(Math.abs(value), zData.unit);
           return value < 0 ? `(${formatted})` : formatted;
@@ -127,7 +128,7 @@ export class MacroeconomicService {
           releaseDate: zData.periodDate,
           currentReading: formatNumber(currentReading, zData.unit),
           priorReading: formatNumber(priorReading, zData.unit),
-          varianceVsPrior: formatVariance(consistentVariance), // Now consistent with z-score direction
+          varianceVsPrior: formatVariance(actualVariance), // Simple current - prior calculation
           zScore: zData.zScore,
           unit: zData.unit
         };
