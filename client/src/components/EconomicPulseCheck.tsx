@@ -311,6 +311,20 @@ export function EconomicPulseCheck() {
   // Process the data after all checks  
   const pulseData = processPulseData();
   const categories = ['Growth', 'Inflation', 'Labor', 'Monetary Policy', 'Sentiment'];
+  
+  // Calculate summary statistics for each category
+  const calculateSummaryStats = () => {
+    const summaryStats: Record<string, { positive: number; negative: number }> = {};
+    categories.forEach(category => {
+      summaryStats[category] = {
+        positive: pulseData[category]?.positive.length || 0,
+        negative: pulseData[category]?.negative.length || 0
+      };
+    });
+    return summaryStats;
+  };
+  
+  const summaryStats = calculateSummaryStats();
 
   return (
     <Card className="bg-financial-card border-financial-border">
@@ -319,9 +333,38 @@ export function EconomicPulseCheck() {
           <Activity className="h-5 w-5 text-blue-400" />
           <span>Economic Analysis</span>
         </CardTitle>
-        <p className="text-gray-400 text-sm mt-1">
+        
+        {/* Summary Statistics */}
+        <div className="mt-4 grid grid-cols-5 gap-3">
+          {categories.map(category => (
+            <div key={category} className="bg-financial-gray rounded-lg p-3 border border-financial-border">
+              <div className="text-xs font-medium text-gray-400 mb-2">{category}</div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1">
+                  <TrendingUp className="h-3 w-3 text-gain-green" />
+                  <span className="text-sm font-bold text-gain-green">{summaryStats[category]?.positive || 0}</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <TrendingDown className="h-3 w-3 text-loss-red" />
+                  <span className="text-sm font-bold text-loss-red">{summaryStats[category]?.negative || 0}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <p className="text-gray-400 text-sm mt-4">
           Statistical alerts for indicators exceeding 0.5 standard deviations from historical mean
         </p>
+        
+        {/* Z-Score Definition Note */}
+        <div className="mt-3 p-3 bg-gray-900 border border-gray-700 rounded-lg">
+          <p className="text-sm text-gray-400">
+            <strong className="text-white">Z-Score Definition:</strong> Measures how many standard deviations the current value is from its 12-month historical average. 
+            Calculation: (Current Value - 12-Month Average) ÷ 12-Month Standard Deviation. 
+            Values above ±2.0 indicate statistically significant deviations from the historical norm.
+          </p>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
