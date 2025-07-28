@@ -305,10 +305,12 @@ const MomentumAnalysis = () => {
           <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-sm text-gray-700">
               <strong>How to interpret this chart:</strong> Each dot represents a sector ETF plotted by its RSI (x-axis) and 1-day Z-score (y-axis). 
-              RSI measures momentum with values above 70 indicating overbought conditions and below 30 indicating oversold conditions. The Z-score shows how many standard deviations the latest 1-day move is from its historical average.
-              <strong>Top-right quadrant</strong> shows sectors with high RSI levels and strong positive momentum moves (potentially overbought with recent strength). 
-              <strong>Bottom-right quadrant</strong> shows sectors with high RSI levels but negative momentum moves (overbought with recent weakness). 
-              SPY (S&P 500) serves as the market benchmark with larger labels for easy identification.
+              
+              <strong>RSI (Relative Strength Index):</strong> Measures momentum on a 0-100 scale. Values above 70 indicate overbought conditions (potential selling pressure), while values below 30 suggest oversold conditions (potential buying opportunity). Values between 30-70 represent neutral momentum.
+              
+              <strong>Z-Score:</strong> Shows how many standard deviations the current 1-day move is from the historical average. Positive values indicate above-average gains, negative values show above-average losses. Values beyond ±2 are statistically significant events.
+              
+              <strong>Sector Positioning:</strong> Top-right quadrant (high RSI + positive Z-score) shows momentum leaders with recent strength. Bottom-left quadrant (low RSI + negative Z-score) indicates potential value opportunities or sectors under pressure. SPY (S&P 500) serves as the market benchmark with larger labels for easy identification.
             </p>
 
           </div>

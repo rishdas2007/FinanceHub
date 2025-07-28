@@ -257,7 +257,7 @@ export function EconomicPulseCheck() {
         <CardHeader>
           <CardTitle className="text-white flex items-center space-x-2">
             <Activity className="h-5 w-5 text-blue-400" />
-            <span>Statistical Alert System</span>
+            <span>Economic Analysis</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -281,7 +281,7 @@ export function EconomicPulseCheck() {
         <CardHeader>
           <CardTitle className="text-white flex items-center space-x-2">
             <Activity className="h-5 w-5 text-blue-400" />
-            <span>Statistical Alert System</span>
+            <span>Economic Analysis</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -301,7 +301,7 @@ export function EconomicPulseCheck() {
       <CardHeader>
         <CardTitle className="text-white flex items-center space-x-2">
           <Activity className="h-5 w-5 text-blue-400" />
-          <span>Statistical Alert System</span>
+          <span>Economic Analysis</span>
         </CardTitle>
         <p className="text-gray-400 text-sm mt-1">
           Statistical alerts for indicators exceeding 0.5 standard deviations from historical mean

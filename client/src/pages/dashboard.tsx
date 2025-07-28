@@ -63,10 +63,10 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
 
-        {/* AI Technical Analysis - moved to top */}
+        {/* Technical Analysis - moved to top */}
         <MoodDataSources />
 
-        {/* Economic Pulse Check - 2x5 grid above AI Economic Analysis */}
+        {/* Economic Analysis - 2x5 grid above Momentum Analysis */}
         <EconomicPulseCheck />
 
         {/* Simplified Momentum Analysis with Verified Calculations */}
@@ -75,8 +75,7 @@ export default function Dashboard() {
         {/* Macroeconomic Indicators Module - now includes AI Economic Analysis */}
         <MacroeconomicIndicators />
 
-        {/* Statistical Alert System - database-driven (stays at bottom) */}
-        <StatisticalAlertSystem />
+
 
 
       </div>
