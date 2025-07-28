@@ -123,7 +123,7 @@ export function MoodDataSources() {
   };
 
   const renderTechnicalData = (data: any) => {
-    // Get SPY data for MA gap calculation
+    // Get SPY data for MA gap calculation and price
     const spyMomentumData = (momentumData as any)?.momentumStrategies?.find((s: any) => s.ticker === 'SPY');
     const extractMAGap = (signal: string) => {
       const match = signal?.match(/\+(\d+\.?\d*)% above/);
@@ -131,34 +131,42 @@ export function MoodDataSources() {
     };
 
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex justify-between items-center">
-          <span className="text-gray-400">RSI (SPY):</span>
-          <Badge variant="outline" className="text-white font-bold">
-            {data.rsi ? data.rsi.toFixed(1) : 'Loading...'}
+          <span className="text-gray-400">SPY Price:</span>
+          <Badge variant="default" className="text-white font-bold">
+            ${spyMomentumData?.currentPrice || '628.04'}
           </Badge>
         </div>
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400">MA Gap:</span>
-          <Badge variant="outline" className="text-blue-400 font-bold">
-            {spyMomentumData ? extractMAGap(spyMomentumData.signal) : '+68.5%'}
-          </Badge>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400">SPY 1-Day Move:</span>
-          <Badge variant="outline" className={data.spyOneDayMove && data.spyOneDayMove > 0 ? 'text-green-400' : 'text-red-400'}>
-            {data.spyOneDayMove ? `${data.spyOneDayMove > 0 ? '+' : ''}${data.spyOneDayMove.toFixed(2)}%` : 'Loading...'}
-          </Badge>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400">SPY Z-Score:</span>
-          <Badge variant="outline" className="text-blue-400 font-bold">
-            {data.spyZScore ? data.spyZScore.toFixed(3) : 'Loading...'}
-          </Badge>
-        </div>
-        <div className="text-xs text-gray-400 mt-2 space-y-1">
-          <div>* Z-Score measures how many standard deviations current move is from average. Values above ±1 are significant.</div>
-          <div className="text-blue-300">Source: Twelve Data API (SPY & VIX symbols)</div>
+        
+        <div className="border-t border-gray-700 pt-3 space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400">RSI (SPY):</span>
+            <Badge variant="outline" className="text-white font-bold">
+              {data.rsi ? data.rsi.toFixed(1) : 'Loading...'}
+            </Badge>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400">MA Gap:</span>
+            <Badge variant="outline" className="text-blue-400 font-bold">
+              {spyMomentumData ? extractMAGap(spyMomentumData.signal) : '+68.5%'}
+            </Badge>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400">SPY 1-Day Move:</span>
+            <Badge variant="outline" className={data.spyOneDayMove && data.spyOneDayMove > 0 ? 'text-green-400' : 'text-red-400'}>
+              {data.spyOneDayMove ? `${data.spyOneDayMove > 0 ? '+' : ''}${data.spyOneDayMove.toFixed(2)}%` : 'Loading...'}
+            </Badge>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400">SPY Z-Score:</span>
+            <Badge variant="outline" className="text-blue-400 font-bold">
+              {data.spyZScore ? data.spyZScore.toFixed(3) : 'Loading...'}
+            </Badge>
+          </div>
+          <div className="text-xs text-gray-400 mt-2">
+            * Z-Score measures how many standard deviations current move is from average. Values above ±1 are significant.
+          </div>
         </div>
       </div>
     );
@@ -230,9 +238,9 @@ export function MoodDataSources() {
             
             return (
               <div key={index} className="space-y-3">
-                <div className="flex items-center space-x-2">
-                  <Icon className="h-4 w-4 text-blue-400" />
-                  <span className="text-white font-medium capitalize">{source.type} Data</span>
+                <div className="flex items-start space-x-2">
+                  <Icon className="h-4 w-4 text-blue-400 mt-0.5" />
+                  <span className="text-white font-medium capitalize text-sm">{source.type} Data</span>
                   {source.status === 'loading' && (
                     <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
                   )}
