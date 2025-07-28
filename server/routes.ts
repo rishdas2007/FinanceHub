@@ -34,9 +34,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/fred-economic-data', async (req, res) => {
     try {
       console.log('🔍 FRED API Route: GET /api/fred-economic-data');
-      const { MacroeconomicIndicatorsService } = await import('./services/macroeconomic-indicators');
-      const macroeconomicIndicatorsService = MacroeconomicIndicatorsService.getInstance();
-      const data = await macroeconomicIndicatorsService.getAuthenticEconomicData();
+      const { macroeconomicService } = await import('./services/macroeconomic-indicators');
+      const data = await macroeconomicService.getAuthenticEconomicData();
       
       res.json(data);
       
@@ -53,10 +52,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/macroeconomic-indicators', async (req, res) => {
     try {
       console.log('🔍 Fast Dashboard Route: GET /api/macroeconomic-indicators');
-      const { MacroeconomicIndicatorsService } = await import('./services/macroeconomic-indicators');
-      const macroeconomicIndicatorsService = MacroeconomicIndicatorsService.getInstance();
+      const { macroeconomicService } = await import('./services/macroeconomic-indicators');
       // Prioritize authentic FRED data over OpenAI fallback
-      const data = await macroeconomicIndicatorsService.getAuthenticEconomicData();
+      const data = await macroeconomicService.getAuthenticEconomicData();
       
       res.json(data);
       
@@ -72,10 +70,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/macroeconomic-indicators/refresh', async (req, res) => {
     try {
       console.log('🔍 Fast Dashboard Route: POST /api/macroeconomic-indicators/refresh');
-      const { MacroeconomicIndicatorsService } = await import('./services/macroeconomic-indicators');
-      const macroeconomicIndicatorsService = MacroeconomicIndicatorsService.getInstance();
-      // Force refresh prioritizes FRED data
-      const data = await macroeconomicIndicatorsService.forceRefresh();
+      const { macroeconomicService } = await import('./services/macroeconomic-indicators');
+      // Clear cache and get fresh data
+      const { cacheService } = await import('./services/cache-unified');
+      cacheService.clear();
+      
+      const data = await macroeconomicService.getAuthenticEconomicData();
       
       res.json({
         success: true,
