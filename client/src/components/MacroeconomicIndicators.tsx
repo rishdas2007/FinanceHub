@@ -33,10 +33,10 @@ const MacroFormatUtils = {
   formatIndicatorValue: (value: number | string | null, metric: string, unit?: string): string => {
     if (value === null || value === undefined) return 'N/A';
     
-    // If value is already a formatted string (from backend), return it with unit
+    // If value is already a formatted string (from backend), return it as-is
+    // Backend already applies proper formatting with units
     if (typeof value === 'string') {
-      // Don't add unit if it's empty or if the value already contains unit info
-      return (unit && unit !== '' && !value.includes('%') && !value.includes('K')) ? `${value}${unit}` : value;
+      return value; // Backend provides pre-formatted strings like "$720.1M", "2.1%", etc.
     }
     
     if (isNaN(value as number)) return 'N/A';
@@ -120,7 +120,7 @@ const MacroFormatUtils = {
   /**
    * Format variance with appropriate sign and units matching current reading format
    */
-  formatVariance: (variance: number | string, metric: string, unit?: string): string => {
+  formatVariance: (variance: number | string, metric: string): string => {
     // If variance is already a formatted string (from backend), return it as is
     if (typeof variance === 'string') {
       return variance;
@@ -149,7 +149,7 @@ const MacroFormatUtils = {
       return `${sign}${MacroFormatUtils.formatNumber(absVariance / 1000, 0)}K`;
     }
     
-    if (metricLower.includes('rate') || metricLower.includes('cpi') || (unit && unit === '%')) {
+    if (metricLower.includes('rate') || metricLower.includes('cpi') || metricLower.includes('growth') || metricLower.includes('inflation')) {
       return `${sign}${MacroFormatUtils.formatNumber(absVariance, 1)}%`;
     }
     
@@ -622,16 +622,16 @@ const MacroeconomicIndicators: React.FC = () => {
                       </div>
                     </td>
                     <td className="text-right py-3 px-2 text-white font-semibold">
-                      {MacroFormatUtils.formatIndicatorValue(indicator.currentReading, indicator.metric, indicator.unit)}
+                      {MacroFormatUtils.formatIndicatorValue(indicator.currentReading, indicator.metric)}
                     </td>
                     <td className="text-right py-3 px-2">
                       {MacroFormatUtils.formatZScore(indicator.zScore ?? null)}
                     </td>
                     <td className="text-right py-3 px-2 text-gray-300 font-medium">
-                      {MacroFormatUtils.formatIndicatorValue(indicator.priorReading, indicator.metric, indicator.unit)}
+                      {MacroFormatUtils.formatIndicatorValue(indicator.priorReading, indicator.metric)}
                     </td>
                     <td className={`text-right py-3 px-2 font-medium ${getVarianceColor(indicator.varianceVsPrior)}`}>
-                      {MacroFormatUtils.formatVariance(indicator.varianceVsPrior, indicator.metric, indicator.unit)}
+                      {MacroFormatUtils.formatVariance(indicator.varianceVsPrior, indicator.metric)}
                     </td>
                   </tr>
                 ))}
