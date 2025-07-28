@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, AlertCircle, RefreshCw, Search, Filter, ChevronUp, ChevronDown, MessageSquare } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertCircle, RefreshCw, Search, Filter, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface MacroIndicator {
   metric: string;
@@ -14,6 +13,7 @@ interface MacroIndicator {
   varianceVsPrior: number | string;
   unit: string;
   zScore?: number | null;
+  period_date?: string;
 }
 
 interface MacroData {
@@ -23,12 +23,7 @@ interface MacroData {
   source: string;
 }
 
-interface EconomicDataResponse {
-  statisticalData: {
-    [category: string]: any;
-  };
-  aiAnalysis: string;
-}
+
 
 // Enhanced formatting utilities for economic indicators
 const MacroFormatUtils = {
@@ -257,17 +252,7 @@ const MacroeconomicIndicators: React.FC = () => {
     staleTime: 2 * 60 * 1000,
   });
 
-  // AI Economic Analysis query
-  const {
-    data: economicData,
-    isLoading: aiLoading,
-    error: aiError,
-    refetch: refetchAI
-  } = useQuery<EconomicDataResponse>({
-    queryKey: ['/api/economic-data-analysis'],
-    staleTime: 24 * 60 * 60 * 1000, // 24 hours - refresh only once per day
-    gcTime: 48 * 60 * 60 * 1000, // 48 hours - keep in cache for 2 days
-  });
+
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -473,98 +458,7 @@ const MacroeconomicIndicators: React.FC = () => {
         </CardHeader>
       </Card>
 
-      {/* AI Economic Analysis Section */}
-      <Card className="bg-financial-card border-financial-border">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-white flex items-center space-x-2">
-              <MessageSquare className="h-5 w-5 text-blue-400" />
-              <span>AI Economic Analysis</span>
-            </CardTitle>
-            <Button 
-              onClick={refetchAI}
-              disabled={aiLoading}
-              variant="default" 
-              size="sm"
-              className="bg-black text-white border-black hover:bg-gray-800"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${aiLoading ? 'animate-spin' : ''}`} />
-              {aiLoading ? 'Analyzing...' : 'Refresh'}
-            </Button>
-          </div>
-          <p className="text-gray-400 text-sm mt-1">
-            OpenAI-powered analysis of current economic conditions
-          </p>
-        </CardHeader>
-        <CardContent>
-          {aiLoading ? (
-            <div className="animate-pulse space-y-3">
-              <div className="h-4 bg-gray-700 rounded w-3/4"></div>
-              <div className="h-4 bg-gray-700 rounded w-1/2"></div>
-              <div className="h-4 bg-gray-700 rounded w-5/6"></div>
-            </div>
-          ) : aiError ? (
-            <p className="text-red-400">Failed to load AI economic analysis. Please try again.</p>
-          ) : economicData?.aiAnalysis ? (
-            <div className="prose prose-invert max-w-none">
-              <div className="text-gray-300 leading-relaxed whitespace-pre-wrap">
-                {economicData.aiAnalysis}
-              </div>
-            </div>
-          ) : (
-            <p className="text-gray-400 italic">AI analysis is being generated...</p>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Recent Indicators */}
-      <Card className="bg-financial-card border-financial-border">
-        <CardHeader>
-          <CardTitle className="text-white">Recent Economic Releases</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {recentIndicators.map((indicator, index) => (
-              <div key={index} className="bg-financial-gray rounded-lg p-4 border border-financial-border">
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="text-white font-medium text-sm">{indicator.metric}</h4>
-                  <span className={`px-2 py-1 rounded text-xs font-medium border ${getTypeColor(indicator.type)}`}>
-                    {indicator.type}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400 text-sm">Current:</span>
-                    <span className="text-white font-semibold">
-                      {MacroFormatUtils.formatIndicatorValue(indicator.currentReading, indicator.metric, indicator.unit)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400 text-sm">Prior:</span>
-                    <span className="text-gray-300 font-medium">
-                      {MacroFormatUtils.formatIndicatorValue(indicator.priorReading, indicator.metric, indicator.unit)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400 text-sm">vs Prior:</span>
-                    <span className={`font-medium ${getVarianceColor(indicator.varianceVsPrior)}`}>
-                      {MacroFormatUtils.formatVariance(indicator.varianceVsPrior, indicator.metric, indicator.unit)}
-                    </span>
-                  </div>
-                  {indicator.period_date && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-400 text-sm">Period:</span>
-                      <span className="text-gray-300 text-sm">
-                        {new Date(indicator.period_date).toLocaleDateString()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Category Tabs and Detailed Table */}
       <Card className="bg-financial-card border-financial-border">
@@ -714,7 +608,7 @@ const MacroeconomicIndicators: React.FC = () => {
                       {MacroFormatUtils.formatIndicatorValue(indicator.currentReading, indicator.metric, indicator.unit)}
                     </td>
                     <td className="text-right py-3 px-2">
-                      {MacroFormatUtils.formatZScore(indicator.zScore)}
+                      {MacroFormatUtils.formatZScore(indicator.zScore ?? null)}
                     </td>
                     <td className="text-right py-3 px-2 text-gray-300 font-medium">
                       {MacroFormatUtils.formatIndicatorValue(indicator.priorReading, indicator.metric, indicator.unit)}

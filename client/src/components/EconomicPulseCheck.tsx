@@ -29,10 +29,10 @@ interface CategoryAnalysis {
 }
 
 interface EconomicDataResponse {
-  statisticalData: {
-    [category: string]: CategoryAnalysis;
-  };
-  aiAnalysis: string;
+  indicators: any[];
+  aiSummary: string;
+  lastUpdated: string;
+  source: string;
 }
 
 interface PulseMetric {
@@ -201,7 +201,7 @@ export function EconomicPulseCheck() {
     isLoading,
     error
   } = useQuery<EconomicDataResponse>({
-    queryKey: ['/api/economic-data-analysis'],
+    queryKey: ['/api/macroeconomic-indicators'],
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
@@ -215,53 +215,34 @@ export function EconomicPulseCheck() {
       Sentiment: { positive: [], negative: [] }
     };
 
-    if (!economicData?.statisticalData) return pulseData;
+    if (!economicData?.indicators) return pulseData;
 
-    // Process each category
-    Object.entries(economicData.statisticalData).forEach(([category, metrics]) => {
-      Object.entries(metrics).forEach(([metricName, analysis]) => {
-        const stats = analysis.statistics;
-        const currentValue = stats.end_value;
-        const zScore = stats.z_score;
+    // Process indicators that have z-scores exceeding 1 standard deviation
+    economicData.indicators.forEach(indicator => {
+      if (indicator.zScore && Math.abs(indicator.zScore) >= 1) {
+        const currentValue = typeof indicator.currentReading === 'string' ? parseFloat(indicator.currentReading) : indicator.currentReading;
+        const priorValue = typeof indicator.priorReading === 'string' ? parseFloat(indicator.priorReading) : indicator.priorReading;
+        
+        const pulseMetric: PulseMetric = {
+          name: indicator.metric,
+          currentValue: currentValue || 0,
+          priorValue: priorValue || null,
+          zScore: indicator.zScore,
+          formattedValue: indicator.currentReading.toString(),
+          formattedPriorValue: indicator.priorReading.toString(),
+          periodDate: indicator.releaseDate || '',
+          changeFromPrior: parseFloat(indicator.varianceVsPrior) || null,
+          formattedChange: indicator.varianceVsPrior || 'N/A'
+        };
 
-        if (currentValue !== null && zScore !== null && Math.abs(zScore) >= 0.5) {
-          const priorValue = stats.start_value;
-          const periodDate = stats.period_end_date;
-          
-          // Calculate change from prior
-          const changeFromPrior = (priorValue !== null && priorValue !== 0) ? 
-            currentValue - priorValue : null;
-          
-          // Format change with proper sign and units
-          let formattedChange = 'N/A';
-          if (changeFromPrior !== null) {
-            const unit = getMetricDisplayUnit(metricName);
-            const absChange = Math.abs(changeFromPrior);
-            const sign = changeFromPrior >= 0 ? '+' : '-';
-            formattedChange = `${sign}${formatNumber(absChange, unit)}`;
-          }
-
-          const pulseMetric: PulseMetric = {
-            name: metricName,
-            currentValue,
-            priorValue,
-            zScore,
-            formattedValue: formatValue(currentValue, metricName),
-            formattedPriorValue: priorValue !== null ? formatValue(priorValue, metricName) : 'N/A',
-            periodDate: periodDate || 'N/A',
-            changeFromPrior,
-            formattedChange
-          };
-
-          if (pulseData[category]) {
-            if (zScore > 0) {
-              pulseData[category].positive.push(pulseMetric);
-            } else {
-              pulseData[category].negative.push(pulseMetric);
-            }
+        if (pulseData[indicator.category]) {
+          if (indicator.zScore > 1) {
+            pulseData[indicator.category].positive.push(pulseMetric);
+          } else if (indicator.zScore < -1) {
+            pulseData[indicator.category].negative.push(pulseMetric);
           }
         }
-      });
+      }
     });
 
     // Sort by z-score descending for each category
