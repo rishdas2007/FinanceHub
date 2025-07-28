@@ -88,7 +88,7 @@ export class FREDApiService {
   ];
 
   constructor() {
-    this.apiKey = process.env.FRED_API_KEY || '';
+    this.apiKey = process.env.FRED_API_KEY || 'afa2c5a53a8116fe3a6c6fb339101ca1';
     if (!this.apiKey) {
       logger.warn('FRED API key not provided. FRED service will not function.');
     }
