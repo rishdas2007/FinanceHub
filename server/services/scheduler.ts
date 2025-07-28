@@ -73,159 +73,10 @@ export class DataScheduler {
 
   async sendDailyEmail(): Promise<void> {
     try {
-      console.log('📧 Sending daily market commentary emails...');
+      console.log('📧 Email functionality has been removed from the platform');
+      return;
       
-      // Import simplified email service with 4 dashboard sections only
-      const { simplifiedEmailService } = await import('./email-simplified.js');
-      
-      // FIXED: Generate fresh analysis using real data instead of mock data
-      // Get fresh real-time data for email
-      let finalStockData, finalSentiment, finalTechnical, finalSectors;
-      
-      try {
-        const spyData = await this.financialService.getStockQuote('SPY');
-        finalStockData = {
-          symbol: 'SPY',
-          price: spyData.price.toString(),
-          change: spyData.change.toString(),
-          changePercent: spyData.changePercent.toString()
-        };
-        
-        const techData = await this.financialService.getTechnicalIndicators('SPY');
-        finalTechnical = {
-          rsi: techData.rsi?.toString() || '67.32',
-          macd: techData.macd?.toString() || '8.06',
-          macdSignal: techData.macdSignal?.toString() || '8.51'
-        };
-        
-        const sentimentData = await this.financialService.getRealMarketSentiment();
-        finalSentiment = {
-          vix: sentimentData.vix?.toString() || '16.52',
-          putCallRatio: sentimentData.putCallRatio?.toString() || '0.85',
-          aaiiBullish: sentimentData.aaiiBullish?.toString() || '41.4',
-          aaiiBearish: sentimentData.aaiiBearish?.toString() || '35.6'
-        };
-        
-        finalSectors = await this.financialService.getSectorETFs();
-        
-      } catch (error) {
-        console.error('⚠️ EMERGENCY: Complete API failure for email data, using emergency fallback data:', error);
-        // EMERGENCY FALLBACK - Only if APIs completely fail for email
-        finalStockData = { symbol: 'SPY', price: '627.07', change: '-0.97', changePercent: '-0.15' };
-        finalSentiment = { vix: '16.52', putCallRatio: '0.85', aaiiBullish: '41.4', aaiiBearish: '35.6' };
-        finalTechnical = { rsi: '67.32', macd: '8.06', macdSignal: '8.51' };
-        finalSectors = [
-          { name: 'Technology', symbol: 'XLK', changePercent: 0.91, fiveDayChange: 2.8, price: 260.86 },
-          { name: 'Financials', symbol: 'XLF', changePercent: 0.96, fiveDayChange: 2.1, price: 52.56 },
-          { name: 'Health Care', symbol: 'XLV', changePercent: -1.14, fiveDayChange: 0.3, price: 131.86 }
-        ];
-        console.log('⚠️ Email will use EMERGENCY FALLBACK DATA due to complete API failure');
-      }
-
-      // Generate analysis using the enhanced AI service with real data
-      const enhancedMarketData = {
-        symbol: finalStockData.symbol,
-        price: parseFloat(finalStockData.price),
-        change: parseFloat(finalStockData.change),
-        changePercent: parseFloat(finalStockData.changePercent),
-        rsi: parseFloat(finalTechnical.rsi),
-        macd: parseFloat(finalTechnical.macd),
-        macdSignal: parseFloat(finalTechnical.macdSignal),
-        vix: parseFloat(finalSentiment.vix),
-        putCallRatio: parseFloat(finalSentiment.putCallRatio),
-        aaiiBullish: parseFloat(finalSentiment.aaiiBullish),
-        aaiiBearish: parseFloat(finalSentiment.aaiiBearish)
-      };
-      
-      // Get economic events data using existing economic service  
-      let finalEconomicEvents;
-      try {
-        console.log('📊 Scheduler: Fetching economic events for email...');
-        finalEconomicEvents = await this.economicService.getEconomicEvents();
-        console.log(`📅 Scheduler fetched ${finalEconomicEvents.length} economic events for email`);
-        if (finalEconomicEvents.length > 0) {
-          console.log(`📅 Scheduler first event sample: ${finalEconomicEvents[0].title} - ${finalEconomicEvents[0].actual}`);
-        }
-      } catch (error) {
-        console.error('Error fetching economic events for scheduled email:', error);
-        finalEconomicEvents = [];
-      }
-
-      // Generate reliable analysis for scheduled emails (same as manual test)
-      console.log('📧 Generating reliable scheduled email analysis...');
-      const price = enhancedMarketData.price;
-      const change = enhancedMarketData.changePercent;
-      const rsi = enhancedMarketData.rsi;
-      const vix = enhancedMarketData.vix;
-      const aaiiBull = enhancedMarketData.aaiiBullish;
-      
-      // Find top performing sector
-      const topSector = finalSectors.reduce((prev, current) => 
-        (current.changePercent > prev.changePercent) ? current : prev
-      );
-      
-      // Create reliable thematic analysis (consistent with manual test)
-      const analysis = {
-        bottomLine: `The market is currently experiencing a ${rsi > 70 ? 'cautious risk-on/risk-off rotation' : rsi < 30 ? 'defensive positioning sentiment' : 'measured consolidation phase'} amid mixed economic signals.`,
-        dominantTheme: rsi > 70 ? 'Risk-on/risk-off rotation' : rsi < 30 ? 'Defensive positioning vs FOMO buying' : 'Liquidity-driven momentum vs fundamental concerns',
-        setup: `The S&P 500 closed at $${price.toFixed(2)}, ${change >= 0 ? 'gaining' : 'declining'} ${Math.abs(change).toFixed(2)}% today. Technical indicators show RSI at ${rsi.toFixed(1)} with VIX at ${vix.toFixed(1)}, suggesting ${rsi > 70 ? 'overbought conditions requiring caution' : rsi < 30 ? 'oversold bounce potential' : 'balanced momentum levels'}. Market sentiment reflects ${aaiiBull > 45 ? 'elevated optimism' : aaiiBull < 35 ? 'defensive positioning' : 'neutral positioning'} among retail investors.`,
-        evidence: `Technically, the SPY's RSI at the ${rsi > 70 ? '75th' : rsi > 50 ? '60th' : '40th'} percentile suggests ${rsi > 70 ? 'overbought' : rsi < 30 ? 'oversold' : 'balanced'} conditions, while the VIX sits at the ${vix > 20 ? '70th' : vix > 15 ? '50th' : '30th'} percentile indicating ${vix > 20 ? 'elevated' : vix < 15 ? 'complacent' : 'moderate'} volatility expectations. Sector performance shows ${topSector.name} leading with ${topSector.changePercent > 0 ? '+' : ''}${topSector.changePercent.toFixed(2)}%. AAII sentiment data shows ${aaiiBull.toFixed(1)}% bullish vs ${enhancedMarketData.aaiiBearish.toFixed(1)}% bearish, reflecting ${aaiiBull > enhancedMarketData.aaiiBearish ? 'risk-on sentiment' : 'defensive positioning'}.`,
-        implications: `The evidence suggests that while there is ${rsi > 70 ? 'underlying strength in consumer and housing data' : 'underlying resilience in economic fundamentals'}, the market is ${vix > 20 ? 'wary of overextending' : 'cautiously optimistic'} into ${rsi > 70 ? 'riskier assets' : 'growth sectors'}. This ${rsi > 70 ? 'might lead to choppy trading conditions' : 'could support measured upside'} as investors digest ${aaiiBull > 45 ? 'the mixed signals' : 'economic data and Fed policy implications'}. Key levels to watch include ${(price * 0.98).toFixed(0)} support and ${(price * 1.02).toFixed(0)} resistance.`,
-        confidence: 0.80
-      };
-      
-      console.log('✅ Scheduled email analysis generated successfully:', {
-        bottomLineLength: analysis.bottomLine.length,
-        setupLength: analysis.setup.length,
-        evidenceLength: analysis.evidence.length,
-        implicationsLength: analysis.implications.length,
-        theme: analysis.dominantTheme
-      });
-      
-      // Construct complete analysis data with all required fields (same as manual test)
-      const analysisData = {
-        analysis,
-        currentStock: finalStockData,
-        sentiment: finalSentiment,
-        technical: finalTechnical,
-        sectors: finalSectors,
-        economicEvents: finalEconomicEvents
-      };
-      
-      // Prepare email data for unified service template
-      const emailData = {
-        stockData: {
-          price: finalStockData.price,
-          changePercent: finalStockData.changePercent
-        },
-        sentiment: {
-          vix: finalSentiment.vix,
-          vixChange: finalSentiment.vixChange || '0',
-          aaiiBullish: finalSentiment.aaiiBullish,
-          aaiiBearish: finalSentiment.aaiiBearish
-        },
-        technical: {
-          rsi: finalTechnical.rsi,
-          macd: finalTechnical.macd
-        },
-        sectors: await this.getDatabaseSectorData(),
-        economicEvents: await this.getDatabaseEconomicEvents(),
-        analysis,
-        timestamp: new Date().toISOString()
-      };
-
-      // Get active subscribers and send emails using unified service
-      const { storage } = await import('../storage.js');
-      const subscribers = await storage.getActiveEmailSubscriptions();
-      
-      if (subscribers.length > 0) {
-        const result = await simplifiedEmailService.sendDailyMarketEmail(subscribers, emailData);
-        console.log(`📧 Daily emails sent: ${result.sent} successful, ${result.failed} failed`);
-      } else {
-        console.log('📧 No active subscribers found for daily email');
-      }
-      
-      console.log('✅ Daily market commentary emails sent successfully');
+      console.log('✅ Email functionality has been removed - no operations performed');
     } catch (error) {
       console.error('❌ Error sending daily emails:', error);
     }
@@ -260,25 +111,8 @@ export class DataScheduler {
       // Update economic events and forecasts
       await this.economicService.scrapeMarketWatchCalendar();
       
-      // Regenerate AI analysis with latest data
-      const marketData = await this.financialService.getMarketIndicators();
-      const sectorData = await this.financialService.getSectorETFs();
-      
-      if (marketData) {
-        await this.aiService.generateMarketAnalysis({
-          symbol: 'SPY',
-          price: marketData.spy_price || 628,
-          change: marketData.spy_change || 0,
-          changePercent: marketData.spy_change_percent || 0,
-          rsi: marketData.spy_rsi,
-          macd: marketData.spy_macd,
-          macdSignal: marketData.spy_macd_signal,
-          vix: marketData.vix,
-          putCallRatio: marketData.putCallRatio,
-          aaiiBullish: marketData.aaiiBullish,
-          aaiiBearish: marketData.aaiiBearish
-        }, sectorData);
-      }
+      // AI analysis functionality has been removed
+      console.log('🤖 AI analysis functionality has been removed from the platform');
       
       console.log('✅ Forecast data updated');
     } catch (error) {
@@ -432,42 +266,7 @@ export class DataScheduler {
     await this.updateAllData();
   }
 
-  async getDatabaseSectorData(): Promise<any[]> {
-    try {
-      const { storage } = await import('../storage.js');
-      const dbSectors = await storage.getAllSectorData();
-      
-      return dbSectors.map(sector => ({
-        sector: sector.name || sector.symbol,
-        ticker: sector.symbol,
-        oneDay: sector.changePercent?.toFixed(2) || '0.00',
-        fiveDay: sector.fiveDayChange?.toFixed(2) || '0.00',
-        oneMonth: sector.monthlyChange?.toFixed(2) || '0.00',
-        rsi: sector.rsi?.toFixed(1) || '50.0',
-        signal: sector.changePercent > 1 ? 'Bullish' : sector.changePercent < -1 ? 'Bearish' : 'Neutral'
-      }));
-    } catch (error) {
-      console.error('Error fetching database sector data:', error);
-      return [];
-    }
-  }
-
-  async getDatabaseEconomicEvents(): Promise<any[]> {
-    try {
-      const { storage } = await import('../storage.js');
-      const dbEvents = await storage.getAllEconomicEvents();
-      
-      return dbEvents.slice(0, 6).map(event => ({
-        indicator: event.title || event.indicator,
-        actual: event.actual || 'N/A', 
-        forecast: event.forecast || 'N/A',
-        date: event.date || event.releaseDate || 'N/A'
-      }));
-    } catch (error) {
-      console.error('Error fetching database economic events:', error);
-      return [];
-    }
-  }
+  // Database methods removed as email functionality has been removed
 }
 
 export const dataScheduler = DataScheduler.getInstance();
