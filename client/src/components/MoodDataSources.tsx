@@ -150,19 +150,26 @@ export function MoodDataSources() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white">Technical Analysis</h2>
-        <Button 
-          onClick={handleAIRefresh}
-          disabled={isRefreshing}
-          variant="default" 
-          size="sm"
-          className="bg-black text-white border-black hover:bg-gray-800"
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-          {isRefreshing ? 'Refreshing...' : 'Refresh'}
-        </Button>
-      </div>
+      <Card className="bg-financial-card border-financial-border">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-white flex items-center space-x-2">
+              <Activity className="h-5 w-5 text-blue-400" />
+              <span>Technical Analysis</span>
+            </CardTitle>
+            <Button 
+              onClick={handleAIRefresh}
+              disabled={isRefreshing}
+              variant="default" 
+              size="sm"
+              className="bg-black text-white border-black hover:bg-gray-800"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
+          </div>
+        </CardHeader>
+      </Card>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {dataSources.filter(source => source.type !== 'economic').map((source, index) => {
         const icons = {
