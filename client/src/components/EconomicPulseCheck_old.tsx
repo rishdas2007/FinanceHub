@@ -1,6 +1,32 @@
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Activity, TrendingUp, TrendingDown } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
+import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
+
+interface MetricStatistics {
+  mean: number | null;
+  median: number | null;
+  std: number | null;
+  min: number | null;
+  max: number | null;
+  start_value: number | null;
+  end_value: number | null;
+  period_start_date: string;
+  period_end_date: string;
+  z_score: number | null;
+}
+
+interface MetricAnalysis {
+  statistics: MetricStatistics;
+  trend: 'increasing' | 'decreasing' | 'stable' | 'not enough data';
+  data_points_12_months: Array<{
+    period_date_desc: string;
+    value_numeric: number;
+  }>;
+}
+
+interface CategoryAnalysis {
+  [metric: string]: MetricAnalysis;
+}
 
 interface EconomicIndicator {
   metric: string;
@@ -73,7 +99,7 @@ const getMetricDisplayUnit = (metricName: string): string => {
     'US Leading Economic Index': 'index',
     'Leading Economic Index': 'index',
     'ISM Manufacturing PMI': 'index',
-    'S&P Global Manufacturing PMI': 'index',
+    'S&P Global Mfg PMI': 'index',
     
     // Growth - chained_dollars (trillions)
     'Real Disposable Personal Income': 'chained_dollars',
@@ -94,47 +120,66 @@ const getMetricDisplayUnit = (metricName: string): string => {
     // Labor - hours
     'Average Weekly Hours': 'hours',
     
-    // Inflation - percent
-    'CPI Year-over-Year': 'percent',
-    'Core CPI Year-over-Year': 'percent',
-    'Core PCE Price Index YoY': 'percent',
-    'Producer Price Index YoY': 'percent',
+    // Inflation - index
+    'CPI All Items': 'index',
+    'Core CPI': 'index',
+    'PPI All Commodities': 'percent',
     'Core PPI': 'percent',
-    'CPI Energy': 'percent',
-    'CPI Food': 'percent',
+    'PCE Price Index': 'index',
+    'Core PCE Price Index': 'index',
+    'CPI Energy': 'index',
+    
+    // Inflation - dollars_per_gallon
+    'US Regular Gasoline Price': 'dollars_per_gallon',
     
     // Monetary Policy - percent
     'Federal Funds Rate': 'percent',
     '10-Year Treasury Yield': 'percent',
-    '2-Year Treasury Yield': 'percent',
+    '30-Year Fixed Mortgage Rate': 'percent',
+    
+    // Monetary Policy - basis_points
     'Yield Curve (10yr-2yr)': 'basis_points',
-    'Mortgage Rates': 'percent',
     
     // Monetary Policy - billions_dollars
     'Commercial & Industrial Loans': 'billions_dollars',
     
     // Sentiment - index
-    'Consumer Confidence Index': 'index',
-    'University of Michigan Sentiment': 'index'
+    'Michigan Consumer Sentiment': 'index',
+    'Consumer Confidence Index': 'index'
   };
 
-  return metricToUnitMap[metricName] || 'units';
+  return metricToUnitMap[metricName] || 'index';
 };
 
-const formatNumber = (value: number, unit: string): string => {
-  const numValue = Number(value);
-  
-  if (isNaN(numValue)) return '0';
-  
+const formatNumber = (value: number | null | undefined, unit: string): string => {
+  if (value === null || value === undefined || isNaN(value)) {
+    return 'N/A';
+  }
+  const numValue = parseFloat(String(value));
+
   switch (unit) {
-    case 'millions_dollars':
-      return '$' + numValue.toFixed(1) + 'M';
-    case 'billions_dollars':
-      return '$' + numValue.toFixed(1) + 'B';
-    case 'thousands':
-      return numValue.toFixed(1) + 'K';
     case 'percent':
-      return numValue.toFixed(2) + '%';
+      return numValue.toFixed(1) + '%';
+    case 'thousands':
+      // Convert from actual values to thousands format
+      if (numValue >= 1000000) {
+        return (numValue / 1000000).toFixed(2) + 'M'; // Convert millions to M format
+      } else if (numValue >= 1000) {
+        return (numValue / 1000).toFixed(1) + 'K'; // Convert thousands to K format
+      } else {
+        return numValue.toFixed(1) + 'K'; // Data is already in thousands
+      }
+    case 'millions_dollars':
+      return '$' + numValue.toFixed(1) + 'M'; // Data is already in millions
+    case 'billions_dollars':
+      // Handle different scales of billions data
+      if (numValue >= 1000) {
+        return '$' + (numValue / 1000).toFixed(1) + 'T'; // Convert to trillions
+      } else if (numValue >= 1) {
+        return '$' + numValue.toFixed(1) + 'B'; // Already in billions
+      } else {
+        return '$' + (numValue * 1000).toFixed(1) + 'B'; // Convert from trillions to billions
+      }
     case 'index':
       return numValue.toFixed(1);
     case 'basis_points':
@@ -251,6 +296,55 @@ export function EconomicPulseCheck() {
     return pulseData;
   };
 
+  // Process the data (moved after error check)
+  if (!economicData?.indicators) {
+    console.log('📊 No indicators data available yet');
+    return (
+      <Card className="bg-financial-card border-financial-border">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center space-x-2">
+            <Activity className="h-5 w-5 text-blue-400" />
+            <span>Statistical Alert System</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="animate-pulse space-y-3">
+            <div className="h-4 bg-gray-700 rounded w-3/4"></div>
+            <div className="grid grid-cols-5 gap-4">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="h-20 bg-gray-700 rounded"></div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Add error boundary to catch processing errors
+  let pulseData: PulseData;
+  try {
+    pulseData = processPulseData();
+    console.log('📊 Processed pulse data successfully:', pulseData);
+  } catch (processingError) {
+    console.error('📊 Error processing pulse data:', processingError);
+    // Return error state if processing fails
+    return (
+      <Card className="bg-financial-card border-financial-border">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center space-x-2">
+            <Activity className="h-5 w-5 text-blue-400" />
+            <span>Statistical Alert System</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-red-400">Data processing error. Please try refreshing.</p>
+          <p className="text-gray-400 text-sm mt-2">Error: {String(processingError)}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (isLoading) {
     return (
       <Card className="bg-financial-card border-financial-border">
@@ -292,8 +386,30 @@ export function EconomicPulseCheck() {
     );
   }
 
-  // Process the data after all checks  
-  const pulseData = processPulseData();
+  // Add error boundary to catch processing errors
+  let pulseData: PulseData;
+  try {
+    pulseData = processPulseData();
+    console.log('📊 Processed pulse data successfully:', pulseData);
+  } catch (processingError) {
+    console.error('📊 Error processing pulse data:', processingError);
+    // Return error state if processing fails
+    return (
+      <Card className="bg-financial-card border-financial-border">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center space-x-2">
+            <Activity className="h-5 w-5 text-blue-400" />
+            <span>Statistical Alert System</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-red-400">Data processing error. Please try refreshing.</p>
+          <p className="text-gray-400 text-sm mt-2">Error: {String(processingError)}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const categories = ['Growth', 'Inflation', 'Labor', 'Monetary Policy', 'Sentiment'];
 
   return (
