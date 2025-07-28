@@ -27,7 +27,7 @@ export class FREDApiService {
     { series_id: 'RSAFS', title: 'Retail Sales', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'millions_dollars' },
     { series_id: 'MRTSSM44W72USN', title: 'Retail Sales Ex-Auto', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'millions_dollars' },
     { series_id: 'RSFSDP', title: 'Retail Sales: Food Services', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'millions_dollars' },
-    { series_id: 'INDPRO', title: 'Industrial Production', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'index' },
+    { series_id: 'INDPRO', title: 'Industrial Production YoY', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'index_yoy' },
     { series_id: 'CAPUTLG2211S', title: 'Capacity Utilization (Mfg)', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'percent' },
     { series_id: 'PI', title: 'Personal Income', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'billions_dollars' },
     { series_id: 'PCE', title: 'Personal Spending', category: 'Growth' as const, type: 'Coincident' as const, display_unit: 'billions_dollars' },
@@ -107,7 +107,7 @@ export class FREDApiService {
       for (const indicator of this.keyIndicators) {
         try {
           // For YoY calculations, we need at least 13 months of data (current + 12 months ago)
-          const limit = indicator.title.includes('(YoY)') ? 15 : 3;
+          const limit = (indicator.title.includes('(YoY)') || indicator.display_unit === 'index_yoy') ? 15 : 3;
           const data = await this.fetchSeriesData(indicator.series_id, limit);
           
           if (data && data.length > 0) {
@@ -223,6 +223,51 @@ export class FREDApiService {
                   formattedCurrent = currentVal.toFixed(1);
                   formattedPrevious = previousVal ? previousVal.toFixed(1) : 'N/A';
                   vsPrior = previousVal ? `${(currentVal - previousVal > 0 ? '+' : '')}${(currentVal - previousVal).toFixed(1)}` : '0';
+                  break;
+                case 'index_yoy':
+                  // Calculate YoY for index values - need 12+ months of data
+                  if (data.length >= 13) {
+                    const yearAgoData = data[12]; // Approximately 12 months ago
+                    if (yearAgoData && yearAgoData.value !== '.' && current.value !== '.') {
+                      const currentVal = parseFloat(current.value);
+                      const yearAgoVal = parseFloat(yearAgoData.value);
+                      
+                      if (!isNaN(currentVal) && !isNaN(yearAgoVal) && yearAgoVal !== 0) {
+                        const yoyChange = ((currentVal - yearAgoVal) / yearAgoVal) * 100;
+                        formattedCurrent = `${yoyChange.toFixed(2)}%`;
+                        
+                        // Calculate previous period YoY if possible
+                        if (previous && data[13] && previous.value !== '.' && data[13].value !== '.') {
+                          const prevVal = parseFloat(previous.value);
+                          const prevYearAgoVal = parseFloat(data[13].value);
+                          if (!isNaN(prevVal) && !isNaN(prevYearAgoVal) && prevYearAgoVal !== 0) {
+                            const prevYoyChange = ((prevVal - prevYearAgoVal) / prevYearAgoVal) * 100;
+                            formattedPrevious = `${prevYoyChange.toFixed(2)}%`;
+                            vsPrior = `${(yoyChange - prevYoyChange > 0 ? '+' : '')}${(yoyChange - prevYoyChange).toFixed(2)}%`;
+                          } else {
+                            formattedPrevious = 'N/A';
+                            vsPrior = `${yoyChange.toFixed(2)}%`;
+                          }
+                        } else {
+                          formattedPrevious = 'N/A';
+                          vsPrior = `${yoyChange.toFixed(2)}%`;
+                        }
+                      } else {
+                        formattedCurrent = '0.00%';
+                        formattedPrevious = 'N/A';
+                        vsPrior = '0.00%';
+                      }
+                    } else {
+                      formattedCurrent = 'N/A';
+                      formattedPrevious = 'N/A';
+                      vsPrior = 'N/A';
+                    }
+                  } else {
+                    // Not enough data for YoY calculation
+                    formattedCurrent = 'N/A';
+                    formattedPrevious = 'N/A';
+                    vsPrior = 'N/A';
+                  }
                   break;
                 case 'basis_points':
                   // Format basis points without any suffix for clean display
