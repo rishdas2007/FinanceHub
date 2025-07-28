@@ -10,7 +10,7 @@ interface MacroeconomicData {
 }
 
 export class MacroeconomicService {
-  private readonly CACHE_KEY = 'fred-economic-indicators-v14';
+  private readonly CACHE_KEY = 'fred-economic-indicators-v15';
   
   /**
    * Get authentic FRED economic data with live z-score calculations
@@ -126,6 +126,7 @@ export class MacroeconomicService {
           type: zData.type,
           category: zData.category,
           releaseDate: zData.periodDate,
+          period_date: zData.periodDate, // Add period_date field for table display
           currentReading: formatNumber(currentReading, zData.unit),
           priorReading: formatNumber(priorReading, zData.unit),
           varianceVsPrior: formatVariance(actualVariance), // Simple current - prior calculation
