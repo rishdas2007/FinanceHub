@@ -19,6 +19,7 @@ interface MacroIndicatorData {
   unit: string;
   forecast?: number;
   zScore?: number | null;
+  period_date?: string;
 }
 
 interface MacroeconomicData {
@@ -265,7 +266,8 @@ export class MacroeconomicIndicatorsService {
           priorReading: formatNumber(priorReading, unit),
           varianceVsPrior: formatVariance(varianceVsPrior, unit),
           unit: '', // Don't display unit suffix since it's already included in formatted values
-          zScore: zScore
+          zScore: zScore,
+          period_date: record.period_date
         };
       });
 

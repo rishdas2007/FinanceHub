@@ -229,7 +229,7 @@ const MacroFormatUtils = {
 };
 
 type SortDirection = 'asc' | 'desc' | null;
-type SortColumn = 'metric' | 'type' | 'category' | 'current' | 'zscore' | 'prior' | 'variance';
+type SortColumn = 'metric' | 'type' | 'category' | 'period' | 'current' | 'zscore' | 'prior' | 'variance';
 
 const MacroeconomicIndicators: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('Growth');
@@ -340,8 +340,9 @@ const MacroeconomicIndicators: React.FC = () => {
         
         switch (sortColumn) {
           case 'metric':
-            aValue = a.metric.toLowerCase();
-            bValue = b.metric.toLowerCase();
+            // Sort by release date instead of alphabetically
+            aValue = new Date(a.releaseDate).getTime();
+            bValue = new Date(b.releaseDate).getTime();
             break;
           case 'type':
             aValue = a.type;
@@ -350,6 +351,10 @@ const MacroeconomicIndicators: React.FC = () => {
           case 'category':
             aValue = a.category;
             bValue = b.category;
+            break;
+          case 'period':
+            aValue = a.period_date ? new Date(a.period_date).getTime() : 0;
+            bValue = b.period_date ? new Date(b.period_date).getTime() : 0;
             break;
           case 'current':
             aValue = typeof a.currentReading === 'number' ? a.currentReading : parseFloat(String(a.currentReading)) || 0;
@@ -516,7 +521,7 @@ const MacroeconomicIndicators: React.FC = () => {
             <table className="w-full table-auto">
               <thead>
                 <tr className="border-b border-financial-border sticky top-0 bg-financial-card">
-                  <th className="text-left py-3 px-2 w-1/4">
+                  <th className="text-left py-3 px-2 w-1/5">
                     <button 
                       onClick={() => handleSort('metric')}
                       className="text-gray-300 font-medium hover:text-white transition-colors flex items-center group"
@@ -525,7 +530,7 @@ const MacroeconomicIndicators: React.FC = () => {
                       {getSortIcon('metric')}
                     </button>
                   </th>
-                  <th className="text-center py-3 px-2">
+                  <th className="text-center py-3 px-2 w-16">
                     <button 
                       onClick={() => handleSort('type')}
                       className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-center group"
@@ -534,13 +539,22 @@ const MacroeconomicIndicators: React.FC = () => {
                       {getSortIcon('type')}
                     </button>
                   </th>
-                  <th className="text-center py-3 px-2">
+                  <th className="text-center py-3 px-2 w-20">
                     <button 
                       onClick={() => handleSort('category')}
                       className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-center group"
                     >
                       Category
                       {getSortIcon('category')}
+                    </button>
+                  </th>
+                  <th className="text-center py-3 px-2 w-24">
+                    <button 
+                      onClick={() => handleSort('period')}
+                      className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-center group"
+                    >
+                      Period
+                      {getSortIcon('period')}
                     </button>
                   </th>
                   <th className="text-right py-3 px-2">
@@ -584,25 +598,28 @@ const MacroeconomicIndicators: React.FC = () => {
               <tbody className="space-y-1">
                 {filteredAndSortedIndicators.map((indicator, index) => (
                   <tr key={index} className="border-b border-financial-border hover:bg-financial-gray/50 transition-colors">
-                    <td className="py-3 px-2 w-1/4">
+                    <td className="py-3 px-2 w-1/5">
                       <div>
                         <div className="text-white font-medium text-sm break-words">{indicator.metric}</div>
                         <div className="text-xs text-gray-400">
-                          {indicator.period_date ? `Period: ${new Date(indicator.period_date).toLocaleDateString()}` : ''}
-                          {indicator.period_date && indicator.releaseDate && ' • '}
                           {indicator.releaseDate ? `Released: ${new Date(indicator.releaseDate).toLocaleDateString()}` : ''}
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-2 text-center">
-                      <span className={`px-2 py-1 rounded text-xs font-medium border ${getTypeColor(indicator.type)}`}>
+                    <td className="py-3 px-2 text-center w-16">
+                      <span className={`px-1 py-1 rounded text-xs font-medium border ${getTypeColor(indicator.type)}`}>
                         {indicator.type}
                       </span>
                     </td>
-                    <td className="py-3 px-2 text-center">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${getCategoryColor(indicator.category)}`}>
+                    <td className="py-3 px-2 text-center w-20">
+                      <span className={`px-1 py-1 rounded text-xs font-medium ${getCategoryColor(indicator.category)}`}>
                         {indicator.category}
                       </span>
+                    </td>
+                    <td className="py-3 px-2 text-center w-24">
+                      <div className="text-white text-sm">
+                        {indicator.period_date ? new Date(indicator.period_date).toLocaleDateString() : 'N/A'}
+                      </div>
                     </td>
                     <td className="text-right py-3 px-2 text-white font-semibold">
                       {MacroFormatUtils.formatIndicatorValue(indicator.currentReading, indicator.metric, indicator.unit)}
