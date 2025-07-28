@@ -116,6 +116,9 @@ export function MoodDataSources() {
                 {extractMAGap(topSector.signal)}
               </Badge>
             </div>
+            <div className="text-xs text-gray-400 mt-2">
+              * MA Gap shows percentage difference between 20-day and 50-day moving averages. Positive values indicate bullish momentum.
+            </div>
           </div>
         )}
       </div>
