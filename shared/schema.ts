@@ -415,30 +415,81 @@ export const economicTimeSeries = pgTable("economic_time_series", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Economic indicators history table for statistical analysis
+// Enhanced economic indicators history table for incremental FRED API updates
 export const economicIndicatorsHistory = pgTable("economic_indicators_history", {
   id: serial("id").primaryKey(),
-  metricName: text("metric_name").notNull(),
-  seriesId: text("series_id").notNull(),
-  type: text("type").notNull(),
-  category: text("category").notNull(),
-  unit: text("unit").notNull(),
-  frequency: text("frequency").notNull(),
-  value: decimal("value", { precision: 15, scale: 4 }).notNull(),
-  periodDate: timestamp("period_date").notNull(),
-  releaseDate: timestamp("release_date").notNull(),
+  seriesId: text("series_id"), // FRED series ID for matching
+  metric: text("metric").notNull(), // Human readable name
+  category: text("category").notNull(), // Growth, Inflation, Labor, etc.
+  type: text("type").notNull(), // Leading, Coincident, Lagging
+  frequency: text("frequency").notNull(), // weekly, monthly, quarterly
+  valueNumeric: decimal("value_numeric", { precision: 15, scale: 4 }).notNull(),
+  periodDateDesc: text("period_date_desc").notNull(), // "2025-07-15"
+  releaseDateDesc: text("release_date_desc").notNull(), // "2025-07-20"
+  periodDate: timestamp("period_date").notNull(), // Parsed date for queries
+  releaseDate: timestamp("release_date").notNull(), // Parsed release date
+  unit: text("unit").notNull(), // "Percent", "Thousands of Persons", etc.
+  
+  // Legacy fields for backward compatibility (kept for existing 792 records)
+  metricName: text("metric_name"),
+  value: decimal("value", { precision: 15, scale: 4 }),
   forecast: decimal("forecast", { precision: 15, scale: 4 }),
   priorValue: decimal("prior_value", { precision: 15, scale: 4 }),
   monthlyChange: decimal("monthly_change", { precision: 8, scale: 4 }),
   annualChange: decimal("annual_change", { precision: 8, scale: 4 }),
   zScore12m: decimal("z_score_12m", { precision: 8, scale: 4 }),
   threeMonthAnnualized: decimal("three_month_annualized", { precision: 8, scale: 4 }),
+  
   createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  // Indexes for performance
+  seriesIdIdx: index("series_id_idx").on(table.seriesId),
+  metricIdx: index("metric_idx").on(table.metric),
+  categoryIdx: index("category_idx").on(table.category),
+  periodDateIdx: index("period_date_idx").on(table.periodDate),
+  // Unique constraint to prevent duplicates
+  uniqueSeriesPeriod: unique("unique_series_period").on(table.seriesId, table.periodDateDesc),
+}));
+
+// Current economic indicators table for latest values
+export const economicIndicatorsCurrent = pgTable("economic_indicators_current", {
+  id: serial("id").primaryKey(),
+  seriesId: text("series_id").notNull(),
+  metric: text("metric").notNull(),
+  category: text("category").notNull(),
+  type: text("type").notNull(),
+  frequency: text("frequency").notNull(),
+  valueNumeric: decimal("value_numeric", { precision: 15, scale: 4 }).notNull(),
+  periodDateDesc: text("period_date_desc").notNull(),
+  releaseDateDesc: text("release_date_desc").notNull(),
+  periodDate: timestamp("period_date").notNull(),
+  releaseDate: timestamp("release_date").notNull(),
+  unit: text("unit").notNull(),
+  isLatest: boolean("is_latest").notNull().default(true),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
-  seriesIdIndex: index("idx_econ_history_series_id").on(table.seriesId),
-  categoryIndex: index("idx_econ_history_category").on(table.category),
-  releaseDateIndex: index("idx_econ_history_release_date").on(table.releaseDate),
+  seriesIdIdx: index("current_series_id_idx").on(table.seriesId),
+  isLatestIdx: index("current_is_latest_idx").on(table.isLatest),
+  uniqueSeriesLatest: unique("unique_series_latest").on(table.seriesId, table.isLatest),
+}));
+
+// FRED update log for tracking incremental updates
+export const fredUpdateLog = pgTable("fred_update_log", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull(),
+  seriesId: text("series_id").notNull(),
+  operation: text("operation").notNull(), // "insert", "update", "skip"
+  periodDateDesc: text("period_date_desc").notNull(),
+  valueNumeric: decimal("value_numeric", { precision: 15, scale: 4 }),
+  outcome: text("outcome").notNull(), // "success", "duplicate", "error"
+  errorMessage: text("error_message"),
+  apiCallsUsed: integer("api_calls_used").notNull().default(0),
+  executionTime: integer("execution_time"), // milliseconds
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  sessionIdIdx: index("fred_session_id_idx").on(table.sessionId),
+  seriesIdIdx: index("fred_log_series_id_idx").on(table.seriesId),
+  createdAtIdx: index("fred_log_created_at_idx").on(table.createdAt),
 }));
 
 // Historical context snapshots for AI analysis
@@ -571,3 +622,7 @@ export type InsertEconomicStatisticalAlert = typeof economicStatisticalAlerts.$i
 
 export type EconomicIndicatorHistory = typeof economicIndicatorsHistory.$inferSelect;
 export type InsertEconomicIndicatorHistory = typeof economicIndicatorsHistory.$inferInsert;
+export type EconomicIndicatorCurrent = typeof economicIndicatorsCurrent.$inferSelect;
+export type InsertEconomicIndicatorCurrent = typeof economicIndicatorsCurrent.$inferInsert;
+export type FredUpdateLog = typeof fredUpdateLog.$inferSelect;
+export type InsertFredUpdateLog = typeof fredUpdateLog.$inferInsert;

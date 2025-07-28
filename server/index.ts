@@ -3,6 +3,7 @@ import compression from "compression";
 import cors from "cors";
 import { registerRoutes } from "./routes";
 import { intelligentCronScheduler } from "./services/intelligent-cron-scheduler.js";
+import { fredSchedulerIncremental } from "./services/fred-scheduler-incremental";
 // Import optional enhancements
 import { monitoringRoutes } from './routes/monitoring';
 import { docsRoutes } from './routes/docs';
@@ -141,6 +142,14 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`🚀 FinanceHub Pro serving on port ${port}`);
+    
+    // Initialize FRED incremental scheduler
+    try {
+      fredSchedulerIncremental.start();
+      log(`📊 FRED incremental scheduler initialized successfully`);
+    } catch (error) {
+      log(`⚠️ Failed to initialize FRED scheduler: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
     
     // Initialize intelligent cron scheduler for background data fetching
     setTimeout(async () => {

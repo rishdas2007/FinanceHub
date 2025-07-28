@@ -30,6 +30,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // FRED Cache Management endpoints
   app.use('/api/fred-cache', (await import('./routes/fred-cache-routes')).fredCacheRoutes);
   
+  // FRED Incremental Update System endpoints
+  app.use('/api/fred-incremental', (await import('./routes/fred-incremental-routes')).default);
+  
   // Authentic FRED Economic Data API - prioritized endpoint
   app.get('/api/fred-economic-data', async (req, res) => {
     try {
