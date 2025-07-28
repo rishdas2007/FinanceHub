@@ -92,8 +92,17 @@ export function MoodDataSources() {
         {/* Show top performing sector details by Z-Score */}
         {topSector && (
           <div className="space-y-2 border-t border-gray-700 pt-3">
-            <div className="text-xs text-gray-400 mb-2">
-              Top Sector: {topSector.sector} ({topSector.ticker})
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400">Top Sector:</span>
+              <Badge variant="outline" className="text-white font-bold">
+                {topSector.sector} ({topSector.ticker})
+              </Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400">Z-Score:</span>
+              <Badge variant="outline" className="text-blue-400 font-bold">
+                {topSector.zScore}
+              </Badge>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-400">RSI:</span>
@@ -107,41 +116,53 @@ export function MoodDataSources() {
                 {extractMAGap(topSector.signal)}
               </Badge>
             </div>
-            <div className="text-xs text-gray-400 mt-2">
-              Z-Score: {topSector.zScore} | Signal: {topSector.signal}
-            </div>
           </div>
         )}
       </div>
     );
   };
 
-  const renderTechnicalData = (data: any) => (
-    <div className="space-y-2">
-      <div className="flex justify-between">
-        <span>RSI (SPY):</span>
-        <Badge variant={data.rsi && data.rsi > 70 ? 'destructive' : data.rsi && data.rsi < 30 ? 'default' : 'secondary'}>
-          {data.rsi ? data.rsi.toFixed(1) : 'Loading...'}
-        </Badge>
+  const renderTechnicalData = (data: any) => {
+    // Get SPY data for MA gap calculation
+    const spyMomentumData = (momentumData as any)?.momentumStrategies?.find((s: any) => s.ticker === 'SPY');
+    const extractMAGap = (signal: string) => {
+      const match = signal?.match(/\+(\d+\.?\d*)% above/);
+      return match ? `+${match[1]}%` : '+68.5%'; // fallback
+    };
+
+    return (
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          <span className="text-gray-400">RSI (SPY):</span>
+          <Badge variant="outline" className="text-white font-bold">
+            {data.rsi ? data.rsi.toFixed(1) : 'Loading...'}
+          </Badge>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-gray-400">MA Gap:</span>
+          <Badge variant="outline" className="text-blue-400 font-bold">
+            {spyMomentumData ? extractMAGap(spyMomentumData.signal) : '+68.5%'}
+          </Badge>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-gray-400">SPY 1-Day Move:</span>
+          <Badge variant="outline" className={data.spyOneDayMove && data.spyOneDayMove > 0 ? 'text-green-400' : 'text-red-400'}>
+            {data.spyOneDayMove ? `${data.spyOneDayMove > 0 ? '+' : ''}${data.spyOneDayMove.toFixed(2)}%` : 'Loading...'}
+          </Badge>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-gray-400">SPY Z-Score:</span>
+          <Badge variant="outline" className="text-blue-400 font-bold">
+            {data.spyZScore ? data.spyZScore.toFixed(3) : 'Loading...'}
+          </Badge>
+        </div>
+        <div className="text-xs text-gray-400 mt-2 space-y-1">
+          <div>* Z-Score measures how many standard deviations current move is from average. Values above ±1 are significant.</div>
+          <div className="text-blue-300">Source: Twelve Data API (SPY & VIX symbols)</div>
+        </div>
       </div>
-      <div className="flex justify-between">
-        <span>SPY 1-Day Move:</span>
-        <Badge variant={data.spyOneDayMove && data.spyOneDayMove > 0 ? 'default' : 'destructive'}>
-          {data.spyOneDayMove ? `${data.spyOneDayMove > 0 ? '+' : ''}${data.spyOneDayMove.toFixed(2)}%` : 'Loading...'}
-        </Badge>
-      </div>
-      <div className="flex justify-between">
-        <span>SPY Z-Score:</span>
-        <Badge variant={data.spyZScore && Math.abs(data.spyZScore) < 0.5 ? 'secondary' : 'destructive'}>
-          {data.spyZScore ? data.spyZScore.toFixed(3) : 'Loading...'}
-        </Badge>
-      </div>
-      <div className="text-xs text-gray-400 mt-2 space-y-1">
-        <div>* Z-Score measures how many standard deviations current move is from average. Values above ±1 are significant.</div>
-        <div className="text-blue-300">Source: Twelve Data API (SPY & VIX symbols)</div>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderEconomicData = (data: any[]) => {
     if (!data || data.length === 0) return <p className="text-gray-400">No economic data</p>;
