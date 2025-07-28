@@ -1,19 +1,16 @@
 import cron from 'node-cron';
 import { FinancialDataService } from './financial-data';
 import { EconomicDataService } from './economic-data';
-import { AIAnalysisService } from './ai-analysis';
 
 export class DataScheduler {
   private static instance: DataScheduler;
   private financialService: FinancialDataService;
   private economicService: EconomicDataService;
-  private aiService: AIAnalysisService;
   private isMarketHours: boolean = false;
 
   constructor() {
     this.financialService = FinancialDataService.getInstance();
     this.economicService = EconomicDataService.getInstance();
-    this.aiService = new AIAnalysisService();
   }
 
   static getInstance(): DataScheduler {

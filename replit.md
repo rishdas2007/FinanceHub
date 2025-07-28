@@ -17,6 +17,7 @@ FinanceHub Pro is a comprehensive financial dashboard application built as a ful
 - **CIRCULAR BADGE FORMATTING COMPLETED**: Added circular badges for all metrics in both Momentum Data (Top Sector, Z-Score, RSI, MA Gap) and Technical Data (RSI, MA Gap, SPY 1-Day Move, SPY Z-Score) sections for consistent formatting
 - **TECHNICAL DATA SECTION ENHANCED**: Added SPY Price at top with blue badge styling, aligned headers for consistent formatting, added separator line below SPY Price, and removed source attribution text for cleaner presentation
 - **MA GAP FOOTNOTE ADDED**: Added explanatory footnote to Momentum Data section explaining MA Gap as percentage difference between 20-day and 50-day moving averages for user clarity
+- **BUILD ERROR FIX**: Removed obsolete ai-analysis import from scheduler.ts that was causing deployment build failures since AI components were previously removed from dashboard
 - **MATHEMATICAL CLARIFICATION**: Clear distinction between z-score (deviation from 12-month mean) and vs Prior (current - previous period) with proper footnote documentation
 - **CACHE INVALIDATION COMPLETED**: Updated cache version and cleared all cached data to ensure 12-month calculations take effect immediately
 - **LIVE CALCULATION GUARANTEE**: All z-score calculations computed fresh (never cached) using 12-month rolling statistics with 930 database records
