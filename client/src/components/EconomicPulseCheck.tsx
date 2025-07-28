@@ -11,6 +11,8 @@ interface EconomicIndicator {
   priorReading: string;
   varianceVsPrior: string;
   zScore?: number;
+  period_date?: string;
+  releaseDate?: string;
 }
 
 interface EconomicDataResponse {
@@ -222,7 +224,7 @@ export function EconomicPulseCheck() {
           zScore: indicator.zScore,
           formattedValue: indicator.currentReading,
           formattedPriorValue: indicator.priorReading,
-          periodDate: '2025-06-01', // Default fallback date
+          periodDate: indicator.period_date || indicator.releaseDate || '2025-07-21', // Use actual period_date from database
           changeFromPrior: varianceValue,
           formattedChange: indicator.varianceVsPrior || 'N/A'
         };
