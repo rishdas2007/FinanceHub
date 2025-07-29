@@ -144,13 +144,16 @@ app.use((req, res, next) => {
   }, () => {
     log(`🚀 FinanceHub Pro serving on port ${port}`);
     
-    // Initialize FRED incremental scheduler
-    try {
-      fredSchedulerIncremental.start();
-      log(`📊 FRED incremental scheduler initialized successfully`);
-    } catch (error) {
-      log(`⚠️ Failed to initialize FRED scheduler: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    // Initialize Unified Data Refresh Scheduler
+    setTimeout(async () => {
+      try {
+        const { unifiedDataRefreshScheduler } = await import('./services/unified-data-refresh-scheduler');
+        unifiedDataRefreshScheduler.start();
+        log(`📊 Unified data refresh scheduler initialized successfully`);
+      } catch (error) {
+        log(`⚠️ Failed to initialize unified refresh scheduler: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }, 2000);
     
     // Initialize intelligent cron scheduler for background data fetching
     setTimeout(async () => {

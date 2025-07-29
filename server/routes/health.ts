@@ -283,6 +283,44 @@ router.post('/data-integrity/validate', async (req, res) => {
 });
 
 // Data staleness prevention status
+// Unified data refresh status
+router.get('/unified-refresh/status', async (req, res) => {
+  try {
+    const { unifiedDataRefreshScheduler } = await import('../services/unified-data-refresh-scheduler');
+    const status = unifiedDataRefreshScheduler.getStatus();
+    res.json({
+      success: true,
+      scheduler: status,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Error getting unified refresh status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get unified refresh status'
+    });
+  }
+});
+
+// Manual unified refresh trigger
+router.post('/unified-refresh/trigger', async (req, res) => {
+  try {
+    const { unifiedDataRefreshScheduler } = await import('../services/unified-data-refresh-scheduler');
+    const result = await unifiedDataRefreshScheduler.triggerManualRefresh();
+    res.json({
+      success: result.success,
+      message: result.message,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Error triggering manual refresh:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to trigger manual refresh'
+    });
+  }
+});
+
 router.get('/data-integrity/status', async (req, res) => {
   try {
     const status = dataStalenessPrevention.getMonitoringStatus();
