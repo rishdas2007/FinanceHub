@@ -10,7 +10,7 @@ interface MacroeconomicData {
 }
 
 export class MacroeconomicService {
-  private readonly CACHE_KEY = 'fred-economic-indicators-v20';
+  private readonly CACHE_KEY = 'fred-economic-indicators-v21';
   
   /**
    * Get authentic FRED economic data with live z-score calculations

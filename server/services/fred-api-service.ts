@@ -95,6 +95,35 @@ export class FREDApiService {
   }
 
   /**
+   * Get latest observation for a specific FRED series
+   */
+  async getLatestObservation(seriesId: string): Promise<{value: string, date: string} | null> {
+    try {
+      const url = `${this.baseUrl}/series/observations?series_id=${seriesId}&api_key=${this.apiKey}&file_type=json&limit=1&sort_order=desc`;
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        logger.error(`FRED API error for ${seriesId}: ${response.status}`);
+        return null;
+      }
+      
+      const data = await response.json();
+      if (data.observations && data.observations.length > 0) {
+        const latest = data.observations[0];
+        return {
+          value: latest.value,
+          date: latest.date
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      logger.error(`Failed to fetch latest observation for ${seriesId}:`, error);
+      return null;
+    }
+  }
+
+  /**
    * Fetch all key economic indicators from FRED
    */
   async getKeyEconomicIndicators(): Promise<FREDIndicator[]> {

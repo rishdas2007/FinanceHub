@@ -4,6 +4,7 @@ import cors from "cors";
 import { registerRoutes } from "./routes";
 import { intelligentCronScheduler } from "./services/intelligent-cron-scheduler.js";
 import { fredSchedulerIncremental } from "./services/fred-scheduler-incremental";
+import { dataStalenessPrevention } from "./services/data-staleness-prevention";
 // Import optional enhancements
 import { monitoringRoutes } from './routes/monitoring';
 import { docsRoutes } from './routes/docs';
@@ -161,6 +162,17 @@ app.use((req, res, next) => {
         log('❌ Cron scheduler initialization failed:', error);
       }
     }, 3000);
+    
+    // Initialize data staleness prevention monitoring
+    setTimeout(() => {
+      try {
+        log('🛡️  Initializing data staleness prevention monitoring...');
+        dataStalenessPrevention.startPreventiveMonitoring();
+        log('✅ Data staleness prevention monitoring started successfully');
+      } catch (error) {
+        log('❌ Data staleness prevention initialization failed:', error);
+      }
+    }, 5000);
     
     // Start the data scheduler for daily updates with enhanced error handling
     setTimeout(async () => {

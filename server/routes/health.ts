@@ -6,6 +6,8 @@ import { codeDocumentationAnalyzer } from '../utils/code-documentation';
 import { queryOptimizer } from '../utils/query-optimizer';
 import { loadTester } from '../utils/load-testing';
 import { logger } from '../utils/logger';
+import { dataIntegrityValidator } from '../services/data-integrity-validator';
+import { dataStalenessPrevention } from '../services/data-staleness-prevention';
 
 const router = Router();
 
@@ -257,6 +259,67 @@ router.get('/ping', (req, res) => {
     message: 'pong', 
     timestamp: new Date().toISOString() 
   });
+});
+
+// Data integrity validation endpoint
+router.post('/data-integrity/validate', async (req, res) => {
+  try {
+    logger.info('Manual data integrity validation triggered');
+    const report = await dataIntegrityValidator.validateAndFixStaleData();
+    
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      report
+    });
+  } catch (error) {
+    logger.error('Data integrity validation failed', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({
+      success: false,
+      error: 'Data integrity validation failed',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Data staleness prevention status
+router.get('/data-integrity/status', async (req, res) => {
+  try {
+    const status = dataStalenessPrevention.getMonitoringStatus();
+    
+    res.json({
+      monitoring: status,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Failed to get data integrity status', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({
+      error: 'Failed to get data integrity status',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Manual stale data fix
+router.post('/data-integrity/fix-stale', async (req, res) => {
+  try {
+    logger.info('Manual stale data fix triggered');
+    const result = await dataStalenessPrevention.manualStaleDataFix();
+    
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      fixed: result.fixed,
+      errors: result.errors
+    });
+  } catch (error) {
+    logger.error('Manual stale data fix failed', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({
+      success: false,
+      error: 'Manual stale data fix failed',
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 export default router;
