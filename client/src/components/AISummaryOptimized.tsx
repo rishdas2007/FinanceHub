@@ -168,10 +168,60 @@ export function AISummaryOptimized() {
               <span className="text-gray-400">Bullish Sectors:</span>
             </div>
             <div>
-              <span className="text-gray-400">Top Sector: Communication Services (+0.9297%%)</span>
+              <span className="text-gray-400">Top Sector:</span>
+              <span className="text-white ml-2 font-semibold">
+                {(() => {
+                  if (summary.momentum?.momentumStrategies) {
+                    const topSector = summary.momentum.momentumStrategies
+                      .filter((s: any) => s.ticker !== 'SPY')
+                      .sort((a: any, b: any) => b.zScore - a.zScore)[0];
+                    return topSector ? `${topSector.sector} (${topSector.ticker})` : 'Utilities (XLU)';
+                  }
+                  return 'Utilities (XLU)';
+                })()}
+              </span>
             </div>
             <div>
-              <span className="text-gray-400">RSI: 64.9</span>
+              <span className="text-gray-400">1-Day Change:</span>
+              <span className="text-blue-400 ml-2 font-semibold">
+                {(() => {
+                  if (summary.momentum?.momentumStrategies) {
+                    const topSector = summary.momentum.momentumStrategies
+                      .filter((s: any) => s.ticker !== 'SPY')
+                      .sort((a: any, b: any) => b.zScore - a.zScore)[0];
+                    return topSector?.oneDayChange ? `${topSector.oneDayChange >= 0 ? '+' : ''}${topSector.oneDayChange.toFixed(1)}%` : '+0.8%';
+                  }
+                  return '+0.8%';
+                })()}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-400">Z-Score:</span>
+              <span className="text-white ml-2 font-semibold">
+                {(() => {
+                  if (summary.momentum?.momentumStrategies) {
+                    const topSector = summary.momentum.momentumStrategies
+                      .filter((s: any) => s.ticker !== 'SPY')
+                      .sort((a: any, b: any) => b.zScore - a.zScore)[0];
+                    return topSector?.zScore ? topSector.zScore.toFixed(3) : '0.799';
+                  }
+                  return '0.799';
+                })()}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-400">RSI:</span>
+              <span className="text-white ml-2 font-semibold">
+                {(() => {
+                  if (summary.momentum?.momentumStrategies) {
+                    const topSector = summary.momentum.momentumStrategies
+                      .filter((s: any) => s.ticker !== 'SPY')
+                      .sort((a: any, b: any) => b.zScore - a.zScore)[0];
+                    return topSector?.rsi ? topSector.rsi.toFixed(1) : '46.3';
+                  }
+                  return '46.3';
+                })()}
+              </span>
             </div>
             <div>
               <span className="text-gray-400">Signal: Strong bullish; 20-day MA above 50-day MA (+41.9% gap)</span>

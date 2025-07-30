@@ -321,10 +321,10 @@ const MomentumAnalysis = () => {
 
       {/* Top Sector Highlight */}
       {analysis.momentumStrategies && analysis.momentumStrategies.length > 0 && (() => {
-        // Find top performing sector (excluding SPY)
+        // Find top performing sector by Z-Score (excluding SPY) for consistency
         const topSector = analysis.momentumStrategies
           .filter(s => s.ticker !== 'SPY')
-          .sort((a, b) => b.sharpeRatio - a.sharpeRatio)[0];
+          .sort((a, b) => b.zScore - a.zScore)[0];
         
         if (topSector) {
           return (
