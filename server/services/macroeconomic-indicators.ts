@@ -10,7 +10,7 @@ interface MacroeconomicData {
 }
 
 export class MacroeconomicService {
-  private readonly CACHE_KEY = `fred-restricted-32indicators-v${Math.floor(Date.now() / 100000)}`;
+  private readonly CACHE_KEY = `fred-comprehensive-39indicators-v${Math.floor(Date.now() / 10000)}`;
   
   /**
    * Get authentic FRED economic data with live z-score calculations
@@ -171,7 +171,7 @@ export class MacroeconomicService {
 
       const data: MacroeconomicData = {
         indicators,
-        aiSummary: `Live z-score analysis computed for ${indicators.length} RESTRICTED economic indicators using 12-month historical statistics. Only indicators with sufficient historical data baseline included.`,
+        aiSummary: `Live z-score analysis computed for ${indicators.length} comprehensive economic indicators using 12-month historical statistics. Includes GDP Growth Rate and all indicators with sufficient historical data baseline.`,
         lastUpdated: new Date().toISOString(),
         source: 'Live Database Calculation (12-month rolling statistics)'
       };

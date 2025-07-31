@@ -8,43 +8,53 @@ import { eq, desc, max, sql, and } from 'drizzle-orm';
 const FRED_API_KEY = process.env.FRED_API_KEY || 'afa2c5a53a8116fe3a6c6fb339101ca1';
 const FRED_BASE_URL = 'https://api.stlouisfed.org/fred';
 
-// CORE CURATED SERIES - Only valid FRED series with historical data (Top 32 from CSV)
+// COMPREHENSIVE CURATED SERIES - All valid FRED series with historical data (39 indicators)
 export const CURATED_SERIES = [
-  // Top indicators by record count - High confidence historical data (25+ records)
-  { id: 'T10Y2Y', label: 'Yield Curve (10yr-2yr)', type: 'Leading', category: 'Monetary Policy' },
+  // Top indicators by record count - High confidence historical data (29+ records)
   { id: 'DGS10', label: '10-Year Treasury Yield', type: 'Leading', category: 'Monetary Policy' },
-  { id: 'UNRATE', label: 'Unemployment Rate', type: 'Lagging', category: 'Labor' },
-  { id: 'UMCSENT', label: 'Michigan Consumer Sentiment', type: 'Leading', category: 'Sentiment' },
-  { id: 'PCEPI', label: 'PCE Price Index', type: 'Lagging', category: 'Inflation' },
-  { id: 'PAYEMS', label: 'Nonfarm Payrolls', type: 'Lagging', category: 'Labor' },
-  { id: 'INDPRO', label: 'Industrial Production', type: 'Coincident', category: 'Growth' },
-  { id: 'HOUST', label: 'Housing Starts', type: 'Leading', category: 'Growth' },
-  { id: 'FEDFUNDS', label: 'Federal Funds Rate', type: 'Leading', category: 'Monetary Policy' },
+  { id: 'T10Y2Y', label: 'Yield Curve (10yr-2yr)', type: 'Leading', category: 'Monetary Policy' },
   { id: 'CSCICP03USM665S', label: 'Consumer Confidence Index', type: 'Leading', category: 'Sentiment' },
+  { id: 'FEDFUNDS', label: 'Federal Funds Rate', type: 'Leading', category: 'Monetary Policy' },
+  { id: 'HOUST', label: 'Housing Starts', type: 'Leading', category: 'Growth' },
+  { id: 'PAYEMS', label: 'Nonfarm Payrolls', type: 'Lagging', category: 'Labor' },
+  { id: 'UMCSENT', label: 'Michigan Consumer Sentiment', type: 'Leading', category: 'Sentiment' },
+  { id: 'UNRATE', label: 'Unemployment Rate', type: 'Lagging', category: 'Labor' },
   
   // Medium record count indicators (18-21 records)
-  { id: 'CPILFESL', label: 'Core CPI Year-over-Year', type: 'Lagging', category: 'Inflation' },
-  { id: 'CPIAUCSL', label: 'CPI Year-over-Year', type: 'Lagging', category: 'Inflation' },
-  { id: 'ICSA', label: 'Initial Jobless Claims', type: 'Leading', category: 'Labor' },
   { id: 'CCSA', label: 'Continuing Jobless Claims', type: 'Lagging', category: 'Labor' },
+  { id: 'ICSA', label: 'Initial Jobless Claims', type: 'Leading', category: 'Labor' },
   { id: 'WPUSOP3000', label: 'Core PPI', type: 'Leading', category: 'Inflation' },
-  { id: 'U6RATE', label: 'U-6 Unemployment Rate', type: 'Lagging', category: 'Labor' },
-  { id: 'TTLCON', label: 'Total Construction Spending', type: 'Coincident', category: 'Growth' },
-  { id: 'RSFOODSERV', label: 'Retail Sales: Food Services', type: 'Coincident', category: 'Growth' },
-  { id: 'RSAFS', label: 'Retail Sales', type: 'Coincident', category: 'Growth' },
-  { id: 'PSAVERT', label: 'Personal Savings Rate', type: 'Leading', category: 'Growth' },
-  { id: 'PPIACO', label: 'PPI All Commodities', type: 'Leading', category: 'Inflation' },
-  { id: 'PCEPILFE', label: 'Core PCE Price Index', type: 'Lagging', category: 'Inflation' },
-  { id: 'NEWORDER', label: 'Consumer Durable Goods New Orders', type: 'Leading', category: 'Growth' },
-  { id: 'MSACSR', label: 'Months Supply of Homes', type: 'Lagging', category: 'Growth' },
-  { id: 'MRTSSM44W72USN', label: 'Retail Sales Ex-Auto', type: 'Coincident', category: 'Growth' },
-  { id: 'JTSJOL', label: 'JOLTS Job Openings', type: 'Leading', category: 'Labor' },
-  { id: 'JTSHIR', label: 'JOLTS Hires', type: 'Coincident', category: 'Labor' },
-  { id: 'HSN1F', label: 'New Home Sales', type: 'Leading', category: 'Growth' },
-  { id: 'EXHOSLUSM495S', label: 'Existing Home Sales', type: 'Coincident', category: 'Growth' },
-  { id: 'EMRATIO', label: 'Employment Population Ratio', type: 'Lagging', category: 'Labor' },
+  { id: 'AWHAETP', label: 'Average Weekly Hours', type: 'Leading', category: 'Labor' },
+  { id: 'BUSLOANS', label: 'Commercial & Industrial Loans', type: 'Coincident', category: 'Monetary Policy' },
+  { id: 'CAPUTLG2211S', label: 'Capacity Utilization (Mfg)', type: 'Coincident', category: 'Growth' },
+  { id: 'CES0500000003', label: 'Average Hourly Earnings', type: 'Lagging', category: 'Labor' },
+  { id: 'CIVPART', label: 'Labor Force Participation Rate', type: 'Lagging', category: 'Labor' },
+  { id: 'CPIAUCSL', label: 'CPI All Items', type: 'Lagging', category: 'Inflation' },
+  { id: 'CPIENGSL', label: 'CPI Energy', type: 'Leading', category: 'Inflation' },
+  { id: 'CPILFESL', label: 'Core CPI', type: 'Lagging', category: 'Inflation' },
+  { id: 'CSUSHPINSA', label: 'Case-Shiller Home Price Index', type: 'Lagging', category: 'Growth' },
+  { id: 'DSPIC96', label: 'Real Disposable Personal Income', type: 'Coincident', category: 'Growth' },
   { id: 'ECRST', label: 'E-commerce Retail Sales', type: 'Leading', category: 'Growth' },
-  { id: 'DSPIC96', label: 'Real Disposable Personal Income', type: 'Coincident', category: 'Growth' }
+  { id: 'EMRATIO', label: 'Employment Population Ratio', type: 'Lagging', category: 'Labor' },
+  { id: 'EXHOSLUSM495S', label: 'Existing Home Sales', type: 'Coincident', category: 'Growth' },
+  { id: 'HSN1F', label: 'New Home Sales', type: 'Leading', category: 'Growth' },
+  { id: 'INDPRO', label: 'Industrial Production', type: 'Coincident', category: 'Growth' },
+  { id: 'JTSHIR', label: 'JOLTS Hires', type: 'Coincident', category: 'Labor' },
+  { id: 'JTSJOL', label: 'JOLTS Job Openings', type: 'Leading', category: 'Labor' },
+  { id: 'MRTSSM44W72USN', label: 'Retail Sales Ex-Auto', type: 'Coincident', category: 'Growth' },
+  { id: 'MSACSR', label: 'Months Supply of Homes', type: 'Lagging', category: 'Growth' },
+  { id: 'NEWORDER', label: 'Consumer Durable Goods New Orders', type: 'Leading', category: 'Growth' },
+  { id: 'PCEPI', label: 'PCE Price Index', type: 'Lagging', category: 'Inflation' },
+  { id: 'PCEPILFE', label: 'Core PCE Price Index', type: 'Lagging', category: 'Inflation' },
+  { id: 'PPIACO', label: 'PPI All Commodities', type: 'Leading', category: 'Inflation' },
+  { id: 'PSAVERT', label: 'Personal Savings Rate', type: 'Leading', category: 'Growth' },
+  { id: 'RSAFS', label: 'Retail Sales', type: 'Coincident', category: 'Growth' },
+  { id: 'RSFOODSERV', label: 'Retail Sales: Food Services', type: 'Coincident', category: 'Growth' },
+  { id: 'TTLCON', label: 'Total Construction Spending', type: 'Coincident', category: 'Growth' },
+  { id: 'U6RATE', label: 'U-6 Unemployment Rate', type: 'Lagging', category: 'Labor' },
+  
+  // GDP Growth Rate - CRITICAL MISSING INDICATOR (15 records)
+  { id: 'A191RL1Q225SBEA', label: 'GDP Growth Rate', type: 'Coincident', category: 'Growth' }
 ];
 
 export interface FredDataPoint {
