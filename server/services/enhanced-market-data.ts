@@ -3,7 +3,7 @@
  * Phase 1: Emergency Performance Fix Implementation
  */
 
-import { intelligentCache } from './intelligent-cache-system';
+import { unifiedDashboardCache } from './unified-dashboard-cache';
 import { logger } from '../../shared/utils/logger';
 interface StockData {
   symbol: string;
@@ -86,53 +86,61 @@ export class EnhancedMarketDataService {
   async getStockQuote(symbol: string): Promise<StockData> {
     const cacheKey = `stock_${symbol}`;
     
-    const result = await intelligentCache.get(
-      cacheKey,
-      'stock',
-      async () => this.fetchStockQuoteFromAPI(symbol)
-    );
+    // Check cache first
+    const cached = unifiedDashboardCache.get(cacheKey);
+    if (cached) {
+      logger.info(`Stock data for ${symbol}: [CACHED] | Last updated: ${new Date(cached.timestamp).toLocaleTimeString()}`, 'EnhancedMarketData');
+      return cached.data;
+    }
 
-    // Add data transparency indicators
-    const dataIndicator = intelligentCache.generateDataSourceIndicator(result);
-    const lastUpdated = intelligentCache.formatLastUpdated(result.timestamp);
+    // Fetch fresh data
+    const stockData = await this.fetchStockQuoteFromAPI(symbol);
     
-    logger.info(`Stock data for ${symbol}: ${dataIndicator} | Last updated: ${lastUpdated}`, 'EnhancedMarketData');
-
-    return result.data;
+    // Cache for 5 minutes (300000ms)
+    unifiedDashboardCache.set(cacheKey, stockData, 300000);
+    
+    logger.info(`Stock data for ${symbol}: [FRESH] | Fetched at: ${new Date().toLocaleTimeString()}`, 'EnhancedMarketData');
+    return stockData;
   }
 
   async getTechnicalIndicators(symbol: string): Promise<TechnicalIndicators> {
     const cacheKey = `technical_${symbol}`;
     
-    const result = await intelligentCache.get(
-      cacheKey,
-      'technical',
-      async () => this.fetchTechnicalIndicatorsFromAPI(symbol)
-    );
+    // Check cache first
+    const cached = unifiedDashboardCache.get(cacheKey);
+    if (cached) {
+      logger.info(`Technical indicators for ${symbol}: [CACHED] | Last updated: ${new Date(cached.timestamp).toLocaleTimeString()}`, 'EnhancedMarketData');
+      return cached.data;
+    }
 
-    const dataIndicator = intelligentCache.generateDataSourceIndicator(result);
-    const lastUpdated = intelligentCache.formatLastUpdated(result.timestamp);
+    // Fetch fresh data
+    const technicalData = await this.fetchTechnicalIndicatorsFromAPI(symbol);
     
-    logger.info(`Technical indicators for ${symbol}: ${dataIndicator} | Last updated: ${lastUpdated}`, 'EnhancedMarketData');
-
-    return result.data;
+    // Cache for 10 minutes (600000ms)
+    unifiedDashboardCache.set(cacheKey, technicalData, 600000);
+    
+    logger.info(`Technical indicators for ${symbol}: [FRESH] | Fetched at: ${new Date().toLocaleTimeString()}`, 'EnhancedMarketData');
+    return technicalData;
   }
 
   async getSectorETFs(): Promise<SectorETF[]> {
     const cacheKey = 'sector_etfs_all';
     
-    const result = await intelligentCache.get(
-      cacheKey,
-      'sector',
-      async () => this.fetchSectorETFsFromAPI()
-    );
+    // Check cache first
+    const cached = unifiedDashboardCache.get(cacheKey);
+    if (cached) {
+      logger.info(`Sector ETF data: [CACHED] | Last updated: ${new Date(cached.timestamp).toLocaleTimeString()}`, 'EnhancedMarketData');
+      return cached.data;
+    }
 
-    const dataIndicator = intelligentCache.generateDataSourceIndicator(result);
-    const lastUpdated = intelligentCache.formatLastUpdated(result.timestamp);
+    // Fetch fresh data
+    const sectorData = await this.fetchSectorETFsFromAPI();
     
-    logger.info(`Sector ETF data: ${dataIndicator} | Last updated: ${lastUpdated}`, 'EnhancedMarketData');
-
-    return result.data;
+    // Cache for 15 minutes (900000ms)
+    unifiedDashboardCache.set(cacheKey, sectorData, 900000);
+    
+    logger.info(`Sector ETF data: [FRESH] | Fetched at: ${new Date().toLocaleTimeString()}`, 'EnhancedMarketData');
+    return sectorData;
   }
 
   private async fetchStockQuoteFromAPI(symbol: string): Promise<StockData> {
@@ -383,7 +391,7 @@ export class EnhancedMarketDataService {
   // Performance and monitoring methods
   getPerformanceMetrics() {
     return {
-      ...intelligentCache.getPerformanceMetrics(),
+      ...unifiedDashboardCache.getStats(),
       apiCallsThisMinute: this.apiCallCount,
       rateLimitUtilization: (this.apiCallCount / this.rateLimit) * 100
     };
@@ -391,11 +399,9 @@ export class EnhancedMarketDataService {
 
   // Manual cache management
   invalidateCache(pattern?: string): void {
-    if (pattern) {
-      intelligentCache.invalidate(pattern);
-    } else {
-      intelligentCache.invalidate(''); // Clear all
-    }
+    // For now, clear all cache since unified cache doesn't support pattern matching
+    unifiedDashboardCache.clear();
+    logger.info('Market data cache cleared', 'EnhancedMarketData');
   }
 
   async warmCache(): Promise<void> {

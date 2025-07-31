@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { smartCache } from './smart-cache';
+import { unifiedDashboardCache } from './unified-dashboard-cache';
 
 const log = {
   info: (msg: string, ...args: any[]) => console.log(`[INFO] ${msg}`, ...args),
@@ -34,7 +34,7 @@ class FinancialMoodService {
       
       // Check cache first for 3-minute intelligent caching
       const cacheKey = 'financial-mood';
-      const cached = smartCache.get(cacheKey);
+      const cached = unifiedDashboardCache.get(cacheKey);
       
       if (cached) {
         log.info('🎭 Financial mood served from cache (instant load)');
@@ -45,9 +45,9 @@ class FinancialMoodService {
       const moodPromise = this.generateMoodWithTimeout(3000);
       const moodAnalysis = await moodPromise;
       
-      // Cache for 3 minutes during market hours, 10 minutes after hours
-      const cacheDuration = this.isMarketHours() ? '3m' : '10m';
-      smartCache.set(cacheKey, moodAnalysis, cacheDuration);
+      // Cache for 3 minutes during market hours, 10 minutes after hours  
+      const cacheDuration = this.isMarketHours() ? 180000 : 600000; // 3min or 10min in milliseconds
+      unifiedDashboardCache.set(cacheKey, moodAnalysis, cacheDuration);
       
       log.info(`🎭 Financial mood generated: ${moodAnalysis.emoji} ${moodAnalysis.mood}`);
       return moodAnalysis;
@@ -124,7 +124,7 @@ class FinancialMoodService {
       const fetch = (await import('node-fetch')).default;
       
       // PRIORITY: Check if we have cached momentum data first
-      const momentumCached = smartCache.get('momentum-analysis');
+      const momentumCached = unifiedDashboardCache.get('momentum-analysis');
       let momentumData = null;
       
       if (momentumCached) {
@@ -216,7 +216,7 @@ class FinancialMoodService {
       const fetch = (await import('node-fetch')).default;
       
       // Check cache first
-      const economicCached = smartCache.get('recent-economic-openai');
+      const economicCached = unifiedDashboardCache.get('recent-economic-openai');
       if (economicCached) {
         log.info('✅ Using cached economic data for mood analysis');
         return economicCached.data || [];
