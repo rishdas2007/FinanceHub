@@ -109,13 +109,29 @@ export class LiveZScoreCalculator {
       const validSeriesIds = CURATED_SERIES.map(series => series.id);
       logger.info(`📊 Processing only ${validSeriesIds.length} indicators with historical data`);
       
-      // Build SQL query with series ID restriction using template string
+      // Build SQL query with series ID restriction and deduplicate by metric_name 
       const seriesIdFilter = validSeriesIds.map(id => `'${id}'`).join(',');
       const sqlQuery = `
-        SELECT DISTINCT
+        WITH latest_per_metric AS (
+          SELECT DISTINCT
+            series_id,
+            metric_name,
+            value as current_value,
+            period_date,
+            category,
+            type,
+            unit,
+            ROW_NUMBER() OVER (
+              PARTITION BY metric_name 
+              ORDER BY period_date DESC, series_id ASC
+            ) as rn
+          FROM economic_indicators_history
+          WHERE series_id IN (${seriesIdFilter})
+        )
+        SELECT 
           series_id,
           metric_name,
-          value as current_value,
+          current_value,
           period_date,
           category,
           type,
@@ -123,42 +139,36 @@ export class LiveZScoreCalculator {
           (
             SELECT value 
             FROM economic_indicators_history e2 
-            WHERE e2.series_id = e1.series_id 
-              AND e2.unit = e1.unit
-              AND e2.period_date < e1.period_date 
+            WHERE e2.metric_name = lpm.metric_name 
+              AND e2.unit = lpm.unit
+              AND e2.period_date < lpm.period_date 
             ORDER BY e2.period_date DESC 
             LIMIT 1
           ) as prior_value,
           
-          -- Calculate historical mean from last 12 months (same unit type)
+          -- Calculate historical mean from last 12 months (same metric and unit type)
           (
             SELECT AVG(value) 
             FROM economic_indicators_history e3 
-            WHERE e3.series_id = e1.series_id 
-              AND e3.unit = e1.unit
-              AND e3.period_date < e1.period_date 
-              AND e3.period_date >= e1.period_date - INTERVAL '12 months'
+            WHERE e3.metric_name = lpm.metric_name 
+              AND e3.unit = lpm.unit
+              AND e3.period_date < lpm.period_date 
+              AND e3.period_date >= lpm.period_date - INTERVAL '12 months'
           ) as historical_mean,
           
-          -- Calculate historical standard deviation from last 12 months (same unit type)
+          -- Calculate historical standard deviation from last 12 months (same metric and unit type)
           (
             SELECT STDDEV(value) 
             FROM economic_indicators_history e4 
-            WHERE e4.series_id = e1.series_id 
-              AND e4.unit = e1.unit
-              AND e4.period_date < e1.period_date 
-              AND e4.period_date >= e1.period_date - INTERVAL '12 months'
+            WHERE e4.metric_name = lpm.metric_name 
+              AND e4.unit = lpm.unit
+              AND e4.period_date < lpm.period_date 
+              AND e4.period_date >= lpm.period_date - INTERVAL '12 months'
           ) as historical_std
           
-        FROM economic_indicators_history e1
-        WHERE e1.period_date = (
-          SELECT MAX(period_date) 
-          FROM economic_indicators_history e5 
-          WHERE e5.series_id = e1.series_id
-            AND e5.unit = e1.unit
-        )
-        AND e1.series_id IN (${seriesIdFilter})
-        ORDER BY e1.series_id
+        FROM latest_per_metric lpm
+        WHERE rn = 1
+        ORDER BY metric_name
       `;
       
       const zScoreData = await db.execute(sql.raw(sqlQuery));
