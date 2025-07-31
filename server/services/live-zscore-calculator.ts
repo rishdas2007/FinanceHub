@@ -124,25 +124,28 @@ export class LiveZScoreCalculator {
             SELECT value 
             FROM economic_indicators_history e2 
             WHERE e2.series_id = e1.series_id 
+              AND e2.unit = e1.unit
               AND e2.period_date < e1.period_date 
             ORDER BY e2.period_date DESC 
             LIMIT 1
           ) as prior_value,
           
-          -- Calculate historical mean from last 12 months
+          -- Calculate historical mean from last 12 months (same unit type)
           (
             SELECT AVG(value) 
             FROM economic_indicators_history e3 
             WHERE e3.series_id = e1.series_id 
+              AND e3.unit = e1.unit
               AND e3.period_date < e1.period_date 
               AND e3.period_date >= e1.period_date - INTERVAL '12 months'
           ) as historical_mean,
           
-          -- Calculate historical standard deviation from last 12 months
+          -- Calculate historical standard deviation from last 12 months (same unit type)
           (
             SELECT STDDEV(value) 
             FROM economic_indicators_history e4 
             WHERE e4.series_id = e1.series_id 
+              AND e4.unit = e1.unit
               AND e4.period_date < e1.period_date 
               AND e4.period_date >= e1.period_date - INTERVAL '12 months'
           ) as historical_std
@@ -152,6 +155,7 @@ export class LiveZScoreCalculator {
           SELECT MAX(period_date) 
           FROM economic_indicators_history e5 
           WHERE e5.series_id = e1.series_id
+            AND e5.unit = e1.unit
         )
         AND e1.series_id IN (${seriesIdFilter})
         ORDER BY e1.series_id
