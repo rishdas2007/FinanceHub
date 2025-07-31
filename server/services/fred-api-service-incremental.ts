@@ -11,7 +11,7 @@ const FRED_BASE_URL = 'https://api.stlouisfed.org/fred';
 // CURATED SERIES MAPPING - Complete 46+ indicator configuration
 export const CURATED_SERIES = [
   // Growth Indicators (25)
-  { id: 'GDPC1', label: 'GDP Growth Rate', type: 'Leading', category: 'Growth' },
+  { id: 'A191RL1Q225SBEA', label: 'GDP Growth Rate', type: 'Leading', category: 'Growth' },
   { id: 'DSPIC96', label: 'Real Disposable Personal Income', type: 'Coincident', category: 'Growth' },
   { id: 'RSXFS', label: 'Retail Sales Ex-Auto', type: 'Coincident', category: 'Growth' },
   { id: 'ECOMSA', label: 'E-commerce Retail Sales', type: 'Leading', category: 'Growth' },
