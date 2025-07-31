@@ -10,7 +10,7 @@ interface MacroeconomicData {
 }
 
 export class MacroeconomicService {
-  private readonly CACHE_KEY = `fred-comprehensive-39indicators-v${Math.floor(Date.now() / 10000)}`;
+  private readonly CACHE_KEY = `fred-formatting-final-v${Math.floor(Date.now() / 100)}`;
   
   /**
    * Get authentic FRED economic data with live z-score calculations
@@ -71,33 +71,48 @@ export class MacroeconomicService {
           ? currentReading - priorReading 
           : null;
 
-        // Enhanced unit-based formatting function with proper data handling
-        const formatNumber = (value: number | null | undefined, unit: string): string => {
+        // Enhanced unit-based formatting function with metric-specific handling
+        const formatNumber = (value: number | null | undefined, unit: string, metric: string): string => {
           if (value === null || value === undefined || isNaN(value)) {
             return 'N/A';
           }
           const numValue = parseFloat(String(value));
           if (isNaN(numValue)) return 'N/A';
 
+          // Handle specific metric formatting based on known patterns
+          const metricLower = metric.toLowerCase();
+          
+          // Jobless Claims - always in thousands, format as K or M
+          if (metricLower.includes('jobless claims')) {
+            if (numValue >= 1000) {
+              return (numValue / 1000).toFixed(1) + 'M';
+            } else {
+              return numValue.toFixed(0) + 'K';
+            }
+          }
+          
+          // CPI and Price Index indicators - always percentages regardless of unit field
+          if (metricLower.includes('cpi') || metricLower.includes('price index') || 
+              metricLower.includes('ppi') || metricLower.includes('pce')) {
+            return numValue.toFixed(1) + '%';
+          }
+
+          // Standard unit-based formatting
           switch (unit) {
             case 'percent':
-              // Handle percentage values correctly - data is already in percentage form
               return numValue.toFixed(1) + '%';
             
             case 'thousands':
-              // Data already in thousands, format appropriately
               if (numValue >= 1000) {
-                return (numValue / 1000).toFixed(1) + 'M';
+                return (numValue / 1000).toFixed(2) + 'M';
               } else {
                 return numValue.toFixed(0) + 'K';
               }
             
             case 'millions_dollars':
-              // Data already in millions, display as millions
               return '$' + numValue.toFixed(1) + 'M';
             
             case 'billions_dollars':
-              // Data in billions, display appropriately
               if (numValue >= 1000) {
                 return '$' + (numValue / 1000).toFixed(2) + 'T';
               } else {
@@ -105,11 +120,13 @@ export class MacroeconomicService {
               }
             
             case 'chained_dollars':
-              // Trillions data, display as trillions
               return '$' + numValue.toFixed(2) + 'T';
             
             case 'index':
-              // Index values, no units
+              // For CPI/PPI indices, treat as percentages
+              if (metricLower.includes('cpi') || metricLower.includes('ppi')) {
+                return numValue.toFixed(1) + '%';
+              }
               return numValue.toFixed(1);
             
             case 'basis_points':
@@ -124,22 +141,7 @@ export class MacroeconomicService {
             case 'months_supply':
               return numValue.toFixed(1) + ' months';
             
-            case 'monthly':
-              // Generic monthly data
-              return numValue.toLocaleString('en-US', {
-                minimumFractionDigits: 1,
-                maximumFractionDigits: 1
-              });
-            
-            case 'quarterly':
-              // Generic quarterly data
-              return numValue.toLocaleString('en-US', {
-                minimumFractionDigits: 1,
-                maximumFractionDigits: 1
-              });
-            
             default:
-              // Default formatting for unspecified units
               return numValue.toLocaleString('en-US', {
                 minimumFractionDigits: 1,
                 maximumFractionDigits: 1
@@ -147,11 +149,11 @@ export class MacroeconomicService {
           }
         };
 
-        // Enhanced variance formatting for vs Prior calculation
-        const formatVariance = (value: number | null): string => {
+        // Enhanced variance formatting for vs Prior calculation with metric context
+        const formatVariance = (value: number | null, unit: string, metric: string): string => {
           if (value === null || value === undefined) return 'N/A';
           if (Math.abs(value) < 0.01) return '0.0';
-          const formatted = formatNumber(Math.abs(value), zData.unit);
+          const formatted = formatNumber(Math.abs(value), unit, metric);
           return value < 0 ? `(${formatted})` : formatted;
         };
 
@@ -161,9 +163,9 @@ export class MacroeconomicService {
           category: zData.category,
           releaseDate: zData.periodDate,
           period_date: zData.periodDate, // Add period_date field for table display
-          currentReading: formatNumber(currentReading, zData.unit),
-          priorReading: formatNumber(priorReading, zData.unit),
-          varianceVsPrior: formatVariance(actualVariance), // Simple current - prior calculation
+          currentReading: formatNumber(currentReading, zData.unit, zData.metric),
+          priorReading: formatNumber(priorReading, zData.unit, zData.metric),
+          varianceVsPrior: formatVariance(actualVariance, zData.unit, zData.metric), // Simple current - prior calculation
           zScore: zData.zScore,
           unit: zData.unit
         };
