@@ -10,7 +10,7 @@ interface MacroeconomicData {
 }
 
 export class MacroeconomicService {
-  private readonly CACHE_KEY = `fred-formatting-final-v${Math.floor(Date.now() / 100)}`;
+  private readonly CACHE_KEY = `fred-delta-adjusted-v${Math.floor(Date.now() / 100)}`;
   
   /**
    * Get authentic FRED economic data with live z-score calculations
@@ -157,8 +157,17 @@ export class MacroeconomicService {
           return value < 0 ? `(${formatted})` : formatted;
         };
 
+        // Determine label suffix for delta-adjusted metrics
+        const getDirectionalityLabel = (directionality: number): string => {
+          if (directionality === -1) return ' (Δ-adjusted)';
+          if (directionality === 1) return '';
+          return ' (neutral)';
+        };
+
+        const metricLabel = zData.metric + getDirectionalityLabel(zData.directionality);
+
         return {
-          metric: zData.metric,
+          metric: metricLabel,
           type: zData.type,
           category: zData.category,
           releaseDate: zData.periodDate,
@@ -166,7 +175,7 @@ export class MacroeconomicService {
           currentReading: formatNumber(currentReading, zData.unit, zData.metric),
           priorReading: formatNumber(priorReading, zData.unit, zData.metric),
           varianceVsPrior: formatVariance(actualVariance, zData.unit, zData.metric), // Simple current - prior calculation
-          zScore: zData.zScore,
+          zScore: zData.deltaAdjustedZScore, // Use delta-adjusted z-score instead of raw z-score
           unit: zData.unit
         };
       });

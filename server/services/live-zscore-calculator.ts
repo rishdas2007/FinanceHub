@@ -3,6 +3,80 @@ import { sql } from 'drizzle-orm';
 import { logger } from '../../shared/utils/logger';
 import { CURATED_SERIES } from './fred-api-service-incremental';
 
+/**
+ * Economic directionality mapping for delta-adjusted z-scores
+ * +1: Increase is Good (economic strength)
+ * -1: Increase is Bad (economic weakness)
+ */
+const ECONOMIC_DIRECTIONALITY: Record<string, number> = {
+  // Growth indicators (increase = good)
+  'GDP Growth Rate': 1,
+  'Manufacturing PMI': 1,
+  'S&P Global Manufacturing PMI': 1,
+  'Nonfarm Payrolls': 1,
+  'Consumer Confidence Index': 1,
+  'Michigan Consumer Sentiment': 1,
+  'Retail Sales MoM': 1,
+  'Industrial Production YoY': 1,
+  'Housing Starts': 1,
+  'Building Permits': 1,
+  'Durable Goods Orders MoM': 1,
+  'Leading Economic Index': 1,
+  'Consumer Durable Goods New Orders': 1,
+  'E-commerce Retail Sales': 1,
+  'Real Disposable Personal Income': 1,
+  'Retail Sales Ex-Auto': 1,
+  'Retail Sales: Food Services': 1,
+  'Average Hourly Earnings': 1,
+  'Average Weekly Hours': 1,
+  'Employment Population Ratio': 1,
+  'JOLTS Hires': 1,
+  'JOLTS Job Openings': 1,
+  'Labor Force Participation Rate': 1,
+  'Case-Shiller Home Price Index': 1,
+  'Existing Home Sales': 1,
+  'New Home Sales': 1,
+  'Total Construction Spending': 1,
+  'Capacity Utilization (Mfg)': 1,
+  'Yield Curve (10yr-2yr)': 1,
+  'Retail Sales': 1,
+  'Industrial Production': 1,
+  'Durable Goods Orders': 1,
+  'Manufacturing Employment': 1,
+  'Manufacturing Hours': 1,
+  'Personal Consumption Expenditures': 1,
+  'JOLTS Quits': 1,
+  'Employment to Population Ratio': 1,
+
+  // Negative indicators (increase = bad)
+  'CPI Year-over-Year': -1,
+  'Core CPI Year-over-Year': -1,
+  'PCE Price Index YoY': -1,
+  'Unemployment Rate': -1,
+  'Federal Funds Rate': -1,
+  '10-Year Treasury Yield': -1,
+  'Personal Savings Rate': -1,
+  'Continuing Jobless Claims': -1,
+  'Initial Jobless Claims': -1,
+  'U-6 Unemployment Rate': -1,
+  'Months Supply of Homes': -1,
+  'Commercial & Industrial Loans': -1,
+  'CPI Energy': -1,
+  'Core PCE Price Index': -1,
+  'Core PPI': -1,
+  'CPI All Items': -1,
+  'Core CPI': -1,
+  'PPI All Commodities': -1,
+  'PCE Price Index': -1,
+  'Inventories to Sales Ratio': -1,
+  'PPI Final Demand': -1,
+  'Gasoline Prices': -1,
+  '30-Year Mortgage Rate': -1,
+
+  // Neutral or context-dependent
+  'US Dollar Index': 0
+};
+
 interface LiveZScoreData {
   seriesId: string;
   metric: string;
@@ -10,6 +84,7 @@ interface LiveZScoreData {
   historicalMean: number;
   historicalStd: number;
   zScore: number;
+  deltaAdjustedZScore: number;  // New: directionality-adjusted z-score
   priorValue: number;
   varianceFromMean: number;
   varianceFromPrior: number;
@@ -17,6 +92,7 @@ interface LiveZScoreData {
   category: string;
   type: string;
   unit: string;
+  directionality: number;  // New: +1, -1, or 0
 }
 
 export class LiveZScoreCalculator {
@@ -98,6 +174,10 @@ export class LiveZScoreCalculator {
         const varianceFromMean = currentValue - historicalMean;
         const varianceFromPrior = currentValue - priorValue;
         
+        // Apply economic directionality for delta-adjusted z-score
+        const directionality = ECONOMIC_DIRECTIONALITY[row.metric_name] || 1; // Default to positive
+        const deltaAdjustedZScore = zScore * directionality;
+        
         return {
           seriesId: row.series_id,
           metric: row.metric_name,
@@ -105,13 +185,15 @@ export class LiveZScoreCalculator {
           historicalMean,
           historicalStd,
           zScore,
+          deltaAdjustedZScore,
           priorValue,
           varianceFromMean,
           varianceFromPrior,
           periodDate: row.period_date,
           category: row.category,
           type: row.type,
-          unit: row.unit
+          unit: row.unit,
+          directionality
         };
       });
 
