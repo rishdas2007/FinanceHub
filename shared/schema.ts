@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, jsonb, unique, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, date, decimal, jsonb, unique, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -419,20 +419,16 @@ export const economicTimeSeries = pgTable("economic_time_series", {
 export const economicIndicatorsHistory = pgTable("economic_indicators_history", {
   id: serial("id").primaryKey(),
   seriesId: text("series_id"), // FRED series ID for matching
-  metric: text("metric").notNull(), // Human readable name
+  metricName: text("metric_name").notNull(), // Human readable name (actual database column)
   category: text("category").notNull(), // Growth, Inflation, Labor, etc.
   type: text("type").notNull(), // Leading, Coincident, Lagging
   frequency: text("frequency").notNull(), // weekly, monthly, quarterly
-  valueNumeric: decimal("value_numeric", { precision: 15, scale: 4 }).notNull(),
-  periodDateDesc: text("period_date_desc").notNull(), // "2025-07-15"
-  releaseDateDesc: text("release_date_desc").notNull(), // "2025-07-20"
-  periodDate: timestamp("period_date").notNull(), // Parsed date for queries
-  releaseDate: timestamp("release_date").notNull(), // Parsed release date
+  value: decimal("value", { precision: 15, scale: 4 }).notNull(), // Main value (actual database column)
+  periodDate: timestamp("period_date").notNull(), // Date for queries (actual database column)
+  releaseDate: timestamp("release_date").notNull(), // Release date (actual database column)
   unit: text("unit").notNull(), // "Percent", "Thousands of Persons", etc.
   
-  // Legacy fields for backward compatibility (kept for existing 792 records)
-  metricName: text("metric_name"),
-  value: decimal("value", { precision: 15, scale: 4 }),
+  // Additional calculated fields
   forecast: decimal("forecast", { precision: 15, scale: 4 }),
   priorValue: decimal("prior_value", { precision: 15, scale: 4 }),
   monthlyChange: decimal("monthly_change", { precision: 8, scale: 4 }),
@@ -441,14 +437,15 @@ export const economicIndicatorsHistory = pgTable("economic_indicators_history", 
   threeMonthAnnualized: decimal("three_month_annualized", { precision: 8, scale: 4 }),
   
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at"),
 }, (table) => ({
   // Indexes for performance
   seriesIdIdx: index("series_id_idx").on(table.seriesId),
-  metricIdx: index("metric_idx").on(table.metric),
+  metricNameIdx: index("metric_name_idx").on(table.metricName),
   categoryIdx: index("category_idx").on(table.category),
   periodDateIdx: index("period_date_idx").on(table.periodDate),
   // Unique constraint to prevent duplicates
-  uniqueSeriesPeriod: unique("unique_series_period").on(table.seriesId, table.periodDateDesc),
+  uniqueSeriesPeriod: unique("unique_series_period").on(table.seriesId, table.periodDate),
 }));
 
 // Current economic indicators table for latest values

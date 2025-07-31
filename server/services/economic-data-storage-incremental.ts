@@ -6,13 +6,11 @@ import type { InsertEconomicIndicatorHistory, InsertFredUpdateLog } from '../../
 
 export interface IndicatorRecord {
   seriesId: string;
-  metric: string;
+  metricName: string;
   category: string;
   type: string;
   frequency: string;
-  valueNumeric: number;
-  periodDateDesc: string;
-  releaseDateDesc: string;
+  value: number;
   periodDate: Date;
   releaseDate: Date;
   unit: string;
@@ -36,14 +34,14 @@ export class EconomicDataStorageIncremental {
     sessionId: string
   ): Promise<UpdateResult> {
     try {
-      // Check if record already exists (based on seriesId + periodDateDesc)
+      // Check if record already exists (based on seriesId + periodDate)
       const existingRecord = await db
         .select()
         .from(economicIndicatorsHistory)
         .where(
           and(
             eq(economicIndicatorsHistory.seriesId, record.seriesId),
-            eq(economicIndicatorsHistory.periodDateDesc, record.periodDateDesc)
+            eq(economicIndicatorsHistory.periodDate, record.periodDate)
           )
         )
         .limit(1);
@@ -54,8 +52,8 @@ export class EconomicDataStorageIncremental {
           sessionId,
           seriesId: record.seriesId,
           operation: 'skip',
-          periodDateDesc: record.periodDateDesc,
-          valueNumeric: record.valueNumeric.toString(),
+          periodDateDesc: record.periodDate.toISOString().split('T')[0],
+          valueNumeric: record.value.toString(),
           outcome: 'duplicate',
           apiCallsUsed: 0,
           executionTime: 0
@@ -66,20 +64,18 @@ export class EconomicDataStorageIncremental {
           recordsProcessed: 1,
           recordsStored: 0,
           recordsSkipped: 1,
-          details: `Record already exists for ${record.seriesId} on ${record.periodDateDesc}`
+          details: `Record already exists for ${record.seriesId} on ${record.periodDate.toISOString().split('T')[0]}`
         };
       }
 
-      // Insert new record
-      const insertData: InsertEconomicIndicatorHistory = {
+      // Insert new record using correct column names that match actual database
+      const insertData = {
         seriesId: record.seriesId,
-        metric: record.metric,
+        metricName: record.metricName,
         category: record.category,
         type: record.type,
         frequency: record.frequency,
-        valueNumeric: record.valueNumeric.toString(),
-        periodDateDesc: record.periodDateDesc,
-        releaseDateDesc: record.releaseDateDesc,
+        value: record.value,
         periodDate: record.periodDate,
         releaseDate: record.releaseDate,
         unit: record.unit
@@ -92,8 +88,8 @@ export class EconomicDataStorageIncremental {
         sessionId,
         seriesId: record.seriesId,
         operation: 'insert',
-        periodDateDesc: record.periodDateDesc,
-        valueNumeric: record.valueNumeric.toString(),
+        periodDateDesc: record.periodDate.toISOString().split('T')[0],
+        valueNumeric: record.value.toString(),
         outcome: 'success',
         apiCallsUsed: 1,
         executionTime: 0
@@ -104,7 +100,7 @@ export class EconomicDataStorageIncremental {
         recordsProcessed: 1,
         recordsStored: 1,
         recordsSkipped: 0,
-        details: `Successfully inserted ${record.metric} for ${record.periodDateDesc}`
+        details: `Successfully inserted ${record.metricName} for ${record.periodDate.toISOString().split('T')[0]}`
       };
 
     } catch (error) {
@@ -113,8 +109,8 @@ export class EconomicDataStorageIncremental {
         sessionId,
         seriesId: record.seriesId,
         operation: 'insert',
-        periodDateDesc: record.periodDateDesc,
-        valueNumeric: record.valueNumeric.toString(),
+        periodDateDesc: record.periodDate.toISOString().split('T')[0],
+        valueNumeric: record.value.toString(),
         outcome: 'error',
         errorMessage: error instanceof Error ? error.message : 'Unknown error',
         apiCallsUsed: 1,

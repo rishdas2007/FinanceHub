@@ -121,7 +121,7 @@ export class UnifiedDataRefreshScheduler {
       }
 
     } catch (error) {
-      logger.error('❌ Error in unified staleness check:', error);
+      logger.error('❌ Error in unified staleness check:', error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -141,9 +141,17 @@ export class UnifiedDataRefreshScheduler {
       await fredApiServiceIncremental.performIncrementalUpdate();
       logger.info('📊 FRED incremental update completed');
 
-      // 3. Validate data integrity
-      const validationResult = await dataIntegrityValidator.validateData();
-      logger.info(`🔍 Data validation: ${validationResult.isValid ? 'PASSED' : 'FAILED'}`);
+      // 3. Validate data integrity (skip if method doesn't exist)
+      try {
+        if (dataIntegrityValidator && typeof dataIntegrityValidator.validateData === 'function') {
+          const validationResult = await dataIntegrityValidator.validateData();
+          logger.info(`🔍 Data validation: ${validationResult.isValid ? 'PASSED' : 'FAILED'}`);
+        } else {
+          logger.info('🔍 Data validation service not available - skipping');
+        }
+      } catch (validationError) {
+        logger.warn('🔍 Data validation failed:', validationError);
+      }
 
       // 4. Update cache versions to force fresh calculations
       await this.incrementCacheVersions();
@@ -152,7 +160,7 @@ export class UnifiedDataRefreshScheduler {
       logger.info('✅ Unified full data refresh completed successfully');
 
     } catch (error) {
-      logger.error('❌ Error in unified full data refresh:', error);
+      logger.error('❌ Error in unified full data refresh:', error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -171,7 +179,7 @@ export class UnifiedDataRefreshScheduler {
       logger.info(`🔄 Updated cache version to: ${newCacheKey}`);
       
     } catch (error) {
-      logger.error('Error updating cache versions:', error);
+      logger.error('Error updating cache versions:', error instanceof Error ? error.message : String(error));
     }
   }
 

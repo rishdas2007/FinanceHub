@@ -99,6 +99,12 @@ export function MoodDataSources() {
               </Badge>
             </div>
             <div className="flex justify-between items-center">
+              <span className="text-gray-400">1-Day Change:</span>
+              <Badge variant="outline" className={topSector.oneDayChange && parseFloat(topSector.oneDayChange) > 0 ? 'text-green-400' : 'text-red-400'}>
+                {topSector.oneDayChange ? `${parseFloat(topSector.oneDayChange) > 0 ? '+' : ''}${topSector.oneDayChange}%` : 'N/A'}
+              </Badge>
+            </div>
+            <div className="flex justify-between items-center">
               <span className="text-gray-400">Z-Score:</span>
               <Badge variant="outline" className="text-blue-400 font-bold">
                 {topSector.zScore}

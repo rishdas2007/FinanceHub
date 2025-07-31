@@ -2,7 +2,7 @@ import axios from 'axios';
 import { logger } from '../../shared/utils/logger';
 import { db } from '../db';
 import { economicIndicatorsHistory } from '../../shared/schema';
-import { eq, desc, max, sql } from 'drizzle-orm';
+import { eq, desc, max, sql, and } from 'drizzle-orm';
 
 // FRED API Configuration
 const FRED_API_KEY = process.env.FRED_API_KEY || 'afa2c5a53a8116fe3a6c6fb339101ca1';
@@ -133,15 +133,55 @@ export class FredApiServiceIncremental {
   private async getLatestDatabaseDate(seriesId: string): Promise<string | null> {
     try {
       const result = await db
-        .select({ periodDateDesc: economicIndicatorsHistory.periodDateDesc })
+        .select({ periodDate: economicIndicatorsHistory.periodDate })
         .from(economicIndicatorsHistory)
         .where(eq(economicIndicatorsHistory.seriesId, seriesId))
         .orderBy(desc(economicIndicatorsHistory.periodDate))
         .limit(1);
 
-      return result.length > 0 ? (result[0].periodDateDesc || null) : null;
+      if (result.length === 0) {
+        return null;
+      }
+
+      const dateValue = result[0].periodDate;
+      if (!dateValue) {
+        return null;
+      }
+
+      // Try to handle different date formats defensively
+      try {
+        if (typeof dateValue === 'string') {
+          // Validate string format (should be YYYY-MM-DD)
+          if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+            return dateValue;
+          }
+          logger.warn(`Invalid date string format for ${seriesId}: ${dateValue}`);
+          return null;
+        } 
+        
+        if (dateValue instanceof Date) {
+          // Check if Date object is valid
+          if (isNaN(dateValue.getTime())) {
+            logger.warn(`Invalid Date object for ${seriesId}`);
+            return null;
+          }
+          return dateValue.toISOString().split('T')[0];
+        }
+
+        // If it's neither string nor Date, try to convert it
+        const testDate = new Date(dateValue as any);
+        if (isNaN(testDate.getTime())) {
+          logger.warn(`Cannot convert date value for ${seriesId}:`, typeof dateValue);
+          return null;
+        }
+        return testDate.toISOString().split('T')[0];
+
+      } catch (conversionError) {
+        logger.warn(`Date conversion error for ${seriesId}:`, conversionError);
+        return null;
+      }
     } catch (error) {
-      logger.error(`Error getting latest date for ${seriesId}:`, error);
+      logger.error(`Database query error for ${seriesId}:`, error);
       return null;
     }
   }
@@ -161,9 +201,17 @@ export class FredApiServiceIncremental {
 
     if (latestDbDate) {
       // Add 1 day to avoid duplicate fetching of the latest date
-      const startDate = new Date(latestDbDate);
-      startDate.setDate(startDate.getDate() + 1);
-      params.observation_start = startDate.toISOString().split('T')[0];
+      try {
+        const startDate = new Date(latestDbDate);
+        if (isNaN(startDate.getTime())) {
+          logger.warn(`Invalid date for ${seriesId}: ${latestDbDate}`);
+        } else {
+          startDate.setDate(startDate.getDate() + 1);
+          params.observation_start = startDate.toISOString().split('T')[0];
+        }
+      } catch (dateError) {
+        logger.error(`Date parsing error for ${seriesId} with date ${latestDbDate}:`, dateError);
+      }
     }
 
     const response = await this.fetchSeries(seriesId, params);
@@ -315,26 +363,28 @@ export class FredApiServiceIncremental {
         const numericValue = parseFloat(obs.value);
         if (isNaN(numericValue)) continue;
 
-        // Check if this observation already exists
+        // Check if this observation already exists using correct column names
+        const obsDate = new Date(obs.date);
         const existing = await db
           .select()
           .from(economicIndicatorsHistory)
           .where(
-            sql`${economicIndicatorsHistory.seriesId} = ${seriesId} AND ${economicIndicatorsHistory.periodDateDesc} = ${obs.date}`
+            and(
+              eq(economicIndicatorsHistory.seriesId, seriesId),
+              eq(economicIndicatorsHistory.periodDate, obsDate)
+            )
           )
           .limit(1);
 
         if (existing.length === 0) {
-          // Insert new observation
+          // Insert new observation using database column names that match the actual schema
           await db.insert(economicIndicatorsHistory).values({
             seriesId,
-            metric: seriesConfig.label,
+            metricName: seriesConfig.label,
             category: seriesConfig.category,
             type: seriesConfig.type,
             frequency: 'monthly', // Default for most FRED series
-            valueNumeric: numericValue.toString() as string,
-            periodDateDesc: obs.date,
-            releaseDateDesc: obs.realtime_start || obs.date,
+            value: numericValue,
             periodDate: new Date(obs.date),
             releaseDate: new Date(obs.realtime_start || obs.date),
             unit: 'Percent' // Default unit, could be enhanced with FRED series metadata
