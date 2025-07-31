@@ -1,0 +1,17 @@
+Metric,Type,Category,Frequency,Date of Release,Current Reading,Forecast,Variance vs Forecast,Prior Reading,Variance vs Prior,Z-Score (12M),3-Month Annualized Rate,12-Month YoY Change,Unit,Next Release
+GDP Growth Rate,Coincident,Growth,quarterly,2025-01-01,-0.5,1.0,-1.5,2.4,-2.9,0.0,-99.93,0.0,percent,2025-04-01
+CPI Year-over-Year,Lagging,Inflation,monthly,2025-06-01,321.5,2.7,318.8,320.58,0.92,1.42,1.48,2.53,percent,2025-07-15
+Core CPI Year-over-Year,Lagging,Inflation,monthly,2025-06-01,327.6,3.0,324.6,326.854,0.75,1.42,1.44,2.72,percent,2025-07-15
+PCE Price Index YoY,Lagging,Inflation,monthly,2025-05-01,126.11,2.2,123.91,125.939,0.17,1.43,1.02,2.22,percent,2025-06-15
+Manufacturing PMI,Leading,Growth,monthly,2025-06-01,12750.0,49.5,12700.5,12757.0,-7.0,-0.88,-0.44,-0.7,index,2025-07-15
+Unemployment Rate,Lagging,Labor,monthly,2025-06-01,4.1,4.3,-0.2,4.2,-0.1,-0.65,-9.19,-2.38,percent,2025-07-15
+Nonfarm Payrolls,Coincident,Labor,monthly,2025-06-01,159724.0,180.0,159544.0,159577.0,147.0,1.5,0.73,1.09,thousands,2025-07-15
+Federal Funds Rate,Coincident,Monetary Policy,monthly,2025-06-01,4.33,4.25,0.08,4.33,0.0,-0.8,0.0,-18.76,percent,2025-07-15
+10-Year Treasury Yield,Leading,Monetary Policy,daily,2025-06-01,4.38,4.25,0.13,4.42,-0.04,0.49,0.0,3.06,percent,2025-06-02
+Consumer Confidence Index,Leading,Sentiment,monthly,2024-01-01,98.91297,93.5,5.41,98.1097,0.8,0.0,5.65,0.0,index,2024-02-15
+Michigan Consumer Sentiment,Leading,Sentiment,monthly,2025-05-01,52.2,61.5,-9.3,52.2,0.0,-1.83,-29.66,-23.46,index,2025-06-15
+Retail Sales MoM,Coincident,Growth,monthly,2025-06-01,720106.0,0.1,720105.9,715541.0,4565.0,1.04,-0.93,3.01,percent,2025-07-15
+Industrial Production YoY,Coincident,Growth,monthly,2025-06-01,104.0071,1.0,103.01,103.6602,0.35,1.37,1.22,1.45,percent,2025-07-15
+Housing Starts,Leading,Growth,monthly,2025-06-01,1321.0,1350.0,-29.0,1263.0,58.0,-0.56,-20.28,4.43,thousands,2025-07-15
+Building Permits,Leading,Growth,monthly,2025-06-01,1397.0,1390.0,7.0,1394.0,3.0,-1.5,-6.85,-2.72,thousands,2025-07-15
+Durable Goods Orders MoM,Leading,Growth,monthly,2025-05-01,343567.0,8.6,343558.4,295229.0,48338.0,2.89,39.35,22.21,percent,2025-06-15
