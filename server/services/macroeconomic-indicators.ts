@@ -10,7 +10,7 @@ interface MacroeconomicData {
 }
 
 export class MacroeconomicService {
-  private readonly CACHE_KEY = `fred-economic-indicators-v${Math.floor(Date.now() / 1000)}`;
+  private readonly CACHE_KEY = `fred-restricted-32indicators-v${Math.floor(Date.now() / 100000)}`;
   
   /**
    * Get authentic FRED economic data with live z-score calculations
@@ -71,41 +71,75 @@ export class MacroeconomicService {
           ? currentReading - priorReading 
           : null;
 
-        // Comprehensive unit-based formatting function
+        // Enhanced unit-based formatting function with proper data handling
         const formatNumber = (value: number | null | undefined, unit: string): string => {
           if (value === null || value === undefined || isNaN(value)) {
             return 'N/A';
           }
           const numValue = parseFloat(String(value));
+          if (isNaN(numValue)) return 'N/A';
 
           switch (unit) {
             case 'percent':
+              // Handle percentage values correctly - data is already in percentage form
               return numValue.toFixed(1) + '%';
+            
             case 'thousands':
-              if (numValue >= 1000000) {
-                return (numValue / 1000000).toFixed(2) + 'M';
-              } else if (numValue >= 1000) {
-                return (numValue / 1000).toFixed(1) + 'K';
+              // Data already in thousands, format appropriately
+              if (numValue >= 1000) {
+                return (numValue / 1000).toFixed(1) + 'M';
               } else {
-                return numValue.toFixed(1) + 'K';
+                return numValue.toFixed(0) + 'K';
               }
+            
             case 'millions_dollars':
+              // Data already in millions, display as millions
               return '$' + numValue.toFixed(1) + 'M';
+            
             case 'billions_dollars':
+              // Data in billions, display appropriately
+              if (numValue >= 1000) {
+                return '$' + (numValue / 1000).toFixed(2) + 'T';
+              } else {
+                return '$' + numValue.toFixed(1) + 'B';
+              }
+            
+            case 'chained_dollars':
+              // Trillions data, display as trillions
               return '$' + numValue.toFixed(2) + 'T';
+            
             case 'index':
+              // Index values, no units
               return numValue.toFixed(1);
+            
             case 'basis_points':
               return numValue.toFixed(0) + ' bps';
+            
             case 'dollars_per_hour':
               return '$' + numValue.toFixed(2);
+            
             case 'hours':
               return numValue.toFixed(1) + ' hrs';
+            
             case 'months_supply':
               return numValue.toFixed(1) + ' months';
-            case 'chained_dollars':
-              return '$' + numValue.toFixed(2) + 'T';
+            
+            case 'monthly':
+              // Generic monthly data
+              return numValue.toLocaleString('en-US', {
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1
+              });
+            
+            case 'quarterly':
+              // Generic quarterly data
+              return numValue.toLocaleString('en-US', {
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1
+              });
+            
             default:
+              // Default formatting for unspecified units
               return numValue.toLocaleString('en-US', {
                 minimumFractionDigits: 1,
                 maximumFractionDigits: 1
@@ -137,7 +171,7 @@ export class MacroeconomicService {
 
       const data: MacroeconomicData = {
         indicators,
-        aiSummary: `Live z-score analysis computed for ${indicators.length} economic indicators using 12-month historical statistics. Z-scores measure deviation from historical mean.`,
+        aiSummary: `Live z-score analysis computed for ${indicators.length} RESTRICTED economic indicators using 12-month historical statistics. Only indicators with sufficient historical data baseline included.`,
         lastUpdated: new Date().toISOString(),
         source: 'Live Database Calculation (12-month rolling statistics)'
       };

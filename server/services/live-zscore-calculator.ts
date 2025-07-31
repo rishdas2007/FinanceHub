@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { sql } from 'drizzle-orm';
 import { logger } from '../../shared/utils/logger';
+import { CURATED_SERIES } from './fred-api-service-incremental';
 
 interface LiveZScoreData {
   seriesId: string;
@@ -25,11 +26,16 @@ export class LiveZScoreCalculator {
    * Ensures z-score calculations are never cached and always computed fresh
    */
   async calculateLiveZScores(): Promise<LiveZScoreData[]> {
-    logger.info('🔄 Computing LIVE z-scores for all economic indicators (no cache)');
+    logger.info('🔄 Computing LIVE z-scores for RESTRICTED economic indicators (no cache)');
     
     try {
-      // Direct query without CTE for better SQL compatibility
-      const zScoreData = await db.execute(sql`
+      // Create array of valid series IDs from CURATED_SERIES
+      const validSeriesIds = CURATED_SERIES.map(series => series.id);
+      logger.info(`📊 Processing only ${validSeriesIds.length} indicators with historical data`);
+      
+      // Build SQL query with series ID restriction using template string
+      const seriesIdFilter = validSeriesIds.map(id => `'${id}'`).join(',');
+      const sqlQuery = `
         SELECT DISTINCT
           series_id,
           metric_name,
@@ -71,8 +77,11 @@ export class LiveZScoreCalculator {
           FROM economic_indicators_history e5 
           WHERE e5.series_id = e1.series_id
         )
+        AND e1.series_id IN (${seriesIdFilter})
         ORDER BY e1.series_id
-      `);
+      `;
+      
+      const zScoreData = await db.execute(sql.raw(sqlQuery));
 
       const results: LiveZScoreData[] = zScoreData.rows.map((row: any) => {
         const currentValue = parseFloat(row.current_value) || 0;
