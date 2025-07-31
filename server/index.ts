@@ -17,7 +17,7 @@ import { metricsMiddleware } from './utils/MetricsCollector';
 import qualityRoutes from './routes/quality';
 import { performanceTrackingMiddleware } from './middleware/performance-tracking';
 import { setupVite, serveStatic, log } from "./vite";
-import { registerHealthRoutes } from "./routes/health";
+import healthRoutes from "./routes/health";
 
 // Security middleware
 import { 
@@ -35,9 +35,12 @@ import {
 } from "./middleware/error-handler";
 
 // Environment validation
-// Environment validation handled in EnvironmentValidator
+import { EnvironmentValidator } from './utils/EnvironmentValidator';
+import { ServiceStartupOrchestrator, ServiceConfig } from './utils/ServiceStartupOrchestrator';
 
-// Skip environment validation for now since we use EnvironmentValidator elsewhere
+// Validate environment at startup
+const environmentValidator = EnvironmentValidator.getInstance();
+const config = environmentValidator.validate();
 
 const app = express();
 
@@ -96,8 +99,8 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Register health routes (API only)
-  // registerHealthRoutes(app); // Temporarily disabled to fix frontend loading
+  // Register health routes with proper isolation
+  app.use('/health', healthRoutes);
   
   // Register enhanced routes with versioning
   app.use('/api/v1', v1Routes);
@@ -144,92 +147,97 @@ app.use((req, res, next) => {
   }, () => {
     log(`🚀 FinanceHub Pro serving on port ${port}`);
     
-    // Initialize Unified Data Refresh Scheduler
-    setTimeout(async () => {
-      try {
-        const { unifiedDataRefreshScheduler } = await import('./services/unified-data-refresh-scheduler');
-        unifiedDataRefreshScheduler.start();
-        log(`📊 Unified data refresh scheduler initialized successfully`);
-      } catch (error) {
-        log(`⚠️ Failed to initialize unified refresh scheduler: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    // Initialize services with proper dependency ordering (replaces race conditions)
+    const serviceConfigs: ServiceConfig[] = [
+      {
+        name: 'unified-refresh-scheduler',
+        timeout: 5000,
+        initializer: async () => {
+          const { unifiedDataRefreshScheduler } = await import('./services/unified-data-refresh-scheduler');
+          unifiedDataRefreshScheduler.start();
+        }
+      },
+      {
+        name: 'intelligent-cron-scheduler',
+        dependencies: ['unified-refresh-scheduler'],
+        timeout: 8000,
+        initializer: async () => {
+          await intelligentCronScheduler.initialize();
+        }
+      },
+      {
+        name: 'data-staleness-prevention',
+        dependencies: ['unified-refresh-scheduler'],
+        timeout: 3000,
+        initializer: async () => {
+          dataStalenessPrevention.startPreventiveMonitoring();
+        }
+      },
+      {
+        name: 'data-scheduler',
+        dependencies: ['intelligent-cron-scheduler', 'data-staleness-prevention'],
+        timeout: 10000,
+        initializer: async () => {
+          const { dataScheduler } = await import("./services/scheduler");
+          await dataScheduler.startScheduler();
+        }
+      },
+      {
+        name: 'fred-incremental-scheduler',
+        dependencies: ['data-scheduler'],
+        timeout: 5000,
+        initializer: async () => {
+          await fredSchedulerIncremental.startScheduler();
+        }
+      },
+      {
+        name: 'historical-data-system',
+        dependencies: ['fred-incremental-scheduler'],
+        timeout: 8000,
+        initializer: async () => {
+          // Load comprehensive historical data collector (if exists)
+          try {
+            const { comprehensiveHistoricalCollector } = await import('./services/comprehensive-historical-collector.js');
+            log('🎯 Historical data collector loaded');
+          } catch (error) {
+            log('📊 Historical data collector not available (optional)');
+          }
+          
+          // Load historical data intelligence (if exists)
+          try {
+            const { historicalDataIntelligence } = await import('./services/historical-data-intelligence.js');
+            log('🧠 Historical data intelligence loaded');
+          } catch (error) {
+            log('📊 Historical data intelligence not available (optional)');
+          }
+        }
       }
-    }, 2000);
+    ];
+
+    const orchestrator = new ServiceStartupOrchestrator(serviceConfigs);
     
-    // Initialize intelligent cron scheduler for background data fetching
+    // Start all services with proper dependency management
     setTimeout(async () => {
-      try {
-        log('📅 Initializing intelligent cron scheduler...');
-        await intelligentCronScheduler.initialize();
-        log('✅ Intelligent cron scheduler started successfully');
-      } catch (error) {
-        log('❌ Cron scheduler initialization failed:', error);
-      }
-    }, 3000);
-    
-    // Initialize data staleness prevention monitoring
-    setTimeout(() => {
-      try {
-        log('🛡️  Initializing data staleness prevention monitoring...');
-        dataStalenessPrevention.startPreventiveMonitoring();
-        log('✅ Data staleness prevention monitoring started successfully');
-      } catch (error) {
-        log('❌ Data staleness prevention initialization failed:', error);
-      }
-    }, 5000);
-    
-    // Start the data scheduler for daily updates with enhanced error handling
-    setTimeout(async () => {
-      try {
-        log('📊 Initializing comprehensive data scheduler...');
-        const { dataScheduler } = await import("./services/scheduler");
-        
-        await dataScheduler.startScheduler();
-        log('✅ Data scheduler started successfully with 8 AM email cron job');
-        
-        // Initialize FRED data scheduler for 4-hour updates
-        log('📊 Initializing FRED data scheduler...');
-        const { fredSchedulerService } = await import('./services/fred-scheduler');
-        await fredSchedulerService.startScheduler();
-        log('✅ FRED data scheduler started successfully - updating every 4 hours');
-        
-        // Initialize comprehensive intelligent historical data storage system
-        log('🎯 Initializing Comprehensive Intelligent Historical Data Storage System...');
-        
-        // Load comprehensive historical data collector
-        const { comprehensiveHistoricalCollector } = await import('./services/comprehensive-historical-collector.js');
-        
-        // Load historical data intelligence
-        const { historicalDataIntelligence } = await import('./services/historical-data-intelligence.js');
-        log('🧠 Historical Data Intelligence System Ready');
-        
-        // Initialize enhanced cron scheduler with comprehensive data collection
-        const { enhancedCronScheduler } = await import('./services/enhanced-cron-scheduler.js');
-        await enhancedCronScheduler.initialize();
-        log('✅ Enhanced cron scheduler initialized with comprehensive data collection');
-        
-        log('📊 ✅ COMPREHENSIVE INTELLIGENT HISTORICAL DATA STORAGE SYSTEM OPERATIONAL');
-        log('🎯 Active Features:');
-        log('   • 18-month historical data backfill capability');
-        log('   • Automated 4-hourly data collection (Mon-Fri)');
-        log('   • Intelligent percentile rankings and trend analysis');
-        log('   • Market regime detection with pattern recognition');
-        log('   • Enhanced AI context with historical insights');
-        log('   • Complete audit trail for all operations');
-        log('');
-        log('🌐 New API Endpoints Available:');
-        log('   • POST /api/comprehensive-historical-data/collect');
-        log('   • GET  /api/historical-intelligence/:symbol');
-        log('   • GET  /api/enhanced-ai-context/:symbol');
-        
-        // Verify the scheduler is working by checking its status
-        log('📧 Daily email scheduled for 8:00 AM EST (Monday-Friday)');
-        log(`📅 Current EST time: ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}`);
-        log('🔄 All scheduled tasks initialized and ready');
-        
-      } catch (error) {
-        log('❌ CRITICAL: Failed to start data scheduler:', (error as Error).message || 'Unknown error');
-        console.error('Scheduler initialization error:', error);
-      }
-    }, 3000); // 3 second delay to ensure full server initialization
+      await orchestrator.startAll();
+      
+      log('📊 ✅ SERVICE ORCHESTRATION COMPLETE');
+      log('🎯 Active Features:');
+      log('   • Unified data refresh scheduler');
+      log('   • Intelligent cron scheduling');
+      log('   • Data staleness prevention');
+      log('   • Daily email scheduling (8:00 AM EST)');
+      log('   • FRED incremental updates (4-hour intervals)');
+      log('   • Historical data intelligence system');
+      log('');
+      log('🌐 Available Endpoints:');
+      log('   • GET  /health/system-status - System health monitoring');
+      log('   • POST /health/data-integrity/validate - Data validation');
+      log('   • GET  /health/unified-refresh/status - Refresh status');
+      log('');
+      log('📧 Daily email scheduled for 8:00 AM EST (Monday-Friday)');
+      log(`📅 Current EST time: ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}`);
+      log('🔄 All services operational with dependency management');
+      
+    }, 1000); // Single 1-second delay for server initialization
   });
 })();

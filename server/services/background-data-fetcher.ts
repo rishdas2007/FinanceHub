@@ -1,6 +1,6 @@
 import { logger } from '../middleware/logging';
 import { marketHoursDetector } from './market-hours-detector';
-import { smartCache } from './smart-cache';
+import { unifiedDashboardCache } from './unified-dashboard-cache';
 import OpenAI from 'openai';
 
 interface APICallResult {
@@ -51,7 +51,7 @@ export class BackgroundDataFetcher {
         logger.info(`✅ Momentum data fetched successfully in ${duration}ms`);
         
         // Store in cache
-        smartCache.set('momentum-analysis-background', data, '30m');
+        unifiedDashboardCache.set('momentum-analysis-background', data, 1800000); // 30min
         
         return {
           success: true,
@@ -73,14 +73,14 @@ export class BackgroundDataFetcher {
     }
 
     // All retries failed - mark existing cache as stale but preserve it
-    const existingCache = smartCache.get('momentum-analysis-background');
+    const existingCache = unifiedDashboardCache.get('momentum-analysis-background');
     if (existingCache) {
       logger.info('📊 Marking existing momentum data as stale');
-      smartCache.set('momentum-analysis-background', {
+      unifiedDashboardCache.set('momentum-analysis-background', {
         ...existingCache.data,
         isStale: true,
         lastAttempt: new Date()
-      }, '30m');
+      }, 1800000); // 30min
     }
 
     return {
@@ -114,7 +114,7 @@ export class BackgroundDataFetcher {
         logger.info(`✅ Economic readings fetched successfully in ${duration}ms`);
         
         // Store in cache
-        smartCache.set('economic-readings-background', data, '1h');
+        unifiedDashboardCache.set('economic-readings-background', data, 3600000); // 1hr
         
         return {
           success: true,
@@ -137,7 +137,7 @@ export class BackgroundDataFetcher {
 
     // Use fallback economic data to maintain functionality
     const fallbackData = this.getFallbackEconomicData();
-    smartCache.set('economic-readings-background', {
+    unifiedDashboardCache.set('economic-readings-background', {
       ...fallbackData,
       isStale: true,
       lastAttempt: new Date()
@@ -159,8 +159,8 @@ export class BackgroundDataFetcher {
       logger.info('🤖 Generating AI summary from cached data');
 
       // Get latest cached data
-      const momentumCache = smartCache.get('momentum-analysis-background');
-      const economicCache = smartCache.get('economic-readings-background');
+      const momentumCache = unifiedDashboardCache.get('momentum-analysis-background');
+      const economicCache = unifiedDashboardCache.get('economic-readings-background');
 
       if (!momentumCache || !economicCache) {
         throw new Error('Required cached data not available');
@@ -200,7 +200,7 @@ export class BackgroundDataFetcher {
       };
 
       // Store in cache
-      smartCache.set('ai-summary-background', summaryData, '1h');
+      unifiedDashboardCache.set('ai-summary-background', summaryData, 3600000); // 1hr
 
       return {
         success: true,
@@ -214,14 +214,14 @@ export class BackgroundDataFetcher {
       logger.warn(`❌ AI summary generation failed: ${errorMsg}`);
 
       // Keep previous summary if available, just update timestamp
-      const existingCache = smartCache.get('ai-summary-background');
+      const existingCache = unifiedDashboardCache.get('ai-summary-background');
       if (existingCache) {
         logger.info('📊 Keeping previous AI summary, marked as stale');
-        smartCache.set('ai-summary-background', {
+        unifiedDashboardCache.set('ai-summary-background', {
           ...existingCache.data,
           isStale: true,
           lastAttempt: new Date()
-        }, '1h');
+        }, 3600000); // 1hr
       }
 
       return {

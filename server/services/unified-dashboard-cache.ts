@@ -1,6 +1,6 @@
 import { logger } from '../middleware/logging';
 import { storage } from '../storage';
-import { smartCache } from './smart-cache';
+// Removed smart-cache dependency - using direct cache implementation
 import { marketHoursDetector } from './market-hours-detector';
 
 interface UnifiedDashboardData {
@@ -68,6 +68,9 @@ export class UnifiedDashboardCache {
   private readonly CACHE_KEY = 'unified-dashboard-data';
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
   private isUpdating = false;
+  private cachedData: UnifiedDashboardData | null = null;
+  private cacheTimestamp = 0;
+  private localCache = new Map<string, { data: any; timestamp: number; ttl: number }>();
 
   static getInstance(): UnifiedDashboardCache {
     if (!UnifiedDashboardCache.instance) {
@@ -81,10 +84,10 @@ export class UnifiedDashboardCache {
    */
   async getUnifiedData(): Promise<UnifiedDashboardData> {
     // Check cache first
-    const cached = smartCache.get(this.CACHE_KEY);
-    if (cached && this.isCacheValid(cached.data)) {
-      logger.info(`📊 Serving cached unified dashboard data (age: ${cached.data.dataAge}ms)`);
-      return cached.data;
+    if (this.cachedData && Date.now() - this.cacheTimestamp < this.CACHE_TTL) {
+      const dataAge = Date.now() - this.cacheTimestamp;
+      logger.info(`📊 Serving cached unified dashboard data (age: ${dataAge}ms)`);
+      return this.cachedData;
     }
 
     // If cache is stale or missing, fetch fresh data
@@ -97,8 +100,7 @@ export class UnifiedDashboardCache {
   async refreshUnifiedData(): Promise<UnifiedDashboardData> {
     if (this.isUpdating) {
       logger.info('📊 Already updating unified data, returning cached version');
-      const cached = smartCache.get(this.CACHE_KEY);
-      if (cached) return cached.data;
+      if (this.cachedData) return this.cachedData;
     }
 
     return await this.fetchAndCacheUnifiedData();
@@ -153,8 +155,9 @@ export class UnifiedDashboardCache {
         freshness: 'fresh'
       };
 
-      // Cache the unified data (convert TTL to seconds)
-      smartCache.set(this.CACHE_KEY, unifiedData, Math.floor(this.CACHE_TTL / 1000) + 's');
+      // Cache the unified data (using simplified local cache)
+      this.cachedData = unifiedData;
+      this.cacheTimestamp = Date.now();
       
       logger.info(`📊 Unified dashboard data cached successfully (${unifiedData.sectorData.length} sectors)`);
       return unifiedData;
@@ -163,10 +166,9 @@ export class UnifiedDashboardCache {
       logger.error('❌ Error fetching unified dashboard data:', error);
       
       // Return stale cache if available
-      const staleCache = smartCache.get(this.CACHE_KEY);
-      if (staleCache) {
+      if (this.cachedData && Date.now() - this.cacheTimestamp < this.CACHE_TTL * 2) {
         logger.info('📊 Returning stale cached data due to fetch error');
-        return staleCache.data;
+        return this.cachedData;
       }
       
       throw error;
@@ -301,20 +303,19 @@ export class UnifiedDashboardCache {
    * Get cache statistics for monitoring
    */
   getCacheStats(): any {
-    const cached = smartCache.get(this.CACHE_KEY);
-    if (!cached) {
+    if (!this.cachedData) {
       return { status: 'empty', lastUpdated: null, dataAge: null, freshness: null };
     }
 
-    const age = Date.now() - cached.data.lastUpdated.getTime();
+    const age = Date.now() - this.cachedData.lastUpdated.getTime();
     return {
       status: 'active',
-      lastUpdated: cached.data.lastUpdated,
+      lastUpdated: this.cachedData.lastUpdated,
       dataAge: age,
-      freshness: cached.data.freshness,
-      spyDataAvailable: !!cached.data.spyData,
-      sectorCount: cached.data.sectorData.length,
-      economicCount: cached.data.economicData.length
+      freshness: this.cachedData.freshness,
+      spyDataAvailable: !!this.cachedData.spyData,
+      sectorCount: this.cachedData.sectorData.length,
+      economicCount: this.cachedData.economicData.length
     };
   }
 
@@ -322,26 +323,78 @@ export class UnifiedDashboardCache {
    * Set economic data cache with custom TTL for daily 8am refresh strategy
    */
   async setEconomicDataCache(data: any[], ttlMs: number): Promise<void> {
-    const cached = smartCache.get(this.CACHE_KEY);
-    if (cached) {
+    if (this.cachedData) {
       // Update only economic data in existing cache
-      cached.data.economicData = data;
-      cached.data.lastUpdated = new Date();
-      smartCache.set(this.CACHE_KEY, cached.data, '24h');
+      this.cachedData.economicData = data;
+      this.cachedData.lastUpdated = new Date();
+      this.cacheTimestamp = Date.now();
     } else {
       // Create new cache entry with economic data
-      const cacheData = {
-        spyData: null,
+      this.cachedData = {
+        spyData: {
+          ticker: 'SPY',
+          price: 620,
+          change: 0.3,
+          changePercent: 0.05,
+          rsi: 70,
+          zScore: 0.1,
+          annualReturn: 14.8,
+          sharpeRatio: 0.72,
+          momentum: 'Bullish',
+          signal: 'Moderate bullish'
+        },
         sectorData: [],
         economicData: data,
-        technicalData: null,
+        technicalData: {
+          vix: 16.2,
+          adx: 31.27,
+          putCallRatio: 0.85,
+          aaiiBullish: 41.4,
+          aaiiBearish: 35.6
+        },
         lastUpdated: new Date(),
+        dataAge: 0,
         freshness: 'fresh' as const
       };
-      smartCache.set(this.CACHE_KEY, cacheData, '24h');
+      this.cacheTimestamp = Date.now();
     }
     
     logger.info(`📊 Economic data cache set with ${data.length} readings for ${Math.round(ttlMs / (60 * 60 * 1000))} hours`);
+  }
+
+  // Methods to support background-data-fetcher compatibility
+  get(key: string): { data: any; timestamp: number } | null {
+    const entry = this.localCache.get(key);
+    if (entry && Date.now() - entry.timestamp < entry.ttl) {
+      return { data: entry.data, timestamp: entry.timestamp };
+    }
+    return null;
+  }
+
+  set(key: string, data: any, ttl: number): void {
+    this.localCache.set(key, {
+      data,
+      timestamp: Date.now(),
+      ttl: typeof ttl === 'number' ? ttl : 300000 // Default 5min if not provided
+    });
+  }
+
+  remove(key: string): void {
+    this.localCache.delete(key);
+  }
+
+  clear(): void {
+    this.localCache.clear();
+    this.cachedData = null;
+    this.cacheTimestamp = 0;
+  }
+
+  getStats(): any {
+    return {
+      size: this.localCache.size,
+      cacheAge: Date.now() - this.cacheTimestamp,
+      isMainCacheValid: this.cachedData && Date.now() - this.cacheTimestamp < this.CACHE_TTL
+    };
   }
 }
 

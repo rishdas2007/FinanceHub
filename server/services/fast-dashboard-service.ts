@@ -1,5 +1,5 @@
 import { logger } from '../middleware/logging';
-import { smartCache } from './smart-cache';
+import { unifiedDashboardCache } from './unified-dashboard-cache';
 
 interface DashboardData {
   component: string;
@@ -26,7 +26,7 @@ export class FastDashboardService {
     
     try {
       // Try background cache first
-      const backgroundCache = smartCache.get('momentum-analysis-background');
+      const backgroundCache = unifiedDashboardCache.get('momentum-analysis-background');
       if (backgroundCache) {
         const loadTime = Date.now() - startTime;
         logger.info(`📊 Fast momentum served from background cache (${loadTime}ms)`);
@@ -42,7 +42,7 @@ export class FastDashboardService {
       }
 
       // Fallback to regular cache
-      const regularCache = smartCache.get('momentum-analysis');
+      const regularCache = unifiedDashboardCache.get('momentum-analysis');
       if (regularCache) {
         const loadTime = Date.now() - startTime;
         logger.info(`📊 Fast momentum served from regular cache (${loadTime}ms)`);
@@ -92,7 +92,7 @@ export class FastDashboardService {
     
     try {
       // Try background cache first
-      const backgroundCache = smartCache.get('economic-readings-background');
+      const backgroundCache = unifiedDashboardCache.get('economic-readings-background');
       if (backgroundCache) {
         const loadTime = Date.now() - startTime;
         logger.info(`📊 Fast economic served from background cache (${loadTime}ms)`);
@@ -108,7 +108,7 @@ export class FastDashboardService {
       }
 
       // Fallback to regular cache
-      const regularCache = smartCache.get('recent-economic-openai');
+      const regularCache = unifiedDashboardCache.get('recent-economic-openai');
       if (regularCache) {
         const loadTime = Date.now() - startTime;
         logger.info(`📊 Fast economic served from regular cache (${loadTime}ms)`);
@@ -158,7 +158,7 @@ export class FastDashboardService {
     
     try {
       // Check existing financial mood cache
-      const moodCache = smartCache.get('financial-mood');
+      const moodCache = unifiedDashboardCache.get('financial-mood');
       if (moodCache) {
         const loadTime = Date.now() - startTime;
         logger.info(`🎭 Fast financial mood served from cache (${loadTime}ms)`);
@@ -209,7 +209,7 @@ export class FastDashboardService {
     
     try {
       // Try background AI summary cache
-      const backgroundCache = smartCache.get('ai-summary-background');
+      const backgroundCache = unifiedDashboardCache.get('ai-summary-background');
       if (backgroundCache) {
         const loadTime = Date.now() - startTime;
         logger.info(`🤖 Fast AI summary served from background cache (${loadTime}ms)`);

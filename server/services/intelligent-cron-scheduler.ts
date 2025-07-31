@@ -2,7 +2,7 @@ import * as cron from 'node-cron';
 import { logger } from '../middleware/logging';
 import { marketHoursDetector } from './market-hours-detector';
 import { backgroundDataFetcher } from './background-data-fetcher';
-import { smartCache } from './smart-cache';
+import { unifiedDashboardCache } from './unified-dashboard-cache';
 
 interface JobStatus {
   name: string;

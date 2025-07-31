@@ -28,7 +28,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/health', (await import('./routes/health')).default);
   
   // FRED Cache Management endpoints
-  app.use('/api/fred-cache', (await import('./routes/fred-cache-routes')).fredCacheRoutes);
+  // FRED cache routes removed - using unified cache system instead
   
   // FRED Incremental Update System endpoints
   app.use('/api/fred-incremental', (await import('./routes/fred-incremental-routes')).default);
@@ -387,11 +387,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/cache/performance", async (req, res) => {
     try {
       const { enhancedMarketDataService } = await import('./services/enhanced-market-data');
-      const { intelligentCache } = await import('./services/intelligent-cache-system');
+      const { unifiedDashboardCache } = await import('./services/unified-dashboard-cache');
       
       const metrics = {
         marketData: enhancedMarketDataService.getPerformanceMetrics(),
-        intelligentCache: intelligentCache.getPerformanceMetrics(),
+        unifiedCache: unifiedDashboardCache.getStats(),
         timestamp: new Date().toISOString()
       };
       
@@ -406,9 +406,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/cache/invalidate", async (req, res) => {
     try {
       const { pattern } = req.body;
-      const { intelligentCache } = await import('./services/intelligent-cache-system');
+      const { unifiedDashboardCache } = await import('./services/unified-dashboard-cache');
       
-      intelligentCache.invalidate(pattern || '');
+      unifiedDashboardCache.clear();
       
       // Clear local momentum analysis cache if pattern matches or no pattern specified
       if (!pattern || 'momentum'.includes(pattern) || pattern === '') {
@@ -1861,16 +1861,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Cache invalidation endpoint for refresh button
   app.get('/api/cache/invalidate', async (req, res) => {
     try {
-      const { smartCache } = await import('./services/smart-cache');
+      const { unifiedDashboardCache } = await import('./services/unified-dashboard-cache');
       const key = req.query.key as string;
       
       if (key) {
-        smartCache.remove(key);
+        unifiedDashboardCache.remove(key);
         console.log(`🗑️ Cache invalidated for key: ${key}`);
         res.json({ success: true, invalidated: key });
       } else {
         // Clear all cache
-        smartCache.clear();
+        unifiedDashboardCache.clear();
         console.log('🗑️ All cache cleared');
         res.json({ success: true, invalidated: 'all' });
       }
