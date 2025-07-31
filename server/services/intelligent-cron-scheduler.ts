@@ -133,7 +133,7 @@ export class IntelligentCronScheduler {
     const marketStatus = marketHoursDetector.getCurrentMarketStatus();
     const frequencies = marketHoursDetector.getUpdateFrequency();
     
-    const lastUpdate = smartCache.get('momentum-analysis-background')?.timestamp || new Date(0);
+    const lastUpdate = unifiedDashboardCache.get('momentum-analysis-background')?.timestamp || new Date(0).getTime();
     const shouldUpdate = marketHoursDetector.shouldUpdateNow(new Date(lastUpdate), 'momentum');
     
     logger.debug(`🔍 Momentum update check: ${shouldUpdate} (market: ${marketStatus.session})`);
@@ -144,7 +144,7 @@ export class IntelligentCronScheduler {
     const marketStatus = marketHoursDetector.getCurrentMarketStatus();
     const frequencies = marketHoursDetector.getUpdateFrequency();
     
-    const lastUpdate = smartCache.get('economic-readings-background')?.timestamp || new Date(0);
+    const lastUpdate = unifiedDashboardCache.get('economic-readings-background')?.timestamp || new Date(0).getTime();
     const shouldUpdate = marketHoursDetector.shouldUpdateNow(new Date(lastUpdate), 'economic');
     
     logger.debug(`🔍 Economic update check: ${shouldUpdate} (market: ${marketStatus.session})`);
@@ -155,7 +155,7 @@ export class IntelligentCronScheduler {
     const marketStatus = marketHoursDetector.getCurrentMarketStatus();
     const frequencies = marketHoursDetector.getUpdateFrequency();
     
-    const lastUpdate = smartCache.get('ai-summary-background')?.timestamp || new Date(0);
+    const lastUpdate = unifiedDashboardCache.get('ai-summary-background')?.timestamp || new Date(0).getTime();
     const shouldUpdate = marketHoursDetector.shouldUpdateNow(new Date(lastUpdate), 'aiSummary');
     
     logger.debug(`🔍 AI summary check: ${shouldUpdate} (market: ${marketStatus.session})`);
@@ -166,7 +166,7 @@ export class IntelligentCronScheduler {
     logger.info('🧹 Starting cache cleanup');
     
     // Get cache stats for cleanup reporting
-    const cacheStats = smartCache.getStats();
+    const cacheStats = unifiedDashboardCache.getStats();
     
     logger.info(`🧹 Cache cleanup completed - maintained ${cacheStats.size} active entries`);
   }

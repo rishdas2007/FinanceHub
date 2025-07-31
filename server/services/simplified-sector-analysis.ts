@@ -315,19 +315,22 @@ export class SimplifiedSectorAnalysisService {
    */
   private calculateMovingAverages(sectorHistory: HistoricalData[], currentPrice: number, symbol: string): { ma20: number; ma50: number } {
     if (sectorHistory.length < 50) {
-      // Use verified price and performance data to create realistic MA estimates
+      // FIXED: Use conservative, realistic MA estimates instead of random calculations
       const annualReturn = this.getVerifiedAnnualReturn(symbol);
-      const volatility = this.getVerifiedVolatility(symbol);
       
-      // Create realistic MA estimates based on recent performance
-      const dailyReturn = annualReturn / 365; // Convert annual to daily
-      const volatilityFactor = volatility / 100;
+      // Create realistic MA estimates based on performance and typical market patterns
+      // Typical MA relationships: MA20 closer to current price, MA50 further away
+      const dailyDriftFactor = (annualReturn / 100) / 252; // Convert annual % to daily decimal
       
-      // Estimate MAs based on current price and performance trends
-      const ma20Estimate = currentPrice * (1 - (dailyReturn * 10) + (Math.random() - 0.5) * volatilityFactor * 0.1);
-      const ma50Estimate = currentPrice * (1 - (dailyReturn * 25) + (Math.random() - 0.5) * volatilityFactor * 0.2);
+      // Conservative estimates: MA20 typically 1-3% from current price, MA50 typically 2-5%
+      const ma20Estimate = currentPrice * (1 - dailyDriftFactor * 20); // 20-day drift
+      const ma50Estimate = currentPrice * (1 - dailyDriftFactor * 50); // 50-day drift
       
-      return { ma20: ma20Estimate, ma50: ma50Estimate };
+      // Ensure MAs are reasonable (within 10% of current price maximum)
+      const ma20Final = Math.max(currentPrice * 0.9, Math.min(currentPrice * 1.1, ma20Estimate));
+      const ma50Final = Math.max(currentPrice * 0.85, Math.min(currentPrice * 1.15, ma50Estimate));
+      
+      return { ma20: ma20Final, ma50: ma50Final };
     }
     
     // Sort by date descending (most recent first)
