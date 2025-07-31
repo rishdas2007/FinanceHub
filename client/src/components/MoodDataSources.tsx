@@ -101,7 +101,7 @@ export function MoodDataSources() {
             <div className="flex justify-between items-center">
               <span className="text-gray-400">1-Day Change:</span>
               <Badge variant="outline" className={topSector.oneDayChange && parseFloat(topSector.oneDayChange) > 0 ? 'text-green-400' : 'text-red-400'}>
-                {topSector.oneDayChange ? `${parseFloat(topSector.oneDayChange) > 0 ? '+' : ''}${topSector.oneDayChange}%` : 'N/A'}
+                {topSector.oneDayChange ? `${parseFloat(topSector.oneDayChange) > 0 ? '+' : ''}${parseFloat(topSector.oneDayChange).toFixed(2)}%` : 'N/A'}
               </Badge>
             </div>
             <div className="flex justify-between items-center">
@@ -150,7 +150,14 @@ export function MoodDataSources() {
         </div>
         
         <div className="border-t border-gray-700 pt-3 space-y-2">
-          {/* Match left side ordering: 1-Day Change, Z-Score, RSI, MA Gap */}
+          {/* Match left side ordering: Index Name, 1-Day Change, Z-Score, RSI, MA Gap */}
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400">Index Name:</span>
+            <Badge variant="outline" className="text-white font-bold">
+              S&P 500 (SPY)
+            </Badge>
+          </div>
+          
           <div className="flex justify-between items-center">
             <span className="text-gray-400">1-Day Change:</span>
             <Badge variant="outline" className={data.spyOneDayMove && data.spyOneDayMove > 0 ? 'text-green-400' : 'text-red-400'}>
