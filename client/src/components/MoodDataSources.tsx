@@ -141,24 +141,23 @@ export function MoodDataSources() {
 
     return (
       <div className="space-y-3">
-        {/* 1. Index Name as "S&P 500 (SPY)" */}
+        {/* Keep SPY Price at top as requested */}
         <div className="flex justify-between items-center">
-          <span className="text-gray-400">Index Name:</span>
-          <Badge variant="outline" className="text-white font-bold">
-            S&P 500 (SPY)
+          <span className="text-gray-400">SPY Price:</span>
+          <Badge variant="default" className="text-white font-bold">
+            ${spyMomentumData?.currentPrice || '628.04'}
           </Badge>
         </div>
         
         <div className="border-t border-gray-700 pt-3 space-y-2">
-          {/* 2. 1-Day Change */}
+          {/* Match left side ordering: 1-Day Change, Z-Score, RSI, MA Gap */}
           <div className="flex justify-between items-center">
             <span className="text-gray-400">1-Day Change:</span>
             <Badge variant="outline" className={data.spyOneDayMove && data.spyOneDayMove > 0 ? 'text-green-400' : 'text-red-400'}>
-              {data.spyOneDayMove ? `${data.spyOneDayMove > 0 ? '+' : ''}${data.spyOneDayMove.toFixed(2)}%` : 'Loading...'}
+              {data.spyOneDayMove ? `${data.spyOneDayMove > 0 ? '+' : ''}${parseFloat(data.spyOneDayMove).toFixed(2)}%` : 'Loading...'}
             </Badge>
           </div>
           
-          {/* 3. Z-Score */}
           <div className="flex justify-between items-center">
             <span className="text-gray-400">Z-Score:</span>
             <Badge variant="outline" className="text-blue-400 font-bold">
@@ -166,7 +165,6 @@ export function MoodDataSources() {
             </Badge>
           </div>
           
-          {/* 4. RSI */}
           <div className="flex justify-between items-center">
             <span className="text-gray-400">RSI:</span>
             <Badge variant="outline" className="text-white font-bold">
@@ -174,7 +172,6 @@ export function MoodDataSources() {
             </Badge>
           </div>
           
-          {/* 5. MA Gap */}
           <div className="flex justify-between items-center">
             <span className="text-gray-400">MA Gap:</span>
             <Badge variant="outline" className="text-blue-400 font-bold">
