@@ -311,4 +311,67 @@ router.get('/dashboard', async (req, res) => {
   }
 });
 
+// Manual data refresh trigger for immediate updates
+router.post('/refresh-economic-data', async (req, res) => {
+  try {
+    const startTime = Date.now();
+    const { reason = 'manual_api_trigger' } = req.body;
+    
+    logger.info(`🚀 [MANUAL API] Triggering immediate economic data refresh - reason: ${reason}`);
+    
+    // Import the scheduler service
+    const { economicDataScheduler } = await import('../services/economic-data-scheduler');
+    
+    // Trigger immediate refresh
+    await economicDataScheduler.triggerImmediateRefresh(reason);
+    
+    const processingTime = Date.now() - startTime;
+    
+    res.json({
+      success: true,
+      message: 'Economic data refresh completed successfully',
+      processingTime,
+      timestamp: new Date().toISOString(),
+      trigger: reason
+    });
+    
+  } catch (error) {
+    logger.error('Manual economic data refresh failed:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Economic data refresh failed',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+// Get scheduler status
+router.get('/scheduler-status', async (req, res) => {
+  try {
+    const { economicDataScheduler } = await import('../services/economic-data-scheduler');
+    const status = economicDataScheduler.getStatus();
+    
+    res.json({
+      success: true,
+      schedulerStatus: status,
+      systemTime: new Date().toISOString(),
+      timezone: 'America/New_York',
+      nextScheduledRuns: {
+        earlyRefresh: '8:45 AM ET (employment data)',
+        mainRefresh: '10:15 AM ET (comprehensive update)', 
+        afternoonRefresh: '2:15 PM ET (late releases)',
+        qualityCheck: '11:00 AM ET (data validation)'
+      }
+    });
+    
+  } catch (error) {
+    logger.error('Failed to get scheduler status:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to retrieve scheduler status',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
 export default router;

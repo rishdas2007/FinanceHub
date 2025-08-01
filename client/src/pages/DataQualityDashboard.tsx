@@ -116,6 +116,36 @@ export default function DataQualityDashboard() {
     }
   };
 
+  const refreshEconomicData = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/data-quality/refresh-economic-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          reason: 'manual_ui_trigger_fresh_data'
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Economic data refresh failed');
+      }
+      
+      const result = await response.json();
+      console.log('Economic data refresh result:', result);
+      
+      // Reload dashboard data after refresh
+      await loadDashboardData();
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Economic data refresh failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getQualityIcon = (score: string) => {
     switch (score) {
       case 'HIGH': return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -184,6 +214,10 @@ export default function DataQualityDashboard() {
           <Button onClick={loadDashboardData} variant="outline">
             <Activity className="h-4 w-4 mr-2" />
             Refresh
+          </Button>
+          <Button onClick={refreshEconomicData} variant="outline" className="bg-orange-600 hover:bg-orange-700 text-white">
+            <Database className="h-4 w-4 mr-2" />
+            Refresh Economic Data
           </Button>
           <Button onClick={executeGoldStandardPipeline}>
             <TrendingUp className="h-4 w-4 mr-2" />

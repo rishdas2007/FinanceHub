@@ -35,6 +35,8 @@ The application uses a monorepo architecture with three main directories: `clien
 
 ### Core Architectural Decisions & Design Patterns
 - **Database-First Approach**: Prioritizes PostgreSQL database as the primary data source for economic indicators and historical data to reduce API calls and ensure data authenticity.
+- **Gold Standard Data Pipeline**: Complete enterprise-grade ingress→processing→egress pipeline with comprehensive data quality validation, audit trail tracking, feature engineering (YoY/MoM calculations), and statistical analysis with confidence scoring.
+- **Automated Data Release Scheduler**: Strategic scheduling system with 10:15am ET weekday refresh to capture fresh economic releases (Nonfarm Payrolls, unemployment, PMI), plus 8:45am early refresh for employment data and 2:15pm afternoon refresh for late releases.
 - **Unified Data Refresh Scheduler**: Consolidates all economic data refresh logic into a single system, ensuring 24-hour data cycles and proactive staleness prevention.
 - **Comprehensive Historical Data Infrastructure**: Accumulates 24+ months of authentic historical data for VIX, SPY, sector ETFs, and economic indicators to enable sophisticated statistical analysis (e.g., Z-scores, percentile rankings) without data fabrication.
 - **Cost Optimization**: Strategic caching, scheduled API calls, and elimination of AI dependencies for core data processing to minimize operational costs.

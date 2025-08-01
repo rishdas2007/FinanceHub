@@ -191,8 +191,18 @@ app.use((req, res, next) => {
         }
       },
       {
-        name: 'historical-data-system',
+        name: 'economic-data-scheduler',
         dependencies: ['fred-incremental-scheduler'],
+        timeout: 5000,
+        initializer: async () => {
+          const { economicDataScheduler } = await import('./services/economic-data-scheduler');
+          economicDataScheduler.initialize();
+          log('🕐 Economic data release scheduler initialized for 10:15am weekday updates');
+        }
+      },
+      {
+        name: 'historical-data-system',
+        dependencies: ['economic-data-scheduler'],
         timeout: 8000,
         initializer: async () => {
           // Load comprehensive historical data collector (if exists)
