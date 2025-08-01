@@ -116,7 +116,12 @@ export class LiveZScoreCalculator {
           SELECT DISTINCT
             series_id,
             metric_name,
-            value as current_value,
+            -- Use monthly_change for employment metrics, value for others
+            CASE 
+              WHEN metric_name ILIKE '%nonfarm%' OR metric_name ILIKE '%payroll%' OR metric_name ILIKE '%employment change%'
+              THEN COALESCE(monthly_change, value)
+              ELSE value 
+            END as current_value,
             period_date,
             category,
             type,
@@ -137,7 +142,12 @@ export class LiveZScoreCalculator {
           type,
           unit,
           (
-            SELECT value 
+            SELECT 
+              CASE 
+                WHEN lpm.metric_name ILIKE '%nonfarm%' OR lpm.metric_name ILIKE '%payroll%' OR lpm.metric_name ILIKE '%employment change%'
+                THEN COALESCE(e2.monthly_change, e2.value)
+                ELSE e2.value 
+              END
             FROM economic_indicators_history e2 
             WHERE e2.metric_name = lpm.metric_name 
               AND e2.unit = lpm.unit
@@ -148,7 +158,13 @@ export class LiveZScoreCalculator {
           
           -- Calculate historical mean from last 12 months (same metric and unit type)
           (
-            SELECT AVG(value) 
+            SELECT AVG(
+              CASE 
+                WHEN lpm.metric_name ILIKE '%nonfarm%' OR lpm.metric_name ILIKE '%payroll%' OR lpm.metric_name ILIKE '%employment change%'
+                THEN COALESCE(e3.monthly_change, e3.value)
+                ELSE e3.value 
+              END
+            ) 
             FROM economic_indicators_history e3 
             WHERE e3.metric_name = lpm.metric_name 
               AND e3.unit = lpm.unit
@@ -158,7 +174,13 @@ export class LiveZScoreCalculator {
           
           -- Calculate historical standard deviation from last 12 months (same metric and unit type)
           (
-            SELECT STDDEV(value) 
+            SELECT STDDEV(
+              CASE 
+                WHEN lpm.metric_name ILIKE '%nonfarm%' OR lpm.metric_name ILIKE '%payroll%' OR lpm.metric_name ILIKE '%employment change%'
+                THEN COALESCE(e4.monthly_change, e4.value)
+                ELSE e4.value 
+              END
+            ) 
             FROM economic_indicators_history e4 
             WHERE e4.metric_name = lpm.metric_name 
               AND e4.unit = lpm.unit
