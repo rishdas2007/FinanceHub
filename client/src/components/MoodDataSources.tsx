@@ -74,10 +74,10 @@ export function MoodDataSources() {
       return currentZScore > prevZScore ? current : prev;
     }, sectorsOnly[0]);
     
-    // Extract MA gap from signal text (look for pattern like "+230.2% gap" or "+264.4% gap")
+    // Extract MA gap from signal text (look for pattern like "+0.4% above" from signal)
     const extractMAGap = (signal: string) => {
-      const match = signal?.match(/\+(\d+\.?\d*)% gap/);
-      return match ? `+${match[1]}%` : '+143.9%'; // fallback
+      const match = signal?.match(/\+(\d+\.?\d*)% above/);
+      return match ? `+${match[1]}%` : '+0.4%'; // fallback
     };
     
     return (
@@ -136,7 +136,7 @@ export function MoodDataSources() {
     const spyMomentumData = (momentumData as any)?.momentumStrategies?.find((s: any) => s.ticker === 'SPY');
     const extractMAGap = (signal: string) => {
       const match = signal?.match(/\+(\d+\.?\d*)% above/);
-      return match ? `+${match[1]}%` : '+1.2%'; // fallback
+      return match ? `+${match[1]}%` : '+1.2%'; // fallback - will be updated from actual signal
     };
 
     return (
