@@ -33,6 +33,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // FRED Incremental Update System endpoints
   app.use('/api/fred-incremental', (await import('./routes/fred-incremental-routes')).default);
   
+  // Gold Standard Data Quality & Pipeline endpoints
+  app.use('/api/data-quality', (await import('./routes/data-quality-routes')).default);
+  
   // Authentic FRED Economic Data API - prioritized endpoint
   app.get('/api/fred-economic-data', async (req, res) => {
     try {

@@ -3,6 +3,8 @@ import { logger } from '../../shared/utils/logger';
 import { db } from '../db';
 import { economicIndicatorsHistory } from '../../shared/schema';
 import { eq, desc, max, sql, and } from 'drizzle-orm';
+import { dataQualityValidator } from './data-quality-validator';
+import { dataLineageTracker } from './data-lineage-tracker';
 
 // FRED API Configuration
 const FRED_API_KEY = process.env.FRED_API_KEY || 'afa2c5a53a8116fe3a6c6fb339101ca1';

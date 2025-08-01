@@ -46,6 +46,12 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center space-x-4">
+            <a 
+              href="/data-quality" 
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              Data Quality Pipeline
+            </a>
             <GlobalRefreshButton />
             <div className="bg-financial-card rounded-lg px-3 py-2 text-sm">
               <div className="flex items-center space-x-2">
