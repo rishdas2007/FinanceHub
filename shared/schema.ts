@@ -313,8 +313,30 @@ export type HistoricalSectorData = typeof historicalSectorData.$inferSelect;
 export type InsertHistoricalSectorData = typeof historicalSectorData.$inferInsert;
 export type HistoricalMarketSentiment = typeof historicalMarketSentiment.$inferSelect;
 export type InsertHistoricalMarketSentiment = typeof historicalMarketSentiment.$inferInsert;
+// Data lineage tracking table for complete audit trail
+export const dataLineageLog = pgTable("data_lineage_log", {
+  id: text("id").primaryKey(),
+  seriesId: text("series_id").notNull(),
+  operation: text("operation").notNull(), // 'ingestion', 'validation', 'transformation', 'calculation', 'output'
+  stage: text("stage").notNull(), // 'ingress', 'processing', 'egress'
+  timestamp: timestamp("timestamp").notNull(),
+  sourceValue: decimal("source_value", { precision: 20, scale: 6 }),
+  transformedValue: decimal("transformed_value", { precision: 20, scale: 6 }),
+  metadata: jsonb("metadata").notNull(),
+  success: boolean("success").notNull(),
+  errorMessage: text("error_message"),
+  processingTimeMs: integer("processing_time_ms").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+}, (table) => ({
+  seriesIdIndex: index("idx_lineage_series_id").on(table.seriesId),
+  operationIndex: index("idx_lineage_operation").on(table.operation),
+  timestampIndex: index("idx_lineage_timestamp").on(table.timestamp),
+}));
+
 export type DataCollectionAudit = typeof dataCollectionAudit.$inferSelect;
 export type InsertDataCollectionAudit = typeof dataCollectionAudit.$inferInsert;
+export type DataLineageLog = typeof dataLineageLog.$inferSelect;
+export type InsertDataLineageLog = typeof dataLineageLog.$inferInsert;
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
