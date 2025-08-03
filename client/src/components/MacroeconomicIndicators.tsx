@@ -528,10 +528,20 @@ const MacroeconomicIndicators: React.FC = () => {
       <Card className="bg-financial-card border-financial-border">
         <CardHeader>
           <div className="space-y-4">
-            <CardTitle className="text-white">Economic Indicators Table</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-white">Economic Indicators Table</CardTitle>
+              <div className="text-sm text-blue-400 font-medium">
+                📊 {macroData?.indicators.length || 0} indicators available
+              </div>
+            </div>
             
-            {/* Enhanced Controls */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 items-center">
+            {/* Enhanced Controls - Now more prominent */}
+            <div className="bg-financial-gray p-4 rounded-lg border border-blue-500/30">
+              <div className="text-sm font-medium text-blue-400 mb-3 flex items-center">
+                <Filter className="h-4 w-4 mr-2" />
+                Filter & Search Economic Indicators
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 items-center">
               <div className="flex items-center space-x-2">
                 <Search className="h-4 w-4 text-gray-400" />
                 <input
@@ -613,10 +623,11 @@ const MacroeconomicIndicators: React.FC = () => {
                     setZScoreFilter('all');
                     setActiveCategory('Growth');
                   }}
-                  className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg transition-colors text-sm"
+                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg transition-colors text-sm font-medium"
                 >
-                  Clear Filters
+                  Clear All Filters
                 </button>
+              </div>
               </div>
             </div>
 
