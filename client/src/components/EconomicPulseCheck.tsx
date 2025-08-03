@@ -299,10 +299,10 @@ export function EconomicPulseCheck() {
 
     console.log(`📊 Processing ${filteredIndicators.length} filtered indicators for statistical alerts`);
 
-    // Process indicators that have z-scores exceeding 1.0 standard deviation
+    // Process all indicators (show all z-scores)
     let alertCount = 0;
     filteredIndicators.forEach(indicator => {
-      if (indicator.zScore && Math.abs(indicator.zScore) >= 1.0) {
+      if (indicator.zScore !== undefined && indicator.zScore !== null) {
         alertCount++;
         console.log(`📈 Alert for ${indicator.metric}: z-score ${indicator.zScore}, category ${indicator.category}`);
         // Parse numeric values from formatted strings
