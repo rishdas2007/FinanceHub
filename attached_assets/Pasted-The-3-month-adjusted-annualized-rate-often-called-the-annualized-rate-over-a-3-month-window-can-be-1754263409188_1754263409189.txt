@@ -1,0 +1,72 @@
+The 3-month adjusted annualized rate (often called the annualized rate over a 3-month window) can be calculated consistently across different data frequencies by focusing on two steps: (1) computing the cumulative holding period return (or growth factor) over the exact 3-month window, based on the data's periodicity, and (2) annualizing it by raising the growth factor to the power of 4 (since 3 months represents 1/4 of a year, and 12/3=4), then subtracting 1. This assumes continuous compounding, which is standard for economic metrics like returns, growth rates, or inflation to ensure comparability.
+
+The key adjustment is in Step 1: how you aggregate the data over the 3-month period depends on the frequency (daily, weekly, monthly, quarterly, or annual). Higher-frequency data (e.g., daily) requires compounding more individual periods within the 3 months, while lower-frequency data (e.g., quarterly) uses fewer or just one. If the data isn't perfectly aligned (e.g., exactly 13 weeks in 3 months), use the actual number of periods in your specific 3-month window.
+
+### General Formula
+Let \( r_i \) be the periodic rate (as a decimal) for each sub-period \( i \) in the 3-month window.
+- Cumulative growth factor over 3 months = \(\prod_{i=1}^{k} (1 + r_i)\), where \( k \) is the number of periods in the 3-month window.
+- 3-month adjusted annualized rate = \([\prod_{i=1}^{k} (1 + r_i)]^4 - 1\) (multiply by 100 for percentage).
+
+If the data is already a total return or index level (not rates), use (ending value / starting value) as the growth factor, then raise to the 4th power and subtract 1.
+
+### Adjustments by Data Frequency
+Here's how to handle each common frequency, with examples assuming hypothetical rates for illustration. Note: For non-calendar alignments (e.g., partial periods), interpolate if needed, but prefer exact window spans.
+
+- **Daily Data** (e.g., stock returns; assume ~252 trading days/year, so ~63 trading days in 3 months):
+  - Aggregate: Compound all ~63 daily rates to get the 3-month cumulative growth factor.
+  - Adjustment: The exponent remains 4, but the compounding captures intra-period volatility.
+  - Example: Suppose daily rates average 0.05% (0.0005) over 63 days. Cumulative growth ≈ (1.0005)^63 ≈ 1.0318 (3.18% over 3 months). Annualized: (1.0318)^4 - 1 ≈ 0.133 or 13.3%.
+<argument name="citation_id">3</argument>
+
+<argument name="citation_id">13</argument>
+
+
+- **Weekly Data** (e.g., weekly economic indicators; 52 weeks/year, so ~13 weeks in 3 months):
+  - Aggregate: Compound the 13 weekly rates.
+  - Adjustment: Similar to daily—more periods mean finer compounding, but exponent is still 4.
+  - Example: Weekly rates of 0.2%, 0.3%, ..., averaging ~0.25% over 13 weeks. Cumulative ≈ (1.0025)^13 ≈ 1.0329 (3.29% over 3 months). Annualized: (1.0329)^4 - 1 ≈ 0.138 or 13.8%.
+<argument name="citation_id">6</argument>
+
+<argument name="citation_id">13</argument>
+
+
+- **Monthly Data** (e.g., CPI; 12 months/year, so exactly 3 months in the window):
+  - Aggregate: Compound the 3 monthly rates.
+  - Adjustment: Straightforward, as in our prior examples—exponent 4 aligns directly with 12/3.
+  - Example: Monthly rates of 0.2%, 0.1%, 0.3%. Cumulative = (1.002)(1.001)(1.003) ≈ 1.0060 (0.60% over 3 months). Annualized: (1.0060)^4 - 1 ≈ 0.024 or 2.4%.
+<argument name="citation_id">0</argument>
+
+<argument name="citation_id">4</argument>
+
+
+- **Quarterly Data** (e.g., GDP; 4 quarters/year, so 1 quarter = 3 months):
+  - Aggregate: The single quarterly rate is already the 3-month cumulative (no further compounding needed within the period).
+  - Adjustment: Treat it as one period covering the full 3 months; exponent 4 (4/1).
+  - Example: Quarterly growth of 0.75%. Cumulative = 1.0075 (0.75% over 3 months). Annualized: (1.0075)^4 - 1 ≈ 0.030 or 3.0%.
+<argument name="citation_id">5</argument>
+
+<argument name="citation_id">4</argument>
+
+
+- **Annual Data** (e.g., yearly metrics; 1 period/year):
+  - Aggregate: A single annual rate covers 12 months, so for a 3-month window, you can't directly use one data point—interpolate or use a pro-rated fraction (e.g., assume uniform growth and take 1/4 of the annual rate, but this ignores compounding).
+  - Adjustment: If you have multiple years' data, estimate the 3-month slice by interpolating between annual points (e.g., linear or exponential). Then annualize as (1 + interpolated_3mo_return)^4 - 1. Avoid if possible; switch to higher-frequency data for accuracy.
+  - Example: Annual return of 10% (0.10). Pro-rated 3-month ≈ 0.10 / 4 = 0.025 (2.5%, simple). But for compounding: Assume quarterly equivalent ~ (1.10)^{1/4} - 1 ≈ 0.0241, then annualized back: (1.0241)^4 - 1 ≈ 0.10 (round-trip). Use with caution for short windows.
+<argument name="citation_id">1</argument>
+
+<argument name="citation_id">4</argument>
+
+
+### Additional Considerations
+- **Volatility vs. Returns**: This method is for mean returns or growth rates (arithmetic/geometric). For volatility (e.g., standard deviation), use the square-root-of-time rule: Multiply by \(\sqrt{4}\) for 3-month to annual, adjusted similarly by frequency.
+<argument name="citation_id">2</argument>
+
+<argument name="citation_id">10</argument>
+
+- **Absolute Metrics (e.g., Job Gains)**: For non-percentage data like employment adds, average the periodic gains over the 3-month window, then multiply by 4 (not compound, as it's additive). Example: Monthly job gains of 150k, 140k, 160k → Average 150k/month → Annualized: 150k × 12 = 1.8M (but for 3-month rate: 150k × 4 = 600k annualized pace).
+- **Edge Cases**: Use actual calendar days/weeks if the window isn't exact (e.g., February has fewer days). For trading data, exclude weekends/holidays. Tools like spreadsheets or code can automate compounding for large k.
+<argument name="citation_id">7</argument>
+
+<argument name="citation_id">12</argument>
+
+This approach ensures the annualized rate is comparable regardless of source frequency, as the compounding step normalizes the cumulative effect to a 3-month equivalent before scaling to a year.

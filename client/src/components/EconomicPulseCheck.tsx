@@ -16,6 +16,7 @@ interface EconomicIndicator {
   frequency?: string;
   period_date?: string;
   releaseDate?: string;
+  threeMonthAnnualizedRate?: string;
 }
 
 interface EconomicDataResponse {

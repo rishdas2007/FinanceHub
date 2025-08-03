@@ -155,9 +155,118 @@ interface LiveZScoreData {
   deltaHistoricalMean: number;  // Historical mean of period changes
   deltaHistoricalStd: number;   // Historical std dev of period changes
   frequency: string;  // daily, weekly, monthly, quarterly
+  // 3-Month Adjusted Annualized Rate
+  threeMonthAnnualizedRate: number | null;  // 3-month compound annualized rate
 }
 
 export class LiveZScoreCalculator {
+
+  /**
+   * Calculate 3-Month Adjusted Annualized Rate
+   * Implementation based on compounding formula with frequency-based adjustments
+   */
+  private async calculate3MonthAnnualizedRate(
+    seriesId: string, 
+    metricName: string, 
+    frequency: string, 
+    currentPeriodDate: string
+  ): Promise<number | null> {
+    try {
+      // Determine the number of periods to fetch based on frequency
+      let periodsToFetch: number;
+      let annualizationFactor: number;
+      
+      switch (frequency) {
+        case 'daily':
+          periodsToFetch = 63; // ~63 trading days in 3 months
+          annualizationFactor = 4; // 3 months = 1/4 year
+          break;
+        case 'weekly':
+          periodsToFetch = 13; // ~13 weeks in 3 months
+          annualizationFactor = 4;
+          break;
+        case 'monthly':
+          periodsToFetch = 3; // exactly 3 months
+          annualizationFactor = 4; // 12/3 = 4
+          break;
+        case 'quarterly':
+          periodsToFetch = 1; // 1 quarter = 3 months
+          annualizationFactor = 4; // 4/1 = 4
+          break;
+        default:
+          // For annual or unknown frequencies, return null
+          return null;
+      }
+
+      // Fetch historical data for the 3-month window
+      const historicalQuery = `
+        SELECT value, period_date
+        FROM economic_indicators_history
+        WHERE series_id = '${seriesId}'
+          AND metric_name = '${metricName}'
+          AND period_date <= '${currentPeriodDate}'
+          AND value IS NOT NULL
+        ORDER BY period_date DESC
+        LIMIT ${periodsToFetch + 1}
+      `;
+
+      const historicalResult = await db.execute(sql.raw(historicalQuery));
+      const historicalData = historicalResult.rows.map((row: any) => ({
+        value: parseFloat(row.value),
+        date: row.period_date
+      })).reverse(); // Reverse to get chronological order
+
+      if (historicalData.length < 2) {
+        return null; // Need at least 2 data points
+      }
+
+      // For percentage change metrics (CPI, PCE, etc.), use compounding
+      const isPercentageMetric = metricName.toLowerCase().includes('cpi') ||
+                                metricName.toLowerCase().includes('pce') ||
+                                metricName.toLowerCase().includes('ppi') ||
+                                metricName.toLowerCase().includes('personal income') ||
+                                metricName.toLowerCase().includes('leading economic');
+
+      if (isPercentageMetric) {
+        // Step 1: Compute cumulative 3-month change using compounding
+        let cumulativeGrowthFactor = 1;
+        
+        for (let i = 1; i < Math.min(periodsToFetch + 1, historicalData.length); i++) {
+          const periodChange = historicalData[i].value / 100; // Convert percentage to decimal
+          cumulativeGrowthFactor *= (1 + periodChange);
+        }
+        
+        const cumulativeChange = cumulativeGrowthFactor - 1;
+        
+        // Step 2: Annualize by raising to the power of annualization factor
+        const annualizedRate = Math.pow(1 + cumulativeChange, annualizationFactor) - 1;
+        
+        return annualizedRate * 100; // Convert back to percentage
+      } else {
+        // For level data (GDP, employment levels, etc.), calculate growth rate
+        if (historicalData.length < periodsToFetch + 1) {
+          return null;
+        }
+        
+        const startValue = historicalData[0].value;
+        const endValue = historicalData[Math.min(periodsToFetch, historicalData.length - 1)].value;
+        
+        if (startValue <= 0) {
+          return null; // Can't calculate growth rate for zero or negative start values
+        }
+        
+        // Calculate 3-month growth rate and annualize
+        const threeMonthGrowth = (endValue - startValue) / startValue;
+        const annualizedRate = Math.pow(1 + threeMonthGrowth, annualizationFactor) - 1;
+        
+        return annualizedRate * 100;
+      }
+      
+    } catch (error) {
+      logger.error(`❌ Failed to calculate 3-month annualized rate for ${metricName}:`, String(error));
+      return null;
+    }
+  }
   
   /**
    * Calculate live z-scores for all economic indicators
@@ -370,8 +479,28 @@ export class LiveZScoreCalculator {
           deltaZScore,
           deltaHistoricalMean,
           deltaHistoricalStd,
-          frequency
+          frequency,
+          // Placeholder for 3-month annualized rate (calculated separately)
+          threeMonthAnnualizedRate: null
         };
+      });
+
+      // Calculate 3-Month Adjusted Annualized Rates for all indicators
+      logger.info('📊 Calculating 3-Month Adjusted Annualized Rates...');
+      
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        const threeMonthRate = await this.calculate3MonthAnnualizedRate(
+          result.seriesId,
+          result.metric,
+          result.frequency,
+          result.periodDate
+        );
+        results[i].threeMonthAnnualizedRate = threeMonthRate;
+        
+        if (threeMonthRate !== null) {
+          logger.debug(`📈 ${result.metric}: 3-month annualized rate = ${threeMonthRate.toFixed(2)}%`);
+        }
       });
 
       logger.info(`✅ Calculated ${results.length} live z-scores`);

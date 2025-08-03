@@ -166,6 +166,14 @@ export class MacroeconomicService {
 
         const metricLabel = zData.metric + getDirectionalityLabel(zData.directionality);
 
+        // Format 3-Month Adjusted Annualized Rate
+        const format3MonthRate = (rate: number | null): string => {
+          if (rate === null || rate === undefined || isNaN(rate)) {
+            return 'N/A';
+          }
+          return rate.toFixed(1) + '%';
+        };
+
         return {
           metric: metricLabel,
           type: zData.type,
@@ -178,7 +186,8 @@ export class MacroeconomicService {
           zScore: zData.deltaAdjustedZScore, // Use delta-adjusted z-score instead of raw z-score
           deltaZScore: zData.deltaZScore, // Period-to-period change z-score
           frequency: zData.frequency, // Indicator frequency (daily, weekly, monthly, quarterly)
-          unit: zData.unit
+          unit: zData.unit,
+          threeMonthAnnualizedRate: format3MonthRate(zData.threeMonthAnnualizedRate) // 3-Month Adjusted Annualized Rate
         };
       });
 
