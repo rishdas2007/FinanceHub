@@ -173,8 +173,9 @@ export function EconomicPulseCheck() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [frequencyFilter, setFrequencyFilter] = useState('all');
+  const [dateRangeFilter, setDateRangeFilter] = useState('all');
   const [zScoreFilter, setZScoreFilter] = useState('all');
+  const [deltaZScoreFilter, setDeltaZScoreFilter] = useState('all');
 
   const {
     data: economicData,
@@ -213,8 +214,51 @@ export function EconomicPulseCheck() {
     // Type filter
     const matchesType = typeFilter === 'all' || indicator.type === typeFilter;
 
-    // Frequency filter
-    const matchesFrequency = frequencyFilter === 'all' || indicator.frequency === frequencyFilter;
+    // Date range filter
+    let matchesDateRange = true;
+    if (dateRangeFilter !== 'all' && indicator.period_date) {
+      const indicatorDate = new Date(indicator.period_date);
+      const now = new Date();
+      
+      switch (dateRangeFilter) {
+        case 'last7days':
+          matchesDateRange = indicatorDate >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'last30days':
+          matchesDateRange = indicatorDate >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case 'last90days':
+          matchesDateRange = indicatorDate >= new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+          break;
+        case 'thismonth':
+          matchesDateRange = indicatorDate.getMonth() === now.getMonth() && indicatorDate.getFullYear() === now.getFullYear();
+          break;
+        case 'lastmonth':
+          const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+          matchesDateRange = indicatorDate.getMonth() === lastMonth.getMonth() && indicatorDate.getFullYear() === lastMonth.getFullYear();
+          break;
+      }
+    }
+
+    // Delta Z-Score filter
+    let matchesDeltaZScore = true;
+    if (deltaZScoreFilter !== 'all' && indicator.deltaZScore !== undefined) {
+      const deltaZScore = indicator.deltaZScore;
+      switch (deltaZScoreFilter) {
+        case 'extreme':
+          matchesDeltaZScore = Math.abs(deltaZScore) > 2;
+          break;
+        case 'significant':
+          matchesDeltaZScore = Math.abs(deltaZScore) > 1;
+          break;
+        case 'positive':
+          matchesDeltaZScore = deltaZScore > 0;
+          break;
+        case 'negative':
+          matchesDeltaZScore = deltaZScore < 0;
+          break;
+      }
+    }
 
     // Z-Score filter
     let matchesZScore = true;
@@ -236,7 +280,7 @@ export function EconomicPulseCheck() {
       }
     }
 
-    return matchesSearch && matchesCategory && matchesType && matchesFrequency && matchesZScore;
+    return matchesSearch && matchesCategory && matchesType && matchesDateRange && matchesZScore && matchesDeltaZScore;
   }) || [];
 
   const processPulseData = (): PulseData => {
@@ -441,17 +485,18 @@ export function EconomicPulseCheck() {
             </div>
             
             <div className="flex items-center space-x-2">
-              <span className="text-gray-400 text-sm">Frequency:</span>
+              <span className="text-gray-400 text-sm">Date Range:</span>
               <select
-                value={frequencyFilter}
-                onChange={(e) => setFrequencyFilter(e.target.value)}
+                value={dateRangeFilter}
+                onChange={(e) => setDateRangeFilter(e.target.value)}
                 className="bg-financial-gray border border-financial-border rounded px-3 py-2 text-white focus:border-blue-400 focus:outline-none w-full"
               >
-                <option value="all">All Frequencies</option>
-                <option value="Daily">Daily</option>
-                <option value="Weekly">Weekly</option>
-                <option value="Monthly">Monthly</option>
-                <option value="Quarterly">Quarterly</option>
+                <option value="all">All Dates</option>
+                <option value="last7days">Last 7 Days</option>
+                <option value="last30days">Last 30 Days</option>
+                <option value="last90days">Last 90 Days</option>
+                <option value="thismonth">This Month</option>
+                <option value="lastmonth">Last Month</option>
               </select>
             </div>
             
@@ -469,6 +514,21 @@ export function EconomicPulseCheck() {
                 <option value="negative">Negative (z {'<'} 0)</option>
               </select>
             </div>
+            
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-400 text-sm">Δ Z-Score:</span>
+              <select
+                value={deltaZScoreFilter}
+                onChange={(e) => setDeltaZScoreFilter(e.target.value)}
+                className="bg-financial-gray border border-financial-border rounded px-3 py-2 text-white focus:border-blue-400 focus:outline-none w-full"
+              >
+                <option value="all">All Δ Z-Scores</option>
+                <option value="extreme">Extreme (|Δz| {'>'} 2)</option>
+                <option value="significant">Significant (|Δz| {'>'} 1)</option>
+                <option value="positive">Positive (Δz {'>'} 0)</option>
+                <option value="negative">Negative (Δz {'<'} 0)</option>
+              </select>
+            </div>
           </div>
           
           <div className="flex items-center mt-4">
@@ -477,8 +537,9 @@ export function EconomicPulseCheck() {
                 setSearchTerm('');
                 setCategoryFilter('all');
                 setTypeFilter('all');
-                setFrequencyFilter('all');
+                setDateRangeFilter('all');
                 setZScoreFilter('all');
+                setDeltaZScoreFilter('all');
               }}
               className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg transition-colors text-sm font-medium"
             >

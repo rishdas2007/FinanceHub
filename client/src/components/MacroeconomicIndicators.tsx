@@ -237,9 +237,9 @@ const MacroeconomicIndicators: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('Growth');
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [frequencyFilter, setFrequencyFilter] = useState<string>('all');
   const [dateRangeFilter, setDateRangeFilter] = useState<string>('all');
   const [zScoreFilter, setZScoreFilter] = useState<string>('all');
+  const [deltaZScoreFilter, setDeltaZScoreFilter] = useState<string>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -336,8 +336,25 @@ const MacroeconomicIndicators: React.FC = () => {
       const matchesSearch = indicator.metric.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType = typeFilter === 'all' || indicator.type === typeFilter;
       
-      // Frequency filter
-      const matchesFrequency = frequencyFilter === 'all' || indicator.frequency === frequencyFilter;
+      // Delta Z-Score filter
+      let matchesDeltaZScore = true;
+      if (deltaZScoreFilter !== 'all' && typeof indicator.deltaZScore === 'number') {
+        const deltaZScore = indicator.deltaZScore;
+        switch (deltaZScoreFilter) {
+          case 'extreme':
+            matchesDeltaZScore = Math.abs(deltaZScore) > 2;
+            break;
+          case 'significant':
+            matchesDeltaZScore = Math.abs(deltaZScore) > 1;
+            break;
+          case 'positive':
+            matchesDeltaZScore = deltaZScore > 0;
+            break;
+          case 'negative':
+            matchesDeltaZScore = deltaZScore < 0;
+            break;
+        }
+      }
       
       // Date range filter
       let matchesDateRange = true;
@@ -385,7 +402,7 @@ const MacroeconomicIndicators: React.FC = () => {
         }
       }
       
-      return matchesCategory && matchesSearch && matchesType && matchesFrequency && matchesDateRange && matchesZScore;
+      return matchesCategory && matchesSearch && matchesType && matchesDeltaZScore && matchesDateRange && matchesZScore;
     }) || [];
 
     // Sort if column and direction are selected
@@ -568,17 +585,17 @@ const MacroeconomicIndicators: React.FC = () => {
               </div>
               
               <div className="flex items-center space-x-2">
-                <span className="text-gray-400 text-sm">Frequency:</span>
+                <span className="text-gray-400 text-sm">Δ Z-Score:</span>
                 <select
-                  value={frequencyFilter}
-                  onChange={(e) => setFrequencyFilter(e.target.value)}
+                  value={deltaZScoreFilter}
+                  onChange={(e) => setDeltaZScoreFilter(e.target.value)}
                   className="bg-financial-gray border border-financial-border rounded px-3 py-2 text-white focus:border-blue-400 focus:outline-none w-full"
                 >
-                  <option value="all">All Frequencies</option>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="quarterly">Quarterly</option>
+                  <option value="all">All Δ Z-Scores</option>
+                  <option value="extreme">Extreme (|Δz| {'>'} 2)</option>
+                  <option value="significant">Significant (|Δz| {'>'} 1)</option>
+                  <option value="positive">Positive (Δz {'>'} 0)</option>
+                  <option value="negative">Negative (Δz {'<'} 0)</option>
                 </select>
               </div>
               
@@ -618,7 +635,7 @@ const MacroeconomicIndicators: React.FC = () => {
                   onClick={() => {
                     setSearchTerm('');
                     setTypeFilter('all');
-                    setFrequencyFilter('all');
+                    setDeltaZScoreFilter('all');
                     setDateRangeFilter('all');
                     setZScoreFilter('all');
                     setActiveCategory('Growth');
