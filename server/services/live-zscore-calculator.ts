@@ -93,6 +93,7 @@ interface LiveZScoreData {
   type: string;
   unit: string;
   directionality: number;  // New: +1, -1, or 0
+  isUnprecedentedEvent?: boolean;  // New: flag for extreme economic events
 }
 
 export class LiveZScoreCalculator {
@@ -202,9 +203,13 @@ export class LiveZScoreCalculator {
         const priorValue = parseFloat(row.prior_value) || 0;
         
         // Calculate z-score live
-        const zScore = (historicalStd > 0 && historicalMean !== null) 
+        const rawZScore = (historicalStd > 0 && historicalMean !== null) 
           ? (currentValue - historicalMean) / historicalStd 
           : 0;
+        
+        // Cap extreme z-scores for display while preserving mathematical accuracy
+        // Values beyond ±50 are likely unprecedented economic events
+        const zScore = Math.abs(rawZScore) > 50 ? Math.sign(rawZScore) * 50 : rawZScore;
         
         // Calculate variances live
         const varianceFromMean = currentValue - historicalMean;
@@ -221,7 +226,7 @@ export class LiveZScoreCalculator {
           historicalMean,
           historicalStd,
           zScore,
-          deltaAdjustedZScore,
+          deltaAdjustedZScore: Math.abs(rawZScore) > 50 ? Math.sign(rawZScore) * 50 * directionality : zScore * directionality,
           priorValue,
           varianceFromMean,
           varianceFromPrior,
@@ -229,7 +234,8 @@ export class LiveZScoreCalculator {
           category: row.category,
           type: row.type,
           unit: row.unit,
-          directionality
+          directionality,
+          isUnprecedentedEvent: Math.abs(rawZScore) > 10 // Flag for special handling
         };
       });
 
