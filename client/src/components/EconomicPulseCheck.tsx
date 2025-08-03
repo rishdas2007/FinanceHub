@@ -1,6 +1,7 @@
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Activity, TrendingUp, TrendingDown } from 'lucide-react';
+import { Activity, TrendingUp, TrendingDown, Search, Filter } from 'lucide-react';
 
 interface EconomicIndicator {
   metric: string;
@@ -168,6 +169,13 @@ const formatValue = (value: number, metricName: string): string => {
 };
 
 export function EconomicPulseCheck() {
+  // Filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [frequencyFilter, setFrequencyFilter] = useState('all');
+  const [zScoreFilter, setZScoreFilter] = useState('all');
+
   const {
     data: economicData,
     isLoading,
@@ -193,6 +201,44 @@ export function EconomicPulseCheck() {
     })));
   }
 
+  // Filter indicators based on filter criteria
+  const filteredIndicators = economicData?.indicators?.filter(indicator => {
+    // Search filter
+    const matchesSearch = searchTerm === '' || 
+      indicator.metric.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Category filter  
+    const matchesCategory = categoryFilter === 'all' || indicator.category === categoryFilter;
+
+    // Type filter
+    const matchesType = typeFilter === 'all' || indicator.type === typeFilter;
+
+    // Frequency filter
+    const matchesFrequency = frequencyFilter === 'all' || indicator.frequency === frequencyFilter;
+
+    // Z-Score filter
+    let matchesZScore = true;
+    if (zScoreFilter !== 'all' && indicator.zScore !== undefined) {
+      const zScore = indicator.zScore;
+      switch (zScoreFilter) {
+        case 'high':
+          matchesZScore = Math.abs(zScore) > 2;
+          break;
+        case 'significant':
+          matchesZScore = Math.abs(zScore) > 1;
+          break;
+        case 'positive':
+          matchesZScore = zScore > 0;
+          break;
+        case 'negative':
+          matchesZScore = zScore < 0;
+          break;
+      }
+    }
+
+    return matchesSearch && matchesCategory && matchesType && matchesFrequency && matchesZScore;
+  }) || [];
+
   const processPulseData = (): PulseData => {
     const pulseData: PulseData = {
       Growth: { positive: [], negative: [] },
@@ -202,16 +248,16 @@ export function EconomicPulseCheck() {
       Sentiment: { positive: [], negative: [] }
     };
 
-    if (!economicData?.indicators) {
-      console.log('📊 No economic data indicators found');
+    if (!filteredIndicators || filteredIndicators.length === 0) {
+      console.log('📊 No filtered economic data indicators found');
       return pulseData;
     }
 
-    console.log(`📊 Processing ${economicData?.indicators?.length || 0} indicators for statistical alerts`);
+    console.log(`📊 Processing ${filteredIndicators.length} filtered indicators for statistical alerts`);
 
     // Process indicators that have z-scores exceeding 1.0 standard deviation
     let alertCount = 0;
-    economicData?.indicators?.forEach(indicator => {
+    filteredIndicators.forEach(indicator => {
       if (indicator.zScore && Math.abs(indicator.zScore) >= 1.0) {
         alertCount++;
         console.log(`📈 Alert for ${indicator.metric}: z-score ${indicator.zScore}, category ${indicator.category}`);
@@ -336,10 +382,110 @@ export function EconomicPulseCheck() {
   return (
     <Card className="bg-financial-card border-financial-border">
       <CardHeader>
-        <CardTitle className="text-white flex items-center space-x-2">
-          <Activity className="h-5 w-5 text-blue-400" />
-          <span>Economic Analysis</span>
-        </CardTitle>
+        <div className="flex items-center justify-between mb-4">
+          <CardTitle className="text-white flex items-center space-x-2">
+            <Activity className="h-5 w-5 text-blue-400" />
+            <span>Economic Analysis</span>
+          </CardTitle>
+          <div className="text-sm text-blue-400 font-medium">
+            📊 {filteredIndicators.length} indicators filtered
+          </div>
+        </div>
+
+        {/* Enhanced Filter Controls */}
+        <div className="bg-financial-gray p-4 rounded-lg border border-blue-500/30 mb-4">
+          <div className="text-sm font-medium text-blue-400 mb-3 flex items-center">
+            <Filter className="h-4 w-4 mr-2" />
+            Filter & Search Economic Analysis
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-center">
+            <div className="flex items-center space-x-2">
+              <Search className="h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search indicators..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-financial-gray border border-financial-border rounded px-3 py-2 text-white placeholder-gray-400 focus:border-blue-400 focus:outline-none w-full"
+              />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-400 text-sm">Category:</span>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="bg-financial-gray border border-financial-border rounded px-3 py-2 text-white focus:border-blue-400 focus:outline-none w-full"
+              >
+                <option value="all">All Categories</option>
+                <option value="Growth">Growth</option>
+                <option value="Inflation">Inflation</option>
+                <option value="Labor">Labor</option>
+                <option value="Monetary Policy">Monetary Policy</option>
+                <option value="Sentiment">Sentiment</option>
+              </select>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-gray-400" />
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="bg-financial-gray border border-financial-border rounded px-3 py-2 text-white focus:border-blue-400 focus:outline-none w-full"
+              >
+                <option value="all">All Types</option>
+                <option value="Leading">Leading</option>
+                <option value="Coincident">Coincident</option>
+                <option value="Lagging">Lagging</option>
+              </select>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-400 text-sm">Frequency:</span>
+              <select
+                value={frequencyFilter}
+                onChange={(e) => setFrequencyFilter(e.target.value)}
+                className="bg-financial-gray border border-financial-border rounded px-3 py-2 text-white focus:border-blue-400 focus:outline-none w-full"
+              >
+                <option value="all">All Frequencies</option>
+                <option value="Daily">Daily</option>
+                <option value="Weekly">Weekly</option>
+                <option value="Monthly">Monthly</option>
+                <option value="Quarterly">Quarterly</option>
+              </select>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-400 text-sm">Z-Score:</span>
+              <select
+                value={zScoreFilter}
+                onChange={(e) => setZScoreFilter(e.target.value)}
+                className="bg-financial-gray border border-financial-border rounded px-3 py-2 text-white focus:border-blue-400 focus:outline-none w-full"
+              >
+                <option value="all">All Z-Scores</option>
+                <option value="high">High (|z| {'>'} 2)</option>
+                <option value="significant">Significant (|z| {'>'} 1)</option>
+                <option value="positive">Positive (z {'>'} 0)</option>
+                <option value="negative">Negative (z {'<'} 0)</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="flex items-center mt-4">
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setCategoryFilter('all');
+                setTypeFilter('all');
+                setFrequencyFilter('all');
+                setZScoreFilter('all');
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg transition-colors text-sm font-medium"
+            >
+              Clear All Filters
+            </button>
+          </div>
+        </div>
         
         {/* Summary Statistics */}
         <div className="mt-4 grid grid-cols-5 gap-3">
