@@ -175,7 +175,7 @@ export function EconomicPulseCheck() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [dateRangeFilter, setDateRangeFilter] = useState('all');
   const [zScoreFilter, setZScoreFilter] = useState('all');
-  const [deltaZScoreFilter, setDeltaZScoreFilter] = useState('all');
+  const [deltaZScoreFilter, setDeltaZScoreFilter] = useState('significant');
 
   const {
     data: economicData,
@@ -539,7 +539,7 @@ export function EconomicPulseCheck() {
                 setTypeFilter('all');
                 setDateRangeFilter('all');
                 setZScoreFilter('all');
-                setDeltaZScoreFilter('all');
+                setDeltaZScoreFilter('significant');
               }}
               className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg transition-colors text-sm font-medium"
             >
@@ -567,10 +567,6 @@ export function EconomicPulseCheck() {
           ))}
         </div>
         
-        <p className="text-gray-400 text-sm mt-4">
-          Statistical alerts for indicators exceeding 1.0 standard deviations from historical mean
-        </p>
-        
         {/* Enhanced Z-Score Definition with Delta Z-Score */}
         <div className="mt-3 p-3 bg-gray-900 border border-gray-700 rounded-lg">
           <p className="text-sm text-gray-400">
@@ -583,6 +579,10 @@ export function EconomicPulseCheck() {
             Values above ±2.0 indicate statistically significant conditions.
           </p>
         </div>
+        
+        <p className="text-gray-400 text-sm mt-4">
+          Displaying indicators with significant delta z-scores (|Δz| &gt; 1) showing period-to-period changes exceeding 1.0 standard deviations from historical volatility patterns.
+        </p>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
