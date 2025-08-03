@@ -36,6 +36,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Gold Standard Data Quality & Pipeline endpoints
   app.use('/api/data-quality', (await import('./routes/data-quality-routes')).default);
   
+  // Multi-Timeframe Technical Convergence Analysis endpoints
+  app.use('/api', (await import('./routes/convergence-analysis')).default);
+  
   // Authentic FRED Economic Data API - prioritized endpoint
   app.get('/api/fred-economic-data', async (req, res) => {
     try {

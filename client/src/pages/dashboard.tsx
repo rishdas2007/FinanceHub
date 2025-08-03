@@ -52,6 +52,12 @@ export default function Dashboard() {
             >
               Data Quality Pipeline
             </a>
+            <a 
+              href="/convergence-analysis" 
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              Convergence Analysis
+            </a>
             <GlobalRefreshButton />
             <div className="bg-financial-card rounded-lg px-3 py-2 text-sm">
               <div className="flex items-center space-x-2">

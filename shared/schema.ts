@@ -123,6 +123,91 @@ export const marketBreadth = pgTable("market_breadth", {
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 });
 
+// Multi-Timeframe Technical Convergence Analysis Tables
+export const technicalIndicatorsMultiTimeframe = pgTable("technical_indicators_multi_timeframe", {
+  id: serial("id").primaryKey(),
+  symbol: text("symbol").notNull(),
+  timeframe: text("timeframe").notNull(), // 1m, 5m, 1h, 1d, 1w, 1M
+  rsi: decimal("rsi", { precision: 5, scale: 2 }),
+  macd_line: decimal("macd_line", { precision: 10, scale: 4 }),
+  macd_signal: decimal("macd_signal", { precision: 10, scale: 4 }),
+  macd_histogram: decimal("macd_histogram", { precision: 10, scale: 4 }),
+  bollinger_upper: decimal("bollinger_upper", { precision: 10, scale: 2 }),
+  bollinger_middle: decimal("bollinger_middle", { precision: 10, scale: 2 }),
+  bollinger_lower: decimal("bollinger_lower", { precision: 10, scale: 2 }),
+  bollinger_width: decimal("bollinger_width", { precision: 10, scale: 4 }),
+  bollinger_position: decimal("bollinger_position", { precision: 5, scale: 4 }),
+  volume_sma_20: decimal("volume_sma_20", { precision: 15, scale: 0 }),
+  volume_ratio: decimal("volume_ratio", { precision: 5, scale: 2 }),
+  atr: decimal("atr", { precision: 10, scale: 4 }),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  symbolTimeframeIdx: index("symbol_timeframe_idx").on(table.symbol, table.timeframe),
+  timestampIdx: index("multi_timeframe_timestamp_idx").on(table.timestamp),
+}));
+
+export const convergenceSignals = pgTable("convergence_signals", {
+  id: serial("id").primaryKey(),
+  symbol: text("symbol").notNull(),
+  signal_type: text("signal_type").notNull(), // bollinger_squeeze, ma_convergence, rsi_divergence, volume_confirmation
+  timeframes: jsonb("timeframes").notNull(), // Array of timeframes
+  strength: integer("strength").notNull(), // 0-100
+  confidence: integer("confidence").notNull(), // 0-100 based on historical success
+  direction: text("direction").notNull(), // bullish, bearish, neutral
+  detected_at: timestamp("detected_at").notNull(),
+  expires_at: timestamp("expires_at").notNull(),
+  metadata: jsonb("metadata").notNull().default('{}'),
+  is_active: boolean("is_active").notNull().default(true),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  symbolIdx: index("convergence_symbol_idx").on(table.symbol),
+  signalTypeIdx: index("signal_type_idx").on(table.signal_type),
+  detectedAtIdx: index("detected_at_idx").on(table.detected_at),
+  isActiveIdx: index("is_active_idx").on(table.is_active),
+}));
+
+export const signalQualityScores = pgTable("signal_quality_scores", {
+  id: serial("id").primaryKey(),
+  signal_type: text("signal_type").notNull(),
+  symbol: text("symbol").notNull(),
+  timeframe_combination: text("timeframe_combination").notNull(),
+  total_occurrences: integer("total_occurrences").notNull().default(0),
+  successful_occurrences: integer("successful_occurrences").notNull().default(0),
+  success_rate: decimal("success_rate", { precision: 5, scale: 2 }).notNull().default('0'),
+  avg_return_24h: decimal("avg_return_24h", { precision: 10, scale: 4 }).notNull().default('0'),
+  avg_return_7d: decimal("avg_return_7d", { precision: 10, scale: 4 }).notNull().default('0'),
+  last_updated: timestamp("last_updated").notNull().defaultNow(),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  signalSymbolIdx: index("signal_symbol_idx").on(table.signal_type, table.symbol),
+  successRateIdx: index("success_rate_idx").on(table.success_rate),
+  uniqueSignalConstraint: unique("unique_signal_combination").on(table.signal_type, table.symbol, table.timeframe_combination),
+}));
+
+export const bollingerSqueezeEvents = pgTable("bollinger_squeeze_events", {
+  id: serial("id").primaryKey(),
+  symbol: text("symbol").notNull(),
+  timeframe: text("timeframe").notNull(),
+  squeeze_start: timestamp("squeeze_start").notNull(),
+  squeeze_end: timestamp("squeeze_end"),
+  squeeze_duration_hours: integer("squeeze_duration_hours"),
+  breakout_direction: text("breakout_direction"), // up, down, null
+  breakout_strength: decimal("breakout_strength", { precision: 5, scale: 2 }),
+  price_at_squeeze: decimal("price_at_squeeze", { precision: 10, scale: 2 }).notNull(),
+  price_at_breakout: decimal("price_at_breakout", { precision: 10, scale: 2 }),
+  volume_at_squeeze: decimal("volume_at_squeeze", { precision: 15, scale: 0 }).notNull(),
+  volume_at_breakout: decimal("volume_at_breakout", { precision: 15, scale: 0 }),
+  return_24h: decimal("return_24h", { precision: 10, scale: 4 }),
+  return_7d: decimal("return_7d", { precision: 10, scale: 4 }),
+  is_active: boolean("is_active").notNull().default(true),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  symbolTimeframeIdx: index("squeeze_symbol_timeframe_idx").on(table.symbol, table.timeframe),
+  squeezeStartIdx: index("squeeze_start_idx").on(table.squeeze_start),
+  isActiveIdx: index("squeeze_is_active_idx").on(table.is_active),
+}));
+
 export const vixData = pgTable("vix_data", {
   id: serial("id").primaryKey(),
   vixValue: decimal("vix_value", { precision: 5, scale: 2 }).notNull(),

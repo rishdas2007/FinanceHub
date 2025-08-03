@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ETFProvider } from "@/context/etf-context";
 import Dashboard from "@/pages/dashboard";
 import DataQualityDashboard from "@/pages/DataQualityDashboard";
+import ConvergenceAnalysisPage from "@/pages/ConvergenceAnalysisPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -13,6 +14,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/data-quality" component={DataQualityDashboard} />
+      <Route path="/convergence-analysis" component={ConvergenceAnalysisPage} />
       <Route component={NotFound} />
     </Switch>
   );
