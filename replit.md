@@ -81,3 +81,19 @@ The schema includes key tables for:
 - **Lucide React**: Icon library.
 - **Recharts**: Financial charting and visualization.
 - **Tailwind CSS**: Utility-first CSS framework.
+
+## Development & Deployment Infrastructure
+
+### CI/CD Pipeline (Added August 3, 2025)
+- **GitHub Actions**: Complete CI/CD workflows for testing, security, and deployment
+- **Automated Testing**: Vitest (unit/integration), Playwright (E2E), coverage reporting
+- **Code Quality**: ESLint, Prettier, TypeScript checking with pre-commit hooks
+- **Security Scanning**: Dependency audits, secrets detection, SAST with CodeQL
+- **Performance Testing**: Lighthouse CI, Artillery load testing
+- **Container Orchestration**: Optimized Docker builds, Docker Compose for local development
+
+### Development Tools
+- **Testing Framework**: Comprehensive test suites with 70% coverage thresholds
+- **Quality Assurance**: Automated linting, formatting, and type checking
+- **Security Compliance**: Automated vulnerability scanning and license checking
+- **Performance Monitoring**: Response time tracking and bundle analysis
