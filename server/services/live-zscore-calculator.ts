@@ -501,7 +501,7 @@ export class LiveZScoreCalculator {
         if (threeMonthRate !== null) {
           logger.debug(`📈 ${result.metric}: 3-month annualized rate = ${threeMonthRate.toFixed(2)}%`);
         }
-      });
+      }
 
       logger.info(`✅ Calculated ${results.length} live z-scores`);
       
