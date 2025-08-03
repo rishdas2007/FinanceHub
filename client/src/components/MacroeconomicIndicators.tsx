@@ -237,6 +237,9 @@ const MacroeconomicIndicators: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('Growth');
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [frequencyFilter, setFrequencyFilter] = useState<string>('all');
+  const [dateRangeFilter, setDateRangeFilter] = useState<string>('all');
+  const [zScoreFilter, setZScoreFilter] = useState<string>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -326,13 +329,63 @@ const MacroeconomicIndicators: React.FC = () => {
     }
   };
 
-  // Filter and sort indicators
+  // Enhanced filter and sort indicators with new filtering options
   const filteredAndSortedIndicators = (() => {
     let filtered = macroData?.indicators.filter(indicator => {
       const matchesCategory = activeCategory === 'All' || indicator.category === activeCategory;
       const matchesSearch = indicator.metric.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType = typeFilter === 'all' || indicator.type === typeFilter;
-      return matchesCategory && matchesSearch && matchesType;
+      
+      // Frequency filter
+      const matchesFrequency = frequencyFilter === 'all' || indicator.frequency === frequencyFilter;
+      
+      // Date range filter
+      let matchesDateRange = true;
+      if (dateRangeFilter !== 'all' && indicator.period_date) {
+        const indicatorDate = new Date(indicator.period_date);
+        const now = new Date();
+        
+        switch (dateRangeFilter) {
+          case 'last7days':
+            matchesDateRange = indicatorDate >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+          case 'last30days':
+            matchesDateRange = indicatorDate >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            break;
+          case 'last90days':
+            matchesDateRange = indicatorDate >= new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+            break;
+          case 'thismonth':
+            matchesDateRange = indicatorDate.getMonth() === now.getMonth() && indicatorDate.getFullYear() === now.getFullYear();
+            break;
+          case 'lastmonth':
+            const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+            matchesDateRange = indicatorDate.getMonth() === lastMonth.getMonth() && indicatorDate.getFullYear() === lastMonth.getFullYear();
+            break;
+        }
+      }
+      
+      // Z-Score filter
+      let matchesZScore = true;
+      if (zScoreFilter !== 'all' && typeof indicator.zScore === 'number') {
+        const zScore = indicator.zScore;
+        switch (zScoreFilter) {
+          case 'extreme':
+            matchesZScore = Math.abs(zScore) > 2;
+            break;
+          case 'significant':
+            matchesZScore = Math.abs(zScore) > 1;
+            break;
+          case 'positive':
+            matchesZScore = zScore > 0;
+            break;
+          case 'negative':
+            matchesZScore = zScore < 0;
+            break;
+        }
+      }
+      
+      return matchesCategory && matchesSearch && matchesType && matchesFrequency && matchesDateRange && matchesZScore;
     }) || [];
 
     // Sort if column and direction are selected
@@ -477,8 +530,8 @@ const MacroeconomicIndicators: React.FC = () => {
           <div className="space-y-4">
             <CardTitle className="text-white">Economic Indicators Table</CardTitle>
             
-            {/* Controls */}
-            <div className="flex flex-wrap gap-4 items-center">
+            {/* Enhanced Controls */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 items-center">
               <div className="flex items-center space-x-2">
                 <Search className="h-4 w-4 text-gray-400" />
                 <input
@@ -486,21 +539,84 @@ const MacroeconomicIndicators: React.FC = () => {
                   placeholder="Search indicators..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="bg-financial-gray border border-financial-border rounded px-3 py-2 text-white placeholder-gray-400 focus:border-blue-400 focus:outline-none"
+                  className="bg-financial-gray border border-financial-border rounded px-3 py-2 text-white placeholder-gray-400 focus:border-blue-400 focus:outline-none w-full"
                 />
               </div>
+              
               <div className="flex items-center space-x-2">
                 <Filter className="h-4 w-4 text-gray-400" />
                 <select
                   value={typeFilter}
                   onChange={(e) => setTypeFilter(e.target.value)}
-                  className="bg-financial-gray border border-financial-border rounded px-3 py-2 text-white focus:border-blue-400 focus:outline-none"
+                  className="bg-financial-gray border border-financial-border rounded px-3 py-2 text-white focus:border-blue-400 focus:outline-none w-full"
                 >
                   <option value="all">All Types</option>
                   <option value="Leading">Leading</option>
                   <option value="Coincident">Coincident</option>
                   <option value="Lagging">Lagging</option>
                 </select>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-400 text-sm">Frequency:</span>
+                <select
+                  value={frequencyFilter}
+                  onChange={(e) => setFrequencyFilter(e.target.value)}
+                  className="bg-financial-gray border border-financial-border rounded px-3 py-2 text-white focus:border-blue-400 focus:outline-none w-full"
+                >
+                  <option value="all">All Frequencies</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="quarterly">Quarterly</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-400 text-sm">Date Range:</span>
+                <select
+                  value={dateRangeFilter}
+                  onChange={(e) => setDateRangeFilter(e.target.value)}
+                  className="bg-financial-gray border border-financial-border rounded px-3 py-2 text-white focus:border-blue-400 focus:outline-none w-full"
+                >
+                  <option value="all">All Dates</option>
+                  <option value="last7days">Last 7 Days</option>
+                  <option value="last30days">Last 30 Days</option>
+                  <option value="last90days">Last 90 Days</option>
+                  <option value="thismonth">This Month</option>
+                  <option value="lastmonth">Last Month</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-400 text-sm">Z-Score:</span>
+                <select
+                  value={zScoreFilter}
+                  onChange={(e) => setZScoreFilter(e.target.value)}
+                  className="bg-financial-gray border border-financial-border rounded px-3 py-2 text-white focus:border-blue-400 focus:outline-none w-full"
+                >
+                  <option value="all">All Z-Scores</option>
+                  <option value="extreme">Extreme (|z| {'>'}  2)</option>
+                  <option value="significant">Significant (|z| {'>'} 1)</option>
+                  <option value="positive">Positive (z {'>'} 0)</option>
+                  <option value="negative">Negative (z {'<'} 0)</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center">
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setTypeFilter('all');
+                    setFrequencyFilter('all');
+                    setDateRangeFilter('all');
+                    setZScoreFilter('all');
+                    setActiveCategory('Growth');
+                  }}
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg transition-colors text-sm"
+                >
+                  Clear Filters
+                </button>
               </div>
             </div>
 

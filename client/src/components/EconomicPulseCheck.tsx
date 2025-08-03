@@ -11,6 +11,8 @@ interface EconomicIndicator {
   priorReading: string;
   varianceVsPrior: string;
   zScore?: number;
+  deltaZScore?: number;
+  frequency?: string;
   period_date?: string;
   releaseDate?: string;
 }
@@ -27,6 +29,8 @@ interface PulseMetric {
   currentValue: number;
   priorValue: number | null;
   zScore: number;
+  deltaZScore?: number;
+  frequency?: string;
   formattedValue: string;
   formattedPriorValue: string;
   periodDate: string;
@@ -179,12 +183,13 @@ export function EconomicPulseCheck() {
   console.log('📊 EconomicPulseCheck - Error:', error);
   
   // Log first few indicators to check period_date values
-  if (economicData?.indicators?.length > 0) {
+  if (economicData?.indicators && economicData.indicators.length > 0) {
     console.log('📅 Sample indicators with dates:', economicData.indicators.slice(0, 3).map(ind => ({
       metric: ind.metric,
       period_date: ind.period_date,
       releaseDate: ind.releaseDate,
-      zScore: ind.zScore
+      zScore: ind.zScore,
+      deltaZScore: ind.deltaZScore
     })));
   }
 
@@ -236,6 +241,8 @@ export function EconomicPulseCheck() {
           currentValue: currentValue,
           priorValue: priorValue,
           zScore: indicator.zScore,
+          deltaZScore: indicator.deltaZScore,
+          frequency: indicator.frequency,
           formattedValue: indicator.currentReading,
           formattedPriorValue: indicator.priorReading,
           periodDate: actualPeriodDate, // Use actual period_date from database
@@ -357,13 +364,16 @@ export function EconomicPulseCheck() {
           Statistical alerts for indicators exceeding 1.0 standard deviations from historical mean
         </p>
         
-        {/* Z-Score Definition Note */}
+        {/* Enhanced Z-Score Definition with Delta Z-Score */}
         <div className="mt-3 p-3 bg-gray-900 border border-gray-700 rounded-lg">
           <p className="text-sm text-gray-400">
-            <strong className="text-white">Delta-Adjusted Z-Score Definition:</strong> Measures how many standard deviations the current value is from its 12-month historical average, with economic directionality applied. 
-            <strong className="text-blue-400"> Positive z-scores = Economic Strength, Negative z-scores = Economic Weakness.</strong> 
-            Indicators marked "(Δ-adjusted)" have been inverted for consistent interpretation (e.g., lower unemployment rates show positive z-scores). 
-            Values above ±2.0 indicate statistically significant economic conditions.
+            <strong className="text-white">Z-Score Analysis:</strong> Measures how many standard deviations the current value is from its 12-month historical average, with economic directionality applied. 
+            <strong className="text-blue-400"> Positive z-scores = Economic Strength, Negative z-scores = Economic Weakness.</strong>
+          </p>
+          <p className="text-sm text-gray-400 mt-2">
+            <strong className="text-yellow-400">Δ Z-Score (Delta Z-Score):</strong> Shows the z-score of period-to-period changes, indicating whether recent changes are statistically unusual compared to historical volatility patterns.
+            Indicators marked "(Δ-adjusted)" have been inverted for consistent interpretation (e.g., lower unemployment rates show positive z-scores).
+            Values above ±2.0 indicate statistically significant conditions.
           </p>
         </div>
       </CardHeader>
@@ -413,6 +423,14 @@ export function EconomicPulseCheck() {
                               <div className="text-sm font-bold text-gain-green">
                                 +{metric.zScore.toFixed(2)}
                               </div>
+                              {metric.deltaZScore && (
+                                <>
+                                  <div className="text-xs text-gray-400 mt-1">Δ z-score</div>
+                                  <div className={`text-xs font-medium ${metric.deltaZScore >= 0 ? 'text-gain-green' : 'text-loss-red'}`}>
+                                    {metric.deltaZScore >= 0 ? '+' : ''}{metric.deltaZScore.toFixed(1)}
+                                  </div>
+                                </>
+                              )}
                             </div>
                           </div>
                           <div className="flex justify-between items-center text-xs text-gray-400">
@@ -451,6 +469,14 @@ export function EconomicPulseCheck() {
                               <div className="text-sm font-bold text-loss-red">
                                 {metric.zScore.toFixed(2)}
                               </div>
+                              {metric.deltaZScore && (
+                                <>
+                                  <div className="text-xs text-gray-400 mt-1">Δ z-score</div>
+                                  <div className={`text-xs font-medium ${metric.deltaZScore >= 0 ? 'text-gain-green' : 'text-loss-red'}`}>
+                                    {metric.deltaZScore >= 0 ? '+' : ''}{metric.deltaZScore.toFixed(1)}
+                                  </div>
+                                </>
+                              )}
                             </div>
                           </div>
                           <div className="flex justify-between items-center text-xs text-gray-400">
