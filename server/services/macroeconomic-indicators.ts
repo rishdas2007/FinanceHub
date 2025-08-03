@@ -176,6 +176,8 @@ export class MacroeconomicService {
           priorReading: formatNumber(priorReading, zData.unit, zData.metric),
           varianceVsPrior: formatVariance(actualVariance, zData.unit, zData.metric), // Simple current - prior calculation
           zScore: zData.deltaAdjustedZScore, // Use delta-adjusted z-score instead of raw z-score
+          deltaZScore: zData.deltaZScore, // Period-to-period change z-score
+          frequency: zData.frequency, // Indicator frequency (daily, weekly, monthly, quarterly)
           unit: zData.unit
         };
       });

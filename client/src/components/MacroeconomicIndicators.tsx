@@ -13,6 +13,8 @@ interface MacroIndicator {
   varianceVsPrior: number | string;
   unit: string;
   zScore?: number | null;
+  deltaZScore?: number | null;
+  frequency?: string;
   period_date?: string;
 }
 
@@ -229,7 +231,7 @@ const MacroFormatUtils = {
 };
 
 type SortDirection = 'asc' | 'desc' | null;
-type SortColumn = 'metric' | 'type' | 'category' | 'period' | 'current' | 'zscore' | 'prior' | 'variance';
+type SortColumn = 'metric' | 'type' | 'category' | 'period' | 'current' | 'zscore' | 'deltazscore' | 'prior' | 'variance';
 
 const MacroeconomicIndicators: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('Growth');
@@ -363,6 +365,10 @@ const MacroeconomicIndicators: React.FC = () => {
           case 'zscore':
             aValue = a.zScore || 0;
             bValue = b.zScore || 0;
+            break;
+          case 'deltazscore':
+            aValue = a.deltaZScore || 0;
+            bValue = b.deltaZScore || 0;
             break;
           case 'prior':
             aValue = typeof a.priorReading === 'number' ? a.priorReading : parseFloat(String(a.priorReading)) || 0;
@@ -577,6 +583,15 @@ const MacroeconomicIndicators: React.FC = () => {
                   </th>
                   <th className="text-right py-3 px-2">
                     <button 
+                      onClick={() => handleSort('deltazscore')}
+                      className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-end group w-full"
+                    >
+                      Δ Z-Score
+                      {getSortIcon('deltazscore')}
+                    </button>
+                  </th>
+                  <th className="text-right py-3 px-2">
+                    <button 
                       onClick={() => handleSort('prior')}
                       className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-end group w-full"
                     >
@@ -626,6 +641,9 @@ const MacroeconomicIndicators: React.FC = () => {
                     </td>
                     <td className="text-right py-3 px-2">
                       {MacroFormatUtils.formatZScore(indicator.zScore ?? null)}
+                    </td>
+                    <td className="text-right py-3 px-2">
+                      {MacroFormatUtils.formatZScore(indicator.deltaZScore ?? null)}
                     </td>
                     <td className="text-right py-3 px-2 text-gray-300 font-medium">
                       {MacroFormatUtils.formatIndicatorValue(indicator.priorReading, indicator.metric)}

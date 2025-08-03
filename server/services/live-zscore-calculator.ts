@@ -77,6 +77,62 @@ const ECONOMIC_DIRECTIONALITY: Record<string, number> = {
   'US Dollar Index': 0
 };
 
+// Economic indicator frequency mapping for proper delta z-score calculations
+const INDICATOR_FREQUENCY: Record<string, string> = {
+  // Daily indicators
+  '10-Year Treasury Yield': 'daily',
+  'Yield Curve (10yr-2yr)': 'daily',
+  'Federal Funds Rate': 'daily',
+  'US Dollar Index': 'daily',
+  '30-Year Mortgage Rate': 'daily',
+  
+  // Weekly indicators
+  'Initial Jobless Claims': 'weekly',
+  'Continuing Jobless Claims': 'weekly',
+  
+  // Monthly indicators (most economic data)
+  'Average Weekly Hours': 'monthly',
+  'Average Hourly Earnings': 'monthly',
+  'Nonfarm Payrolls': 'monthly',
+  'Unemployment Rate': 'monthly',
+  'Labor Force Participation Rate': 'monthly',
+  'Employment Population Ratio': 'monthly',
+  'CPI All Items': 'monthly',
+  'Core CPI': 'monthly',
+  'CPI Energy': 'monthly',
+  'Core PPI': 'monthly',
+  'PPI All Commodities': 'monthly',
+  'PCE Price Index': 'monthly',
+  'Core PCE Price Index': 'monthly',
+  'PPI Final Demand': 'monthly',
+  'Personal Savings Rate': 'monthly',
+  'Industrial Production': 'monthly',
+  'Capacity Utilization (Mfg)': 'monthly',
+  'Housing Starts': 'monthly',
+  'New Home Sales': 'monthly',
+  'Existing Home Sales': 'monthly',
+  'Building Permits': 'monthly',
+  'Months Supply of Homes': 'monthly',
+  'Case-Shiller Home Price Index': 'monthly',
+  'Retail Sales': 'monthly',
+  'Retail Sales Ex-Auto': 'monthly',
+  'Retail Sales: Food Services': 'monthly',
+  'E-commerce Retail Sales': 'monthly',
+  'Consumer Durable Goods New Orders': 'monthly',
+  'Total Construction Spending': 'monthly',
+  'Commercial & Industrial Loans': 'monthly',
+  'Real Disposable Personal Income': 'monthly',
+  'Consumer Confidence Index': 'monthly',
+  'Michigan Consumer Sentiment': 'monthly',
+  'JOLTS Job Openings': 'monthly',
+  'JOLTS Hires': 'monthly',
+  'Inventories to Sales Ratio': 'monthly',
+  'Gasoline Prices': 'monthly',
+  
+  // Quarterly indicators
+  'GDP Growth Rate': 'quarterly'
+};
+
 interface LiveZScoreData {
   seriesId: string;
   metric: string;
@@ -94,6 +150,11 @@ interface LiveZScoreData {
   unit: string;
   directionality: number;  // New: +1, -1, or 0
   isUnprecedentedEvent?: boolean;  // New: flag for extreme economic events
+  // Delta z-score fields
+  deltaZScore: number;  // Z-score of period-to-period change
+  deltaHistoricalMean: number;  // Historical mean of period changes
+  deltaHistoricalStd: number;   // Historical std dev of period changes
+  frequency: string;  // daily, weekly, monthly, quarterly
 }
 
 export class LiveZScoreCalculator {
@@ -133,6 +194,21 @@ export class LiveZScoreCalculator {
             ) as rn
           FROM economic_indicators_history
           WHERE series_id IN (${seriesIdFilter})
+            AND period_date IS NOT NULL
+        ),
+        
+        -- Calculate period-to-period changes for delta z-score
+        period_changes AS (
+          SELECT 
+            series_id,
+            metric_name,
+            value,
+            period_date,
+            LAG(value) OVER (PARTITION BY metric_name ORDER BY period_date) as prev_value,
+            value - LAG(value) OVER (PARTITION BY metric_name ORDER BY period_date) as period_change
+          FROM economic_indicators_history
+          WHERE series_id IN (${seriesIdFilter})
+            AND period_date IS NOT NULL
         )
         SELECT 
           series_id,
@@ -187,7 +263,45 @@ export class LiveZScoreCalculator {
               AND e4.unit = lpm.unit
               AND e4.period_date < lpm.period_date 
               AND e4.period_date >= lpm.period_date - INTERVAL '12 months'
-          ) as historical_std
+          ) as historical_std,
+          
+          -- Calculate current period change (for delta z-score)
+          (
+            SELECT 
+              lpm.current_value - COALESCE(
+                (SELECT 
+                  CASE 
+                    WHEN lpm.metric_name ILIKE '%nonfarm%' OR lpm.metric_name ILIKE '%payroll%' OR lpm.metric_name ILIKE '%employment change%'
+                    THEN COALESCE(e5.monthly_change, e5.value)
+                    ELSE e5.value 
+                  END
+                 FROM economic_indicators_history e5 
+                 WHERE e5.metric_name = lpm.metric_name 
+                   AND e5.unit = lpm.unit
+                   AND e5.period_date < lpm.period_date 
+                 ORDER BY e5.period_date DESC 
+                 LIMIT 1), 0)
+          ) as current_period_change,
+          
+          -- Calculate historical mean of period changes
+          (
+            SELECT AVG(pc.period_change) 
+            FROM period_changes pc 
+            WHERE pc.metric_name = lpm.metric_name 
+              AND pc.period_change IS NOT NULL
+              AND pc.period_date < lpm.period_date 
+              AND pc.period_date >= lpm.period_date - INTERVAL '12 months'
+          ) as delta_historical_mean,
+          
+          -- Calculate historical standard deviation of period changes
+          (
+            SELECT STDDEV(pc.period_change) 
+            FROM period_changes pc 
+            WHERE pc.metric_name = lpm.metric_name 
+              AND pc.period_change IS NOT NULL
+              AND pc.period_date < lpm.period_date 
+              AND pc.period_date >= lpm.period_date - INTERVAL '12 months'
+          ) as delta_historical_std
           
         FROM latest_per_metric lpm
         WHERE rn = 1
@@ -219,6 +333,22 @@ export class LiveZScoreCalculator {
         const directionality = ECONOMIC_DIRECTIONALITY[row.metric_name] || 1; // Default to positive
         const deltaAdjustedZScore = zScore * directionality;
         
+        // Delta z-score calculation for period-to-period changes
+        const currentPeriodChange = parseFloat(row.current_period_change) || 0;
+        const deltaHistoricalMean = parseFloat(row.delta_historical_mean) || 0;
+        const deltaHistoricalStd = parseFloat(row.delta_historical_std) || 0;
+        
+        // Calculate delta z-score with statistical validation
+        const rawDeltaZScore = (deltaHistoricalStd > 0 && deltaHistoricalMean !== null) 
+          ? (currentPeriodChange - deltaHistoricalMean) / deltaHistoricalStd 
+          : 0;
+        
+        // Cap delta z-score as well to handle extreme change events
+        const deltaZScore = Math.abs(rawDeltaZScore) > 50 ? Math.sign(rawDeltaZScore) * 50 : rawDeltaZScore;
+        
+        // Get frequency for this indicator
+        const frequency = INDICATOR_FREQUENCY[row.metric_name] || 'monthly';
+        
         return {
           seriesId: row.series_id,
           metric: row.metric_name,
@@ -235,7 +365,12 @@ export class LiveZScoreCalculator {
           type: row.type,
           unit: row.unit,
           directionality,
-          isUnprecedentedEvent: Math.abs(rawZScore) > 10 // Flag for special handling
+          isUnprecedentedEvent: Math.abs(rawZScore) > 10, // Flag for special handling
+          // Delta z-score fields
+          deltaZScore,
+          deltaHistoricalMean,
+          deltaHistoricalStd,
+          frequency
         };
       });
 
