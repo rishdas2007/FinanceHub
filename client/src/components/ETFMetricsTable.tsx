@@ -51,6 +51,11 @@ interface ETFMetrics {
   name: string;
   price: number;
   changePercent: number;
+  
+  // Weighted Technical Indicator Scoring System
+  weightedScore: number | null;
+  weightedSignal: string | null;
+  
   // Bollinger Bands & Position/Squeeze
   bollingerPosition: number | null; // %B
   bollingerSqueeze: boolean;
@@ -236,6 +241,7 @@ export default function ETFMetricsTable() {
           <span className="text-red-600 font-medium">Red = Bad/Sell signals</span>. 
           <br />
           <strong>Metrics:</strong> 
+          <strong> Signal</strong> - Weighted Technical Score (Bollinger 30%, ATR 20%, MA 15%, RSI 15%, Z-Score 10%, VWAP 10%). BUY &gt;0.5, SELL &lt;-0.5, HOLD -0.5 to 0.5.
           <strong> Bollinger</strong> - Price position in bands (oversold=good, overbought=bad). 
           <strong> ATR</strong> - Volatility measure. 
           <strong> MA Trend</strong> - Bull/bear crossover signals. 
@@ -250,6 +256,12 @@ export default function ETFMetricsTable() {
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
               <th className="text-left p-3 font-medium text-gray-900 sticky left-0 bg-gray-50 z-10">ETF</th>
+              <th className="text-center p-3 font-medium text-gray-700 min-w-[100px]">
+                <div className="flex items-center justify-center gap-1">
+                  <TrendingUp className="h-4 w-4" />
+                  <span>Signal</span>
+                </div>
+              </th>
               <th className="text-center p-3 font-medium text-gray-700 min-w-[120px]">
                 <div className="flex items-center justify-center gap-1">
                   <Activity className="h-4 w-4" />
@@ -307,6 +319,18 @@ export default function ETFMetricsTable() {
                           {formatPercentage(etf.changePercent)}
                         </span>
                       </div>
+                    </div>
+                  </td>
+
+                  {/* Weighted Signal Column */}
+                  <td className="p-3 text-center">
+                    <div className="flex flex-col items-center">
+                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${etf.weightedSignal === 'BUY' ? 'bg-green-100 text-green-800' : etf.weightedSignal === 'SELL' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                        {etf.weightedSignal || 'HOLD'}
+                      </span>
+                      <span className="text-xs text-gray-500 mt-1">
+                        {etf.weightedScore !== null && etf.weightedScore !== undefined ? etf.weightedScore.toFixed(2) : 'N/A'}
+                      </span>
                     </div>
                   </td>
 

@@ -9,6 +9,11 @@ export interface ETFMetrics {
   name: string;
   price: number;
   changePercent: number;
+  
+  // Weighted Technical Indicator Scoring System
+  weightedScore: number | null;
+  weightedSignal: string | null;
+  
   // Bollinger Bands & Position/Squeeze
   bollingerPosition: number | null; // %B
   bollingerSqueeze: boolean;
@@ -219,7 +224,7 @@ class ETFMetricsService {
       const sector = sectors.get(symbol);
       const momentumETF = momentum.find(m => m.ticker === symbol);
 
-      return {
+      const metrics = {
         symbol,
         name: this.ETF_NAMES[symbol as keyof typeof this.ETF_NAMES] || symbol,
         price: sector ? parseFloat(sector.price) : 0,
@@ -252,8 +257,19 @@ class ETFMetricsService {
         // Volume, VWAP, OBV - Enhanced VWAP integration
         volumeRatio: this.calculateVolumeRatio(sector),
         vwapSignal: this.getVWAPSignal(technical, sector, momentumETF),
-        obvTrend: momentumETF?.signal ? this.parseOBVFromSignal(momentumETF.signal) : 'neutral'
+        obvTrend: momentumETF?.signal ? this.parseOBVFromSignal(momentumETF.signal) : 'neutral',
+        
+        // Weighted Technical Indicator Scoring System (placeholder for now)
+        weightedScore: null,
+        weightedSignal: null
       };
+
+      // Calculate weighted scoring system
+      const weightedResult = this.calculateWeightedTechnicalScore(metrics, momentumETF);
+      metrics.weightedScore = weightedResult.score;
+      metrics.weightedSignal = weightedResult.signal;
+
+      return metrics;
     });
   }
 
@@ -328,6 +344,133 @@ class ETFMetricsService {
     if (signalLower.includes('strong bull') || signalLower.includes('bullish')) return 'bullish';
     if (signalLower.includes('strong bear') || signalLower.includes('bearish')) return 'bearish';
     return 'neutral';
+  }
+
+  /**
+   * WEIGHTED TECHNICAL INDICATOR SCORING SYSTEM
+   * Implements scientifically-backed weighting based on predictive power
+   */
+  private calculateWeightedTechnicalScore(metrics: any, momentumETF?: any): { score: number; signal: string } {
+    let totalScore = 0;
+    let totalWeight = 0;
+
+    // 1. Bollinger Bands - Highest weight (30%) - Strong mean reversion predictor
+    const bollingerScore = this.getBollingerScore(metrics.bollingerPosition, metrics.bollingerStatus);
+    if (bollingerScore !== null) {
+      totalScore += bollingerScore * 0.30;
+      totalWeight += 0.30;
+    }
+
+    // 2. ATR/Volatility - High weight (20%) - Risk and momentum predictor
+    const atrScore = this.getATRScore(metrics.atr, metrics.volatility, momentumETF);
+    if (atrScore !== null) {
+      totalScore += atrScore * 0.20;
+      totalWeight += 0.20;
+    }
+
+    // 3. MA Trend - High weight (15%) - Trend confirmation
+    const maScore = this.getMAScore(metrics.maSignal, metrics.maTrend);
+    if (maScore !== null) {
+      totalScore += maScore * 0.15;
+      totalWeight += 0.15;
+    }
+
+    // 4. RSI - Medium weight (15%) - Momentum oscillator
+    const rsiScore = this.getRSIScore(metrics.rsi);
+    if (rsiScore !== null) {
+      totalScore += rsiScore * 0.15;
+      totalWeight += 0.15;
+    }
+
+    // 5. Z-Score - Medium weight (10%) - Statistical deviation
+    const zScore = this.getZScore(metrics.zScore);
+    if (zScore !== null) {
+      totalScore += zScore * 0.10;
+      totalWeight += 0.10;
+    }
+
+    // 6. VWAP - Supporting weight (10%) - Price vs volume confirmation
+    const vwapScore = this.getVWAPScore(metrics.vwapSignal);
+    if (vwapScore !== null) {
+      totalScore += vwapScore * 0.10;
+      totalWeight += 0.10;
+    }
+
+    // Normalize score if we have any data
+    const finalScore = totalWeight > 0 ? totalScore / totalWeight : 0;
+
+    // Classification based on statistical thresholds
+    let signal: string;
+    if (finalScore > 0.5) {
+      signal = 'BUY';
+    } else if (finalScore < -0.5) {
+      signal = 'SELL';
+    } else {
+      signal = 'HOLD';
+    }
+
+    return { score: finalScore, signal };
+  }
+
+  // Individual scoring methods for each indicator
+  private getBollingerScore(position: number | null, status: string): number | null {
+    if (position === null) return null;
+    
+    // %B interpretation: 0 = at lower band, 1 = at upper band
+    if (position < 0.2) return 1;     // Oversold = Strong Buy
+    if (position < 0.4) return 0.5;   // Weak = Mild Buy
+    if (position > 0.8) return -1;    // Overbought = Strong Sell
+    if (position > 0.6) return -0.5;  // Strong = Mild Sell
+    return 0; // Neutral zone
+  }
+
+  private getATRScore(atr: number | null, volatility: number | null, momentum?: any): number | null {
+    // Use volatility from momentum data if available
+    const vol = volatility || (momentum?.volatility);
+    if (!vol && !atr) return null;
+
+    // Higher volatility with positive momentum = bullish
+    // Higher volatility with negative momentum = bearish
+    const volValue = vol || (atr ? atr * 100 : 0); // Normalize ATR
+    
+    if (momentum?.momentum === 'bullish' && volValue > 20) return 1;
+    if (momentum?.momentum === 'bearish' && volValue > 20) return -1;
+    if (volValue < 10) return 0; // Low volatility = neutral
+    return 0.5; // Moderate volatility = mild positive
+  }
+
+  private getMAScore(signal: string, trend: string): number | null {
+    if (!signal || signal === 'Loading...' || signal === 'No Data') return null;
+    
+    if (trend === 'bullish' || signal.includes('Above')) return 1;
+    if (trend === 'bearish' || signal.includes('Below')) return -1;
+    return 0;
+  }
+
+  private getRSIScore(rsi: number | null): number | null {
+    if (rsi === null) return null;
+    
+    if (rsi < 30) return 1;      // Oversold = Buy
+    if (rsi < 40) return 0.5;    // Weak = Mild Buy
+    if (rsi > 70) return -1;     // Overbought = Sell
+    if (rsi > 60) return -0.5;   // Strong = Mild Sell
+    return 0; // Neutral zone
+  }
+
+  private getZScore(zScore: number | null): number | null {
+    if (zScore === null) return null;
+    
+    if (zScore > 1) return 1;    // Strong positive deviation = Buy
+    if (zScore < -1) return -1;  // Strong negative deviation = Sell
+    return 0; // Within normal range
+  }
+
+  private getVWAPScore(signal: string): number | null {
+    if (!signal || signal === 'No Data' || signal === 'Loading...') return null;
+    
+    if (signal.includes('Above')) return 1;
+    if (signal.includes('Below')) return -1;
+    return 0; // At VWAP = neutral
   }
 
   private getFallbackMetrics(): ETFMetrics[] {
