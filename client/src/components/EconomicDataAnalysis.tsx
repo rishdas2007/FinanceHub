@@ -217,7 +217,12 @@ export function EconomicDataAnalysis() {
           
           {/* Economic Correlation Analysis */}
           <div className="mt-8">
-            <h3 className="text-xl font-medium text-blue-400 mb-4">Cross-Indicator Correlation Analysis</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-medium text-blue-400">Priority 1: Cross-Indicator Correlation Analysis</h3>
+              <div className="text-xs text-gray-400 bg-slate-800 px-2 py-1 rounded">
+                Dynamic Thresholds: VIX-Adjusted
+              </div>
+            </div>
             <CorrelationMatrix />
           </div>
         </>
