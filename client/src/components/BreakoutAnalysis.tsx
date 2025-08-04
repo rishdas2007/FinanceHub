@@ -14,9 +14,9 @@ interface ConvergenceData {
     };
   }>;
   squeeze_monitoring: {
-    symbols_in_squeeze: string[];
+    symbols_in_squeeze: number;
     potential_breakouts: string[];
-    recent_successful_breakouts: string[];
+    average_squeeze_duration: number;
   };
 }
 
@@ -57,41 +57,19 @@ export function BreakoutAnalysis() {
     );
   }
 
-  // Process symbols for squeeze and breakout analysis
+  // Process symbols for breakout analysis - focus on potential breakouts since squeeze data isn't available yet
   const getSymbolsInSqueeze = (): BreakoutSymbol[] => {
-    const squeezeSymbols = convergenceData.squeeze_monitoring.symbols_in_squeeze;
-    return squeezeSymbols.map(symbol => {
-      const analysis = convergenceData.analysis.find(a => a.symbol === symbol);
-      return {
-        symbol,
-        reason: "Bollinger Band Squeeze",
-        description: "Low volatility compression indicating potential explosive move",
-        confidence: analysis?.confidence_score || 0,
-        bias: analysis?.overall_bias || "neutral",
-        price: analysis?.market_data?.price,
-        change: analysis?.market_data?.changePercent
-      };
-    });
+    // Currently returning empty array since squeeze detection is not fully implemented
+    return [];
   };
 
   const getRecentBreakouts = (): BreakoutSymbol[] => {
-    const breakoutSymbols = convergenceData.squeeze_monitoring.recent_successful_breakouts;
-    return breakoutSymbols.map(symbol => {
-      const analysis = convergenceData.analysis.find(a => a.symbol === symbol);
-      return {
-        symbol,
-        reason: "Successful Breakout",
-        description: "Recently broke out of consolidation with strong momentum",
-        confidence: analysis?.confidence_score || 0,
-        bias: analysis?.overall_bias || "neutral",
-        price: analysis?.market_data?.price,
-        change: analysis?.market_data?.changePercent
-      };
-    });
+    // Currently returning empty array since recent breakout tracking is not fully implemented  
+    return [];
   };
 
   const getPotentialBreakouts = (): BreakoutSymbol[] => {
-    const potentialSymbols = convergenceData.squeeze_monitoring.potential_breakouts;
+    const potentialSymbols = convergenceData.squeeze_monitoring.potential_breakouts || [];
     return potentialSymbols.map(symbol => {
       const analysis = convergenceData.analysis.find(a => a.symbol === symbol);
       return {
