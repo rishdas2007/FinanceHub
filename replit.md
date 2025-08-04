@@ -44,6 +44,8 @@ The application uses a monorepo architecture with three main directories: `clien
 - **Modular & Scalable Design**: Employs Dependency Injection (Inversify), Repository Pattern, and clear service interfaces for improved maintainability, testability, and scalability.
 - **UI/UX Decisions**: Dark financial theme with color-coded indicators, responsive grid layouts, and professional presentation for market data and AI insights. Emphasis on readability and consistency across sections.
 - **Performance Optimization**: Aggressive caching, parallel data fetching, batch processing, and 2-second loading guarantees for dashboard components.
+- **Enhanced User Education (August 4, 2025)**: Added comprehensive Delta Adjustment methodology explanations, economic rationale tooltips for each indicator, and detailed documentation of why metrics are inverted (inflation, unemployment) versus direct interpretation (GDP, employment).
+- **Multi-Dimensional Economic Insight Classification (August 4, 2025)**: Implemented sophisticated economic analysis framework that considers both level (current vs historical) and trend (period-to-period changes) signals. Features include mixed signal detection, inflation-specific logic for rapidly rising prices despite low levels, confidence scoring, and professional-grade economic reasoning for each classification.
 
 ### Database Design
 The schema includes key tables for:

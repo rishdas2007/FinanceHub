@@ -30,6 +30,17 @@ interface EconomicHealthData {
   healthGrade: string;
 }
 
+interface EconomicInsightClassification {
+  overallSignal: 'positive' | 'negative' | 'mixed' | 'neutral';
+  levelSignal: 'positive' | 'negative' | 'neutral';
+  trendSignal: 'positive' | 'negative' | 'neutral';
+  confidence: 'high' | 'medium' | 'low';
+  reasoning: string;
+  alertLevel: 'critical' | 'warning' | 'watch' | 'normal';
+  displayColor: string;
+  displayIcon: string;
+}
+
 interface PulseMetric {
   name: string;
   currentValue: number;
@@ -42,6 +53,7 @@ interface PulseMetric {
   periodDate: string;
   changeFromPrior: number | null;
   formattedChange: string;
+  classification?: EconomicInsightClassification;
 }
 
 interface PulseData {
@@ -399,6 +411,109 @@ export function EconomicPulseCheck() {
     return matchesSearch && matchesCategory && matchesType && matchesDateRange && matchesZScore && matchesDeltaZScore;
   }) || [];
 
+  // Client-side Economic Insight Classifier
+  const classifyIndicator = (indicator: any): EconomicInsightClassification => {
+    const zScore = indicator.zScore || 0;
+    const deltaZScore = indicator.deltaZScore || 0;
+    const metricName = indicator.metric.toLowerCase();
+
+    // Get economic directionality
+    const isInverse = metricName.includes('unemployment') || 
+                      metricName.includes('inflation') || 
+                      metricName.includes('cpi') || 
+                      metricName.includes('pce') || 
+                      metricName.includes('ppi') ||
+                      metricName.includes('yield') ||
+                      metricName.includes('rate');
+
+    // Classify level and trend signals
+    const levelSignal = Math.abs(zScore) < 0.5 ? 'neutral' : 
+                       (isInverse ? (zScore > 0 ? 'positive' : 'negative') : (zScore > 0 ? 'positive' : 'negative'));
+    
+    const trendSignal = Math.abs(deltaZScore) < 0.5 ? 'neutral' : 
+                       (isInverse ? (deltaZScore > 0 ? 'negative' : 'positive') : (deltaZScore > 0 ? 'positive' : 'negative'));
+
+    // Determine overall signal with sophisticated logic for inflation
+    let overallSignal: 'positive' | 'negative' | 'mixed' | 'neutral' = 'neutral';
+    
+    if (metricName.includes('inflation') || metricName.includes('cpi') || metricName.includes('pce') || metricName.includes('ppi')) {
+      // Rapidly rising inflation (even if low level) = negative
+      if (deltaZScore > 1.5 && zScore > -1) {
+        overallSignal = 'negative';
+      }
+      // Low and stable/falling inflation = positive
+      else if (zScore > 0.5 && deltaZScore <= 0.5) {
+        overallSignal = 'positive';
+      }
+      // Mixed signals
+      else if ((levelSignal === 'positive' && trendSignal === 'negative') ||
+               (levelSignal === 'negative' && trendSignal === 'positive')) {
+        // Trend takes precedence if significant
+        if (Math.abs(deltaZScore) > Math.abs(zScore) && Math.abs(deltaZScore) > 1.0) {
+          overallSignal = trendSignal === 'positive' ? 'positive' : 'negative';
+        } else {
+          overallSignal = 'mixed';
+        }
+      }
+      else {
+        overallSignal = levelSignal as any;
+      }
+    }
+    // General classification for other metrics
+    else {
+      if (levelSignal === trendSignal) {
+        overallSignal = levelSignal as any;
+      } else if (Math.abs(deltaZScore) > Math.abs(zScore) * 1.5 && Math.abs(deltaZScore) > 1) {
+        overallSignal = trendSignal as any;
+      } else if (Math.abs(zScore) > Math.abs(deltaZScore) * 1.5 && Math.abs(zScore) > 1) {
+        overallSignal = levelSignal as any;
+      } else {
+        overallSignal = 'mixed';
+      }
+    }
+
+    // Calculate confidence
+    const maxScore = Math.max(Math.abs(zScore), Math.abs(deltaZScore));
+    const confidence: 'high' | 'medium' | 'low' = maxScore > 2 ? 'high' : maxScore > 1 ? 'medium' : 'low';
+
+    // Generate reasoning
+    const levelDesc = Math.abs(zScore) > 2 ? (zScore > 0 ? 'well above average' : 'well below average') :
+                     Math.abs(zScore) > 1 ? (zScore > 0 ? 'above average' : 'below average') : 'near average';
+    const trendDesc = Math.abs(deltaZScore) > 2 ? (deltaZScore > 0 ? 'rising rapidly' : 'falling rapidly') :
+                     Math.abs(deltaZScore) > 1 ? (deltaZScore > 0 ? 'rising' : 'falling') : 'stable';
+    
+    let reasoning = `Level: ${levelDesc}, Trend: ${trendDesc}`;
+    if (metricName.includes('inflation') && levelSignal === 'positive' && trendSignal === 'negative') {
+      reasoning = `Inflation ${levelDesc} but ${trendDesc} - monitor for acceleration`;
+    }
+
+    // Display properties
+    const displayColor = overallSignal === 'positive' ? 'border-green-400' :
+                        overallSignal === 'negative' ? 'border-red-400' :
+                        overallSignal === 'mixed' ? 'border-yellow-400' : 'border-gray-400';
+
+    const displayIcon = overallSignal === 'mixed' ? 
+                       (trendSignal === 'positive' ? '↗️' : trendSignal === 'negative' ? '↘️' : '↔️') :
+                       overallSignal === 'positive' ? '✅' :
+                       overallSignal === 'negative' ? '🔴' : '⚪';
+
+    const alertLevel: 'critical' | 'warning' | 'watch' | 'normal' = 
+      overallSignal === 'negative' && maxScore > 2 ? 'critical' :
+      overallSignal === 'negative' && maxScore > 1.5 ? 'warning' :
+      overallSignal === 'mixed' && maxScore > 1.5 ? 'watch' : 'normal';
+
+    return {
+      overallSignal,
+      levelSignal,
+      trendSignal,
+      confidence,
+      reasoning,
+      alertLevel,
+      displayColor,
+      displayIcon
+    };
+  };
+
   // Economic rationale explanations for Delta Adjustment
   const getEconomicRationale = (metricName: string): { reason: string; adjustment: string; impact: string } => {
     const metric = metricName.toLowerCase();
@@ -491,6 +606,9 @@ export function EconomicPulseCheck() {
         const actualPeriodDate = indicator.period_date || indicator.releaseDate || new Date().toISOString().split('T')[0];
         console.log(`📅 Date for ${indicator.metric}: period_date=${indicator.period_date}, releaseDate=${indicator.releaseDate}, using=${actualPeriodDate}`);
         
+        // Apply sophisticated multi-dimensional classification
+        const classification = classifyIndicator(indicator);
+        
         const pulseMetric: PulseMetric = {
           name: indicator.metric,
           currentValue: currentValue,
@@ -502,19 +620,21 @@ export function EconomicPulseCheck() {
           formattedPriorValue: indicator.priorReading,
           periodDate: actualPeriodDate, // Use actual period_date from database
           changeFromPrior: varianceValue,
-          formattedChange: indicator.varianceVsPrior || 'N/A'
+          formattedChange: indicator.varianceVsPrior || 'N/A',
+          classification: classification
         };
 
-        // Trust backend delta adjustment - positive z-scores are economic strength
-        if (indicator.zScore > 0) {
+        // Use sophisticated classification instead of simple z-score sign
+        if (classification.overallSignal === 'positive') {
           if (pulseData[indicator.category]) {
             pulseData[indicator.category].positive.push(pulseMetric);
           }
-        } else {
+        } else if (classification.overallSignal === 'negative' || classification.overallSignal === 'mixed') {
           if (pulseData[indicator.category]) {
             pulseData[indicator.category].negative.push(pulseMetric);
           }
         }
+        // Neutral signals are not displayed in the pulse check
       }
     });
 
@@ -889,17 +1009,48 @@ export function EconomicPulseCheck() {
           ))}
         </div>
         
-        {/* Enhanced Z-Score Definition with Delta Z-Score */}
-        <div className="mt-3 p-3 bg-gray-900 border border-gray-700 rounded-lg">
-          <p className="text-sm text-gray-400">
-            <strong className="text-white">Z-Score Analysis:</strong> Measures how many standard deviations the current value is from its 12-month historical average, with economic directionality applied. 
-            <strong className="text-blue-400"> Positive z-scores = Economic Strength, Negative z-scores = Economic Weakness.</strong>
-          </p>
-          <p className="text-sm text-gray-400 mt-2">
-            <strong className="text-yellow-400">Δ Z-Score (Delta Z-Score):</strong> Shows the z-score of period-to-period changes, indicating whether recent changes are statistically unusual compared to historical volatility patterns.
-            Indicators marked "(Δ-adjusted)" have been inverted for consistent interpretation (e.g., lower unemployment rates show positive z-scores).
-            Values above ±2.0 indicate statistically significant conditions.
-          </p>
+        {/* Enhanced Multi-Dimensional Classification Explanation */}
+        <div className="mt-3 p-4 bg-gradient-to-r from-gray-900 to-gray-800 border border-gray-700 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <h4 className="text-sm font-semibold text-blue-400 mb-2">📊 Level Analysis</h4>
+              <p className="text-xs text-gray-400">
+                Compares current values to 12-month historical averages using z-scores. Values above ±2.0 are statistically significant.
+              </p>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-yellow-400 mb-2">📈 Trend Analysis</h4>
+              <p className="text-xs text-gray-400">
+                Examines period-to-period changes via Delta Z-scores, detecting unusual acceleration or deceleration patterns.
+              </p>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-purple-400 mb-2">🎯 Multi-Signal Classification</h4>
+              <p className="text-xs text-gray-400">
+                Combines level + trend analysis for sophisticated economic interpretation, including "Mixed" signals for conflicting indicators.
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-gray-700">
+            <div className="flex items-center space-x-6 text-xs">
+              <div className="flex items-center space-x-2">
+                <span className="text-green-400">✅</span>
+                <span className="text-gray-400">Economic Strength</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-red-400">🔴</span>
+                <span className="text-gray-400">Economic Weakness</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-yellow-400">⚠️</span>
+                <span className="text-gray-400">Mixed Signals</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-blue-400">↗️</span>
+                <span className="text-gray-400">Directional Trends</span>
+              </div>
+            </div>
+          </div>
         </div>
         
         <p className="text-gray-400 text-sm mt-4">
@@ -937,11 +1088,17 @@ export function EconomicPulseCheck() {
                   <td className="px-4 py-4 align-top">
                     <div className="space-y-2 min-h-[60px]">
                       {pulseData[category]?.positive.slice(0, category === 'Growth' ? 8 : 4).map((metric, idx) => (
-                        <div key={idx} className="bg-financial-gray rounded-lg p-3 border-l-2 border-gain-green">
+                        <div key={idx} className={`bg-financial-gray rounded-lg p-3 border-l-4 ${metric.classification?.displayColor || 'border-gain-green'}`}>
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex-1 mr-3">
-                              <div className="font-medium text-white text-sm mb-1 cursor-help group relative" title={metric.name}>
+                              <div className="font-medium text-white text-sm mb-1 cursor-help group relative flex items-center" title={metric.name}>
+                                <span className="mr-2">{metric.classification?.displayIcon || '✅'}</span>
                                 {metric.name}
+                                {metric.classification?.overallSignal === 'mixed' && (
+                                  <span className="ml-2 text-xs bg-yellow-900 text-yellow-300 px-2 py-1 rounded">
+                                    MIXED
+                                  </span>
+                                )}
                                 {/* Economic Rationale Tooltip */}
                                 <div className="invisible group-hover:visible absolute z-50 w-80 p-3 mt-2 text-xs text-white bg-gray-900 border border-gray-600 rounded-lg shadow-lg">
                                   <div className="space-y-2">
@@ -960,25 +1117,40 @@ export function EconomicPulseCheck() {
                                   </div>
                                 </div>
                               </div>
-                              <div className="text-gain-green font-bold text-lg">
+                              <div className={`font-bold text-lg ${metric.classification?.overallSignal === 'positive' ? 'text-gain-green' : 
+                                                                   metric.classification?.overallSignal === 'mixed' ? 'text-yellow-400' : 'text-gain-green'}`}>
                                 {metric.formattedValue}
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="text-xs text-gray-400">z-score</div>
-                              <div className="text-sm font-bold text-gain-green">
-                                +{metric.zScore.toFixed(2)}
+                              {/* Level Signal */}
+                              <div className="text-xs text-gray-400">Level</div>
+                              <div className={`text-sm font-bold ${metric.classification?.levelSignal === 'positive' ? 'text-gain-green' : 
+                                                                   metric.classification?.levelSignal === 'negative' ? 'text-loss-red' : 'text-gray-400'}`}>
+                                {metric.zScore >= 0 ? '+' : ''}{metric.zScore.toFixed(2)}
                               </div>
+                              {/* Trend Signal */}
                               {metric.deltaZScore && (
                                 <>
-                                  <div className="text-xs text-gray-400 mt-1">Δ z-score</div>
-                                  <div className={`text-xs font-medium ${metric.deltaZScore >= 0 ? 'text-gain-green' : 'text-loss-red'}`}>
+                                  <div className="text-xs text-gray-400 mt-1">Trend</div>
+                                  <div className={`text-xs font-medium ${metric.classification?.trendSignal === 'positive' ? 'text-gain-green' : 
+                                                                         metric.classification?.trendSignal === 'negative' ? 'text-loss-red' : 'text-gray-400'}`}>
                                     {metric.deltaZScore >= 0 ? '+' : ''}{metric.deltaZScore.toFixed(1)}
                                   </div>
                                 </>
                               )}
+                              {/* Confidence Indicator */}
+                              <div className="text-xs text-gray-500 mt-1">
+                                {metric.classification?.confidence?.toUpperCase() || 'MED'}
+                              </div>
                             </div>
                           </div>
+                          {/* Enhanced Reasoning */}
+                          {metric.classification?.reasoning && (
+                            <div className="text-xs text-gray-400 mb-2">
+                              💡 {metric.classification.reasoning}
+                            </div>
+                          )}
                           <div className="flex justify-between items-center text-xs text-gray-400">
                             <div>
                               <span className="text-gray-500">Prior:</span> <span className="text-white">{metric.formattedPriorValue}</span>
@@ -1000,11 +1172,27 @@ export function EconomicPulseCheck() {
                   <td className="px-4 py-4 align-top">
                     <div className="space-y-2 min-h-[60px]">
                       {pulseData[category]?.negative.slice(0, category === 'Growth' ? 8 : 4).map((metric, idx) => (
-                        <div key={idx} className="bg-financial-gray rounded-lg p-3 border-l-2 border-loss-red">
+                        <div key={idx} className={`bg-financial-gray rounded-lg p-3 border-l-4 ${metric.classification?.displayColor || 'border-loss-red'}`}>
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex-1 mr-3">
-                              <div className="font-medium text-white text-sm mb-1 cursor-help group relative" title={metric.name}>
+                              <div className="font-medium text-white text-sm mb-1 cursor-help group relative flex items-center" title={metric.name}>
+                                <span className="mr-2">{metric.classification?.displayIcon || '🔴'}</span>
                                 {metric.name}
+                                {metric.classification?.overallSignal === 'mixed' && (
+                                  <span className="ml-2 text-xs bg-yellow-900 text-yellow-300 px-2 py-1 rounded">
+                                    MIXED
+                                  </span>
+                                )}
+                                {metric.classification?.alertLevel === 'critical' && (
+                                  <span className="ml-2 text-xs bg-red-900 text-red-300 px-2 py-1 rounded">
+                                    CRITICAL
+                                  </span>
+                                )}
+                                {metric.classification?.alertLevel === 'warning' && (
+                                  <span className="ml-2 text-xs bg-orange-900 text-orange-300 px-2 py-1 rounded">
+                                    WARNING
+                                  </span>
+                                )}
                                 {/* Economic Rationale Tooltip */}
                                 <div className="invisible group-hover:visible absolute z-50 w-80 p-3 mt-2 text-xs text-white bg-gray-900 border border-gray-600 rounded-lg shadow-lg">
                                   <div className="space-y-2">
@@ -1023,25 +1211,40 @@ export function EconomicPulseCheck() {
                                   </div>
                                 </div>
                               </div>
-                              <div className="text-loss-red font-bold text-lg">
+                              <div className={`font-bold text-lg ${metric.classification?.overallSignal === 'negative' ? 'text-loss-red' : 
+                                                                   metric.classification?.overallSignal === 'mixed' ? 'text-yellow-400' : 'text-loss-red'}`}>
                                 {metric.formattedValue}
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="text-xs text-gray-400">z-score</div>
-                              <div className="text-sm font-bold text-loss-red">
-                                {metric.zScore.toFixed(2)}
+                              {/* Level Signal */}
+                              <div className="text-xs text-gray-400">Level</div>
+                              <div className={`text-sm font-bold ${metric.classification?.levelSignal === 'positive' ? 'text-gain-green' : 
+                                                                   metric.classification?.levelSignal === 'negative' ? 'text-loss-red' : 'text-gray-400'}`}>
+                                {metric.zScore >= 0 ? '+' : ''}{metric.zScore.toFixed(2)}
                               </div>
+                              {/* Trend Signal */}
                               {metric.deltaZScore && (
                                 <>
-                                  <div className="text-xs text-gray-400 mt-1">Δ z-score</div>
-                                  <div className={`text-xs font-medium ${metric.deltaZScore >= 0 ? 'text-gain-green' : 'text-loss-red'}`}>
+                                  <div className="text-xs text-gray-400 mt-1">Trend</div>
+                                  <div className={`text-xs font-medium ${metric.classification?.trendSignal === 'positive' ? 'text-gain-green' : 
+                                                                         metric.classification?.trendSignal === 'negative' ? 'text-loss-red' : 'text-gray-400'}`}>
                                     {metric.deltaZScore >= 0 ? '+' : ''}{metric.deltaZScore.toFixed(1)}
                                   </div>
                                 </>
                               )}
+                              {/* Confidence Indicator */}
+                              <div className="text-xs text-gray-500 mt-1">
+                                {metric.classification?.confidence?.toUpperCase() || 'MED'}
+                              </div>
                             </div>
                           </div>
+                          {/* Enhanced Reasoning */}
+                          {metric.classification?.reasoning && (
+                            <div className="text-xs text-gray-400 mb-2">
+                              💡 {metric.classification.reasoning}
+                            </div>
+                          )}
                           <div className="flex justify-between items-center text-xs text-gray-400">
                             <div>
                               <span className="text-gray-500">Prior:</span> <span className="text-white">{metric.formattedPriorValue}</span>
