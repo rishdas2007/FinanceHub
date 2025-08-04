@@ -39,6 +39,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Data Confidence and Quality Analysis endpoints
   app.use('/api/confidence', (await import('./routes/data-confidence')).default);
   
+  // Economic Regime Detection and Sector Impact Analysis endpoints
+  app.use('/api/economic-regime', (await import('./routes/economic-regime')).default);
+  
   // Multi-Timeframe Technical Convergence Analysis endpoints
   app.use('/api', (await import('./routes/convergence-analysis')).default);
   

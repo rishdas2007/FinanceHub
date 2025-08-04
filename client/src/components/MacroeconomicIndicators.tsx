@@ -4,6 +4,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, AlertCircle, RefreshCw, Search, Filter, ChevronUp, ChevronDown } from 'lucide-react';
 import { CorrelationMatrix } from '@/components/CorrelationMatrix';
 import { DataConfidencePanel } from '@/components/DataConfidencePanel';
+import { EconomicRegimeIndicator } from '@/components/EconomicRegimeIndicator';
+import { SectorImpactMatrix } from '@/components/SectorImpactMatrix';
 
 interface MacroIndicator {
   metric: string;
@@ -834,6 +836,12 @@ const MacroeconomicIndicators: React.FC = () => {
       {/* Priority 2: Data Confidence & Historical Context */}
       <div className="mt-8">
         <DataConfidencePanel />
+      </div>
+
+      {/* Priority 3: Economic Regime & Sector Impact Analysis */}
+      <div className="mt-8 space-y-6">
+        <EconomicRegimeIndicator />
+        <SectorImpactMatrix />
       </div>
     </div>
   );

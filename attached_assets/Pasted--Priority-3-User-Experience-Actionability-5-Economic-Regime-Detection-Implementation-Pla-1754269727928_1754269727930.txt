@@ -1,0 +1,83 @@
+🥉 Priority 3: User Experience & Actionability
+
+  5. Economic Regime Detection
+
+  Implementation Plan:
+
+  Step 1: Regime Classification Algorithm
+  - File: /server/services/economic-regime-detector.ts
+  - Classification Logic:
+    - Expansion: GDP growth >2%, unemployment declining, rising employment
+    - Peak: GDP growth slowing but positive, unemployment at lows, high
+  confidence
+    - Contraction: GDP growth <1%, unemployment rising, declining
+  indicators
+    - Trough: GDP negative, unemployment high but stabilizing
+
+  Step 2: Multi-Indicator Regime Scoring
+  - Key Indicators: GDP, Unemployment, Consumer Confidence, Manufacturing
+  PMI
+  - Weighted Scoring:
+    - GDP trend (40% weight), Employment trend (30%), Sentiment (20%),
+  Manufacturing (10%)
+    - Score ranges: Expansion (75-100), Peak (50-74), Contraction (25-49),
+  Trough (0-24)
+
+  Step 3: Database Schema
+  - New Table: economic_regimes
+  - regime_date, regime_type, confidence_score, contributing_indicators
+  - regime_duration_months, transition_probability, last_updated
+
+  Step 4: API Integration
+  - New Route: /api/economic-regime
+  - Add regime data to /api/economic-data-analysis response
+  - Include regime transition probabilities
+
+  Step 5: UI Implementation
+  - Location: AIEconomicAnalysis.tsx:50-74
+  - New Section: Economic Regime Indicator
+  - Visual Elements:
+    - Large regime badge: "EXPANSION" with confidence score
+    - Regime timeline showing last 24 months
+    - Transition probability: "15% chance of entering Peak phase"
+    - Historical context: "Current expansion: 18 months (avg: 24 months)"
+
+  ---
+  6. Sector-Specific Economic Impact
+
+  Implementation Plan:
+
+  Step 1: Sector Impact Database
+  - File: /server/services/sector-impact-analyzer.ts
+  - New Table: economic_sector_impacts
+  - economic_indicator, sector, positive_correlation, impact_coefficient
+  - historical_accuracy, sample_size, confidence_interval, last_updated
+
+  Step 2: Historical Impact Analysis
+  - Data Collection: Analyze last 10 years of indicator changes vs sector
+  performance
+  - Key Relationships:
+    - Unemployment ↑ → Retail -8.5%, Utilities +2.1%, Consumer Staples
+  +1.2%
+    - Fed Funds ↑ → Financials +12.3%, REITs -15.7%, Growth Stocks -8.9%
+    - Manufacturing PMI ↑ → Industrials +6.4%, Materials +5.1%
+
+  Step 3: Real-Time Impact Scoring
+  - Method: calculateSectorImpact(indicatorChange: number, sectors: 
+  string[])
+  - Formula: expected_sector_return = indicator_change * impact_coefficient
+   * confidence_weight
+
+  Step 4: API Enhancement
+  - Modify: /api/economic-data-analysis response
+  - Add sector_impacts array with expected sector movements
+  - Include confidence intervals and historical accuracy
+
+  Step 5: UI Implementation
+  - New Component: SectorImpactMatrix.tsx
+  - Location: Add to EconomicDataAnalysis.tsx below AI analysis
+  - Visual Elements:
+    - Sector impact table: "Rising unemployment → Retail (-8.5% ±2.1%)"
+    - Color-coded impact scores: Green (positive), Red (negative)
+    - Confidence indicators: "85% historical accuracy"
+    - Interactive tooltip with historical examples
