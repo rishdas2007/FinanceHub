@@ -399,7 +399,54 @@ export function EconomicPulseCheck() {
     return matchesSearch && matchesCategory && matchesType && matchesDateRange && matchesZScore && matchesDeltaZScore;
   }) || [];
 
-
+  // Economic rationale explanations for Delta Adjustment
+  const getEconomicRationale = (metricName: string): { reason: string; adjustment: string; impact: string } => {
+    const metric = metricName.toLowerCase();
+    
+    // Inflation metrics
+    if (metric.includes('cpi') || metric.includes('pce') || metric.includes('ppi') || metric.includes('inflation')) {
+      return {
+        reason: "Higher inflation reduces purchasing power and economic efficiency",
+        adjustment: "Inverted (×-1) so rising inflation shows as negative z-score",
+        impact: "Lower inflation = Economic Strength, Higher inflation = Economic Weakness"
+      };
+    }
+    
+    // Unemployment metrics
+    if (metric.includes('unemployment') || metric.includes('jobless')) {
+      return {
+        reason: "Higher unemployment indicates economic distress and reduced consumer spending",
+        adjustment: "Inverted (×-1) so rising unemployment shows as negative z-score", 
+        impact: "Lower unemployment = Economic Strength, Higher unemployment = Economic Weakness"
+      };
+    }
+    
+    // Interest rate metrics
+    if (metric.includes('federal funds') || metric.includes('treasury yield') || metric.includes('interest rate')) {
+      return {
+        reason: "Higher rates can restrict economic activity and borrowing",
+        adjustment: "Inverted (×-1) as extreme rate changes typically signal economic stress",
+        impact: "Moderate rates = Economic Strength, Extreme rates = Economic Weakness"
+      };
+    }
+    
+    // Growth metrics (GDP, employment, housing, etc.)
+    if (metric.includes('gdp') || metric.includes('payrolls') || metric.includes('housing') || 
+        metric.includes('earnings') || metric.includes('employment') || metric.includes('construction')) {
+      return {
+        reason: "Higher values indicate increased economic activity and prosperity",
+        adjustment: "No adjustment (×1) - higher values naturally show as positive z-scores",
+        impact: "Higher values = Economic Strength, Lower values = Economic Weakness"
+      };
+    }
+    
+    // Default for other metrics
+    return {
+      reason: "Economic impact varies based on specific metric characteristics",
+      adjustment: "Adjusted based on historical economic relationships",
+      impact: "Interpretation depends on economic context and historical patterns"
+    };
+  };
 
   const processPulseData = (): PulseData => {
     const pulseData: PulseData = {
@@ -660,6 +707,40 @@ export function EconomicPulseCheck() {
           </div>
         </div>
 
+        {/* Delta Adjustment Methodology Explanation */}
+        <div className="mb-6 p-4 bg-gradient-to-r from-blue-900/20 to-purple-900/20 rounded-lg border border-blue-500/30">
+          <div className="text-sm font-medium text-blue-400 mb-3 flex items-center">
+            <div className="h-4 w-4 mr-2 text-blue-400">📊</div>
+            Delta Adjustment Methodology
+          </div>
+          <div className="text-xs text-gray-300 space-y-2">
+            <p>
+              <strong className="text-blue-400">How We Interpret Economic Signals:</strong> This system applies "Delta Adjustment" to create consistent interpretation across all indicators.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+              <div className="bg-green-900/20 p-3 rounded border-l-2 border-green-400">
+                <strong className="text-green-400">Positive Z-Scores = Economic Strength</strong>
+                <ul className="text-xs mt-1 space-y-1">
+                  <li>• GDP Growth: Higher growth = positive signal</li>
+                  <li>• Unemployment (Δ-adjusted): Lower unemployment = positive signal</li>
+                  <li>• Inflation (Δ-adjusted): Lower inflation = positive signal</li>
+                </ul>
+              </div>
+              <div className="bg-red-900/20 p-3 rounded border-l-2 border-red-400">
+                <strong className="text-red-400">Negative Z-Scores = Economic Weakness</strong>
+                <ul className="text-xs mt-1 space-y-1">
+                  <li>• GDP Growth: Below-trend growth = negative signal</li>
+                  <li>• Unemployment (Δ-adjusted): High unemployment = negative signal</li>
+                  <li>• Inflation (Δ-adjusted): High inflation = negative signal</li>
+                </ul>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              <strong>Note:</strong> Indicators marked "(Δ-adjusted)" have been mathematically inverted so higher values in concerning metrics (like unemployment, inflation) show as negative z-scores for intuitive interpretation.
+            </p>
+          </div>
+        </div>
+
         {/* Critical Insights Summary */}
         <div className="mb-6 p-4 bg-financial-gray rounded-lg border border-financial-border">
           <div className="text-sm font-medium text-blue-400 mb-3 flex items-center">
@@ -859,8 +940,25 @@ export function EconomicPulseCheck() {
                         <div key={idx} className="bg-financial-gray rounded-lg p-3 border-l-2 border-gain-green">
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex-1 mr-3">
-                              <div className="font-medium text-white text-sm mb-1" title={metric.name}>
+                              <div className="font-medium text-white text-sm mb-1 cursor-help group relative" title={metric.name}>
                                 {metric.name}
+                                {/* Economic Rationale Tooltip */}
+                                <div className="invisible group-hover:visible absolute z-50 w-80 p-3 mt-2 text-xs text-white bg-gray-900 border border-gray-600 rounded-lg shadow-lg">
+                                  <div className="space-y-2">
+                                    <div>
+                                      <strong className="text-blue-400">Economic Rationale:</strong>
+                                      <p className="text-gray-300">{getEconomicRationale(metric.name).reason}</p>
+                                    </div>
+                                    <div>
+                                      <strong className="text-yellow-400">Delta Adjustment:</strong>
+                                      <p className="text-gray-300">{getEconomicRationale(metric.name).adjustment}</p>
+                                    </div>
+                                    <div>
+                                      <strong className="text-green-400">Interpretation:</strong>
+                                      <p className="text-gray-300">{getEconomicRationale(metric.name).impact}</p>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
                               <div className="text-gain-green font-bold text-lg">
                                 {metric.formattedValue}
@@ -905,8 +1003,25 @@ export function EconomicPulseCheck() {
                         <div key={idx} className="bg-financial-gray rounded-lg p-3 border-l-2 border-loss-red">
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex-1 mr-3">
-                              <div className="font-medium text-white text-sm mb-1" title={metric.name}>
+                              <div className="font-medium text-white text-sm mb-1 cursor-help group relative" title={metric.name}>
                                 {metric.name}
+                                {/* Economic Rationale Tooltip */}
+                                <div className="invisible group-hover:visible absolute z-50 w-80 p-3 mt-2 text-xs text-white bg-gray-900 border border-gray-600 rounded-lg shadow-lg">
+                                  <div className="space-y-2">
+                                    <div>
+                                      <strong className="text-blue-400">Economic Rationale:</strong>
+                                      <p className="text-gray-300">{getEconomicRationale(metric.name).reason}</p>
+                                    </div>
+                                    <div>
+                                      <strong className="text-yellow-400">Delta Adjustment:</strong>
+                                      <p className="text-gray-300">{getEconomicRationale(metric.name).adjustment}</p>
+                                    </div>
+                                    <div>
+                                      <strong className="text-red-400">Interpretation:</strong>
+                                      <p className="text-gray-300">{getEconomicRationale(metric.name).impact}</p>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
                               <div className="text-loss-red font-bold text-lg">
                                 {metric.formattedValue}
