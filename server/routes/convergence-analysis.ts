@@ -10,13 +10,16 @@ const router = express.Router();
 router.get("/convergence-analysis", async (req, res) => {
   try {
     const marketService = getRealTimeMarketService();
+    const connectionStatus = marketService.getConnectionStatus();
+    
+    // Use all subscribed symbols if no specific symbols requested
     const symbols = req.query.symbols ? 
       (req.query.symbols as string).split(',').map(s => s.trim().toUpperCase()) : 
+      connectionStatus.subscribedSymbols.length > 0 ? connectionStatus.subscribedSymbols :
       ['SPY', 'QQQ', 'IWM'];
     
     // Get real-time market data for analysis
     const marketData = marketService.getMultiSymbolData(symbols);
-    const connectionStatus = marketService.getConnectionStatus();
     
     // Build analysis with real market data
     const analysis = symbols.map(symbol => {
@@ -43,7 +46,7 @@ router.get("/convergence-analysis", async (req, res) => {
         },
         overall_bias: data ? 
           (data.changePercent > 0.5 ? "bullish" : 
-           data.changePercent < -0.5 ? "bearish" : "neutral") as const : "neutral" as const,
+           data.changePercent < -0.5 ? "bearish" : "neutral") : "neutral",
         confidence_score: data ? Math.min(Math.abs(data.changePercent) * 10, 100) : 0,
         market_data: data ? {
           price: data.price,
@@ -61,7 +64,7 @@ router.get("/convergence-analysis", async (req, res) => {
         total_tracked_signals: Object.keys(marketData).length,
         avg_success_rate: connectionStatus.connected ? 85 : 0,
         best_performing_signal_type: "real_time_momentum",
-        recent_performance_trend: "active" as const
+        recent_performance_trend: "active"
       },
       active_alerts: analysis.filter(a => a.confidence_score > 50).map(a => ({
         id: `${a.symbol}-${Date.now()}`,

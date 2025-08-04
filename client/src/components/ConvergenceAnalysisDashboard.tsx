@@ -14,7 +14,13 @@ export function ConvergenceAnalysisDashboard() {
     refetchInterval: 30000, // Refresh every 30 seconds for real-time data
   });
 
-  const { data: wsStatus } = useQuery({
+  const { data: wsStatus } = useQuery<{
+    connected: boolean;
+    subscribedSymbols: string[];
+    dataCount: number;
+    timestamp: string;
+    service: string;
+  }>({
     queryKey: ['/api/websocket-status'],
     refetchInterval: 10000, // Check WebSocket status every 10 seconds
   });
