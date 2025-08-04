@@ -1,0 +1,130 @@
+1. Mock Data Problems
+
+  - Lines 296-300: Correlation calculations use hardcoded mock values instead of real data
+  - Lines 363: Alert frequency uses Math.random()
+  - Lines 385-398: Regime stability uses fixed mock values
+  - Lines 460: Sector alignment uses hardcoded 73% accuracy
+
+  2. Hidden Business Logic
+
+  - GDP thresholds (3.5%, 2.5%, etc.) aren't explained to users
+  - Inflation 2% target assumption not visible
+  - Employment ratio benchmarks (61%, 59%) lack context
+  - Weighting rationale (why GDP = 15 points?) not documented
+
+  3. Complex Calculations Without Explanation
+
+  - Trend consistency formula uses mathematical operations users can't see
+  - Volatility calculations use standard deviation without explanation
+  - Z-score methodology referenced but not shown
+
+  ---
+  💡 Recommended Transparency Improvements
+
+  1. Add Mathematical Explanation Modal
+
+  New Component: ScoreExplanationModal.tsx
+
+  // Show detailed breakdown like:
+  "GDP Health: Your current GDP growth of 2.1% scores 70/100 because:
+  - Base score: 50 points
+  - Growth above 1.5% adds: +20 points
+  - Consistent 3-month trend adds: +0 points (neutral trend)
+  - Final GDP Health: 70/100 × 15% weight = 10.5 points toward total"
+
+  2. Real-Time Calculation Display
+
+  Enhancement Location: EconomicHealthDashboard.tsx:240-250
+
+  Add expandable sections showing:
+  <details className="mt-2">
+    <summary className="cursor-pointer text-blue-400">Show GDP Calculation</summary>
+    <div className="mt-2 p-3 bg-gray-800 rounded text-xs">
+      Current GDP: 2.1% → Base Score: 50 + 20 (>1.5%) = 70/100
+      Weight: 15/100 → Contribution: 70 × 0.15 = 10.5 points
+    </div>
+  </details>
+
+  3. Interactive Score Simulator
+
+  New Feature: Allow users to adjust hypothetical values:
+  // Sliders showing:
+  "If GDP were 3.0% instead of 2.1%, your score would be 82 (+5 points)"
+  "If unemployment rose to 4.5%, your score would be 79 (-3 points)"
+
+  4. Historical Context Charts
+
+  Enhancement: Show scoring bands visually
+  // Chart showing:
+  GDP Growth Bands:
+  [Recession: <0%] [Weak: 0-1.5%] [Moderate: 1.5-2.5%] [Strong: 2.5-3.5%] [Excellent: >3.5%]
+  Current: 2.1% ■ (Moderate band = 70 points)
+
+  ---
+  🔧 Implementation Plan for Transparency
+
+  Phase 1: Expose Current Calculations
+
+  1. Replace Mock Data (Priority: HIGH)
+    - Fix calculateCorrelationAlignment() to use real correlation data
+    - Replace Math.random() in alert frequency calculation
+    - Implement actual regime detection instead of mock values
+  2. Add Calculation Tooltips
+    - Hover explanations for each component score
+    - Show exact formulas and current values
+    - Include historical context ("Your 85 is 90th percentile since 2020")
+
+  Phase 2: Interactive Explanations
+
+  3. Create "How It Works" Section
+  // New component showing:
+  - Why these 9 components were chosen
+  - How weights were determined (research-based?)
+  - What "good" vs "bad" scores mean historically
+  4. Add Sensitivity Analysis
+  // Show impact of each indicator:
+  "GDP has highest impact: ±1% change = ±8 score points"
+  "Data quality has lowest impact: ±10% change = ±1 score point"
+
+  Phase 3: Advanced Transparency Features
+
+  5. Score History & Decomposition
+    - Monthly score breakdown showing which components drove changes
+    - "Score improved +5 points this month due to: GDP (+3), Employment (+2)"
+  6. Confidence Intervals
+    - Show uncertainty ranges: "Score: 87 ± 4 points (83-91 range)"
+    - Based on data quality and staleness
+
+  ---
+  📋 Immediate Action Items
+
+  Quick Wins (1-2 days):
+
+  1. Add tooltips to existing dashboard components explaining calculations
+  2. Replace mock correlation data with actual database queries
+  3. Document scoring thresholds in user-facing help text
+
+  Medium Effort (1 week):
+
+  1. Create expandable calculation details in dashboard
+  2. Add "What-if" sliders for key economic indicators
+  3. Implement actual regime detection service
+
+  Long-term (2-3 weeks):
+
+  1. Build comprehensive scoring methodology documentation
+  2. Create interactive tutorial showing how score responds to economic changes
+  3. Add historical percentile context to all components
+
+  ---
+  🎯 User-Friendly Summary
+
+  Current Problem: "Your score is 87, but why?"
+
+  Solution: "Your score is 87 because:
+  - Strong fundamentals (35/40 pts): GDP growing at healthy 2.1%, unemployment low at 3.6%
+  - Good correlations (21/25 pts): Economic indicators moving together as expected
+  - Low stress (18/20 pts): Few market alerts, stable economic regime
+  - High confidence (13/15 pts): Fresh, reliable data from Federal Reserve"
+
+  This approach transforms your "black box" into a transparent, educational tool that builds user trust and understanding.

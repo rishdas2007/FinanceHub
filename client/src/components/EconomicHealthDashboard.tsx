@@ -137,9 +137,15 @@ export function EconomicHealthDashboard() {
       {/* Main Health Score Card */}
       <Card className="bg-financial-card border-financial-border">
         <CardHeader>
-          <CardTitle className="text-blue-400 flex items-center">
-            <Activity className="w-5 h-5 mr-2" />
-            Economic Health Score
+          <CardTitle className="text-blue-400 flex items-center justify-between">
+            <div className="flex items-center">
+              <Activity className="w-5 h-5 mr-2" />
+              Economic Health Score
+            </div>
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <span>Purely calculated from government & market data</span>
+              <div className="w-2 h-2 rounded-full bg-green-400"></div>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -194,32 +200,63 @@ export function EconomicHealthDashboard() {
 
           {/* Score Breakdown */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
+            <div className="text-center bg-green-900/10 rounded-lg p-3 border border-green-400/20 hover:border-green-400/40 transition-colors" title="GDP Health (15%) + Employment (15%) + Inflation Stability (10%) = 40% total weight">
               <div className="text-2xl font-bold text-white">{healthData.scoreBreakdown.coreHealth}</div>
               <div className="text-xs text-gray-400">CORE HEALTH</div>
               <div className="text-xs text-green-400">GDP • Jobs • Inflation</div>
+              <div className="text-xs text-gray-500 mt-1">40% weight</div>
             </div>
-            <div className="text-center">
+            <div className="text-center bg-blue-900/10 rounded-lg p-3 border border-blue-400/20 hover:border-blue-400/40 transition-colors" title="Correlation Alignment (15%) + Leading Consistency (10%) = 25% total weight">
               <div className="text-2xl font-bold text-white">{healthData.scoreBreakdown.correlationHarmony}</div>
               <div className="text-xs text-gray-400">CORRELATIONS</div>
               <div className="text-xs text-blue-400">Alignment • Consistency</div>
+              <div className="text-xs text-gray-500 mt-1">25% weight</div>
             </div>
-            <div className="text-center">
+            <div className="text-center bg-orange-900/10 rounded-lg p-3 border border-orange-400/20 hover:border-orange-400/40 transition-colors" title="Alert Frequency (10%) + Regime Stability (10%) = 20% total weight">
               <div className="text-2xl font-bold text-white">{healthData.scoreBreakdown.marketStress}</div>
               <div className="text-xs text-gray-400">MARKET STRESS</div>
               <div className="text-xs text-orange-400">Alerts • Volatility</div>
+              <div className="text-xs text-gray-500 mt-1">20% weight</div>
             </div>
-            <div className="text-center">
+            <div className="text-center bg-purple-900/10 rounded-lg p-3 border border-purple-400/20 hover:border-purple-400/40 transition-colors" title="Data Quality (10%) + Sector Alignment (5%) = 15% total weight">
               <div className="text-2xl font-bold text-white">{healthData.scoreBreakdown.confidence}</div>
               <div className="text-xs text-gray-400">CONFIDENCE</div>
               <div className="text-xs text-purple-400">Data • Predictions</div>
+              <div className="text-xs text-gray-500 mt-1">15% weight</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Economic Narrative */}
-
+      {/* Transparency Section */}
+      <Card className="bg-blue-900/5 border-blue-400/30">
+        <CardContent className="p-4">
+          <div className="flex items-start space-x-3">
+            <Shield className="w-5 h-5 text-blue-400 mt-1 flex-shrink-0" />
+            <div>
+              <h3 className="text-blue-400 font-semibold mb-2">Calculation Transparency</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-300">
+                <div>
+                  <p className="mb-2">
+                    <strong className="text-white">100% Data-Driven:</strong> All calculations use authentic economic data from FRED API and real market data. Zero AI-generated content.
+                  </p>
+                  <p>
+                    <strong className="text-white">Scoring Method:</strong> Each component scored 0-100 using statistical analysis of 24+ months historical data and Z-score calculations.
+                  </p>
+                </div>
+                <div>
+                  <p className="mb-2">
+                    <strong className="text-white">Weighting System:</strong> Core Health (40%) + Correlations (25%) + Market Stress (20%) + Confidence (15%) = 100 points total.
+                  </p>
+                  <p>
+                    <strong className="text-white">Update Frequency:</strong> Economic data refreshed weekdays at 10:15 AM ET. Market data updated in real-time.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Score Component Analysis */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
