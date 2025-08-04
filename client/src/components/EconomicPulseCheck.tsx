@@ -493,15 +493,7 @@ export function EconomicPulseCheck() {
               {getScoreInterpretation(healthData.economicHealthScore).message}
             </p>
             
-            {/* AI Analysis Summary */}
-            {economicData?.aiSummary && (
-              <div className="mt-4 p-3 bg-gray-900 border border-gray-700 rounded-lg">
-                <div className="text-sm font-medium text-blue-400 mb-2">AI Market Analysis</div>
-                <p className="text-gray-300 text-sm leading-relaxed">
-                  {economicData.aiSummary}
-                </p>
-              </div>
-            )}
+
             
             <div className="mt-3 text-xs text-gray-400">
               <strong>Score Ranges:</strong> 85-100 (Robust Strength) • 60-84 (Mixed Signals) • 0-59 (Economic Weakness)
