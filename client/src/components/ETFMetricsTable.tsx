@@ -1,0 +1,438 @@
+import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { TrendingUp, TrendingDown, Activity, BarChart3, Zap, Volume2, DollarSign } from "lucide-react";
+
+interface ETFData {
+  symbol: string;
+  name: string;
+  price: number;
+  changePercent: number;
+  fiveDayChange?: number;
+  oneMonthChange?: number;
+  volume?: number;
+}
+
+interface TechnicalIndicators {
+  rsi: number | null;
+  macd: number | null;
+  macdSignal: number | null;
+  bb_upper: number | null;
+  bb_middle: number | null;
+  bb_lower: number | null;
+  percent_b: number | null;
+  adx: number | null;
+  stoch_k: number | null;
+  stoch_d: number | null;
+  sma_20: number | null;
+  sma_50: number | null;
+  vwap: number | null;
+  atr: number | null;
+  willr: number | null;
+}
+
+interface MomentumStrategy {
+  ticker: string;
+  sector: string;
+  momentum: 'bullish' | 'bearish' | 'neutral';
+  rsi: number;
+  zScore: number;
+  fiveDayZScore: number;
+  sharpeRatio: number;
+  volatility: number;
+  oneDayChange: number;
+  fiveDayChange: number;
+  oneMonthChange: number;
+  correlationToSPY: number;
+  signal: string;
+}
+
+interface ETFMetrics {
+  symbol: string;
+  name: string;
+  price: number;
+  changePercent: number;
+  // Bollinger Bands & Position/Squeeze
+  bollingerPosition: number | null; // %B
+  bollingerSqueeze: boolean;
+  bollingerStatus: string;
+  // ATR & Volatility
+  atr: number | null;
+  volatility: number | null;
+  // Moving Average (Trend)
+  maSignal: string;
+  maTrend: 'bullish' | 'bearish' | 'neutral';
+  // RSI (Momentum)
+  rsi: number | null;
+  rsiSignal: string;
+  rsiDivergence: boolean;
+  // Z-Score, Sharpe, Returns
+  zScore: number | null;
+  sharpeRatio: number | null;
+  fiveDayReturn: number | null;
+  // Volume, VWAP, OBV
+  volumeRatio: number | null;
+  vwapSignal: string;
+  obvTrend: string;
+}
+
+const ETF_LIST = [
+  { symbol: 'SPY', name: 'S&P 500' },
+  { symbol: 'XLK', name: 'Technology' },
+  { symbol: 'XLV', name: 'Healthcare' },
+  { symbol: 'XLF', name: 'Financial' },
+  { symbol: 'XLI', name: 'Industrial' },
+  { symbol: 'XLY', name: 'Consumer Discretionary' },
+  { symbol: 'XLP', name: 'Consumer Staples' },
+  { symbol: 'XLE', name: 'Energy' },
+  { symbol: 'XLU', name: 'Utilities' },
+  { symbol: 'XLB', name: 'Materials' },
+  { symbol: 'XLRE', name: 'Real Estate' }
+];
+
+const formatPercentage = (value: number | null | undefined): string => {
+  if (value === null || value === undefined) return 'N/A';
+  return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
+};
+
+const formatNumber = (value: number | null | undefined, decimals: number = 2): string => {
+  if (value === null || value === undefined) return 'N/A';
+  return value.toFixed(decimals);
+};
+
+const getRSIStatus = (rsi: number | null): { signal: string; color: string } => {
+  if (rsi === null) return { signal: 'N/A', color: 'text-gray-500' };
+  if (rsi >= 70) return { signal: 'Overbought', color: 'text-red-600' };
+  if (rsi <= 30) return { signal: 'Oversold', color: 'text-green-600' };
+  if (rsi >= 60) return { signal: 'Strong', color: 'text-orange-600' };
+  if (rsi <= 40) return { signal: 'Weak', color: 'text-blue-600' };
+  return { signal: 'Neutral', color: 'text-gray-600' };
+};
+
+const getBollingerStatus = (percentB: number | null): { status: string; squeeze: boolean; color: string } => {
+  if (percentB === null) return { status: 'N/A', squeeze: false, color: 'text-gray-500' };
+  
+  const squeeze = percentB > 0.1 && percentB < 0.9; // Not near extremes = potential squeeze
+  
+  if (percentB >= 1.0) return { status: 'Above Upper', squeeze, color: 'text-red-600' };
+  if (percentB <= 0.0) return { status: 'Below Lower', squeeze, color: 'text-green-600' };
+  if (percentB >= 0.8) return { status: 'Near Upper', squeeze, color: 'text-orange-500' };
+  if (percentB <= 0.2) return { status: 'Near Lower', squeeze, color: 'text-blue-500' };
+  return { status: 'Middle', squeeze, color: 'text-gray-600' };
+};
+
+const getMASignal = (sma20: number | null, sma50: number | null, price: number): { signal: string; trend: 'bullish' | 'bearish' | 'neutral'; color: string } => {
+  if (!sma20 || !sma50) return { signal: 'N/A', trend: 'neutral', color: 'text-gray-500' };
+  
+  const ma20AboveMA50 = sma20 > sma50;
+  const priceAboveMA20 = price > sma20;
+  const priceAboveMA50 = price > sma50;
+  
+  if (ma20AboveMA50 && priceAboveMA20 && priceAboveMA50) {
+    return { signal: 'Strong Bull', trend: 'bullish', color: 'text-green-600' };
+  }
+  if (!ma20AboveMA50 && !priceAboveMA20 && !priceAboveMA50) {
+    return { signal: 'Strong Bear', trend: 'bearish', color: 'text-red-600' };
+  }
+  if (ma20AboveMA50) {
+    return { signal: 'Bull Trend', trend: 'bullish', color: 'text-green-500' };
+  }
+  if (!ma20AboveMA50) {
+    return { signal: 'Bear Trend', trend: 'bearish', color: 'text-red-500' };
+  }
+  return { signal: 'Mixed', trend: 'neutral', color: 'text-gray-600' };
+};
+
+const getVWAPSignal = (price: number, vwap: number | null): { signal: string; color: string } => {
+  if (!vwap) return { signal: 'N/A', color: 'text-gray-500' };
+  
+  const deviation = ((price - vwap) / vwap) * 100;
+  
+  if (deviation >= 2) return { signal: 'Strong Above', color: 'text-green-600' };
+  if (deviation <= -2) return { signal: 'Strong Below', color: 'text-red-600' };
+  if (deviation > 0) return { signal: 'Above VWAP', color: 'text-green-500' };
+  if (deviation < 0) return { signal: 'Below VWAP', color: 'text-red-500' };
+  return { signal: 'At VWAP', color: 'text-gray-600' };
+};
+
+export default function ETFMetricsTable() {
+  const { data: sectorData } = useQuery({
+    queryKey: ['/api/sector-etfs'],
+    refetchInterval: 30000,
+  });
+
+  const { data: technicalData } = useQuery({
+    queryKey: ['/api/technical-indicators'],
+    refetchInterval: 30000,
+  });
+
+  const { data: momentumData } = useQuery({
+    queryKey: ['/api/momentum-analysis'],
+    refetchInterval: 30000,
+  });
+
+  const etfMetrics = useMemo(() => {
+    if (!sectorData || !technicalData || !momentumData) return [];
+
+    const metrics: ETFMetrics[] = [];
+
+    ETF_LIST.forEach(etf => {
+      const sectorETF = sectorData.find((s: ETFData) => s.symbol === etf.symbol);
+      const technical = technicalData.indicators?.find((t: TechnicalIndicators & { symbol: string }) => t.symbol === etf.symbol);
+      const momentum = momentumData.momentumStrategies?.find((m: MomentumStrategy) => m.ticker === etf.symbol);
+
+      if (!sectorETF) return;
+
+      const price = sectorETF.price || 0;
+      const changePercent = sectorETF.changePercent || 0;
+
+      // Bollinger analysis
+      const bollingerResult = getBollingerStatus(technical?.percent_b || null);
+      
+      // RSI analysis
+      const rsiResult = getRSIStatus(technical?.rsi || momentum?.rsi || null);
+      
+      // Moving Average analysis
+      const maResult = getMASignal(technical?.sma_20 || null, technical?.sma_50 || null, price);
+      
+      // VWAP analysis
+      const vwapResult = getVWAPSignal(price, technical?.vwap || null);
+
+      metrics.push({
+        symbol: etf.symbol,
+        name: etf.name,
+        price,
+        changePercent,
+        // Bollinger Bands & Position/Squeeze
+        bollingerPosition: technical?.percent_b || null,
+        bollingerSqueeze: bollingerResult.squeeze,
+        bollingerStatus: bollingerResult.status,
+        // ATR & Volatility
+        atr: technical?.atr || null,
+        volatility: momentum?.volatility || null,
+        // Moving Average (Trend)
+        maSignal: maResult.signal,
+        maTrend: maResult.trend,
+        // RSI (Momentum)
+        rsi: technical?.rsi || momentum?.rsi || null,
+        rsiSignal: rsiResult.signal,
+        rsiDivergence: false, // TODO: Implement RSI divergence detection
+        // Z-Score, Sharpe, Returns
+        zScore: momentum?.zScore || null,
+        sharpeRatio: momentum?.sharpeRatio || null,
+        fiveDayReturn: sectorETF.fiveDayChange || momentum?.fiveDayChange || null,
+        // Volume, VWAP, OBV
+        volumeRatio: null, // TODO: Calculate volume ratio
+        vwapSignal: vwapResult.signal,
+        obvTrend: 'N/A', // TODO: Implement OBV calculation
+      });
+    });
+
+    return metrics;
+  }, [sectorData, technicalData, momentumData]);
+
+  if (!etfMetrics.length) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className="h-5 w-5 text-blue-600" />
+          <h3 className="text-lg font-semibold text-gray-900">ETF Technical Metrics</h3>
+        </div>
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-3 text-gray-600">Loading ETF metrics...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-6" data-testid="etf-metrics-table">
+      <div className="flex items-center gap-2 mb-4">
+        <BarChart3 className="h-5 w-5 text-blue-600" />
+        <h3 className="text-lg font-semibold text-gray-900">ETF Technical Metrics</h3>
+        <span className="text-sm text-gray-500">({etfMetrics.length} ETFs)</span>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              <th className="text-left p-3 font-medium text-gray-900 sticky left-0 bg-gray-50 z-10">ETF</th>
+              <th className="text-center p-3 font-medium text-gray-700 min-w-[120px]">
+                <div className="flex items-center justify-center gap-1">
+                  <Activity className="h-4 w-4" />
+                  <span>Bollinger Bands</span>
+                </div>
+              </th>
+              <th className="text-center p-3 font-medium text-gray-700 min-w-[100px]">
+                <div className="flex items-center justify-center gap-1">
+                  <Zap className="h-4 w-4" />
+                  <span>ATR/Volatility</span>
+                </div>
+              </th>
+              <th className="text-center p-3 font-medium text-gray-700 min-w-[100px]">
+                <div className="flex items-center justify-center gap-1">
+                  <TrendingUp className="h-4 w-4" />
+                  <span>MA Trend</span>
+                </div>
+              </th>
+              <th className="text-center p-3 font-medium text-gray-700 min-w-[100px]">
+                <div className="flex items-center justify-center gap-1">
+                  <BarChart3 className="h-4 w-4" />
+                  <span>RSI</span>
+                </div>
+              </th>
+              <th className="text-center p-3 font-medium text-gray-700 min-w-[120px]">
+                <div className="flex items-center justify-center gap-1">
+                  <Activity className="h-4 w-4" />
+                  <span>Z-Score/Sharpe</span>
+                </div>
+              </th>
+              <th className="text-center p-3 font-medium text-gray-700 min-w-[120px]">
+                <div className="flex items-center justify-center gap-1">
+                  <Volume2 className="h-4 w-4" />
+                  <span>Volume/VWAP</span>
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {etfMetrics.map((etf, index) => {
+              const rsiResult = getRSIStatus(etf.rsi);
+              const bollingerResult = getBollingerStatus(etf.bollingerPosition);
+              const maResult = getMASignal(null, null, etf.price); // We already calculated this
+              const vwapResult = getVWAPSignal(etf.price, null); // We already calculated this
+
+              return (
+                <tr key={etf.symbol} className={`border-b border-gray-100 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}>
+                  {/* ETF Column */}
+                  <td className="p-3 sticky left-0 bg-white z-10 border-r border-gray-100">
+                    <div className="flex flex-col">
+                      <span className="font-medium text-gray-900">{etf.symbol}</span>
+                      <span className="text-xs text-gray-500">{etf.name}</span>
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-sm font-medium">${etf.price.toFixed(2)}</span>
+                        <span className={`text-xs ${etf.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatPercentage(etf.changePercent)}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Bollinger Bands */}
+                  <td className="p-3 text-center">
+                    <div className="flex flex-col items-center">
+                      <span className={`text-sm font-medium ${bollingerResult.color}`}>
+                        {etf.bollingerStatus}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        %B: {formatNumber(etf.bollingerPosition, 3)}
+                      </span>
+                      {etf.bollingerSqueeze && (
+                        <span className="text-xs bg-yellow-100 text-yellow-800 px-1 rounded mt-1">
+                          Squeeze
+                        </span>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* ATR/Volatility */}
+                  <td className="p-3 text-center">
+                    <div className="flex flex-col items-center">
+                      <span className="text-sm font-medium text-gray-900">
+                        {formatNumber(etf.atr, 2)}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        Vol: {formatPercentage(etf.volatility)}
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* MA Trend */}
+                  <td className="p-3 text-center">
+                    <div className="flex flex-col items-center">
+                      <span className={`text-sm font-medium ${
+                        etf.maTrend === 'bullish' ? 'text-green-600' : 
+                        etf.maTrend === 'bearish' ? 'text-red-600' : 'text-gray-600'
+                      }`}>
+                        {etf.maSignal}
+                      </span>
+                      <div className="flex items-center gap-1 mt-1">
+                        {etf.maTrend === 'bullish' ? (
+                          <TrendingUp className="h-3 w-3 text-green-600" />
+                        ) : etf.maTrend === 'bearish' ? (
+                          <TrendingDown className="h-3 w-3 text-red-600" />
+                        ) : (
+                          <Activity className="h-3 w-3 text-gray-500" />
+                        )}
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* RSI */}
+                  <td className="p-3 text-center">
+                    <div className="flex flex-col items-center">
+                      <span className="text-sm font-medium text-gray-900">
+                        {formatNumber(etf.rsi, 1)}
+                      </span>
+                      <span className={`text-xs ${rsiResult.color}`}>
+                        {etf.rsiSignal}
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* Z-Score/Sharpe */}
+                  <td className="p-3 text-center">
+                    <div className="flex flex-col items-center">
+                      <span className={`text-sm font-medium ${
+                        etf.zScore && etf.zScore > 2 ? 'text-green-600' :
+                        etf.zScore && etf.zScore < -2 ? 'text-red-600' : 'text-gray-900'
+                      }`}>
+                        Z: {formatNumber(etf.zScore, 2)}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        Sharpe: {formatNumber(etf.sharpeRatio, 2)}
+                      </span>
+                      <span className={`text-xs ${
+                        etf.fiveDayReturn && etf.fiveDayReturn > 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        5d: {formatPercentage(etf.fiveDayReturn)}
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* Volume/VWAP */}
+                  <td className="p-3 text-center">
+                    <div className="flex flex-col items-center">
+                      <span className={`text-sm font-medium ${vwapResult.color}`}>
+                        {etf.vwapSignal}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        Vol Ratio: {formatNumber(etf.volumeRatio, 2)}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        OBV: {etf.obvTrend}
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+        <p className="text-sm text-gray-700">
+          <strong>Metrics Guide:</strong> 
+          <strong> Bollinger Bands</strong> - %B position: &gt;1.0 (above upper), &lt;0.0 (below lower), 0.1-0.9 (potential squeeze). 
+          <strong> ATR</strong> - Average True Range for volatility measurement. 
+          <strong> MA Trend</strong> - Moving average crossover signals (20/50 day). 
+          <strong> RSI</strong> - &gt;70 overbought, &lt;30 oversold, 30-70 neutral. 
+          <strong> Z-Score</strong> - Standard deviations from mean (&gt;±2 significant). 
+          <strong> VWAP</strong> - Volume Weighted Average Price vs current price.
+        </p>
+      </div>
+    </div>
+  );
+}

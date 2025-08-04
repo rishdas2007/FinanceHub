@@ -6,7 +6,7 @@ import MacroeconomicIndicators from "@/components/MacroeconomicIndicators";
 import { AIEconomicAnalysis } from "@/components/AIEconomicAnalysis";
 import { StatisticalAlertSystem } from "@/components/StatisticalAlertSystem";
 import { EconomicPulseCheck } from "@/components/EconomicPulseCheck";
-import { BreakoutAnalysis } from "@/components/BreakoutAnalysis";
+import ETFMetricsTable from "@/components/ETFMetricsTable";
 import { EnhancedEconomicHealthDashboard } from "@/components/EnhancedEconomicHealthDashboard";
 import { EconomicHealthScoreAppendix } from "@/components/EconomicHealthScoreAppendix";
 
@@ -83,7 +83,7 @@ export default function Dashboard() {
         <MoodDataSources />
 
         {/* Breakout Analysis - Real-time squeeze and breakout monitoring */}
-        <BreakoutAnalysis />
+        <ETFMetricsTable />
 
         {/* Enhanced Economic Health Dashboard - Original + Statistical Methods */}
         <EnhancedEconomicHealthDashboard />

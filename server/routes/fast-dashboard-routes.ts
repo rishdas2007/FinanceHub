@@ -194,6 +194,51 @@ router.get('/data-freshness', async (req, res) => {
   }
 });
 
+// Sector ETFs endpoint
+router.get('/sector-etfs', async (req, res) => {
+  try {
+    console.log('🔍 Fast Dashboard Route: GET /api/sector-etfs');
+    const { simplifiedSectorAnalysisService } = await import('../services/simplified-sector-analysis');
+    const { historicalDataFetcher } = await import('../services/historical-data-fetcher');
+    
+    // Get current sector data
+    const currentSectorData = await historicalDataFetcher.getAllSectorETFData();
+    
+    res.json(currentSectorData);
+    
+  } catch (error) {
+    logger.error('❌ Sector ETFs error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Technical indicators endpoint
+router.get('/technical-indicators', async (req, res) => {
+  try {
+    console.log('🔍 Fast Dashboard Route: GET /api/technical-indicators');
+    const { storage } = await import('../storage');
+    
+    // Get latest technical indicators from database
+    const indicators = await storage.getLatestTechnicalIndicators();
+    
+    res.json({
+      success: true,
+      indicators,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    logger.error('❌ Technical indicators error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // Add route debugging for troubleshooting
 router.use('*', (req, res, next) => {
   console.log(`🔍 Fast Dashboard Route: ${req.method} ${req.originalUrl}`);
