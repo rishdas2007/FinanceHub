@@ -105,10 +105,20 @@ router.get("/convergence-analysis", async (req, res) => {
           ? signals.reduce((sum, s) => sum + s.confidence, 0) / signals.length 
           : 0;
         
+        // Include raw technical indicators for reference and debugging
+        const technicalData = {
+          rsi: indicators.rsi ? parseFloat(indicators.rsi) : null,
+          macd: indicators.macd ? parseFloat(indicators.macd) : null,
+          macdSignal: indicators.macdSignal ? parseFloat(indicators.macdSignal) : null,
+          adx: indicators.adx ? parseFloat(indicators.adx) : null,
+          percentB: indicators.percent_b ? parseFloat(indicators.percent_b) : null
+        };
+
         return {
           symbol,
           timestamp: new Date(),
           convergence_signals: signals,
+          technical_indicators: technicalData,
           signal_summary: {
             total_signals: signals.length,
             bullish_signals: bullishSignals,

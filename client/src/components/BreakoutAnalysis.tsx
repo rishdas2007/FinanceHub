@@ -19,6 +19,13 @@ interface ConvergenceData {
     confidence_score: number;
     overall_bias: string;
     convergence_signals: ConvergenceSignal[];
+    technical_indicators?: {
+      rsi: number | null;
+      macd: number | null;
+      macdSignal: number | null;
+      adx: number | null;
+      percentB: number | null;
+    };
     signal_summary: {
       total_signals: number;
       bullish_signals: number;
@@ -57,47 +64,16 @@ interface BreakoutSymbol {
     bullish_signals: number;
     bearish_signals: number;
   };
+  technicalIndicators?: {
+    rsi: number | null;
+    macd: number | null;
+    macdSignal: number | null;
+    adx: number | null;
+    percentB: number | null;
+  };
 }
 
 export function BreakoutAnalysis() {
-  const { data: convergenceData, isLoading, error } = useQuery<ConvergenceData>({
-    queryKey: ['/api/convergence-analysis'],
-    refetchInterval: 30000,
-    staleTime: 15000,
-    gcTime: 60000,
-  });
-
-  // Memoize processed data to prevent unnecessary recalculations
-  const potentialBreakouts = useMemo(() => {
-    if (!convergenceData) return [];
-
-    const potentialSymbols = convergenceData.squeeze_monitoring.potential_breakouts || [];
-    return potentialSymbols.map(symbol => {
-      const analysis = convergenceData.analysis.find(a => a.symbol === symbol);
-      if (!analysis) return null;
-
-      // Get the primary signal driving the setup
-      const primarySignal = analysis.convergence_signals
-        .sort((a, b) => b.confidence - a.confidence)[0];
-
-      const reason = primarySignal ? 
-        `${primarySignal.signal_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Signal` :
-        "High Probability Setup";
-
-      return {
-        symbol,
-        reason,
-        description: getSignalDescription(analysis.convergence_signals),
-        confidence: analysis.confidence_score || 0,
-        bias: analysis.overall_bias || "neutral",
-        price: analysis.market_data?.price,
-        change: analysis.market_data?.changePercent,
-        signals: analysis.convergence_signals || [],
-        signalSummary: analysis.signal_summary
-      };
-    }).filter(Boolean) as BreakoutSymbol[];
-  }, [convergenceData]);
-
   // Helper function to generate signal descriptions
   const getSignalDescription = (signals: ConvergenceSignal[]): string => {
     if (!signals || signals.length === 0) return "Multiple technical indicators converging";
@@ -121,6 +97,55 @@ export function BreakoutAnalysis() {
 
     return signalDescriptions.slice(0, 2).join(' + ');
   };
+
+  const { data: convergenceData, isLoading, error } = useQuery<ConvergenceData>({
+    queryKey: ['/api/convergence-analysis'],
+    refetchInterval: 30000,
+    staleTime: 15000,
+    gcTime: 60000,
+  });
+
+  // Memoize processed data to prevent unnecessary recalculations
+  const potentialBreakouts = useMemo(() => {
+    if (!convergenceData) return [];
+
+    // Show all analysis to see technical indicators and any signals
+    return convergenceData.analysis.map(analysis => {
+      // Get the primary signal driving the setup
+      const primarySignal = analysis.convergence_signals
+        .sort((a, b) => b.confidence - a.confidence)[0];
+
+      // Create description based on technical indicators if no signals
+      let description = "";
+      if (analysis.convergence_signals.length > 0) {
+        description = getSignalDescription(analysis.convergence_signals);
+      } else if (analysis.technical_indicators) {
+        const tech = analysis.technical_indicators;
+        const parts = [];
+        if (tech.rsi !== null) parts.push(`RSI: ${tech.rsi.toFixed(1)}`);
+        if (tech.macd !== null) parts.push(`MACD: ${tech.macd.toFixed(3)}`);
+        if (tech.adx !== null) parts.push(`ADX: ${tech.adx.toFixed(1)}`);
+        description = parts.slice(0, 2).join(' | ') || "Technical indicators available";
+      }
+
+      const reason = primarySignal ? 
+        `${primarySignal.signal_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Signal` :
+        "Technical Analysis";
+
+      return {
+        symbol: analysis.symbol,
+        reason,
+        description,
+        confidence: analysis.confidence_score || 0,
+        bias: analysis.overall_bias || "neutral",
+        price: analysis.market_data?.price,
+        change: analysis.market_data?.changePercent,
+        signals: analysis.convergence_signals || [],
+        signalSummary: analysis.signal_summary,
+        technicalIndicators: analysis.technical_indicators
+      };
+    }); // Show all symbols now to see RSI values
+  }, [convergenceData, getSignalDescription]);
 
   // Show error state
   if (error) {
