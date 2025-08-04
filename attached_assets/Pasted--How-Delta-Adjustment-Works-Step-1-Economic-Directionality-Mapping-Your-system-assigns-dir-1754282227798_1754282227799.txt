@@ -1,0 +1,178 @@
+ 🧮 How Delta Adjustment Works
+
+  Step 1: Economic Directionality Mapping
+
+  Your system assigns directionality coefficients to each economic indicator:
+
+  // Lines 11-78 in live-zscore-calculator.ts
+  const ECONOMIC_DIRECTIONALITY: Record<string, number> = {
+    // Growth indicators (increase = good) → +1
+    'GDP Growth Rate': 1,
+    'Nonfarm Payrolls': 1,
+    'Consumer Confidence Index': 1,
+    'Retail Sales MoM': 1,
+
+    // Negative indicators (increase = bad) → -1  
+    'CPI Year-over-Year': -1,
+    'Unemployment Rate': -1,
+    'Federal Funds Rate': -1,
+    'Initial Jobless Claims': -1,
+
+    // Neutral indicators → 0
+    'US Dollar Index': 0
+  };
+
+  Step 2: Standard Z-Score Calculation
+
+  Formula: z_score = (current_value - historical_mean) / historical_std
+
+  // Lines 319-322 in live-zscore-calculator.ts
+  const rawZScore = (historicalStd > 0 && historicalMean !== null)
+    ? (currentValue - historicalMean) / historicalStd
+    : 0;
+
+  Step 3: Delta Adjustment Application
+
+  Formula: delta_adjusted_z_score = z_score × directionality
+
+  // Lines 332-334 in live-zscore-calculator.ts
+  const directionality = ECONOMIC_DIRECTIONALITY[row.metric_name] || 1;
+  const deltaAdjustedZScore = zScore * directionality;
+
+  Step 4: Delta Z-Score (Period-to-Period Change)
+
+  Formula: delta_z_score = (current_change - mean_change) / std_change
+
+  // Lines 336-347 in live-zscore-calculator.ts
+  const currentPeriodChange = parseFloat(row.current_period_change) || 0;
+  const deltaHistoricalMean = parseFloat(row.delta_historical_mean) || 0;
+  const deltaHistoricalStd = parseFloat(row.delta_historical_std) || 0;
+
+  const rawDeltaZScore = (deltaHistoricalStd > 0)
+    ? (currentPeriodChange - deltaHistoricalMean) / deltaHistoricalStd
+    : 0;
+
+  ---
+  📊 Mathematical Examples
+
+  Example 1: Unemployment Rate (Negative Indicator)
+
+  Raw Data:
+  - Current unemployment: 4.2%
+  - Historical mean: 5.1%
+  - Historical std: 1.2%
+  - Directionality: -1 (increase = bad)
+
+  Calculations:
+  Raw Z-Score = (4.2 - 5.1) / 1.2 = -0.75
+  Delta-Adjusted Z-Score = -0.75 × (-1) = +0.75
+
+  Interpretation: Low unemployment (4.2%) is 0.75 standard deviations better than average, shown as positive +0.75 for economic strength.
+
+  Example 2: GDP Growth (Positive Indicator)
+
+  Raw Data:
+  - Current GDP growth: 3.2%
+  - Historical mean: 2.1%
+  - Historical std: 1.8%
+  - Directionality: +1 (increase = good)
+
+  Calculations:
+  Raw Z-Score = (3.2 - 2.1) / 1.8 = +0.61
+  Delta-Adjusted Z-Score = +0.61 × (+1) = +0.61
+
+  Interpretation: Strong GDP growth shows as positive +0.61 for economic strength.
+
+  Example 3: CPI Inflation (Negative Indicator)
+
+  Raw Data:
+  - Current CPI: 6.8%
+  - Historical mean: 2.4%
+  - Historical std: 1.1%
+  - Directionality: -1 (increase = bad)
+
+  Calculations:
+  Raw Z-Score = (6.8 - 2.4) / 1.1 = +4.0
+  Delta-Adjusted Z-Score = +4.0 × (-1) = -4.0
+
+  Interpretation: High inflation (6.8%) shows as negative -4.0 indicating economic weakness.
+
+  ---
+  🎯 Purpose of Delta Adjustment
+
+  Problem Solved:
+
+  Without delta adjustment, unemployment and GDP would have inconsistent interpretations:
+  - Low unemployment (good) = negative z-score ❌
+  - High GDP (good) = positive z-score ✅
+  - Confusing for users!
+
+  Solution:
+
+  Delta adjustment creates consistent interpretation:
+  - Positive z-scores = Economic Strength 💪
+  - Negative z-scores = Economic Weakness 📉
+  - All indicators aligned in same direction
+
+  ---
+  📈 Delta Z-Score vs Delta-Adjusted Z-Score
+
+  Your system calculates TWO different types of adjusted scores:
+
+  1. Delta-Adjusted Z-Score (deltaAdjustedZScore)
+
+  - Purpose: Consistent interpretation across all indicators
+  - Formula: z_score × directionality
+  - Usage: Main display value for user understanding
+
+  2. Delta Z-Score (deltaZScore)
+
+  - Purpose: Measures rate of change significance
+  - Formula: (current_change - historical_mean_change) / historical_std_change
+  - Usage: Advanced analysis of momentum/acceleration
+
+  ---
+  💻 Implementation in SQL Query
+
+  Your system calculates period changes using SQL window functions:
+
+  -- Lines 200-212 in live-zscore-calculator.ts
+  period_changes AS (
+    SELECT
+      series_id,
+      metric_name,
+      value,
+      period_date,
+      LAG(value) OVER (PARTITION BY metric_name ORDER BY period_date) as prev_value,
+      value - LAG(value) OVER (PARTITION BY metric_name ORDER BY period_date) as period_change
+    FROM economic_indicators_history
+    WHERE series_id IN (${seriesIdFilter})
+      AND period_date IS NOT NULL
+  )
+
+  This calculates the period-to-period change for delta z-score analysis.
+
+  ---
+  🖼️ User Interface Display
+
+  Frontend Explanation (Lines 812-820 in MacroeconomicIndicators.tsx):
+
+  <strong className="text-white">Delta-Adjusted Z-Score Definition:</strong>
+  Measures how many standard deviations the current value is from its 12-month
+  historical average, with economic directionality applied.
+
+  <strong className="text-blue-400">
+  Positive z-scores = Economic Strength, Negative z-scores = Economic Weakness.
+  </strong>
+
+  Indicators marked "(Δ-adjusted)" have been inverted for consistent interpretation
+  (e.g., lower unemployment rates show positive z-scores).
+
+  Indicator Labeling (Lines 161-167 in macroeconomic-indicators.ts):
+
+  const getDirectionalityLabel = (directionality: number): string => {
+    if (directionality === -1) return ' (Δ-adjusted)';  // Shows user it's inverted
+    if (directionality === 1) return '';                // No label needed
+    return ' (neutral)';                                 // Neutral indicators
+  };
+

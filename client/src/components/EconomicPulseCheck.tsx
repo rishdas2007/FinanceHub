@@ -399,50 +399,7 @@ export function EconomicPulseCheck() {
     return matchesSearch && matchesCategory && matchesType && matchesDateRange && matchesZScore && matchesDeltaZScore;
   }) || [];
 
-  // Determine economic impact based on indicator type and z-score
-  const determineEconomicImpact = (metric: string, zScore: number): boolean => {
-    const metricLower = metric.toLowerCase();
-    
-    // For inflation metrics, HIGHER values are generally NEGATIVE for the economy
-    const inflationMetrics = [
-      'cpi', 'core cpi', 'pce price index', 'core pce', 'ppi', 'core ppi', 
-      'inflation', 'price index', 'consumer price', 'producer price'
-    ];
-    
-    // For unemployment metrics, HIGHER values are generally NEGATIVE
-    const unemploymentMetrics = [
-      'unemployment', 'jobless claims', 'initial claims', 'continuing claims'
-    ];
-    
-    // For interest rate metrics, context matters but generally HIGHER is restrictive
-    const interestRateMetrics = [
-      'federal funds rate', 'treasury yield', 'interest rate', 'fed funds'
-    ];
-    
-    // Check if this is an inflation metric
-    if (inflationMetrics.some(term => metricLower.includes(term))) {
-      // For inflation: positive z-score (higher than normal) = negative economic signal
-      return zScore <= 0;
-    }
-    
-    // Check if this is an unemployment metric  
-    if (unemploymentMetrics.some(term => metricLower.includes(term))) {
-      // For unemployment: positive z-score (higher than normal) = negative economic signal
-      return zScore <= 0;
-    }
-    
-    // Check if this is an interest rate metric
-    if (interestRateMetrics.some(term => metricLower.includes(term))) {
-      // For rates: moderate increases might be neutral, extreme changes concerning
-      if (Math.abs(zScore) > 2) {
-        return false; // Extreme moves in either direction are concerning
-      }
-      return Math.abs(zScore) < 1; // Moderate moves are more neutral/positive
-    }
-    
-    // For most other metrics (GDP, employment, housing, etc.), higher is better
-    return zScore > 0;
-  };
+
 
   const processPulseData = (): PulseData => {
     const pulseData: PulseData = {
@@ -501,10 +458,8 @@ export function EconomicPulseCheck() {
           formattedChange: indicator.varianceVsPrior || 'N/A'
         };
 
-        // Categorize by economic impact, not just z-score sign
-        const isPositiveEconomicSignal = determineEconomicImpact(indicator.metric, indicator.zScore);
-        
-        if (isPositiveEconomicSignal) {
+        // Trust backend delta adjustment - positive z-scores are economic strength
+        if (indicator.zScore > 0) {
           if (pulseData[indicator.category]) {
             pulseData[indicator.category].positive.push(pulseMetric);
           }
