@@ -7,6 +7,7 @@ FinanceHub Pro is a comprehensive financial dashboard application providing real
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+UI Preference: Clean, actionable interface without overly technical explanations that don't provide user value.
 
 ## System Architecture
 
