@@ -150,7 +150,18 @@ app.use((req, res, next) => {
     // Initialize services with proper dependency ordering (replaces race conditions)
     const serviceConfigs: ServiceConfig[] = [
       {
+        name: 'real-time-market-service',
+        timeout: 10000,
+        initializer: async () => {
+          const { getRealTimeMarketService } = await import('./services/real-time-market-service');
+          const marketService = getRealTimeMarketService();
+          marketService.initialize();
+          console.log('✅ Real-time market service initialized');
+        }
+      },
+      {
         name: 'unified-refresh-scheduler',
+        dependencies: ['real-time-market-service'],
         timeout: 5000,
         initializer: async () => {
           const { unifiedDataRefreshScheduler } = await import('./services/unified-data-refresh-scheduler');

@@ -11,7 +11,12 @@ export function ConvergenceAnalysisDashboard() {
 
   const { data: convergenceData, isLoading, error } = useQuery<ConvergenceAnalysisResponse>({
     queryKey: ['/api/convergence-analysis'],
-    refetchInterval: 120000, // Refresh every 2 minutes
+    refetchInterval: 30000, // Refresh every 30 seconds for real-time data
+  });
+
+  const { data: wsStatus } = useQuery({
+    queryKey: ['/api/websocket-status'],
+    refetchInterval: 10000, // Check WebSocket status every 10 seconds
   });
 
   if (isLoading) {
@@ -130,17 +135,17 @@ export function ConvergenceAnalysisDashboard() {
           </CardContent>
         </Card>
 
-        <Card data-testid="tracked-signals-card">
+        <Card data-testid="websocket-status-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tracked Signals</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">WebSocket Status</CardTitle>
+            <div className={`h-2 w-2 rounded-full ${wsStatus?.connected ? 'bg-green-500' : 'bg-red-500'}`}></div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {convergenceData.signal_quality_overview.total_tracked_signals}
+              {wsStatus?.connected ? 'Connected' : 'Disconnected'}
             </div>
             <p className="text-xs text-muted-foreground">
-              Historical database
+              {wsStatus?.subscribedSymbols?.length || 0} symbols tracked
             </p>
           </CardContent>
         </Card>
@@ -216,25 +221,46 @@ export function ConvergenceAnalysisDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-3 gap-2 text-sm">
-                    <div className="text-center">
-                      <div className="font-medium text-green-500">
-                        {symbolAnalysis.signal_summary.bullish_signals}
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-3 gap-2 text-sm">
+                      <div className="text-center">
+                        <div className="font-medium text-green-500">
+                          {symbolAnalysis.signal_summary.bullish_signals}
+                        </div>
+                        <div className="text-muted-foreground">Bullish</div>
                       </div>
-                      <div className="text-muted-foreground">Bullish</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-medium text-red-500">
-                        {symbolAnalysis.signal_summary.bearish_signals}
+                      <div className="text-center">
+                        <div className="font-medium text-red-500">
+                          {symbolAnalysis.signal_summary.bearish_signals}
+                        </div>
+                        <div className="text-muted-foreground">Bearish</div>
                       </div>
-                      <div className="text-muted-foreground">Bearish</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-medium">
-                        {symbolAnalysis.signal_summary.total_signals}
+                      <div className="text-center">
+                        <div className="font-medium">
+                          {symbolAnalysis.signal_summary.total_signals}
+                        </div>
+                        <div className="text-muted-foreground">Total</div>
                       </div>
-                      <div className="text-muted-foreground">Total</div>
                     </div>
+                    
+                    {(symbolAnalysis as any).market_data && (
+                      <div className="mt-3 p-2 bg-slate-800/50 rounded text-xs">
+                        <div className="flex justify-between">
+                          <span>Price:</span>
+                          <span className="font-mono">${(symbolAnalysis as any).market_data.price?.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Change:</span>
+                          <span className={`font-mono ${(symbolAnalysis as any).market_data.changePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {(symbolAnalysis as any).market_data.changePercent?.toFixed(2)}%
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>Updated:</span>
+                          <span>{new Date((symbolAnalysis as any).market_data.lastUpdate).toLocaleTimeString()}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   
                   {symbolAnalysis.bollinger_squeeze_status.active_squeezes.length > 0 && (
