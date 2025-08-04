@@ -152,19 +152,35 @@ export class MultiTimeframeAnalysisService {
         const macdHist = macd - macdSignal;
 
         if (macd > macdSignal && macdHist > 0) {
+          // Calculate confidence based on histogram strength and values
+          const histogramStrength = Math.abs(macdHist);
+          const signalSeparation = Math.abs(macd - macdSignal);
+          const baseConfidence = 65;
+          const strengthBonus = Math.min(20, histogramStrength * 10);
+          const separationBonus = Math.min(10, signalSeparation * 5);
+          const confidence = Math.round(baseConfidence + strengthBonus + separationBonus);
+
           signals.push({
             signal_type: 'macd_bullish_crossover',
             strength: Math.min(1.0, Math.abs(macdHist) / 2),
-            confidence: 75,
+            confidence: Math.min(95, confidence),
             direction: 'bullish' as const,
             timeframes: ['1d'],
             metadata: { macd: macd, signal: macdSignal, histogram: macdHist }
           });
         } else if (macd < macdSignal && macdHist < 0) {
+          // Calculate confidence based on histogram strength and values
+          const histogramStrength = Math.abs(macdHist);
+          const signalSeparation = Math.abs(macd - macdSignal);
+          const baseConfidence = 65;
+          const strengthBonus = Math.min(20, histogramStrength * 10);
+          const separationBonus = Math.min(10, signalSeparation * 5);
+          const confidence = Math.round(baseConfidence + strengthBonus + separationBonus);
+
           signals.push({
             signal_type: 'macd_bearish_crossover',
             strength: Math.min(1.0, Math.abs(macdHist) / 2),
-            confidence: 75,
+            confidence: Math.min(95, confidence),
             direction: 'bearish' as const,
             timeframes: ['1d'],
             metadata: { macd: macd, signal: macdSignal, histogram: macdHist }
