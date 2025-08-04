@@ -205,23 +205,102 @@ export function EconomicPulseCheck() {
   console.log('📊 EconomicPulseCheck - Loading:', isLoading);
   console.log('📊 EconomicPulseCheck - Error:', error);
 
+  // Generate data-driven analysis based on actual economic indicators
+  const generateDataDrivenAnalysis = (indicators: EconomicIndicator[], score: number) => {
+    if (!indicators || indicators.length === 0) {
+      return {
+        message: "No economic data available for analysis.",
+        riskLevel: "UNKNOWN Alert Level",
+        alertClass: "text-gray-400"
+      };
+    }
+
+    const positiveSignals: string[] = [];
+    const negativeSignals: string[] = [];
+    
+    // Analyze indicators by z-score and category
+    indicators.forEach(indicator => {
+      const zScore = indicator.zScore || 0;
+      const metric = indicator.metric;
+      
+      if (Math.abs(zScore) > 1.2) { // Significant deviation
+        if (zScore > 1.2) {
+          if (metric.toLowerCase().includes('unemployment')) {
+            negativeSignals.push(`${metric} elevated`);
+          } else {
+            positiveSignals.push(`${metric} strong performance`);
+          }
+        } else if (zScore < -1.2) {
+          if (metric.toLowerCase().includes('unemployment')) {
+            positiveSignals.push(`${metric} remains low`);
+          } else {
+            negativeSignals.push(`${metric} showing weakness`);
+          }
+        }
+      }
+    });
+
+    // Count by category for broader insights
+    const categoryStrength = ['Growth', 'Labor', 'Inflation', 'Monetary Policy'].map(category => {
+      const categoryIndicators = indicators.filter(ind => ind.category === category);
+      const avgZScore = categoryIndicators.reduce((sum, ind) => sum + (ind.zScore || 0), 0) / categoryIndicators.length;
+      return { category, strength: avgZScore };
+    });
+
+    const strongCategories = categoryStrength.filter(c => c.strength > 0.5).map(c => c.category);
+    const weakCategories = categoryStrength.filter(c => c.strength < -0.5).map(c => c.category);
+
+    // Generate summary message
+    let message = "";
+    if (positiveSignals.length > negativeSignals.length) {
+      message = `Economic indicators show predominantly positive signals. ${strongCategories.length > 0 ? strongCategories.join(', ') + ' sectors showing strength.' : ''} ${negativeSignals.length > 0 ? 'Areas of concern include ' + negativeSignals.slice(0, 2).join(', ') + '.' : ''}`;
+    } else if (negativeSignals.length > positiveSignals.length) {
+      message = `Economic data reveals concerning trends across multiple indicators. ${weakCategories.length > 0 ? weakCategories.join(', ') + ' sectors showing weakness.' : ''} ${positiveSignals.length > 0 ? 'Bright spots include ' + positiveSignals.slice(0, 2).join(', ') + '.' : ''}`;
+    } else {
+      message = `Mixed signals across economic indicators with balanced positive and negative developments. ${strongCategories.length > 0 ? strongCategories.join(', ') + ' showing strength,' : ''} ${weakCategories.length > 0 ? ' while ' + weakCategories.join(', ') + ' showing weakness.' : ''}`;
+    }
+
+    // Determine alert level based on score and signal balance
+    let riskLevel: string;
+    let alertClass: string;
+    
+    if (score >= 75 || positiveSignals.length >= negativeSignals.length * 2) {
+      riskLevel = "LOW Alert Level";
+      alertClass = "text-gain-green";
+    } else if (score >= 50 || Math.abs(positiveSignals.length - negativeSignals.length) <= 2) {
+      riskLevel = "MODERATE Alert Level";
+      alertClass = "text-yellow-400";
+    } else {
+      riskLevel = "HIGH Alert Level";
+      alertClass = "text-loss-red";
+    }
+
+    return { message, riskLevel, alertClass };
+  };
+
   // Helper function to provide contextual interpretation of Economic Health Score
   const getScoreInterpretation = (score: number): { message: string; riskLevel: string; alertClass: string } => {
-    if (score >= 85) {
+    // Use data-driven analysis if indicators are available
+    if (economicData?.indicators && economicData.indicators.length > 0) {
+      return generateDataDrivenAnalysis(economicData.indicators, score);
+    }
+    
+    // Fallback to basic score interpretation
+    if (score >= 75) {
       return {
-        message: "Economy showing robust strength with GDP growth, low unemployment, and stable correlations. Expansion phase likely to continue.",
+        message: "Economic health score indicates favorable conditions across measured indicators.",
         riskLevel: "LOW Alert Level",
         alertClass: "text-gain-green"
       };
-    } else if (score >= 60) {
+    } else if (score >= 50) {
       return {
-        message: "Mixed economic signals with some areas of concern. Monitor for regime transition signals.",
+        message: "Economic health score suggests mixed conditions requiring monitoring.",
         riskLevel: "MODERATE Alert Level", 
         alertClass: "text-yellow-400"
       };
     } else {
       return {
-        message: "Economic weakness evident across multiple indicators. Potential contraction risk.",
+        message: "Economic health score indicates elevated risks across multiple indicators.",
         riskLevel: "HIGH Alert Level",
         alertClass: "text-loss-red"
       };
