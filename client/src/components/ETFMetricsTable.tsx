@@ -241,7 +241,7 @@ export default function ETFMetricsTable() {
           <span className="text-red-600 font-medium">Red = Bad/Sell signals</span>. 
           <br />
           <strong>Metrics:</strong> 
-          <strong> Signal</strong> - Weighted Technical Score (Bollinger 30%, ATR 20%, MA 15%, RSI 15%, Z-Score 10%, VWAP 10%). BUY &gt;0.5, SELL &lt;-0.5, HOLD -0.5 to 0.5.
+          <strong> Signal</strong> - Weighted Technical Score (Bollinger 30%, ATR 20%, MA 15%, RSI 15%, Z-Score 10%, VWAP 10%). BUY ≥0.25, SELL ≤-0.25, HOLD -0.25 to 0.25.
           <strong> Bollinger</strong> - Price position in bands (oversold=good, overbought=bad). 
           <strong> ATR</strong> - Volatility measure. 
           <strong> MA Trend</strong> - Bull/bear crossover signals. 

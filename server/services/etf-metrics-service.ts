@@ -399,11 +399,11 @@ class ETFMetricsService {
     // Normalize score if we have any data
     const finalScore = totalWeight > 0 ? totalScore / totalWeight : 0;
 
-    // Classification based on statistical thresholds
+    // Classification based on revised thresholds
     let signal: string;
-    if (finalScore > 0.5) {
+    if (finalScore >= 0.25) {
       signal = 'BUY';
-    } else if (finalScore < -0.5) {
+    } else if (finalScore <= -0.25) {
       signal = 'SELL';
     } else {
       signal = 'HOLD';
