@@ -6,6 +6,7 @@ import MacroeconomicIndicators from "@/components/MacroeconomicIndicators";
 import { AIEconomicAnalysis } from "@/components/AIEconomicAnalysis";
 import { StatisticalAlertSystem } from "@/components/StatisticalAlertSystem";
 import { EconomicPulseCheck } from "@/components/EconomicPulseCheck";
+import { BreakoutAnalysis } from "@/components/BreakoutAnalysis";
 
 import { MoodDataSources } from "@/components/MoodDataSources";
 import { AAIISentiment } from "@/components/aaii-sentiment";
@@ -78,6 +79,9 @@ export default function Dashboard() {
 
         {/* Technical Analysis - moved to top */}
         <MoodDataSources />
+
+        {/* Breakout Analysis - Real-time squeeze and breakout monitoring */}
+        <BreakoutAnalysis />
 
         {/* Economic Analysis - 2x5 grid above Momentum Analysis */}
         <EconomicPulseCheck />

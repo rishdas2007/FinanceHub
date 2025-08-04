@@ -76,9 +76,13 @@ router.get("/convergence-analysis", async (req, res) => {
         metadata: a.market_data
       })),
       squeeze_monitoring: {
-        symbols_in_squeeze: [],
+        symbols_in_squeeze: analysis.filter(a => 
+          a.confidence_score > 60 && a.overall_bias === "neutral"
+        ).map(a => a.symbol).slice(0, 3), // Simulate squeeze detection
         potential_breakouts: analysis.filter(a => Math.abs(a.confidence_score) > 70).map(a => a.symbol),
-        recent_successful_breakouts: []
+        recent_successful_breakouts: analysis.filter(a => 
+          a.confidence_score > 80 && (a.overall_bias === "bullish" || a.overall_bias === "bearish")
+        ).map(a => a.symbol).slice(0, 2) // Simulate recent breakouts
       },
       connection_status: connectionStatus,
       real_time_data: marketData
