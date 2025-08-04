@@ -168,13 +168,18 @@ export class EconomicStatisticalAnalysisService {
             
             alertsToInsert.push(alertMetric);
             
-            // Only include in results if >1 standard deviation from mean
-            if (absZScore > 1.0) {
+            // Use dynamic threshold instead of static 1.0
+            const { DynamicThresholdService } = await import('./dynamic-threshold-service.js');
+            const thresholdService = new DynamicThresholdService();
+            const thresholdCheck = await thresholdService.exceedsThreshold(metric, zScore);
+            
+            // Only include in results if exceeds dynamic threshold
+            if (thresholdCheck.exceeds) {
               if (!alertResults[category]) {
                 alertResults[category] = {};
               }
               alertResults[category][metric] = analysis;
-              log.info(`🚨 Alert: ${metric} (${category}) - Z-Score: ${zScore.toFixed(2)} (${absZScore > 2 ? 'EXTREME' : 'MODERATE'} deviation)`);
+              log.info(`🚨 Dynamic Alert: ${metric} (${category}) - Z-Score: ${zScore.toFixed(2)}, Threshold: ${thresholdCheck.threshold.currentThreshold.toFixed(2)} (${absZScore > 2 ? 'EXTREME' : 'MODERATE'} deviation)`);
             }
           }
         }

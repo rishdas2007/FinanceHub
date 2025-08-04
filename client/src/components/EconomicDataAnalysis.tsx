@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { RefreshCw, BarChart3, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { CorrelationMatrix } from './CorrelationMatrix';
 
 interface MetricStatistics {
   mean: number | null;
@@ -212,6 +213,12 @@ export function EconomicDataAnalysis() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+          
+          {/* Economic Correlation Analysis */}
+          <div className="mt-8">
+            <h3 className="text-xl font-medium text-blue-400 mb-4">Cross-Indicator Correlation Analysis</h3>
+            <CorrelationMatrix />
           </div>
         </>
       ) : (

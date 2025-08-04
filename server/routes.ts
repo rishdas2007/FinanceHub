@@ -39,6 +39,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Multi-Timeframe Technical Convergence Analysis endpoints
   app.use('/api', (await import('./routes/convergence-analysis')).default);
   
+  // Economic Correlation Analysis endpoints
+  app.use('/api/economic', (await import('./routes/economic-correlation')).default);
+  
   // Authentic FRED Economic Data API - prioritized endpoint
   app.get('/api/fred-economic-data', async (req, res) => {
     try {
