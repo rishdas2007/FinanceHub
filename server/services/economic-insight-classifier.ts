@@ -230,34 +230,159 @@ export class EconomicInsightClassifier {
     let levelDescription = '';
     let trendDescription = '';
 
-    // Level description
+    // Level description with more nuanced language
     if (absZScore > 2) {
       levelDescription = zScore > 0 ? 'well above historical average' : 'well below historical average';
     } else if (absZScore > 1) {
       levelDescription = zScore > 0 ? 'above historical average' : 'below historical average';
+    } else if (absZScore > 0.5) {
+      levelDescription = zScore > 0 ? 'modestly above average' : 'modestly below average';
     } else {
       levelDescription = 'near historical average';
     }
 
-    // Trend description
+    // Trend description with more precision
     if (absDeltaZScore > 2) {
-      trendDescription = deltaZScore > 0 ? 'rising rapidly' : 'falling rapidly';
+      trendDescription = deltaZScore > 0 ? 'accelerating rapidly' : 'declining rapidly';
     } else if (absDeltaZScore > 1) {
-      trendDescription = deltaZScore > 0 ? 'rising' : 'falling';
+      trendDescription = deltaZScore > 0 ? 'rising' : 'declining';
+    } else if (absDeltaZScore > 0.5) {
+      trendDescription = deltaZScore > 0 ? 'trending upward' : 'trending downward';
     } else {
-      trendDescription = 'stable';
+      trendDescription = 'relatively stable';
     }
 
-    // Special reasoning for different metric types
-    if (metricName.includes('inflation') || metricName.includes('cpi')) {
-      if (levelSignal === 'positive' && trendSignal === 'negative') {
-        return `Inflation ${levelDescription} but ${trendDescription} - monitor for acceleration`;
-      } else if (levelSignal === 'negative' && trendSignal === 'positive') {
-        return `Inflation ${levelDescription} and ${trendDescription} - concerning trend`;
+    // Generate sophisticated contextual reasoning for GDP Growth
+    if (metricName.includes('gdp') || metricName.toLowerCase().includes('growth rate')) {
+      return this.generateGDPReasoning(levelSignal, trendSignal, zScore, deltaZScore, levelDescription, trendDescription);
+    }
+
+    // Enhanced reasoning for inflation metrics
+    if (metricName.includes('inflation') || metricName.includes('cpi') || metricName.includes('pce') || metricName.includes('ppi')) {
+      return this.generateInflationReasoning(levelSignal, trendSignal, zScore, deltaZScore, levelDescription, trendDescription);
+    }
+
+    // Enhanced reasoning for employment metrics
+    if (metricName.includes('unemployment') || metricName.includes('payroll') || metricName.includes('employment')) {
+      return this.generateEmploymentReasoning(levelSignal, trendSignal, zScore, deltaZScore, levelDescription, trendDescription);
+    }
+
+    // Enhanced reasoning for rate metrics
+    if (metricName.includes('rate') || metricName.includes('yield') || metricName.includes('fed')) {
+      return this.generateRateReasoning(levelSignal, trendSignal, zScore, deltaZScore, levelDescription, trendDescription);
+    }
+
+    // Default enhanced reasoning
+    return this.generateDefaultReasoning(levelSignal, trendSignal, zScore, deltaZScore, levelDescription, trendDescription);
+  }
+
+  private generateGDPReasoning(levelSignal: string, trendSignal: string, zScore: number, deltaZScore: number, levelDescription: string, trendDescription: string): string {
+    const isPositiveLevel = levelSignal === 'positive';
+    const isPositiveTrend = trendSignal === 'positive';
+    
+    // Case: Both level and trend positive but classified as Mixed
+    if (isPositiveLevel && isPositiveTrend && (levelSignal !== trendSignal || Math.abs(zScore) < 1.5)) {
+      const contextualConcerns = [];
+      
+      // Economic overheating concerns
+      if (zScore > 1.5 && deltaZScore > 1) {
+        contextualConcerns.push('potential overheating risk');
+      }
+      
+      // Sustainability concerns  
+      if (deltaZScore > zScore && deltaZScore > 1.2) {
+        contextualConcerns.push('sustainability questions about growth acceleration');
+      }
+      
+      // Quality of growth concerns
+      if (zScore > 0.8 && zScore < 1.5) {
+        contextualConcerns.push('need to assess growth quality and composition');
+      }
+
+      if (contextualConcerns.length > 0) {
+        return `GDP growth ${levelDescription} and ${trendDescription}, but ${contextualConcerns.join(' and ')}. Economic context suggests monitoring for inflation pressure, debt-driven expansion, or cross-indicator conflicts.`;
       }
     }
 
-    return `Level: ${levelDescription}, Trend: ${trendDescription}`;
+    // Case: Strong positive signals
+    if (isPositiveLevel && isPositiveTrend && zScore > 1.5 && deltaZScore > 1) {
+      return `Strong GDP growth ${levelDescription} and ${trendDescription} - indicates robust economic expansion with positive momentum.`;
+    }
+
+    // Case: Concerning trends
+    if (!isPositiveLevel && !isPositiveTrend) {
+      return `GDP growth ${levelDescription} and ${trendDescription} - signals economic slowdown requiring attention.`;
+    }
+
+    // Case: Mixed signals - explain the conflict
+    if (isPositiveLevel !== isPositiveTrend) {
+      const strongerSignal = Math.abs(zScore) > Math.abs(deltaZScore) ? 'level' : 'trend';
+      return `GDP growth shows conflicting signals: ${levelDescription} (level) but ${trendDescription} (trend). The ${strongerSignal} signal currently dominates, creating mixed interpretation requiring cross-indicator analysis.`;
+    }
+
+    return `GDP growth ${levelDescription} and ${trendDescription}.`;
+  }
+
+  private generateInflationReasoning(levelSignal: string, trendSignal: string, zScore: number, deltaZScore: number, levelDescription: string, trendDescription: string): string {
+    // Inflation-specific logic considering Fed targets and economic impact
+    if (levelSignal === 'positive' && trendSignal === 'negative') {
+      return `Inflation ${levelDescription} but ${trendDescription} - favorable for Fed policy but monitor for trend reversal.`;
+    } else if (levelSignal === 'negative' && trendSignal === 'positive') {
+      return `Inflation ${levelDescription} yet ${trendDescription} - concerning acceleration despite low base, signals building price pressure.`;
+    } else if (levelSignal === 'negative' && trendSignal === 'negative') {
+      return `Inflation ${levelDescription} and ${trendDescription} - positive disinflationary trend supporting economic stability.`;
+    } else if (levelSignal === 'positive' && trendSignal === 'positive') {
+      return `Inflation ${levelDescription} and ${trendDescription} - challenging for monetary policy, indicates persistent price pressure.`;
+    }
+    
+    return `Inflation ${levelDescription} and ${trendDescription}.`;
+  }
+
+  private generateEmploymentReasoning(levelSignal: string, trendSignal: string, zScore: number, deltaZScore: number, levelDescription: string, trendDescription: string): string {
+    const isUnemployment = levelSignal.includes('unemployment');
+    
+    if (isUnemployment) {
+      // For unemployment (inverse metric)
+      if (levelSignal === 'positive' && trendSignal === 'negative') {
+        return `Unemployment ${levelDescription} but ${trendDescription} - concerning deterioration in labor market conditions.`;
+      } else if (levelSignal === 'negative' && trendSignal === 'positive') {
+        return `Unemployment ${levelDescription} and ${trendDescription} - positive improvement in job market fundamentals.`;
+      }
+    } else {
+      // For employment/payrolls (direct metrics)
+      if (levelSignal === 'positive' && trendSignal === 'negative') {
+        return `Employment ${levelDescription} but ${trendDescription} - solid base but weakening momentum signals caution.`;
+      } else if (levelSignal === 'negative' && trendSignal === 'positive') {
+        return `Employment ${levelDescription} yet ${trendDescription} - recovery building despite weak foundation.`;
+      }
+    }
+    
+    return `Employment conditions ${levelDescription} and ${trendDescription}.`;
+  }
+
+  private generateRateReasoning(levelSignal: string, trendSignal: string, zScore: number, deltaZScore: number, levelDescription: string, trendDescription: string): string {
+    // Interest rate specific reasoning
+    if (Math.abs(zScore) > 2 || Math.abs(deltaZScore) > 2) {
+      return `Interest rates ${levelDescription} with ${trendDescription} movement - extreme positioning creates financial stress and policy uncertainty.`;
+    }
+    
+    if (levelSignal === 'positive' && trendSignal === 'positive') {
+      return `Interest rates ${levelDescription} and ${trendDescription} - tightening monetary conditions impacting growth and credit markets.`;
+    } else if (levelSignal === 'negative' && trendSignal === 'negative') {
+      return `Interest rates ${levelDescription} and ${trendDescription} - accommodative policy supporting economic expansion.`;
+    }
+    
+    return `Interest rates ${levelDescription} and ${trendDescription} - balanced monetary policy stance.`;
+  }
+
+  private generateDefaultReasoning(levelSignal: string, trendSignal: string, zScore: number, deltaZScore: number, levelDescription: string, trendDescription: string): string {
+    // Enhanced default reasoning with conflict explanation
+    if (levelSignal !== trendSignal) {
+      const dominatingFactor = Math.abs(zScore) > Math.abs(deltaZScore) ? 'historical context' : 'recent momentum';
+      return `Indicator shows ${levelDescription} (historical context) but ${trendDescription} (recent trend). Mixed signal reflects conflicting timeframes, with ${dominatingFactor} currently more significant.`;
+    }
+    
+    return `Indicator ${levelDescription} with ${trendDescription} trend - signals align consistently.`;
   }
 
   private determineAlertLevel(overallSignal: string, zScore: number, deltaZScore: number): 'critical' | 'warning' | 'watch' | 'normal' {
