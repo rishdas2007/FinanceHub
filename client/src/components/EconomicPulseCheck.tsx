@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Activity, TrendingUp, TrendingDown, Search, Filter } from 'lucide-react';
+import { Activity, TrendingUp, TrendingDown, Search, Filter, AlertTriangle } from 'lucide-react';
 
 interface EconomicIndicator {
   metric: string;
@@ -460,52 +460,147 @@ export function EconomicPulseCheck() {
   
   const summaryStats = calculateSummaryStats();
 
+  // Generate critical insights based on statistical findings
+  const generateCriticalInsights = () => {
+    const insights: Array<{text: string, type: 'positive' | 'negative' | 'neutral'}> = [];
+    
+    if (!filteredIndicators || filteredIndicators.length === 0) {
+      return [{text: "No indicators available for analysis", type: 'neutral' as const}];
+    }
+
+    // Find extreme z-scores
+    const extremePositive = filteredIndicators.filter(ind => (ind.zScore || 0) > 2);
+    const extremeNegative = filteredIndicators.filter(ind => (ind.zScore || 0) < -2);
+    const strongPositive = filteredIndicators.filter(ind => (ind.zScore || 0) > 1.5 && (ind.zScore || 0) <= 2);
+    const strongNegative = filteredIndicators.filter(ind => (ind.zScore || 0) < -1.5 && (ind.zScore || 0) >= -2);
+
+    // Labor market insights
+    const unemploymentInd = filteredIndicators.find(ind => ind.metric.toLowerCase().includes('unemployment'));
+    const payrollsInd = filteredIndicators.find(ind => ind.metric.toLowerCase().includes('payroll'));
+    
+    if (unemploymentInd && (unemploymentInd.zScore || 0) < -1) {
+      insights.push({
+        text: `Unemployment at exceptional low (${(unemploymentInd.zScore || 0).toFixed(1)}σ below average) indicates strong labor market`,
+        type: 'positive'
+      });
+    }
+
+    if (payrollsInd && (payrollsInd.zScore || 0) > 1) {
+      insights.push({
+        text: `Job creation above historical trend (${(payrollsInd.zScore || 0).toFixed(1)}σ) signals employment strength`,
+        type: 'positive'
+      });
+    }
+
+    // GDP and growth insights
+    const gdpInd = filteredIndicators.find(ind => ind.metric.toLowerCase().includes('gdp'));
+    if (gdpInd && Math.abs(gdpInd.zScore || 0) > 1) {
+      insights.push({
+        text: `GDP growth at ${(gdpInd.zScore || 0).toFixed(1)}σ ${(gdpInd.zScore || 0) > 0 ? 'above' : 'below'} long-term average`,
+        type: (gdpInd.zScore || 0) > 0 ? 'positive' : 'negative'
+      });
+    }
+
+    // Inflation insights
+    const cpiInd = filteredIndicators.find(ind => ind.metric.toLowerCase().includes('cpi') && !ind.metric.toLowerCase().includes('energy'));
+    if (cpiInd && Math.abs(cpiInd.zScore || 0) > 1) {
+      const isHigh = (cpiInd.zScore || 0) > 1;
+      insights.push({
+        text: `Core inflation ${isHigh ? 'elevated' : 'subdued'} at ${(cpiInd.zScore || 0).toFixed(1)}σ ${isHigh ? 'above' : 'below'} historical levels`,
+        type: isHigh ? 'negative' : 'positive'
+      });
+    }
+
+    // Housing market insights
+    const housingInd = filteredIndicators.find(ind => ind.metric.toLowerCase().includes('housing') || ind.metric.toLowerCase().includes('home'));
+    if (housingInd && Math.abs(housingInd.zScore || 0) > 1) {
+      insights.push({
+        text: `Housing activity ${(housingInd.zScore || 0) > 0 ? 'robust' : 'weak'} at ${(housingInd.zScore || 0).toFixed(1)}σ from trend`,
+        type: (housingInd.zScore || 0) > 0 ? 'positive' : 'negative'
+      });
+    }
+
+    // Statistical extremes
+    if (extremePositive.length > 0) {
+      insights.push({
+        text: `${extremePositive.length} indicators showing exceptional strength (>2σ above average)`,
+        type: 'positive'
+      });
+    }
+
+    if (extremeNegative.length > 0) {
+      insights.push({
+        text: `${extremeNegative.length} indicators at critical weakness levels (<-2σ below average)`,
+        type: 'negative'
+      });
+    }
+
+    // Category-specific insights
+    const categoryStats = calculateSummaryStats();
+    Object.entries(categoryStats).forEach(([category, stats]) => {
+      const total = stats.positive + stats.negative;
+      if (total > 0) {
+        const positiveRatio = stats.positive / total;
+        if (positiveRatio >= 0.8) {
+          insights.push({
+            text: `${category} sector showing broad-based strength (${Math.round(positiveRatio * 100)}% positive signals)`,
+            type: 'positive'
+          });
+        } else if (positiveRatio <= 0.2) {
+          insights.push({
+            text: `${category} sector under pressure (${Math.round((1-positiveRatio) * 100)}% negative signals)`,
+            type: 'negative'
+          });
+        }
+      }
+    });
+
+    // Fallback if no insights generated
+    if (insights.length === 0) {
+      insights.push({
+        text: "Economic indicators showing mixed signals with no clear statistical extremes",
+        type: 'neutral'
+      });
+    }
+
+    return insights.slice(0, 5); // Limit to 5 most important insights
+  };
+
   return (
     <Card className="bg-financial-card border-financial-border">
       <CardHeader>
         <div className="flex items-center justify-between mb-4">
           <CardTitle className="text-white flex items-center space-x-2">
             <Activity className="h-5 w-5 text-blue-400" />
-            <span>Economic Analysis</span>
+            <span>Critical Economic Insights</span>
           </CardTitle>
           <div className="text-sm text-blue-400 font-medium">
             📊 {filteredIndicators.length} indicators filtered
           </div>
         </div>
 
-        {/* Economic Health Score Interpretation */}
-        {healthData && !healthLoading && (
-          <div className="mb-6 p-4 bg-financial-gray rounded-lg border border-financial-border">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center space-x-3">
-                <div className="text-2xl font-bold text-white">
-                  Economic Health Score: {healthData.economicHealthScore}/100
-                </div>
-                <div className={`px-3 py-1 rounded-full text-sm font-medium ${getScoreInterpretation(healthData.economicHealthScore).alertClass}`}>
-                  {getScoreInterpretation(healthData.economicHealthScore).riskLevel}
-                </div>
-              </div>
-              <div className="text-sm text-gray-400">
-                Grade: <span className="text-white font-medium">{healthData.healthGrade}</span>
-              </div>
-            </div>
-            <p className="text-gray-300 leading-relaxed">
-              {getScoreInterpretation(healthData.economicHealthScore).message}
-            </p>
-            
-
-            
-            <div className="mt-3 text-xs text-gray-400">
-              <strong>Score Ranges:</strong> 85-100 (Robust Strength) • 60-84 (Mixed Signals) • 0-59 (Economic Weakness)
-            </div>
+        {/* Critical Insights Summary */}
+        <div className="mb-6 p-4 bg-financial-gray rounded-lg border border-financial-border">
+          <div className="text-sm font-medium text-blue-400 mb-3 flex items-center">
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            Key Statistical Findings
           </div>
-        )}
+          <div className="space-y-2">
+            {generateCriticalInsights().map((insight, index) => (
+              <div key={index} className={`text-sm ${insight.type === 'positive' ? 'text-green-400' : insight.type === 'negative' ? 'text-red-400' : 'text-yellow-400'}`}>
+                • {insight.text}
+              </div>
+            ))}
+          </div>
+        </div>
+
+
 
         {/* Enhanced Filter Controls */}
         <div className="bg-financial-gray p-4 rounded-lg border border-blue-500/30 mb-4">
           <div className="text-sm font-medium text-blue-400 mb-3 flex items-center">
             <Filter className="h-4 w-4 mr-2" />
-            Filter & Search Economic Analysis
+            Filter & Search Critical Insights
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-center">
             <div className="flex items-center space-x-2">
