@@ -476,15 +476,65 @@ export function EconomicPulseCheck() {
     const maxScore = Math.max(Math.abs(zScore), Math.abs(deltaZScore));
     const confidence: 'high' | 'medium' | 'low' = maxScore > 2 ? 'high' : maxScore > 1 ? 'medium' : 'low';
 
-    // Generate reasoning
-    const levelDesc = Math.abs(zScore) > 2 ? (zScore > 0 ? 'well above average' : 'well below average') :
-                     Math.abs(zScore) > 1 ? (zScore > 0 ? 'above average' : 'below average') : 'near average';
-    const trendDesc = Math.abs(deltaZScore) > 2 ? (deltaZScore > 0 ? 'rising rapidly' : 'falling rapidly') :
-                     Math.abs(deltaZScore) > 1 ? (deltaZScore > 0 ? 'rising' : 'falling') : 'stable';
+    // Enhanced reasoning with sophisticated economic context
+    const levelDesc = Math.abs(zScore) > 2 ? (zScore > 0 ? 'well above historical average' : 'well below historical average') :
+                     Math.abs(zScore) > 1 ? (zScore > 0 ? 'modestly above average' : 'modestly below average') : 'near historical average';
+    const trendDesc = Math.abs(deltaZScore) > 2 ? (deltaZScore > 0 ? 'trending upward rapidly' : 'trending downward rapidly') :
+                     Math.abs(deltaZScore) > 1 ? (deltaZScore > 0 ? 'trending upward' : 'trending downward') : 'stable trend';
     
-    let reasoning = `Level: ${levelDesc}, Trend: ${trendDesc}`;
-    if (metricName.includes('inflation') && levelSignal === 'positive' && trendSignal === 'negative') {
-      reasoning = `Inflation ${levelDesc} but ${trendDesc} - monitor for acceleration`;
+    let reasoning = '';
+    
+    // GDP-specific reasoning
+    if (metricName.includes('gdp') || metricName.includes('growth')) {
+      if (overallSignal === 'mixed' && levelSignal === 'positive' && trendSignal === 'positive') {
+        reasoning = `GDP growth ${levelDesc} and ${trendDesc}, but requires assessment of sustainability and potential overheating risks given current economic conditions`;
+      } else if (overallSignal === 'positive') {
+        reasoning = `GDP growth ${levelDesc} with ${trendDesc}, indicating economic strength and expansion momentum`;
+      } else if (overallSignal === 'negative') {
+        reasoning = `GDP growth ${levelDesc} with ${trendDesc}, signaling economic weakness and potential contraction risks`;
+      } else {
+        reasoning = `GDP growth ${levelDesc} with ${trendDesc}`;
+      }
+    }
+    // Inflation-specific reasoning
+    else if (metricName.includes('inflation') || metricName.includes('cpi') || metricName.includes('pce') || metricName.includes('ppi')) {
+      if (overallSignal === 'mixed') {
+        reasoning = `Inflation ${levelDesc} but ${trendDesc} - Fed policy implications and potential acceleration signal require monitoring`;
+      } else if (overallSignal === 'positive' && trendDesc.includes('stable')) {
+        reasoning = `Inflation ${levelDesc} with ${trendDesc}, supporting Fed's price stability mandate`;
+      } else if (overallSignal === 'negative') {
+        reasoning = `Inflation ${levelDesc} and ${trendDesc}, indicating price pressures that may constrain economic growth`;
+      } else {
+        reasoning = `Inflation ${levelDesc} with ${trendDesc}`;
+      }
+    }
+    // Employment-specific reasoning
+    else if (metricName.includes('employment') || metricName.includes('unemployment') || metricName.includes('payroll') || metricName.includes('job')) {
+      if (overallSignal === 'mixed') {
+        reasoning = `Employment ${levelDesc} with ${trendDesc}, creating tension between labor market momentum and foundational strength`;
+      } else if (overallSignal === 'positive') {
+        reasoning = `Employment ${levelDesc} and ${trendDesc}, indicating robust labor market conditions supporting economic expansion`;
+      } else if (overallSignal === 'negative') {
+        reasoning = `Employment ${levelDesc} with ${trendDesc}, signaling labor market stress that could impact consumer spending`;
+      } else {
+        reasoning = `Employment ${levelDesc} with ${trendDesc}`;
+      }
+    }
+    // Interest rate/monetary policy reasoning
+    else if (metricName.includes('rate') || metricName.includes('yield') || metricName.includes('funds')) {
+      if (overallSignal === 'mixed') {
+        reasoning = `Interest rates ${levelDesc} with ${trendDesc}, creating complex monetary policy implications and potential market positioning extremes`;
+      } else {
+        reasoning = `Interest rates ${levelDesc} and ${trendDesc}, influencing borrowing costs and economic activity`;
+      }
+    }
+    // Default reasoning for other metrics
+    else {
+      if (overallSignal === 'mixed') {
+        reasoning = `Indicator ${levelDesc} but ${trendDesc}, creating conflicting signals across different timeframes that require careful interpretation`;
+      } else {
+        reasoning = `Indicator ${levelDesc} with ${trendDesc}`;
+      }
     }
 
     // Display properties
