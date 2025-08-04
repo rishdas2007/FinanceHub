@@ -25,6 +25,11 @@ interface EconomicDataResponse {
   source: string;
 }
 
+interface EconomicHealthData {
+  economicHealthScore: number;
+  healthGrade: string;
+}
+
 interface PulseMetric {
   name: string;
   currentValue: number;
@@ -187,9 +192,41 @@ export function EconomicPulseCheck() {
     gcTime: 1 * 60 * 1000, // 1 minute
   });
 
+  const {
+    data: healthData,
+    isLoading: healthLoading
+  } = useQuery<EconomicHealthData>({
+    queryKey: ['/api/economic-health/dashboard'],
+    staleTime: 0,
+    gcTime: 1 * 60 * 1000,
+  });
+
   console.log('📊 EconomicPulseCheck - Data:', economicData);
   console.log('📊 EconomicPulseCheck - Loading:', isLoading);
   console.log('📊 EconomicPulseCheck - Error:', error);
+
+  // Helper function to provide contextual interpretation of Economic Health Score
+  const getScoreInterpretation = (score: number): { message: string; riskLevel: string; alertClass: string } => {
+    if (score >= 85) {
+      return {
+        message: "Economy showing robust strength with GDP growth, low unemployment, and stable correlations. Expansion phase likely to continue.",
+        riskLevel: "LOW Alert Level",
+        alertClass: "text-gain-green"
+      };
+    } else if (score >= 60) {
+      return {
+        message: "Mixed economic signals with some areas of concern. Monitor for regime transition signals.",
+        riskLevel: "MODERATE Alert Level", 
+        alertClass: "text-yellow-400"
+      };
+    } else {
+      return {
+        message: "Economic weakness evident across multiple indicators. Potential contraction risk.",
+        riskLevel: "HIGH Alert Level",
+        alertClass: "text-loss-red"
+      };
+    }
+  };
   
   // Log first few indicators to check period_date values
   if (economicData?.indicators && economicData.indicators.length > 0) {
@@ -435,6 +472,42 @@ export function EconomicPulseCheck() {
             📊 {filteredIndicators.length} indicators filtered
           </div>
         </div>
+
+        {/* Economic Health Score Interpretation */}
+        {healthData && !healthLoading && (
+          <div className="mb-6 p-4 bg-financial-gray rounded-lg border border-financial-border">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-3">
+                <div className="text-2xl font-bold text-white">
+                  Economic Health Score: {healthData.economicHealthScore}/100
+                </div>
+                <div className={`px-3 py-1 rounded-full text-sm font-medium ${getScoreInterpretation(healthData.economicHealthScore).alertClass}`}>
+                  {getScoreInterpretation(healthData.economicHealthScore).riskLevel}
+                </div>
+              </div>
+              <div className="text-sm text-gray-400">
+                Grade: <span className="text-white font-medium">{healthData.healthGrade}</span>
+              </div>
+            </div>
+            <p className="text-gray-300 leading-relaxed">
+              {getScoreInterpretation(healthData.economicHealthScore).message}
+            </p>
+            
+            {/* AI Analysis Summary */}
+            {economicData?.aiSummary && (
+              <div className="mt-4 p-3 bg-gray-900 border border-gray-700 rounded-lg">
+                <div className="text-sm font-medium text-blue-400 mb-2">AI Market Analysis</div>
+                <p className="text-gray-300 text-sm leading-relaxed">
+                  {economicData.aiSummary}
+                </p>
+              </div>
+            )}
+            
+            <div className="mt-3 text-xs text-gray-400">
+              <strong>Score Ranges:</strong> 85-100 (Robust Strength) • 60-84 (Mixed Signals) • 0-59 (Economic Weakness)
+            </div>
+          </div>
+        )}
 
         {/* Enhanced Filter Controls */}
         <div className="bg-financial-gray p-4 rounded-lg border border-blue-500/30 mb-4">
