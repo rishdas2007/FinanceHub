@@ -8,7 +8,9 @@ import {
   Shield,
   BarChart3,
   Calculator,
-  Info
+  Info,
+  AlertTriangle,
+  TrendingUp
 } from 'lucide-react';
 
 interface OriginalHealthData {
@@ -266,7 +268,7 @@ export function EnhancedEconomicHealthDashboard() {
           { 
             key: 'correlationHarmony', 
             label: 'Correlations', 
-            icon: Activity, 
+            icon: TrendingUp, 
             weight: '25%',
             description: 'Cross-indicator alignment and consistency'
           },
