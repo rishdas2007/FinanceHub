@@ -119,18 +119,23 @@ export function BreakoutAnalysis() {
       const primarySignal = analysis.convergence_signals
         .sort((a, b) => b.confidence - a.confidence)[0];
 
-      // Create description based on technical indicators if no signals
+      // Always show RSI and technical indicators, with signal descriptions as additional context
       let description = "";
+      const tech = analysis.technical_indicators;
+      const techParts = [];
+      if (tech?.rsi !== null) techParts.push(`RSI: ${tech.rsi.toFixed(1)}`);
+      if (tech?.momentum) techParts.push(`${tech.momentum}`);
+      if (tech?.oneDayChange !== null) techParts.push(`${tech.oneDayChange >= 0 ? '+' : ''}${tech.oneDayChange.toFixed(2)}%`);
+      
+      // Build base description with technical indicators
+      const baseDescription = techParts.slice(0, 3).join(' | ');
+      
+      // Add signal descriptions if available
       if (analysis.convergence_signals.length > 0) {
-        description = getSignalDescription(analysis.convergence_signals);
-      } else if (analysis.technical_indicators) {
-        const tech = analysis.technical_indicators;
-        const parts = [];
-        if (tech.rsi !== null) parts.push(`RSI: ${tech.rsi.toFixed(1)}`);
-        if (tech.momentum) parts.push(`Momentum: ${tech.momentum}`);
-        if (tech.oneDayChange !== null) parts.push(`1D: ${tech.oneDayChange.toFixed(2)}%`);
-        if (tech.zScore !== null) parts.push(`Z-Score: ${tech.zScore.toFixed(2)}`);
-        description = parts.slice(0, 3).join(' | ') || "Technical indicators available";
+        const signalDesc = getSignalDescription(analysis.convergence_signals);
+        description = baseDescription ? `${baseDescription} | ${signalDesc}` : signalDesc;
+      } else {
+        description = baseDescription || "Technical analysis";
       }
 
       const reason = primarySignal ? 
