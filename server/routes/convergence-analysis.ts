@@ -10,7 +10,7 @@ const CONVERGENCE_CACHE_TTL = 300000; // 5 minutes cache (same as momentum analy
 // Get full convergence analysis
 router.get("/convergence-analysis", async (req, res) => {
   try {
-    // Check cache first
+    // Check cache first - harmonized with momentum analysis 5-minute TTL
     const cacheKey = 'convergence-analysis';
     const cached = convergenceCache.get(cacheKey);
     const now = Date.now();
@@ -26,6 +26,13 @@ router.get("/convergence-analysis", async (req, res) => {
     // Get sector ETF data directly from market data service (already cached)
     const sectorETFs = await marketDataService.getSectorETFs();
     
+    // Get momentum analysis data by making internal API call (cached on momentum service side)
+    const momentumResponse = await fetch('http://localhost:5000/api/momentum-analysis');
+    const momentumData = await momentumResponse.json();
+    const momentumStrategies = momentumData.momentumStrategies || [];
+    
+    console.log(`🔍 Retrieved ${momentumStrategies.length} momentum strategies for convergence analysis`);
+    
     // Use symbols from query or default sector ETFs  
     let symbols: string[];
     if (req.query.symbols) {
@@ -37,18 +44,19 @@ router.get("/convergence-analysis", async (req, res) => {
     // Generate convergence analysis for each symbol using cached data
     const analysis = await Promise.all(symbols.map(async (symbol) => {
       try {
-        // Get technical data from cached sector ETF data
+        // Get technical data from both sector ETF data and momentum analysis
         const sectorETF = sectorETFs.find(etf => etf.symbol === symbol);
+        const momentumStrategy = momentumStrategies.find((strategy: any) => strategy.ticker === symbol);
         
-        // Extract technical indicators from sector ETF (includes RSI, momentum, price changes)
+        // Extract technical indicators from momentum analysis (primary source) with sector ETF fallback
         const technicalIndicators = {
-          rsi: sectorETF?.rsi || null,
-          momentum: sectorETF?.momentum || null,
-          oneDayChange: sectorETF?.changePercent || null,
-          fiveDayChange: sectorETF?.fiveDayChange || null,
-          zScore: sectorETF?.zScore || null,
-          adx: sectorETF?.adx || null,
-          percentB: sectorETF?.percentB || null
+          rsi: momentumStrategy?.rsi || sectorETF?.rsi || null,
+          momentum: momentumStrategy?.momentum || sectorETF?.momentum || null,
+          oneDayChange: momentumStrategy?.oneDayChange || sectorETF?.changePercent || null,
+          fiveDayChange: momentumStrategy?.fiveDayChange || sectorETF?.fiveDayChange || null,
+          zScore: momentumStrategy?.zScore || sectorETF?.zScore || null,
+          adx: momentumStrategy?.adx || sectorETF?.adx || null,
+          percentB: momentumStrategy?.percentB || sectorETF?.percentB || null
         };
         
         const signals = [];
@@ -224,7 +232,7 @@ router.get("/convergence-analysis", async (req, res) => {
       }
     };
 
-    // Cache the result for 15 seconds
+    // Cache the result for 5 minutes (harmonized with momentum analysis)
     convergenceCache.set(cacheKey, { data: result, timestamp: now });
     
     res.json(result);
