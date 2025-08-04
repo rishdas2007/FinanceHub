@@ -21,8 +21,10 @@ interface ConvergenceData {
     convergence_signals: ConvergenceSignal[];
     technical_indicators?: {
       rsi: number | null;
-      macd: number | null;
-      macdSignal: number | null;
+      momentum: string | null;
+      oneDayChange: number | null;
+      fiveDayChange: number | null;
+      zScore: number | null;
       adx: number | null;
       percentB: number | null;
     };
@@ -66,8 +68,10 @@ interface BreakoutSymbol {
   };
   technicalIndicators?: {
     rsi: number | null;
-    macd: number | null;
-    macdSignal: number | null;
+    momentum: string | null;
+    oneDayChange: number | null;
+    fiveDayChange: number | null;
+    zScore: number | null;
     adx: number | null;
     percentB: number | null;
   };
@@ -123,9 +127,10 @@ export function BreakoutAnalysis() {
         const tech = analysis.technical_indicators;
         const parts = [];
         if (tech.rsi !== null) parts.push(`RSI: ${tech.rsi.toFixed(1)}`);
-        if (tech.macd !== null) parts.push(`MACD: ${tech.macd.toFixed(3)}`);
-        if (tech.adx !== null) parts.push(`ADX: ${tech.adx.toFixed(1)}`);
-        description = parts.slice(0, 2).join(' | ') || "Technical indicators available";
+        if (tech.momentum) parts.push(`Momentum: ${tech.momentum}`);
+        if (tech.oneDayChange !== null) parts.push(`1D: ${tech.oneDayChange.toFixed(2)}%`);
+        if (tech.zScore !== null) parts.push(`Z-Score: ${tech.zScore.toFixed(2)}`);
+        description = parts.slice(0, 3).join(' | ') || "Technical indicators available";
       }
 
       const reason = primarySignal ? 

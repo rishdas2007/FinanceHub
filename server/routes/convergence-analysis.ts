@@ -20,11 +20,27 @@ router.get("/convergence-analysis", async (req, res) => {
       symbols = sectorETFs.map(etf => etf.symbol);
     }
     
+    // Get momentum analysis data with MA calculations - use internal service call to avoid HTTP overhead
+    let momentumData;
+    try {
+      const { financialDataService } = await import('../services/financial-data');
+      const sectorETFs = await financialDataService.getSectorETFs();
+      momentumData = { momentumStrategies: sectorETFs };
+    } catch (error) {
+      console.error('Error fetching momentum data:', error);
+      momentumData = { momentumStrategies: [] };
+    }
+    
     // Generate convergence analysis for each symbol using existing data pipeline
     const analysis = await Promise.all(symbols.map(async (symbol) => {
       try {
         // Get technical indicators using existing MarketDataService
         const indicators = await marketDataService.getTechnicalIndicators(symbol);
+        
+        // Get momentum data for this symbol from momentum analysis
+        const momentumInfo = momentumData.momentumStrategies?.find((m: any) => m.ticker === symbol || m.symbol === symbol);
+        console.log(`Debug: Looking for ${symbol}, found:`, momentumInfo ? `ticker: ${momentumInfo.ticker}, momentum: ${momentumInfo.momentum}` : 'null');
+        
         const signals = [];
         
         // RSI-based signals with dynamic confidence
@@ -56,46 +72,54 @@ router.get("/convergence-analysis", async (req, res) => {
           }
         }
         
-        // MACD-based signals with dynamic confidence
-        if (indicators.macd && indicators.macdSignal) {
-          const macd = parseFloat(indicators.macd);
-          const macdSignal = parseFloat(indicators.macdSignal);
+        // Moving Average-based signals using momentum analysis data (replacing unreliable MACD)
+        if (momentumInfo) {
+          const momentum = momentumInfo.momentum;  // 'bullish', 'bearish', or 'neutral'
+          const changePercent = momentumInfo.oneDayChange || 0;
+          const fiveDayChange = momentumInfo.fiveDayChange || 0;
+          const zScore = momentumInfo.zScore || 0;
           
-          // Only generate signals if MACD values are valid (not 0 or NaN)
-          if (!isNaN(macd) && !isNaN(macdSignal) && macd !== 0 && macdSignal !== 0) {
-            const macdHist = macd - macdSignal;
-          
-          // Dynamic confidence based on histogram strength and signal separation
-          const histogramStrength = Math.abs(macdHist);
-          const signalSeparation = Math.abs(macd - macdSignal);
+          // Calculate MA Gap equivalent using available momentum data
+          const maGapStrength = Math.abs(changePercent) + Math.abs(fiveDayChange / 5);
           const baseConfidence = 65;
-          const histogramBonus = Math.min(20, histogramStrength * 20);
-          const separationBonus = Math.min(10, signalSeparation * 10);
-          const dynamicConfidence = Math.min(95, baseConfidence + histogramBonus + separationBonus);
+          const momentumBonus = momentum !== 'neutral' ? 15 : 0;
+          const zScoreBonus = Math.min(15, Math.abs(zScore) * 5);
+          const dynamicConfidence = Math.min(95, baseConfidence + momentumBonus + zScoreBonus);
 
-          if (macd > macdSignal && macdHist > 0) {
+          if (momentum === 'bullish' && changePercent > 0) {
             signals.push({
-              id: `${symbol}-macd-bullish-${Date.now()}`,
+              id: `${symbol}-ma-bullish-${Date.now()}`,
               symbol,
-              signal_type: 'macd_bullish_crossover',
+              signal_type: 'moving_average_bullish',
               direction: 'bullish',
               confidence: Math.round(dynamicConfidence),
-              strength: Math.min(1.0, histogramStrength / 2),
+              strength: Math.min(1.0, maGapStrength / 10),
               detected_at: new Date(),
-              metadata: { macd, signal: macdSignal, histogram: macdHist }
+              metadata: { 
+                momentum, 
+                oneDayChange: changePercent, 
+                fiveDayChange, 
+                zScore,
+                maGapStrength: maGapStrength.toFixed(2)
+              }
             });
-          } else if (macd < macdSignal && macdHist < 0) {
+          } else if (momentum === 'bearish' && changePercent < 0) {
             signals.push({
-              id: `${symbol}-macd-bearish-${Date.now()}`,
+              id: `${symbol}-ma-bearish-${Date.now()}`,
               symbol,
-              signal_type: 'macd_bearish_crossover',
+              signal_type: 'moving_average_bearish',
               direction: 'bearish',
               confidence: Math.round(dynamicConfidence),
-              strength: Math.min(1.0, histogramStrength / 2),
+              strength: Math.min(1.0, maGapStrength / 10),
               detected_at: new Date(),
-              metadata: { macd, signal: macdSignal, histogram: macdHist }
+              metadata: { 
+                momentum, 
+                oneDayChange: changePercent, 
+                fiveDayChange, 
+                zScore,
+                maGapStrength: maGapStrength.toFixed(2)
+              }
             });
-          }
           }
         }
         
@@ -105,11 +129,13 @@ router.get("/convergence-analysis", async (req, res) => {
           ? signals.reduce((sum, s) => sum + s.confidence, 0) / signals.length 
           : 0;
         
-        // Include raw technical indicators for reference and debugging
+        // Include raw technical indicators and momentum data for reference
         const technicalData = {
           rsi: indicators.rsi ? parseFloat(indicators.rsi) : null,
-          macd: indicators.macd ? parseFloat(indicators.macd) : null,
-          macdSignal: indicators.macdSignal ? parseFloat(indicators.macdSignal) : null,
+          momentum: momentumInfo?.momentum || null,
+          oneDayChange: momentumInfo?.oneDayChange || null,
+          fiveDayChange: momentumInfo?.fiveDayChange || null,
+          zScore: momentumInfo?.zScore || null,
           adx: indicators.adx ? parseFloat(indicators.adx) : null,
           percentB: indicators.percent_b ? parseFloat(indicators.percent_b) : null
         };
