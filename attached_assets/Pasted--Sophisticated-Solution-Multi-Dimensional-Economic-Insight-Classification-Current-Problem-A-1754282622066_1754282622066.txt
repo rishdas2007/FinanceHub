@@ -1,0 +1,315 @@
+🎯 Sophisticated Solution: Multi-Dimensional Economic Insight Classification
+
+  🔍 Current Problem Analysis
+
+  Your current logic (Lines 459-468) only uses Z-Score sign for classification:
+  // Current oversimplified logic:
+  if (indicator.zScore > 0) {
+    pulseData[indicator.category].positive.push(pulseMetric);
+  } else {
+    pulseData[indicator.category].negative.push(pulseMetric);
+  }
+
+  The Problem: Inflation at 2.8% could be:
+  - Level: Below historical average (5.2%) → Positive Z-Score (+1.2)
+  - Trend: Rising rapidly (+0.8% last month) → Positive Delta Z-Score (+2.1)
+  - Economic Impact: Rising inflation is concerning despite low level → Should be Negative
+
+  ---
+  💡 Proposed Solution: Multi-Dimensional Classification
+
+  Step 1: Create Insight Classification Framework
+
+  interface EconomicInsightClassification {
+    overallSignal: 'positive' | 'negative' | 'mixed' | 'neutral';
+    levelSignal: 'positive' | 'negative' | 'neutral';
+    trendSignal: 'positive' | 'negative' | 'neutral';
+    confidence: 'high' | 'medium' | 'low';
+    reasoning: string;
+    alertLevel: 'critical' | 'warning' | 'watch' | 'normal';
+    displayColor: string;
+    displayIcon: string;
+  }
+
+  Step 2: Enhanced Classification Logic
+
+  // New file: /server/services/economic-insight-classifier.ts
+  export class EconomicInsightClassifier {
+
+    classifyIndicator(indicator: EconomicIndicator): EconomicInsightClassification {
+      const zScore = indicator.zScore || 0;
+      const deltaZScore = indicator.deltaZScore || 0;
+      const metricName = indicator.metric.toLowerCase();
+
+      // Get economic directionality
+      const directionality = this.getDirectionality(metricName);
+
+      // Classify level signal (current vs history)
+      const levelSignal = this.classifyLevel(zScore, directionality);
+
+      // Classify trend signal (recent changes)
+      const trendSignal = this.classifyTrend(deltaZScore, directionality);
+
+      // Determine overall signal with sophisticated logic
+      const overallSignal = this.determineOverallSignal(
+        levelSignal,
+        trendSignal,
+        zScore,
+        deltaZScore,
+        metricName
+      );
+
+      // Calculate confidence and reasoning
+      const confidence = this.calculateConfidence(zScore, deltaZScore);
+      const reasoning = this.generateReasoning(levelSignal, trendSignal, zScore, deltaZScore, metricName);
+
+      return {
+        overallSignal,
+        levelSignal,
+        trendSignal,
+        confidence,
+        reasoning,
+        alertLevel: this.determineAlertLevel(overallSignal, zScore, deltaZScore),
+        displayColor: this.getDisplayColor(overallSignal),
+        displayIcon: this.getDisplayIcon(overallSignal, trendSignal)
+      };
+    }
+
+    private determineOverallSignal(
+      levelSignal: string,
+      trendSignal: string,
+      zScore: number,
+      deltaZScore: number,
+      metricName: string
+    ): 'positive' | 'negative' | 'mixed' | 'neutral' {
+
+      // Special handling for inflation
+      if (metricName.includes('inflation') || metricName.includes('cpi')) {
+        return this.classifyInflation(levelSignal, trendSignal, zScore, deltaZScore);
+      }
+
+      // Special handling for unemployment
+      if (metricName.includes('unemployment')) {
+        return this.classifyUnemployment(levelSignal, trendSignal, zScore, deltaZScore);
+      }
+
+      // Special handling for yield curve
+      if (metricName.includes('yield curve')) {
+        return this.classifyYieldCurve(levelSignal, trendSignal, zScore, deltaZScore);
+      }
+
+      // General classification logic
+      return this.classifyGeneral(levelSignal, trendSignal, zScore, deltaZScore);
+    }
+
+    private classifyInflation(levelSignal: string, trendSignal: string, zScore: number, deltaZScore: number): 'positive' | 'negative' | 'mixed' | 'neutral' {
+      const absZScore = Math.abs(zScore);
+      const absDeltaZScore = Math.abs(deltaZScore);
+
+      // Critical: Rapidly rising inflation (even if low level)
+      if (deltaZScore > 1.5 && zScore > -1) {
+        return 'negative'; // Rising trend overrides low level
+      }
+
+      // Positive: Low and stable/falling inflation
+      if (zScore < -0.5 && deltaZScore < 0.5) {
+        return 'positive'; // Good level + stable/falling trend
+      }
+
+      // Mixed: Conflicting signals
+      if ((levelSignal === 'positive' && trendSignal === 'negative') ||
+          (levelSignal === 'negative' && trendSignal === 'positive')) {
+
+        // Trend takes precedence for inflation if significant
+        if (absDeltaZScore > absZScore && absDeltaZScore > 1.0) {
+          return trendSignal === 'positive' ? 'positive' : 'negative';
+        }
+
+        return 'mixed';
+      }
+
+      // Default: Level-based for stable periods
+      return levelSignal as any;
+    }
+
+    private classifyUnemployment(levelSignal: string, trendSignal: string, zScore: number, deltaZScore: number): 'positive' | 'negative' | 'mixed' | 'neutral' {
+      // Low unemployment rising rapidly = concerning
+      if (zScore < -1 && deltaZScore > 1.5) {
+        return 'mixed'; // Good level but concerning trend
+      }
+
+      // High unemployment falling rapidly = positive
+      if (zScore > 1 && deltaZScore < -1) {
+        return 'mixed'; // Bad level but good trend
+      }
+
+      // Use standard logic for other cases
+      return this.classifyGeneral(levelSignal, trendSignal, zScore, deltaZScore);
+    }
+  }
+
+  Step 3: Enhanced UI Display
+
+  // Enhanced rendering for EconomicPulseCheck.tsx
+  const renderEnhancedMetric = (metric: PulseMetric, classification: EconomicInsightClassification) => {
+    return (
+      <div className={`bg-financial-gray rounded-lg p-3 border-l-4 ${classification.displayColor}`}>
+        <div className="flex justify-between items-start mb-2">
+          <div className="flex-1 mr-3">
+            <div className="font-medium text-white text-sm mb-1 flex items-center">
+              <span className="mr-2">{classification.displayIcon}</span>
+              {metric.name}
+              {classification.overallSignal === 'mixed' && (
+                <span className="ml-2 text-xs bg-yellow-900 text-yellow-300 px-2 py-1 rounded">
+                  MIXED
+                </span>
+              )}
+            </div>
+            <div className="text-lg font-bold" style={{color: classification.displayColor}}>
+              {metric.formattedValue}
+            </div>
+          </div>
+
+          <div className="text-right">
+            {/* Level Signal */}
+            <div className="text-xs text-gray-400">Level</div>
+            <div className={`text-sm font-bold ${getSignalColor(classification.levelSignal)}`}>
+              {metric.zScore >= 0 ? '+' : ''}{metric.zScore.toFixed(2)}
+            </div>
+
+            {/* Trend Signal */}
+            {metric.deltaZScore && (
+              <>
+                <div className="text-xs text-gray-400 mt-1">Trend</div>
+                <div className={`text-xs font-medium ${getSignalColor(classification.trendSignal)}`}>
+                  {metric.deltaZScore >= 0 ? '+' : ''}{metric.deltaZScore.toFixed(1)}
+                </div>
+              </>
+            )}
+
+            {/* Confidence Indicator */}
+            <div className="text-xs text-gray-500 mt-1">
+              {classification.confidence.toUpperCase()}
+            </div>
+          </div>
+        </div>
+
+        {/* Enhanced Reasoning */}
+        <div className="text-xs text-gray-400 mb-2">
+          {classification.reasoning}
+        </div>
+
+        <div className="flex justify-between items-center text-xs text-gray-400">
+          <div>
+            <span className="text-gray-500">Prior:</span>
+            <span className="text-white ml-1">{metric.formattedPriorValue}</span>
+            <span className="ml-2 text-gray-500">Change:</span>
+            <span className={`ml-1 ${getChangeColor(metric.changeFromPrior)}`}>
+              {metric.formattedChange}
+            </span>
+          </div>
+          <div className="text-gray-500">
+            {formatDate(metric.periodDate)}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  ---
+  🎨 Visual Design Solutions
+
+  Option 1: Multi-Signal Cards
+
+  ┌─────────────────────────────────────────┐
+  │ 📈 Core CPI Year-over-Year    [MIXED]  │
+  │ 3.2%                                    │
+  │                                         │
+  │ Level: +0.8 (Below Avg) ✅             │
+  │ Trend: +2.1 (Rising Fast) ⚠️            │
+  │                                         │
+  │ 💡 Low inflation but rising rapidly    │
+  │    - requires monitoring                │
+  └─────────────────────────────────────────┘
+
+  Option 2: Traffic Light System
+
+  ┌─────────────────────────────────────────┐
+  │ Core CPI Year-over-Year                 │
+  │ 3.2%                    🟡 MIXED       │
+  │                                         │
+  │ 🟢 Good Level | 🔴 Concerning Trend    │
+  │ Below historical avg but rising fast    │
+  └─────────────────────────────────────────┘
+
+  Option 3: Directional Arrows
+
+  ┌─────────────────────────────────────────┐
+  │ Core CPI Year-over-Year                 │
+  │ 3.2%  ↗️📈 (Level: ✅ | Trend: ⚠️)      │
+  │                                         │
+  │ Reasoning: Low inflation accelerating   │
+  └─────────────────────────────────────────┘
+
+  ---
+  📋 Implementation Roadmap
+
+  Phase 1: Enhanced Classification (1-2 days)
+
+  1. Create Classification Service:
+  // File: /server/services/economic-insight-classifier.ts
+  - Implement multi-dimensional classification logic
+  - Add metric-specific rules for inflation, unemployment, etc.
+  - Generate reasoning text for each classification
+  2. Integrate with Current Logic:
+  // Update: EconomicPulseCheck.tsx lines 402-481
+  const classification = classifier.classifyIndicator(indicator);
+  // Use classification.overallSignal instead of simple z-score sign
+
+  Phase 2: Advanced UI (3-4 days)
+
+  3. Multi-Signal Display:
+    - Add level vs trend indicators
+    - Color-coded confidence levels
+    - Interactive reasoning tooltips
+  4. Enhanced Insights Generation:
+  // Update: generateCriticalInsights() function (lines 543-646)
+  - Include mixed signals in insights
+  - Add trend-based warnings
+  - Contextual economic interpretation
+
+  Phase 3: Advanced Features (1 week)
+
+  5. Regime-Aware Classification:
+    - Different rules during expansions vs recessions
+    - Adapt thresholds based on economic regime
+  6. Historical Context:
+    - "Inflation rising but still 60th percentile since 1990"
+    - "Fastest acceleration in 18 months"
+
+  ---
+  🎯 Specific Inflation Example
+
+  Scenario: Core CPI at 3.2%
+  - Historical mean: 5.1%
+  - Z-Score: -1.2 (below average)
+  - Delta Z-Score: +2.3 (rising rapidly)
+
+  Current Display: ✅ Positive (because z-score = -1.2)
+
+  Enhanced Display: ⚠️ Mixed - Watch
+  - Level: ✅ Below historical average (-1.2σ)
+  - Trend: 🔴 Accelerating rapidly (+2.3σ)
+  - Reasoning: "Inflation remains below long-term average but is rising at fastest pace in 8 months - monitor for continued acceleration"
+  - Alert: Watch level (yellow)
+
+  ---
+  💪 Benefits of This Approach
+
+  1. Economically Sophisticated: Matches how professional economists think
+  2. User Education: Shows both level and trend context
+  3. Actionable Insights: Clear reasoning for each classification
+  4. Flexible Framework: Easy to add new metrics and rules
+  5. Visual Clarity: Users understand the complexity at a glance
+
+  This solution transforms your dashboard from a simple statistical tool into a professional-grade economic analysis platform that handles the nuanced reality of economic data interpretation.
