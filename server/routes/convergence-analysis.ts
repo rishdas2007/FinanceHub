@@ -3,32 +3,42 @@ import { getRealTimeMarketService } from "../services/real-time-market-service";
 
 const router = express.Router();
 
+// In-memory cache for convergence analysis
+const convergenceCache = new Map<string, { data: any; timestamp: number }>();
+const CONVERGENCE_CACHE_TTL = 15000; // 15 seconds cache
+
 // Get full convergence analysis
 router.get("/convergence-analysis", async (req, res) => {
   try {
+    // Check cache first
+    const cacheKey = 'convergence-analysis';
+    const cached = convergenceCache.get(cacheKey);
+    const now = Date.now();
+    
+    if (cached && (now - cached.timestamp) < CONVERGENCE_CACHE_TTL) {
+      console.log('📊 Returning cached convergence analysis');
+      return res.json(cached.data);
+    }
     // Import MarketDataService and get sector ETFs
     const { MarketDataService } = await import('../services/market-data-unified');
     const marketDataService = MarketDataService.getInstance();
+    
+    // Get sector ETF data directly from market data service (already cached)
+    const sectorETFs = await marketDataService.getSectorETFs();
     
     // Use symbols from query or default sector ETFs  
     let symbols: string[];
     if (req.query.symbols) {
       symbols = (req.query.symbols as string).split(',').map(s => s.trim().toUpperCase());
     } else {
-      // Use existing sector ETFs from dashboard
-      const sectorETFs = await marketDataService.getSectorETFs();
       symbols = sectorETFs.map(etf => etf.symbol);
     }
-    
-    // Use cached momentum analysis data by fetching from API route for better performance
-    const response = await fetch('http://localhost:5000/api/momentum-analysis');
-    const momentumData = response.ok ? await response.json() : { momentumStrategies: [] };
     
     // Generate convergence analysis for each symbol using cached data
     const analysis = await Promise.all(symbols.map(async (symbol) => {
       try {
-        // Use cached momentum data instead of fetching technical indicators separately
-        const sectorETF = momentumData.momentumStrategies.find(etf => etf.ticker === symbol);
+        // Use cached sector ETF data instead of fetching technical indicators separately
+        const sectorETF = sectorETFs.find(etf => etf.symbol === symbol);
         
         // Get momentum data for this symbol (same as sectorETF)
         const momentumInfo = sectorETF;
@@ -177,29 +187,19 @@ router.get("/convergence-analysis", async (req, res) => {
       }
     }));
 
-    res.json({
+    const result = {
       analysis,
-      signal_quality_overview: {
-        data_freshness: 'real-time',
-        signal_accuracy: 85,
-        coverage_percentage: 100,
-        last_updated: new Date()
-      },
-      active_alerts: analysis.filter(a => a.confidence_score > 50).map(a => ({
-        id: `${a.symbol}-alert-${Date.now()}`,
-        symbol: a.symbol,
-        signal_type: 'convergence_analysis',
-        direction: a.overall_bias,
-        confidence: a.confidence_score,
-        detected_at: new Date(),
-        metadata: { signals: a.convergence_signals.length }
-      })),
-      squeeze_monitoring: {
-        symbols_in_squeeze: 0,
-        potential_breakouts: analysis.filter(a => a.confidence_score > 70).map(a => a.symbol),
-        average_squeeze_duration: 0
+      metadata: {
+        symbols_analyzed: symbols.length,
+        timestamp: new Date().toISOString(),
+        data_source: "cached_sector_etfs"
       }
-    });
+    };
+
+    // Cache the result for 15 seconds
+    convergenceCache.set(cacheKey, { data: result, timestamp: now });
+    
+    res.json(result);
   } catch (error) {
     console.error("Convergence analysis error:", error);
     res.status(500).json({ 
