@@ -42,6 +42,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Economic Regime Detection and Sector Impact Analysis endpoints
   app.use('/api/economic-regime', (await import('./routes/economic-regime')).default);
   
+  // Economic Health Dashboard endpoints
+  app.use('/api/economic-health', (await import('./routes/economic-health')).default);
+  
   // Multi-Timeframe Technical Convergence Analysis endpoints
   app.use('/api', (await import('./routes/convergence-analysis')).default);
   

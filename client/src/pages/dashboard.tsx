@@ -7,6 +7,7 @@ import { AIEconomicAnalysis } from "@/components/AIEconomicAnalysis";
 import { StatisticalAlertSystem } from "@/components/StatisticalAlertSystem";
 import { EconomicPulseCheck } from "@/components/EconomicPulseCheck";
 import { BreakoutAnalysis } from "@/components/BreakoutAnalysis";
+import { EconomicHealthDashboard } from "@/components/EconomicHealthDashboard";
 
 import { MoodDataSources } from "@/components/MoodDataSources";
 import { AAIISentiment } from "@/components/aaii-sentiment";
@@ -82,6 +83,9 @@ export default function Dashboard() {
 
         {/* Breakout Analysis - Real-time squeeze and breakout monitoring */}
         <BreakoutAnalysis />
+
+        {/* Economic Health Dashboard - Consolidated 0-100 scoring system */}
+        <EconomicHealthDashboard />
 
         {/* Economic Analysis - 2x5 grid above Momentum Analysis */}
         <EconomicPulseCheck />
