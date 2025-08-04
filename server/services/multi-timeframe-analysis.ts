@@ -28,6 +28,9 @@ export class MultiTimeframeAnalysisService {
         return cached as MultiTimeframeAnalysis;
       }
 
+      // First, generate fresh convergence signals from current market data
+      await this.generateConvergenceSignals(symbol);
+
       // Get current convergence signals
       const convergenceSignals = await this.getActiveConvergenceSignals(symbol);
       
@@ -96,6 +99,124 @@ export class MultiTimeframeAnalysisService {
     } catch (error) {
       this.logger.error('Full convergence analysis failed:', error);
       throw error;
+    }
+  }
+
+  private async generateConvergenceSignals(symbol: string): Promise<void> {
+    try {
+      // Fetch current technical indicators from the API
+      const response = await fetch(`http://localhost:5000/api/technical/${symbol}`);
+      if (!response.ok) {
+        this.logger.warn(`Failed to fetch technical indicators for ${symbol}`);
+        return;
+      }
+
+      const indicators = await response.json();
+      
+      if (!indicators || !indicators.rsi || !indicators.macd) {
+        this.logger.warn(`Insufficient technical data for ${symbol}`);
+        return;
+      }
+
+      // Generate signals based on technical analysis
+      const signals = [];
+
+      // RSI Convergence Signal
+      if (indicators.rsi) {
+        const rsi = parseFloat(indicators.rsi);
+        if (rsi < 30) {
+          signals.push({
+            signal_type: 'rsi_oversold',
+            strength: Math.min(1.0, (30 - rsi) / 10),
+            confidence: Math.min(95, 60 + (30 - rsi) * 2),
+            direction: 'bullish' as const,
+            timeframes: ['1d'],
+            metadata: { rsi_value: rsi }
+          });
+        } else if (rsi > 70) {
+          signals.push({
+            signal_type: 'rsi_overbought',
+            strength: Math.min(1.0, (rsi - 70) / 10),
+            confidence: Math.min(95, 60 + (rsi - 70) * 2),
+            direction: 'bearish' as const,
+            timeframes: ['1d'],
+            metadata: { rsi_value: rsi }
+          });
+        }
+      }
+
+      // MACD Convergence Signal
+      if (indicators.macd && indicators.macd_signal) {
+        const macd = parseFloat(indicators.macd);
+        const macdSignal = parseFloat(indicators.macd_signal);
+        const macdHist = macd - macdSignal;
+
+        if (macd > macdSignal && macdHist > 0) {
+          signals.push({
+            signal_type: 'macd_bullish_crossover',
+            strength: Math.min(1.0, Math.abs(macdHist) / 2),
+            confidence: 75,
+            direction: 'bullish' as const,
+            timeframes: ['1d'],
+            metadata: { macd: macd, signal: macdSignal, histogram: macdHist }
+          });
+        } else if (macd < macdSignal && macdHist < 0) {
+          signals.push({
+            signal_type: 'macd_bearish_crossover',
+            strength: Math.min(1.0, Math.abs(macdHist) / 2),
+            confidence: 75,
+            direction: 'bearish' as const,
+            timeframes: ['1d'],
+            metadata: { macd: macd, signal: macdSignal, histogram: macdHist }
+          });
+        }
+      }
+
+      // Store signals in database
+      for (const signal of signals) {
+        await this.storeConvergenceSignal(symbol, signal);
+      }
+
+      this.logger.info(`Generated ${signals.length} convergence signals for ${symbol}`);
+    } catch (error) {
+      this.logger.error(`Failed to generate convergence signals for ${symbol}:`, error);
+    }
+  }
+
+  private async storeConvergenceSignal(symbol: string, signal: any): Promise<void> {
+    try {
+      // Check if similar signal already exists (avoid duplicates)
+      const existingResult = await this.db.query(`
+        SELECT id FROM convergence_signals 
+        WHERE symbol = $1 
+        AND signal_type = $2 
+        AND is_active = true 
+        AND expires_at > NOW()
+      `, [symbol, signal.signal_type]);
+
+      if (existingResult.rows.length > 0) {
+        return; // Signal already exists
+      }
+
+      // Insert new signal
+      await this.db.query(`
+        INSERT INTO convergence_signals (
+          symbol, signal_type, timeframes, strength, confidence, 
+          direction, detected_at, expires_at, metadata, is_active
+        ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW() + INTERVAL '4 hours', $7, true)
+      `, [
+        symbol,
+        signal.signal_type,
+        signal.timeframes,
+        signal.strength,
+        signal.confidence,
+        signal.direction,
+        JSON.stringify(signal.metadata)
+      ]);
+
+      this.logger.debug(`Stored convergence signal: ${signal.signal_type} for ${symbol}`);
+    } catch (error) {
+      this.logger.error(`Failed to store convergence signal for ${symbol}:`, error);
     }
   }
 

@@ -1,7 +1,4 @@
 import express from "express";
-import { MultiTimeframeAnalysisService } from "../services/multi-timeframe-analysis";
-import { BollingerSqueezeService } from "../services/bollinger-squeeze-service";
-import { RSIDivergenceService } from "../services/rsi-divergence-service";
 import { getRealTimeMarketService } from "../services/real-time-market-service";
 
 const router = express.Router();
@@ -21,42 +18,172 @@ router.get("/convergence-analysis", async (req, res) => {
     // Get real-time market data for analysis
     const marketData = marketService.getMultiSymbolData(symbols);
     
-    // Build analysis with real market data
-    const analysis = symbols.map(symbol => {
-      const data = marketData[symbol];
-      const priceMovement = marketService.getPriceMovement(symbol);
-      
-      return {
-        symbol,
-        timestamp: new Date(),
-        convergence_signals: [],
-        signal_summary: {
-          total_signals: data ? 1 : 0,
-          bullish_signals: data && data.changePercent > 0 ? 1 : 0,
-          bearish_signals: data && data.changePercent < 0 ? 1 : 0,
-          average_confidence: data ? 75 : 0,
-          highest_confidence_signal: data ? {
-            type: data.changePercent > 0 ? 'bullish_momentum' : 'bearish_momentum',
-            confidence: 75
+    // Simple convergence analysis based on technical indicators
+    const analysis = await Promise.all(symbols.map(async (symbol) => {
+      try {
+        const data = marketData[symbol];
+        
+        // Fetch technical indicators to generate convergence signals
+        const techResponse = await fetch(`http://localhost:5000/api/technical/${symbol}`);
+        
+        if (techResponse.ok) {
+          const techData = await techResponse.json();
+          const signals = [];
+          
+          // RSI-based signals
+          if (techData.rsi) {
+            const rsi = parseFloat(techData.rsi);
+            if (rsi < 30) {
+              signals.push({
+                id: `${symbol}-rsi-oversold-${Date.now()}`,
+                symbol,
+                signal_type: 'rsi_oversold',
+                direction: 'bullish',
+                confidence: Math.min(95, 60 + (30 - rsi) * 2),
+                strength: Math.min(1.0, (30 - rsi) / 10),
+                detected_at: new Date(),
+                metadata: { rsi_value: rsi }
+              });
+            } else if (rsi > 70) {
+              signals.push({
+                id: `${symbol}-rsi-overbought-${Date.now()}`,
+                symbol,
+                signal_type: 'rsi_overbought',
+                direction: 'bearish',
+                confidence: Math.min(95, 60 + (rsi - 70) * 2),
+                strength: Math.min(1.0, (rsi - 70) / 10),
+                detected_at: new Date(),
+                metadata: { rsi_value: rsi }
+              });
+            }
+          }
+          
+          // MACD-based signals
+          if (techData.macd && techData.macdSignal) {
+            const macd = parseFloat(techData.macd);
+            const macdSignal = parseFloat(techData.macdSignal);
+            const macdHist = macd - macdSignal;
+
+            if (macd > macdSignal && macdHist > 0) {
+              signals.push({
+                id: `${symbol}-macd-bullish-${Date.now()}`,
+                symbol,
+                signal_type: 'macd_bullish_crossover',
+                direction: 'bullish',
+                confidence: 75,
+                strength: Math.min(1.0, Math.abs(macdHist) / 2),
+                detected_at: new Date(),
+                metadata: { macd, signal: macdSignal, histogram: macdHist }
+              });
+            } else if (macd < macdSignal && macdHist < 0) {
+              signals.push({
+                id: `${symbol}-macd-bearish-${Date.now()}`,
+                symbol,
+                signal_type: 'macd_bearish_crossover',
+                direction: 'bearish',
+                confidence: 75,
+                strength: Math.min(1.0, Math.abs(macdHist) / 2),
+                detected_at: new Date(),
+                metadata: { macd, signal: macdSignal, histogram: macdHist }
+              });
+            }
+          }
+          
+          const bullishSignals = signals.filter(s => s.direction === 'bullish').length;
+          const bearishSignals = signals.filter(s => s.direction === 'bearish').length;
+          const averageConfidence = signals.length > 0 
+            ? signals.reduce((sum, s) => sum + s.confidence, 0) / signals.length 
+            : 0;
+          
+          return {
+            symbol,
+            timestamp: new Date(),
+            convergence_signals: signals,
+            signal_summary: {
+              total_signals: signals.length,
+              bullish_signals: bullishSignals,
+              bearish_signals: bearishSignals,
+              average_confidence: Math.round(averageConfidence),
+              highest_confidence_signal: signals.length > 0 
+                ? signals.reduce((max, signal) => signal.confidence > max.confidence ? signal : max, signals[0])
+                : null
+            },
+            bollinger_squeeze_status: {
+              active_squeezes: [],
+              recent_breakouts: []
+            },
+            overall_bias: bullishSignals > bearishSignals ? "bullish" : 
+                         bearishSignals > bullishSignals ? "bearish" : "neutral",
+            confidence_score: Math.round(averageConfidence),
+            market_data: data ? {
+              price: data.price,
+              change: data.change,
+              changePercent: data.changePercent,
+              volume: data.volume,
+              lastUpdate: data.lastUpdate
+            } : null
+          };
+        }
+        
+        // Fallback if technical data unavailable
+        const data2 = marketData[symbol];
+        return {
+          symbol,
+          timestamp: new Date(),
+          convergence_signals: [],
+          signal_summary: {
+            total_signals: 0,
+            bullish_signals: 0,
+            bearish_signals: 0,
+            average_confidence: 0,
+            highest_confidence_signal: null
+          },
+          bollinger_squeeze_status: {
+            active_squeezes: [],
+            recent_breakouts: []
+          },
+          overall_bias: "neutral" as const,
+          confidence_score: 0,
+          market_data: data2 ? {
+            price: data2.price,
+            change: data2.change,
+            changePercent: data2.changePercent,
+            volume: data2.volume,
+            lastUpdate: data2.lastUpdate
           } : null
-        },
-        bollinger_squeeze_status: {
-          active_squeezes: [],
-          recent_breakouts: []
-        },
-        overall_bias: data ? 
-          (data.changePercent > 0.5 ? "bullish" : 
-           data.changePercent < -0.5 ? "bearish" : "neutral") : "neutral",
-        confidence_score: data ? Math.min(Math.abs(data.changePercent) * 10, 100) : 0,
-        market_data: data ? {
-          price: data.price,
-          change: data.change,
-          changePercent: data.changePercent,
-          volume: data.volume,
-          lastUpdate: data.lastUpdate
-        } : null
-      };
-    });
+        };
+      } catch (error) {
+        console.error(`Failed to analyze ${symbol} convergence:`, error);
+        
+        // Basic fallback
+        const data = marketData[symbol];
+        return {
+          symbol,
+          timestamp: new Date(),
+          convergence_signals: [],
+          signal_summary: {
+            total_signals: 0,
+            bullish_signals: 0,
+            bearish_signals: 0,
+            average_confidence: 0,
+            highest_confidence_signal: null
+          },
+          bollinger_squeeze_status: {
+            active_squeezes: [],
+            recent_breakouts: []
+          },
+          overall_bias: "neutral" as const,
+          confidence_score: 0,
+          market_data: data ? {
+            price: data.price,
+            change: data.change,
+            changePercent: data.changePercent,
+            volume: data.volume,
+            lastUpdate: data.lastUpdate
+          } : null
+        };
+      }
+    }));
 
     const realTimeAnalysis = {
       analysis,

@@ -116,8 +116,34 @@ export class CronJobScheduler {
       });
     });
 
+    // 7. Convergence Signal Generation - Every 15 minutes during market hours
+    this.scheduleJob('convergence-signals', '*/15 * * * *', async () => {
+      const marketStatus = marketHoursDetector.getCurrentMarketStatus();
+      
+      if (marketStatus.session === 'regular' || marketStatus.session === 'premarket') {
+        await this.runJobSafely('convergence-signals', async () => {
+          logger.info('📊 Generating convergence signals');
+          
+          // Generate signals for major symbols
+          const symbols = ['SPY', 'QQQ', 'IWM', 'VIX'];
+          const multiTimeframeService = container.get<MultiTimeframeAnalysisService>('MultiTimeframeAnalysisService');
+          
+          for (const symbol of symbols) {
+            try {
+              await multiTimeframeService.analyzeSymbol(symbol);
+              logger.debug(`✅ Convergence analysis completed for ${symbol}`);
+            } catch (error) {
+              logger.error(`❌ Failed to analyze ${symbol}:`, error);
+            }
+          }
+          
+          logger.info('📊 Convergence signal generation completed');
+        });
+      }
+    });
+
     this.isInitialized = true;
-    logger.info('📅 Cron scheduler initialized with 6 jobs');
+    logger.info('📅 Cron scheduler initialized with 7 jobs');
   }
 
   private scheduleJob(
