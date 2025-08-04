@@ -253,88 +253,178 @@ export function EconomicHealthDashboard() {
         </CardContent>
       </Card>
 
-      {/* Recommendations and Sector Guidance */}
+      {/* Score Component Analysis */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recommendations */}
+        {/* Core Health Analysis */}
         <Card className="bg-financial-card border-financial-border">
           <CardHeader>
             <CardTitle className="text-blue-400 flex items-center">
               <Target className="w-5 h-5 mr-2" />
-              Strategic Recommendations
+              Core Health Breakdown ({healthData.scoreBreakdown.coreHealth}/40 pts)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {healthData.recommendations.map((recommendation, index) => (
-                <div key={index} className="flex items-start space-x-3 p-3 bg-financial-gray rounded-lg">
-                  <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
-                  <span className="text-gray-300 text-sm">{recommendation}</span>
+            <div className="space-y-4">
+              {/* GDP Health Component */}
+              <div className="p-4 bg-financial-gray rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-white">GDP Growth Health</span>
+                  <span className="text-green-400 font-bold">{Math.round((healthData.scoreBreakdown.coreHealth * 0.375))} / 15 pts</span>
                 </div>
-              ))}
-            </div>
-
-            {healthData.riskFactors.length > 0 && (
-              <div className="mt-6">
-                <h4 className="text-sm font-medium text-orange-400 mb-3 flex items-center">
-                  <AlertTriangle className="w-4 h-4 mr-1" />
-                  Key Risk Factors
-                </h4>
-                <div className="space-y-2">
-                  {healthData.riskFactors.slice(0, 3).map((risk, index) => (
-                    <div key={index} className="text-xs text-gray-400 bg-orange-900/20 p-2 rounded border-l-2 border-orange-500">
-                      {risk}
-                    </div>
-                  ))}
+                <div className="text-xs text-gray-400 mb-2">
+                  Measures GDP growth rate, trend consistency, and historical performance
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="h-2 rounded-full bg-green-500 transition-all duration-500"
+                    style={{ width: `${Math.min(100, (healthData.scoreBreakdown.coreHealth * 0.375 / 15) * 100)}%` }}
+                  ></div>
                 </div>
               </div>
-            )}
+
+              {/* Employment Health Component */}
+              <div className="p-4 bg-financial-gray rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-white">Employment Health</span>
+                  <span className="text-blue-400 font-bold">{Math.round((healthData.scoreBreakdown.coreHealth * 0.375))} / 15 pts</span>
+                </div>
+                <div className="text-xs text-gray-400 mb-2">
+                  Unemployment rate, job creation (payrolls), and employment-population ratio
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="h-2 rounded-full bg-blue-500 transition-all duration-500"
+                    style={{ width: `${Math.min(100, (healthData.scoreBreakdown.coreHealth * 0.375 / 15) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Inflation Stability Component */}
+              <div className="p-4 bg-financial-gray rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-white">Inflation Stability</span>
+                  <span className="text-purple-400 font-bold">{Math.round((healthData.scoreBreakdown.coreHealth * 0.25))} / 10 pts</span>
+                </div>
+                <div className="text-xs text-gray-400 mb-2">
+                  Core CPI and PCE stability, proximity to 2% target, and volatility measures
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="h-2 rounded-full bg-purple-500 transition-all duration-500"
+                    style={{ width: `${Math.min(100, (healthData.scoreBreakdown.coreHealth * 0.25 / 10) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {healthData.riskFactors.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-financial-border">
+                  <h4 className="text-sm font-medium text-orange-400 mb-2 flex items-center">
+                    <AlertTriangle className="w-4 h-4 mr-1" />
+                    Core Health Risk Factors
+                  </h4>
+                  <div className="space-y-1">
+                    {healthData.riskFactors.slice(0, 2).map((risk, index) => (
+                      <div key={index} className="text-xs text-gray-400 bg-orange-900/20 p-2 rounded border-l-2 border-orange-500">
+                        {risk}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
-        {/* Sector Guidance */}
+        {/* Market Stress Analysis */}
         <Card className="bg-financial-card border-financial-border">
           <CardHeader>
             <CardTitle className="text-blue-400 flex items-center">
-              <Building2 className="w-5 h-5 mr-2" />
-              Sector Impact Forecast
+              <Shield className="w-5 h-5 mr-2" />
+              Market Stress Analysis ({healthData.scoreBreakdown.marketStress}/20 pts)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {/* Opportunities */}
-            {healthData.sectorGuidance.opportunities.length > 0 && (
-              <div className="mb-6">
-                <h4 className="text-sm font-medium text-green-400 mb-3">Strong Economy Benefits:</h4>
-                <div className="space-y-2">
-                  {healthData.sectorGuidance.opportunities.map((opportunity, index) => (
-                    <div key={index} className="text-sm text-gray-300 bg-green-900/20 p-2 rounded border-l-2 border-green-500">
-                      {opportunity}
-                    </div>
-                  ))}
+            <div className="space-y-4">
+              {/* Alert Frequency Component */}
+              <div className="p-4 bg-financial-gray rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-white">Alert Frequency</span>
+                  <span className="text-yellow-400 font-bold">{Math.round((healthData.scoreBreakdown.marketStress * 0.5))} / 10 pts</span>
+                </div>
+                <div className="text-xs text-gray-400 mb-2">
+                  Frequency of statistical alerts and economic stress signals over past 30 days
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="h-2 rounded-full bg-yellow-500 transition-all duration-500"
+                    style={{ width: `${Math.min(100, (healthData.scoreBreakdown.marketStress * 0.5 / 10) * 100)}%` }}
+                  ></div>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Higher scores = fewer alerts = lower market stress
                 </div>
               </div>
-            )}
 
-            {/* Risks */}
-            {healthData.sectorGuidance.risks.length > 0 && (
-              <div>
-                <h4 className="text-sm font-medium text-red-400 mb-3">Risks to Watch:</h4>
-                <div className="space-y-2">
-                  {healthData.sectorGuidance.risks.map((risk, index) => (
-                    <div key={index} className="text-sm text-gray-300 bg-red-900/20 p-2 rounded border-l-2 border-red-500">
-                      {risk}
-                    </div>
-                  ))}
+              {/* Regime Stability Component */}
+              <div className="p-4 bg-financial-gray rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-white">Regime Stability</span>
+                  <span className="text-cyan-400 font-bold">{Math.round((healthData.scoreBreakdown.marketStress * 0.5))} / 10 pts</span>
+                </div>
+                <div className="text-xs text-gray-400 mb-2">
+                  Economic regime maturity and transition probability assessment
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="h-2 rounded-full bg-cyan-500 transition-all duration-500"
+                    style={{ width: `${Math.min(100, (healthData.scoreBreakdown.marketStress * 0.5 / 10) * 100)}%` }}
+                  ></div>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Mid-regime phases score highest; transitions score lowest
                 </div>
               </div>
-            )}
 
-            {/* Analysis Confidence */}
-            <div className="mt-6 pt-4 border-t border-financial-border">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">Analysis Confidence:</span>
-                <span className={`font-bold ${healthData.confidence > 80 ? 'text-green-400' : healthData.confidence > 60 ? 'text-yellow-400' : 'text-orange-400'}`}>
-                  {healthData.confidence}%
-                </span>
+              {/* Overall Stress Level */}
+              <div className="p-4 bg-financial-gray rounded-lg border-2 border-financial-border">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-white">Overall Stress Level</span>
+                  <div className="flex items-center space-x-2">
+                    {getAlertIcon(healthData.alertLevel)}
+                    <span className={`font-bold text-sm ${
+                      healthData.alertLevel === 'LOW' ? 'text-green-400' :
+                      healthData.alertLevel === 'MEDIUM' ? 'text-yellow-400' :
+                      healthData.alertLevel === 'HIGH' ? 'text-orange-400' : 'text-red-400'
+                    }`}>
+                      {healthData.alertLevel}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-400">
+                  Combined assessment of market volatility, regime transitions, and alert patterns
+                </div>
+              </div>
+
+              {/* Additional Metrics */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="text-center p-3 bg-financial-gray rounded-lg">
+                  <div className="text-sm text-gray-400">Recession Risk</div>
+                  <div className={`text-xl font-bold ${
+                    healthData.recessonProbability <= 10 ? 'text-green-400' :
+                    healthData.recessonProbability <= 25 ? 'text-yellow-400' : 'text-red-400'
+                  }`}>
+                    {healthData.recessonProbability}%
+                  </div>
+                </div>
+                <div className="text-center p-3 bg-financial-gray rounded-lg">
+                  <div className="text-sm text-gray-400">Confidence</div>
+                  <div className={`text-xl font-bold ${
+                    healthData.confidence > 80 ? 'text-green-400' :
+                    healthData.confidence > 60 ? 'text-yellow-400' : 'text-orange-400'
+                  }`}>
+                    {healthData.confidence}%
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
