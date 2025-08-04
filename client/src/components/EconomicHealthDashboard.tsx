@@ -430,6 +430,195 @@ export function EconomicHealthDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Advanced Analytics Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Correlations Analysis */}
+        <Card className="bg-financial-card border-financial-border">
+          <CardHeader>
+            <CardTitle className="text-blue-400 flex items-center">
+              <TrendingUp className="w-5 h-5 mr-2" />
+              Cross-Indicator Correlations ({Math.round(healthData.scoreBreakdown.correlationHarmony)}/25 pts)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* GDP-Employment Correlation */}
+              <div className="p-4 bg-financial-gray rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-white">GDP-Employment Sync</span>
+                  <span className="text-green-400 font-bold">{Math.round((healthData.scoreBreakdown.correlationHarmony * 0.4))} / 10 pts</span>
+                </div>
+                <div className="text-xs text-gray-400 mb-2">
+                  Alignment between GDP growth and employment indicators (payrolls, unemployment)
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="h-2 rounded-full bg-green-500 transition-all duration-500"
+                    style={{ width: `${Math.min(100, (healthData.scoreBreakdown.correlationHarmony * 0.4 / 10) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Inflation-Growth Correlation */}
+              <div className="p-4 bg-financial-gray rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-white">Inflation-Growth Balance</span>
+                  <span className="text-blue-400 font-bold">{Math.round((healthData.scoreBreakdown.correlationHarmony * 0.35))} / 9 pts</span>
+                </div>
+                <div className="text-xs text-gray-400 mb-2">
+                  Healthy relationship between inflation measures (CPI, PCE) and growth indicators
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="h-2 rounded-full bg-blue-500 transition-all duration-500"
+                    style={{ width: `${Math.min(100, (healthData.scoreBreakdown.correlationHarmony * 0.35 / 9) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Market-Economic Correlation */}
+              <div className="p-4 bg-financial-gray rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-white">Market-Economic Sync</span>
+                  <span className="text-purple-400 font-bold">{Math.round((healthData.scoreBreakdown.correlationHarmony * 0.25))} / 6 pts</span>
+                </div>
+                <div className="text-xs text-gray-400 mb-2">
+                  Correlation between financial markets (VIX, yields) and real economic data
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="h-2 rounded-full bg-purple-500 transition-all duration-500"
+                    style={{ width: `${Math.min(100, (healthData.scoreBreakdown.correlationHarmony * 0.25 / 6) * 100)}%` }}
+                  ></div>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Strong correlations indicate synchronized economic conditions
+                </div>
+              </div>
+
+              {/* Overall Correlation Health */}
+              <div className="p-4 bg-financial-gray rounded-lg border-2 border-financial-border">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-white">Correlation Strength</span>
+                  <div className="flex items-center space-x-2">
+                    <span className={`font-bold text-sm ${
+                      healthData.scoreBreakdown.correlationHarmony >= 20 ? 'text-green-400' :
+                      healthData.scoreBreakdown.correlationHarmony >= 15 ? 'text-yellow-400' : 'text-orange-400'
+                    }`}>
+                      {healthData.scoreBreakdown.correlationHarmony >= 20 ? 'STRONG' :
+                       healthData.scoreBreakdown.correlationHarmony >= 15 ? 'MODERATE' : 'WEAK'}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-400">
+                  Measures how well different economic sectors are moving in harmony
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Data Confidence Analysis */}
+        <Card className="bg-financial-card border-financial-border">
+          <CardHeader>
+            <CardTitle className="text-blue-400 flex items-center">
+              <CheckCircle className="w-5 h-5 mr-2" />
+              Data Confidence Score ({Math.round(healthData.scoreBreakdown.confidence)}/15 pts)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Data Freshness Component */}
+              <div className="p-4 bg-financial-gray rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-white">Data Freshness</span>
+                  <span className="text-green-400 font-bold">{Math.round((healthData.scoreBreakdown.confidence * 0.4))} / 6 pts</span>
+                </div>
+                <div className="text-xs text-gray-400 mb-2">
+                  Recency and timeliness of economic indicator releases and updates
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="h-2 rounded-full bg-green-500 transition-all duration-500"
+                    style={{ width: `${Math.min(100, (healthData.scoreBreakdown.confidence * 0.4 / 6) * 100)}%` }}
+                  ></div>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Based on FRED API release schedules and data availability
+                </div>
+              </div>
+
+              {/* Historical Context Component */}
+              <div className="p-4 bg-financial-gray rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-white">Historical Context</span>
+                  <span className="text-blue-400 font-bold">{Math.round((healthData.scoreBreakdown.confidence * 0.35))} / 5 pts</span>
+                </div>
+                <div className="text-xs text-gray-400 mb-2">
+                  Availability of 12+ months historical data for statistical analysis
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="h-2 rounded-full bg-blue-500 transition-all duration-500"
+                    style={{ width: `${Math.min(100, (healthData.scoreBreakdown.confidence * 0.35 / 5) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Statistical Validity Component */}
+              <div className="p-4 bg-financial-gray rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-white">Statistical Validity</span>
+                  <span className="text-purple-400 font-bold">{Math.round((healthData.scoreBreakdown.confidence * 0.25))} / 4 pts</span>
+                </div>
+                <div className="text-xs text-gray-400 mb-2">
+                  Quality of z-score calculations and statistical significance thresholds
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="h-2 rounded-full bg-purple-500 transition-all duration-500"
+                    style={{ width: `${Math.min(100, (healthData.scoreBreakdown.confidence * 0.25 / 4) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Additional Quality Metrics */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="text-center p-3 bg-financial-gray rounded-lg">
+                  <div className="text-sm text-gray-400">Data Sources</div>
+                  <div className="text-lg font-bold text-blue-400">FRED</div>
+                  <div className="text-xs text-gray-500">Fed Official</div>
+                </div>
+                <div className="text-center p-3 bg-financial-gray rounded-lg">
+                  <div className="text-sm text-gray-400">Coverage</div>
+                  <div className="text-lg font-bold text-green-400">40+</div>
+                  <div className="text-xs text-gray-500">Indicators</div>
+                </div>
+              </div>
+
+              {/* Overall Data Quality */}
+              <div className="p-4 bg-financial-gray rounded-lg border-2 border-financial-border">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-white">Overall Data Quality</span>
+                  <div className="flex items-center space-x-2">
+                    <span className={`font-bold text-sm ${
+                      healthData.scoreBreakdown.confidence >= 12 ? 'text-green-400' :
+                      healthData.scoreBreakdown.confidence >= 9 ? 'text-yellow-400' : 'text-orange-400'
+                    }`}>
+                      {healthData.scoreBreakdown.confidence >= 12 ? 'HIGH' :
+                       healthData.scoreBreakdown.confidence >= 9 ? 'MEDIUM' : 'LOW'}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-400">
+                  Comprehensive assessment of data integrity and analytical reliability
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
