@@ -219,39 +219,7 @@ export function EconomicHealthDashboard() {
       </Card>
 
       {/* Economic Narrative */}
-      <Card className="bg-financial-card border-financial-border">
-        <CardHeader>
-          <CardTitle className="text-blue-400 flex items-center justify-between">
-            <div className="flex items-center">
-              <Activity className="w-5 h-5 mr-2" />
-              Economic Analysis
-            </div>
-            <div className="flex items-center space-x-2">
-              {getAlertIcon(healthData.alertLevel)}
-              <span className="text-sm text-gray-400">{healthData.alertLevel} Alert Level</span>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-300 leading-relaxed mb-4">
-            {healthData.narrative}
-          </p>
-          
-          <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
-            <div className="flex items-center space-x-2 mb-2">
-              <Shield className="w-4 h-4 text-blue-400" />
-              <span className="text-sm font-medium text-blue-400">Recession Probability</span>
-            </div>
-            <div className="text-2xl font-bold text-white">
-              {healthData.recessonProbability}%
-              <span className="text-sm text-gray-400 ml-2">
-                ({healthData.recessonProbability <= 10 ? 'Low Risk' : 
-                  healthData.recessonProbability <= 25 ? 'Moderate Risk' : 'High Risk'})
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+
 
       {/* Score Component Analysis */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
