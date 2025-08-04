@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, AlertCircle, RefreshCw, Search, Filter, ChevronUp, ChevronDown } from 'lucide-react';
+import { CorrelationMatrix } from '@/components/CorrelationMatrix';
 
 interface MacroIndicator {
   metric: string;
@@ -816,6 +817,17 @@ const MacroeconomicIndicators: React.FC = () => {
           Indicators marked "(Δ-adjusted)" have been inverted for consistent interpretation (e.g., lower unemployment rates show positive z-scores). 
           Values above ±2.0 indicate statistically significant economic conditions.
         </p>
+      </div>
+
+      {/* Priority 1: Cross-Indicator Correlation Analysis */}
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-medium text-blue-400">Priority 1: Cross-Indicator Correlation Analysis</h3>
+          <div className="text-xs text-gray-400 bg-slate-800 px-2 py-1 rounded">
+            Dynamic Thresholds: VIX-Adjusted
+          </div>
+        </div>
+        <CorrelationMatrix />
       </div>
     </div>
   );
