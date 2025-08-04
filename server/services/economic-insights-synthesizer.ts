@@ -30,7 +30,7 @@ export class EconomicInsightsSynthesizer {
     logger.info(`🧠 Generating economic insights for score: ${healthScore.overallScore}`);
 
     try {
-      const narrative = this.generateEconomicNarrative(healthScore);
+      const narrative = await this.generateEconomicNarrative(healthScore);
       const recommendations = this.generateRecommendations(healthScore);
       const nextKeyEvent = this.getNextKeyEvent();
       const alertLevel = this.determineAlertLevel(healthScore);
@@ -60,67 +60,102 @@ export class EconomicInsightsSynthesizer {
     }
   }
 
-  private generateEconomicNarrative(healthScore: EconomicHealthScore): string {
+  private async generateEconomicNarrative(healthScore: EconomicHealthScore): Promise<string> {
     const { overallScore, healthGrade, trendDirection, monthlyChange, recessonProbability } = healthScore;
     const { coreHealth, correlationHarmony, marketStress } = healthScore.scoreBreakdown;
 
+    // Get actual economic indicators data for analysis
+    const economicData = await this.getLatestEconomicIndicators();
+    
     let narrative = '';
 
-    // Opening statement based on overall health
-    if (overallScore >= 85) {
-      narrative = 'Economy demonstrating exceptional strength across multiple indicators. ';
-    } else if (overallScore >= 70) {
-      narrative = 'Economy showing solid fundamentals with robust performance in key areas. ';
-    } else if (overallScore >= 55) {
-      narrative = 'Mixed economic signals present with areas of both strength and concern. ';
-    } else if (overallScore >= 40) {
-      narrative = 'Economic weakness evident across several indicators requiring careful monitoring. ';
+    // Generate data-driven opening based on actual indicator analysis
+    const strongIndicators = economicData.filter(ind => (ind.zScore || 0) > 1.0);
+    const weakIndicators = economicData.filter(ind => (ind.zScore || 0) < -1.0);
+    
+    if (strongIndicators.length > weakIndicators.length * 1.5) {
+      narrative = `Economic data reveals ${strongIndicators.length} indicators showing strength vs ${weakIndicators.length} showing weakness. `;
+    } else if (weakIndicators.length > strongIndicators.length * 1.5) {
+      narrative = `Economic indicators show concerning trends with ${weakIndicators.length} metrics underperforming vs ${strongIndicators.length} outperforming. `;
     } else {
-      narrative = 'Significant economic challenges present with multiple stress indicators elevated. ';
+      narrative = `Economic indicators present balanced signals with ${strongIndicators.length} strong and ${weakIndicators.length} weak metrics. `;
     }
 
-    // Core health assessment
+    // Analyze by category for specific insights
+    const categories = ['Growth', 'Labor', 'Inflation', 'Monetary Policy'];
+    const categoryAnalysis = categories.map(cat => {
+      const indicators = economicData.filter(ind => ind.category === cat);
+      const avgZScore = indicators.reduce((sum, ind) => sum + (ind.zScore || 0), 0) / indicators.length;
+      return { category: cat, strength: avgZScore, count: indicators.length };
+    }).filter(c => c.count > 0);
+
+    const strongCategories = categoryAnalysis.filter(c => c.strength > 0.5);
+    const weakCategories = categoryAnalysis.filter(c => c.strength < -0.5);
+
+    if (strongCategories.length > 0) {
+      narrative += `${strongCategories.map(c => c.category).join(' and ')} sectors demonstrate particular strength. `;
+    }
+    if (weakCategories.length > 0) {
+      narrative += `${weakCategories.map(c => c.category).join(' and ')} indicators show areas requiring attention. `;
+    }
+
+    // Core health based on actual component performance
     if (coreHealth >= 35) {
-      narrative += 'Core economic fundamentals including GDP growth, employment, and inflation remain supportive. ';
-    } else if (coreHealth >= 25) {
-      narrative += 'Core economic indicators show mixed performance with some areas of concern. ';
+      const gdpStrong = healthScore.componentScores.gdpHealth > 70;
+      const employmentStrong = healthScore.componentScores.employmentHealth > 70;
+      if (gdpStrong && employmentStrong) {
+        narrative += 'GDP growth and employment metrics provide solid economic foundation. ';
+      } else if (gdpStrong) {
+        narrative += 'GDP growth remains healthy while employment shows mixed signals. ';
+      } else if (employmentStrong) {
+        narrative += 'Employment conditions remain robust despite growth uncertainties. ';
+      } else {
+        narrative += 'Core economic fundamentals maintain moderate stability. ';
+      }
     } else {
-      narrative += 'Core economic fundamentals showing significant deterioration requiring attention. ';
+      narrative += 'Core economic indicators suggest fundamental challenges requiring monitoring. ';
     }
 
-    // Market coordination
+    // Market coordination analysis
     if (correlationHarmony >= 20) {
-      narrative += 'Economic indicators are moving in historically normal patterns, suggesting coordinated economic activity. ';
+      narrative += 'Cross-indicator relationships remain within normal historical ranges. ';
     } else {
-      narrative += 'Notable breakdown in traditional economic relationships, indicating potential structural shifts. ';
+      narrative += 'Traditional economic correlations showing unusual patterns. ';
     }
 
-    // Stress assessment
-    if (marketStress >= 15) {
-      narrative += 'Market stress indicators remain contained with stable regime characteristics. ';
-    } else {
-      narrative += 'Elevated market stress and regime instability suggest heightened economic uncertainty. ';
-    }
-
-    // Trend and outlook
+    // Trend analysis with actual data context
     if (trendDirection === 'STRENGTHENING') {
-      narrative += `Economic momentum is building with the health score improving by ${Math.abs(monthlyChange)} points over the past month. `;
+      narrative += `Economic Health Score improved ${Math.abs(monthlyChange)} points reflecting strengthening fundamentals. `;
     } else if (trendDirection === 'WEAKENING') {
-      narrative += `Economic momentum is slowing with the health score declining by ${Math.abs(monthlyChange)} points recently. `;
+      narrative += `Economic Health Score declined ${Math.abs(monthlyChange)} points indicating emerging headwinds. `;
     } else {
-      narrative += 'Economic conditions remain relatively stable with minimal directional change in recent months. ';
+      narrative += `Economic Health Score remains stable with minimal directional change. `;
     }
 
-    // Risk assessment
+    // Risk assessment with data backing
     if (recessonProbability <= 10) {
-      narrative += 'Recession risk remains low under current conditions.';
+      narrative += `Current indicator patterns suggest ${Math.round(recessonProbability)}% recession probability.`;
     } else if (recessonProbability <= 25) {
-      narrative += 'Recession probability is elevated and warrants continued monitoring.';
+      narrative += `Elevated ${Math.round(recessonProbability)}% recession probability warrants careful monitoring.`;
     } else {
-      narrative += 'Significant recession risk present based on current economic trajectory.';
+      narrative += `High ${Math.round(recessonProbability)}% recession probability signals significant economic risks.`;
     }
 
     return narrative;
+  }
+
+  private async getLatestEconomicIndicators(): Promise<Array<{metric: string, zScore: number, category: string}>> {
+    try {
+      // Import the indicators service to get latest data
+      const { economicIndicatorsService } = await import('./economic-indicators.js');
+      const data = await economicIndicatorsService.getEconomicIndicators();
+      
+      return data.indicators || [];
+    } catch (error) {
+      logger.error('Failed to get economic indicators for narrative:', error);
+      // Return empty array to prevent crashes
+      return [];
+    }
   }
 
   private generateRecommendations(healthScore: EconomicHealthScore): string[] {
