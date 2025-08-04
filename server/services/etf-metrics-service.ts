@@ -175,22 +175,27 @@ class ETFMetricsService {
    */
   private async getMomentumDataFromCache(): Promise<MomentumData[]> {
     try {
-      // Leverage existing momentum analysis cache
+      // First, try to get fresh momentum data by making an API call to the momentum endpoint
+      try {
+        const response = await fetch('http://localhost:5000/api/momentum-analysis');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.momentumStrategies && Array.isArray(data.momentumStrategies)) {
+            logger.info(`📊 Fetched fresh momentum data for ${data.momentumStrategies.length} ETFs from API`);
+            return data.momentumStrategies;
+          }
+        }
+      } catch (fetchError) {
+        logger.warn('Failed to fetch fresh momentum data via API:', fetchError);
+      }
+
+      // Fallback: Use cached momentum data
       const momentumCacheKey = 'momentum-analysis-cache-v2';
       const cached = cacheService.get(momentumCacheKey);
       
       if (cached && cached.momentumStrategies && Array.isArray(cached.momentumStrategies)) {
         logger.info(`📊 Using cached momentum data for ${cached.momentumStrategies.length} ETFs`);
         return cached.momentumStrategies;
-      }
-
-      // Fallback: Try to fetch fresh momentum data to improve consistency
-      try {
-        // For now, return empty array since momentum service integration needs more work
-        logger.info('📊 Momentum service integration pending - using fallback');
-        return [];
-      } catch (momentumError) {
-        logger.warn('Failed to fetch fresh momentum data:', momentumError);
       }
 
       logger.warn('No momentum data available, using empty fallback');
@@ -233,20 +238,20 @@ class ETFMetricsService {
         maSignal: this.getMASignal(technical),
         maTrend: this.getMATrend(technical),
         
-        // RSI (Momentum)
-        rsi: technical?.rsi ? parseFloat(technical.rsi) : null,
-        rsiSignal: this.getRSISignal(technical?.rsi),
+        // RSI (Momentum) - Prioritize momentum data, fallback to technical
+        rsi: momentumETF?.rsi ? parseFloat(momentumETF.rsi.toString()) : (technical?.rsi ? parseFloat(technical.rsi) : null),
+        rsiSignal: this.getRSISignal(momentumETF?.rsi || technical?.rsi),
         rsiDivergence: false, // Would need historical analysis
         
-        // Z-Score, Sharpe, Returns
-        zScore: momentumETF?.zScore || null,
+        // Z-Score, Sharpe, Returns - Enhanced integration with momentum data
+        zScore: momentumETF?.zScore || momentumETF?.zScoreOfLatest1DayMove || null,
         sharpeRatio: momentumETF?.sharpeRatio || null,
-        fiveDayReturn: momentumETF?.fiveDayChange || null,
+        fiveDayReturn: momentumETF?.fiveDayChange || momentumETF?.fiveDayMove || momentumETF?.oneDayMove || null,
         
-        // Volume, VWAP, OBV
+        // Volume, VWAP, OBV - Enhanced VWAP integration
         volumeRatio: this.calculateVolumeRatio(sector),
-        vwapSignal: this.getVWAPSignal(technical, sector),
-        obvTrend: 'neutral' // Would need volume analysis
+        vwapSignal: this.getVWAPSignal(technical, sector, momentumETF),
+        obvTrend: momentumETF?.signal ? this.parseOBVFromSignal(momentumETF.signal) : 'neutral'
       };
     });
   }
@@ -297,7 +302,16 @@ class ETFMetricsService {
     return 1.0; // Placeholder
   }
 
-  private getVWAPSignal(technical: any, sector: any): string {
+  private getVWAPSignal(technical: any, sector: any, momentum?: any): string {
+    // First try to use momentum signal data if available
+    if (momentum?.signal) {
+      const signal = momentum.signal.toString().toLowerCase();
+      if (signal.includes('above vwap') || signal.includes('strong bull')) return 'Above VWAP';
+      if (signal.includes('below vwap') || signal.includes('strong bear')) return 'Below VWAP';
+      if (signal.includes('vwap')) return 'Near VWAP';
+    }
+    
+    // Fallback to technical VWAP calculation
     if (!technical?.vwap || !sector?.price) return 'No Data';
     const price = parseFloat(sector.price);
     const vwap = parseFloat(technical.vwap);
@@ -305,6 +319,14 @@ class ETFMetricsService {
     if (price > vwap * 1.01) return 'Above VWAP';
     if (price < vwap * 0.99) return 'Below VWAP';
     return 'Near VWAP';
+  }
+
+  private parseOBVFromSignal(signal: string): string {
+    if (!signal) return 'neutral';
+    const signalLower = signal.toString().toLowerCase();
+    if (signalLower.includes('strong bull') || signalLower.includes('bullish')) return 'bullish';
+    if (signalLower.includes('strong bear') || signalLower.includes('bearish')) return 'bearish';
+    return 'neutral';
   }
 
   private getFallbackMetrics(): ETFMetrics[] {
