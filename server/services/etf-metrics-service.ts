@@ -354,46 +354,46 @@ class ETFMetricsService {
     let totalScore = 0;
     let totalWeight = 0;
 
-    // 1. Bollinger Bands - Highest weight (30%) - Strong mean reversion predictor
+    // 1. Bollinger Bands - Highest weight (40%) - Strong volatility/reversal predictor
     const bollingerScore = this.getBollingerScore(metrics.bollingerPosition, metrics.bollingerStatus);
     if (bollingerScore !== null) {
-      totalScore += bollingerScore * 0.30;
-      totalWeight += 0.30;
+      totalScore += bollingerScore * 0.40;
+      totalWeight += 0.40;
     }
 
-    // 2. ATR/Volatility - High weight (20%) - Risk and momentum predictor
-    const atrScore = this.getATRScore(metrics.atr, metrics.volatility, momentumETF);
-    if (atrScore !== null) {
-      totalScore += atrScore * 0.20;
+    // 2. RSI - High weight (20%) - Momentum confirmation
+    const rsiScore = this.getRSIScore(metrics.rsi);
+    if (rsiScore !== null) {
+      totalScore += rsiScore * 0.20;
       totalWeight += 0.20;
     }
 
-    // 3. MA Trend - High weight (15%) - Trend confirmation
+    // 3. ATR/Volatility - Medium weight (15%) - Risk and momentum predictor
+    const atrScore = this.getATRScore(metrics.atr, metrics.volatility, momentumETF);
+    if (atrScore !== null) {
+      totalScore += atrScore * 0.15;
+      totalWeight += 0.15;
+    }
+
+    // 4. MACD - Medium weight (10%) - Trend following
+    const macdScore = this.getMACDScore(momentumETF);
+    if (macdScore !== null) {
+      totalScore += macdScore * 0.10;
+      totalWeight += 0.10;
+    }
+
+    // 5. MA Trend - Medium weight (10%) - Trend confirmation
     const maScore = this.getMAScore(metrics.maSignal, metrics.maTrend);
     if (maScore !== null) {
-      totalScore += maScore * 0.15;
-      totalWeight += 0.15;
+      totalScore += maScore * 0.10;
+      totalWeight += 0.10;
     }
 
-    // 4. RSI - Medium weight (15%) - Momentum oscillator
-    const rsiScore = this.getRSIScore(metrics.rsi);
-    if (rsiScore !== null) {
-      totalScore += rsiScore * 0.15;
-      totalWeight += 0.15;
-    }
-
-    // 5. Z-Score - Medium weight (10%) - Statistical deviation
+    // 6. Z-Score - Low weight (5%) - Statistical deviation
     const zScore = this.getZScore(metrics.zScore);
     if (zScore !== null) {
-      totalScore += zScore * 0.10;
-      totalWeight += 0.10;
-    }
-
-    // 6. VWAP - Supporting weight (10%) - Price vs volume confirmation
-    const vwapScore = this.getVWAPScore(metrics.vwapSignal);
-    if (vwapScore !== null) {
-      totalScore += vwapScore * 0.10;
-      totalWeight += 0.10;
+      totalScore += zScore * 0.05;
+      totalWeight += 0.05;
     }
 
     // Normalize score if we have any data
@@ -465,12 +465,20 @@ class ETFMetricsService {
     return 0; // Within normal range
   }
 
-  private getVWAPScore(signal: string): number | null {
-    if (!signal || signal === 'No Data' || signal === 'Loading...') return null;
+  private getMACDScore(momentumETF?: any): number | null {
+    if (!momentumETF?.signal) return null;
     
-    if (signal.includes('Above')) return 1;
-    if (signal.includes('Below')) return -1;
-    return 0; // At VWAP = neutral
+    const signal = momentumETF.signal.toString().toLowerCase();
+    
+    // MACD bullish signals
+    if (signal.includes('bullish') || signal.includes('strong bull')) return 1;
+    if (signal.includes('mild bull') || signal.includes('positive')) return 0.5;
+    
+    // MACD bearish signals
+    if (signal.includes('bearish') || signal.includes('strong bear')) return -1;
+    if (signal.includes('mild bear') || signal.includes('negative')) return -0.5;
+    
+    return 0; // Neutral
   }
 
   private getFallbackMetrics(): ETFMetrics[] {

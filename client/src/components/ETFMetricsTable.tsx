@@ -241,13 +241,12 @@ export default function ETFMetricsTable() {
           <span className="text-red-600 font-medium">Red = Bad/Sell signals</span>. 
           <br />
           <strong>Metrics:</strong> 
-          <strong> Signal</strong> - Weighted Technical Score (Bollinger 30%, ATR 20%, MA 15%, RSI 15%, Z-Score 10%, VWAP 10%). BUY ≥0.25, SELL ≤-0.25, HOLD -0.25 to 0.25.
+          <strong> Signal</strong> - Weighted Technical Score (Bollinger 40%, RSI 20%, ATR 15%, MACD 10%, MA 10%, Z-Score 5%). BUY ≥0.25, SELL ≤-0.25, HOLD -0.25 to 0.25.
           <strong> Bollinger</strong> - Price position in bands (oversold=good, overbought=bad). 
           <strong> ATR</strong> - Volatility measure. 
           <strong> MA Trend</strong> - Bull/bear crossover signals. 
           <strong> RSI</strong> - Momentum (oversold=good, overbought=bad). 
-          <strong> Z-Score</strong> - Historical performance deviation. 
-          <strong> VWAP</strong> - Price vs volume-weighted average.
+          <strong> Z-Score</strong> - Historical performance deviation.
         </p>
       </div>
 
@@ -292,19 +291,14 @@ export default function ETFMetricsTable() {
                   <span>Z-Score/Sharpe</span>
                 </div>
               </th>
-              <th className="text-center p-3 font-medium text-gray-700 min-w-[120px]">
-                <div className="flex items-center justify-center gap-1">
-                  <Volume2 className="h-4 w-4" />
-                  <span>VWAP Signal</span>
-                </div>
-              </th>
+
             </tr>
           </thead>
           <tbody>
             {etfMetrics.map((etf, index) => {
               const rsiResult = getRSIStatus(etf.rsi);
               const bollingerResult = getBollingerStatus(etf.bollingerPosition);
-              const vwapResult = getVWAPSignal(etf.price, null); // Will be updated with actual VWAP data
+
 
               return (
                 <tr key={etf.symbol} className={`border-b border-gray-100 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}>
@@ -416,19 +410,7 @@ export default function ETFMetricsTable() {
                     </div>
                   </td>
 
-                  {/* VWAP Signal */}
-                  <td className="p-3 text-center">
-                    <div className="flex flex-col items-center">
-                      <span className={`text-sm font-medium ${vwapResult.color}`}>
-                        {etf.vwapSignal || vwapResult.signal}
-                      </span>
-                      {vwapResult.deviation !== null && (
-                        <span className="text-xs text-gray-500">
-                          {vwapResult.deviation > 0 ? '+' : ''}{vwapResult.deviation.toFixed(2)}%
-                        </span>
-                      )}
-                    </div>
-                  </td>
+
                 </tr>
               );
             })}
