@@ -166,82 +166,104 @@ export function BreakoutAnalysis() {
 
   return (
     <div className="bg-slate-900 rounded-lg border border-slate-700" data-testid="breakout-analysis-card">
-      <div className="p-6 border-b border-slate-700">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-            <Zap className="h-5 w-5 text-blue-400" />
-            Breakout Analysis
-          </h2>
-        </div>
+      <div className="flex items-center justify-between p-6 border-b border-slate-700">
+        <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+          <Zap className="h-5 w-5 text-blue-400" />
+          Breakout Analysis
+        </h2>
       </div>
-      <div className="p-6 space-y-6">
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Symbols in Squeeze */}
+      
+      <div className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Left Column - Symbols in Squeeze */}
           <div>
-            <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+            <h3 className="text-sm font-medium text-blue-400 mb-4 flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-yellow-400" />
               Symbols in Squeeze
-              <span className="px-2 py-0.5 bg-slate-800 text-slate-400 text-xs rounded">
-                {symbolsInSqueeze.length}
-              </span>
-            </h4>
-            <div className="space-y-3">
+            </h3>
+            
+            <div className="space-y-4">
+              <div className="text-slate-400 text-sm">
+                Currently experiencing low volatility compression.
+              </div>
+              
               {symbolsInSqueeze.length === 0 ? (
-                <div className="text-sm text-slate-400 italic p-4 bg-slate-800 rounded border border-slate-600 border-dashed">
+                <div className="text-sm text-slate-400 italic">
                   No active squeezes detected.
                 </div>
               ) : (
-                symbolsInSqueeze.map((symbol, index) => (
-                  <SymbolCard key={`squeeze-${index}`} symbol={symbol} />
-                ))
+                <div className="space-y-3">
+                  {symbolsInSqueeze.map((symbol, index) => (
+                    <div key={`squeeze-${index}`} className="flex items-center justify-between">
+                      <div className="text-slate-300 font-medium">{symbol.symbol}:</div>
+                      <div className="text-right">
+                        <div className="text-slate-400 text-sm">{symbol.reason}</div>
+                        <div className="text-xs text-slate-500">{symbol.confidence}% confidence</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
 
-          {/* Recent Successful Breakouts */}
+          {/* Right Column - Recent Successful Breakouts */}
           <div>
-            <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+            <h3 className="text-sm font-medium text-blue-400 mb-4 flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-green-400" />
               Recent Successful Breakouts
-              <span className="px-2 py-0.5 bg-slate-800 text-slate-400 text-xs rounded">
-                {recentBreakouts.length}
-              </span>
-            </h4>
-            <div className="space-y-3">
+            </h3>
+            
+            <div className="space-y-4">
+              <div className="text-slate-400 text-sm">
+                Past 30 days with positive returns.
+              </div>
+              
               {recentBreakouts.length === 0 ? (
-                <div className="text-sm text-slate-400 italic p-4 bg-slate-800 rounded border border-slate-600 border-dashed">
+                <div className="text-sm text-slate-400 italic">
                   No recent successful breakouts.
                 </div>
               ) : (
-                recentBreakouts.map((symbol, index) => (
-                  <SymbolCard key={`breakout-${index}`} symbol={symbol} />
-                ))
+                <div className="space-y-3">
+                  {recentBreakouts.map((symbol, index) => (
+                    <div key={`breakout-${index}`} className="flex items-center justify-between">
+                      <div className="text-slate-300 font-medium">{symbol.symbol}:</div>
+                      <div className="text-right">
+                        <div className="text-slate-400 text-sm">{symbol.reason}</div>
+                        <div className="text-xs text-slate-500">{symbol.confidence}% confidence</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Potential Breakouts */}
+        {/* High Probability Setups - Full Width */}
         {potentialBreakouts.length > 0 && (
-          <div>
-            <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+          <div className="mt-8 pt-6 border-t border-slate-700">
+            <h3 className="text-sm font-medium text-blue-400 mb-4 flex items-center gap-2">
               <Zap className="h-4 w-4 text-blue-400" />
               High Probability Setups
-              <span className="px-2 py-0.5 bg-slate-800 text-slate-400 text-xs rounded">
-                {potentialBreakouts.length}
-              </span>
-            </h4>
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {potentialBreakouts.map((symbol, index) => (
-                <SymbolCard key={`potential-${index}`} symbol={symbol} />
+                <div key={`potential-${index}`} className="flex items-center justify-between">
+                  <div className="text-slate-300 font-medium">{symbol.symbol}:</div>
+                  <div className="text-right">
+                    <div className="text-slate-400 text-sm">{symbol.reason}</div>
+                    <div className="text-xs text-slate-500">{symbol.confidence}% confidence</div>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Methodology Footnote */}
-        <div className="pt-4 border-t border-slate-700">
-          <h5 className="text-xs font-semibold text-slate-400 mb-2">Methodology</h5>
+        {/* Methodology Footer */}
+        <div className="mt-8 pt-4 border-t border-slate-700">
           <div className="text-xs text-slate-500 space-y-1">
             <p><strong className="text-slate-400">Bollinger Band Squeeze:</strong> Identifies periods of low volatility where Bollinger Bands contract, often preceding significant price movements.</p>
             <p><strong className="text-slate-400">Successful Breakouts:</strong> Symbols that recently broke out of consolidation patterns with sustained momentum and volume confirmation.</p>
