@@ -20,10 +20,9 @@ router.get("/convergence-analysis", async (req, res) => {
       symbols = sectorETFs.map(etf => etf.symbol);
     }
     
-    // Use cached momentum analysis data from the momentum service for better performance
-    const { momentumAnalysisService } = await import('../services/momentum-analysis-service');
-    const momentumResponse = await momentumAnalysisService.getMomentumAnalysis();
-    const momentumData = { momentumStrategies: momentumResponse.momentumStrategies };
+    // Use cached momentum analysis data by fetching from API route for better performance
+    const response = await fetch('http://localhost:5000/api/momentum-analysis');
+    const momentumData = response.ok ? await response.json() : { momentumStrategies: [] };
     
     // Generate convergence analysis for each symbol using cached data
     const analysis = await Promise.all(symbols.map(async (symbol) => {

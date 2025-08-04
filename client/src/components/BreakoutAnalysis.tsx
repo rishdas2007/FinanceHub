@@ -113,6 +113,8 @@ export function BreakoutAnalysis() {
   const potentialBreakouts = useMemo(() => {
     if (!convergenceData) return [];
 
+    console.log("🔍 Breakout Analysis - Processing convergence data:", convergenceData.analysis?.length, "symbols");
+    
     // Show all analysis to see technical indicators and any signals
     return convergenceData.analysis.map(analysis => {
       // Get the primary signal driving the setup
@@ -137,7 +139,7 @@ export function BreakoutAnalysis() {
         `${primarySignal.signal_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Signal` :
         "Technical Analysis";
 
-      return {
+      const result = {
         symbol: analysis.symbol,
         reason,
         description,
@@ -149,6 +151,9 @@ export function BreakoutAnalysis() {
         signalSummary: analysis.signal_summary,
         technicalIndicators: analysis.technical_indicators
       };
+      
+      console.log(`🎯 ${analysis.symbol}: ${analysis.convergence_signals?.length || 0} signals, bias: ${analysis.overall_bias}, confidence: ${analysis.confidence_score}`);
+      return result;
     }); // Show all symbols now to see RSI values
   }, [convergenceData, getSignalDescription]);
 
