@@ -63,8 +63,16 @@ export class MultiTimeframeAnalysisService {
     }
   }
 
-  async getFullConvergenceAnalysis(symbols: string[] = ['SPY', 'QQQ', 'IWM']): Promise<ConvergenceAnalysisResponse> {
+  async getFullConvergenceAnalysis(symbols?: string[]): Promise<ConvergenceAnalysisResponse> {
     try {
+      // Use existing sector ETFs from the dashboard if no symbols provided
+      if (!symbols) {
+        const { MarketDataService } = await import('./market-data-unified');
+        const marketDataService = MarketDataService.getInstance();
+        const sectorETFs = await marketDataService.getSectorETFs();
+        symbols = sectorETFs.map(etf => etf.symbol);
+      }
+
       const cacheKey = 'full-convergence-analysis';
       const cached = await this.cache.get(cacheKey);
       if (cached) {
@@ -104,14 +112,11 @@ export class MultiTimeframeAnalysisService {
 
   private async generateConvergenceSignals(symbol: string): Promise<void> {
     try {
-      // Fetch current technical indicators from the API
-      const response = await fetch(`http://localhost:5000/api/technical/${symbol}`);
-      if (!response.ok) {
-        this.logger.warn(`Failed to fetch technical indicators for ${symbol}`);
-        return;
-      }
-
-      const indicators = await response.json();
+      // Use the existing MarketDataService to get technical indicators
+      const { MarketDataService } = await import('./market-data-unified');
+      const marketDataService = MarketDataService.getInstance();
+      
+      const indicators = await marketDataService.getTechnicalIndicators(symbol);
       
       if (!indicators || !indicators.rsi || !indicators.macd) {
         this.logger.warn(`Insufficient technical data for ${symbol}`);
@@ -146,9 +151,9 @@ export class MultiTimeframeAnalysisService {
       }
 
       // MACD Convergence Signal
-      if (indicators.macd && indicators.macd_signal) {
+      if (indicators.macd && indicators.macdSignal) {
         const macd = parseFloat(indicators.macd);
-        const macdSignal = parseFloat(indicators.macd_signal);
+        const macdSignal = parseFloat(indicators.macdSignal);
         const macdHist = macd - macdSignal;
 
         if (macd > macdSignal && macdHist > 0) {
