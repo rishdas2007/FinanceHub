@@ -2,10 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, AlertCircle, RefreshCw, Search, Filter, ChevronUp, ChevronDown } from 'lucide-react';
-import { CorrelationMatrix } from '@/components/CorrelationMatrix';
-import { DataConfidencePanel } from '@/components/DataConfidencePanel';
-import { EconomicRegimeIndicator } from '@/components/EconomicRegimeIndicator';
-import { SectorImpactMatrix } from '@/components/SectorImpactMatrix';
+
 
 interface MacroIndicator {
   metric: string;
@@ -822,27 +819,7 @@ const MacroeconomicIndicators: React.FC = () => {
         </p>
       </div>
 
-      {/* Priority 1: Cross-Indicator Correlation Analysis */}
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-medium text-blue-400">Priority 1: Cross-Indicator Correlation Analysis</h3>
-          <div className="text-xs text-gray-400 bg-slate-800 px-2 py-1 rounded">
-            Dynamic Thresholds: VIX-Adjusted
-          </div>
-        </div>
-        <CorrelationMatrix />
-      </div>
 
-      {/* Priority 2: Data Confidence & Historical Context */}
-      <div className="mt-8">
-        <DataConfidencePanel />
-      </div>
-
-      {/* Priority 3: Economic Regime & Sector Impact Analysis */}
-      <div className="mt-8 space-y-6">
-        <EconomicRegimeIndicator />
-        <SectorImpactMatrix />
-      </div>
     </div>
   );
 };
