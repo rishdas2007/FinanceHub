@@ -3,9 +3,9 @@ import { getRealTimeMarketService } from "../services/real-time-market-service";
 
 const router = express.Router();
 
-// In-memory cache for convergence analysis
+// In-memory cache for convergence analysis - harmonized with momentum analysis caching
 const convergenceCache = new Map<string, { data: any; timestamp: number }>();
-const CONVERGENCE_CACHE_TTL = 15000; // 15 seconds cache
+const CONVERGENCE_CACHE_TTL = 300000; // 5 minutes cache (same as momentum analysis for data consistency)
 
 // Get full convergence analysis
 router.get("/convergence-analysis", async (req, res) => {
@@ -37,17 +37,25 @@ router.get("/convergence-analysis", async (req, res) => {
     // Generate convergence analysis for each symbol using cached data
     const analysis = await Promise.all(symbols.map(async (symbol) => {
       try {
-        // Use cached sector ETF data instead of fetching technical indicators separately
+        // Get technical data from cached sector ETF data
         const sectorETF = sectorETFs.find(etf => etf.symbol === symbol);
         
-        // Get momentum data for this symbol (same as sectorETF)
-        const momentumInfo = sectorETF;
+        // Extract technical indicators from sector ETF (includes RSI, momentum, price changes)
+        const technicalIndicators = {
+          rsi: sectorETF?.rsi || null,
+          momentum: sectorETF?.momentum || null,
+          oneDayChange: sectorETF?.changePercent || null,
+          fiveDayChange: sectorETF?.fiveDayChange || null,
+          zScore: sectorETF?.zScore || null,
+          adx: sectorETF?.adx || null,
+          percentB: sectorETF?.percentB || null
+        };
         
         const signals = [];
         
-        // RSI-based signals with dynamic confidence using cached sector ETF data
-        if (sectorETF?.rsi) {
-          const rsi = sectorETF.rsi;
+        // RSI-based signals with dynamic confidence using technical indicators
+        if (technicalIndicators.rsi) {
+          const rsi = technicalIndicators.rsi;
           if (rsi < 30) {
             signals.push({
               id: `${symbol}-rsi-oversold-${Date.now()}`,
@@ -74,11 +82,11 @@ router.get("/convergence-analysis", async (req, res) => {
         }
         
         // Moving Average-based signals using momentum analysis data (replacing unreliable MACD)
-        if (momentumInfo) {
-          const momentum = momentumInfo.momentum;  // 'bullish', 'bearish', or 'neutral'
-          const changePercent = momentumInfo.oneDayChange || 0;
-          const fiveDayChange = momentumInfo.fiveDayChange || 0;
-          const zScore = momentumInfo.zScore || 0;
+        if (technicalIndicators.momentum) {
+          const momentum = technicalIndicators.momentum;  // 'bullish', 'bearish', or 'neutral'
+          const changePercent = technicalIndicators.oneDayChange || 0;
+          const fiveDayChange = technicalIndicators.fiveDayChange || 0;
+          const zScore = technicalIndicators.zScore || 0;
           
           // Calculate MA Gap equivalent using available momentum data
           const maGapStrength = Math.abs(changePercent) + Math.abs(fiveDayChange / 5);
@@ -131,15 +139,26 @@ router.get("/convergence-analysis", async (req, res) => {
           ? signals.reduce((sum, s) => sum + s.confidence, 0) / signals.length 
           : 0;
         
-        // Include raw technical indicators and momentum data from cached sector ETF
-        const technicalData = {
-          rsi: sectorETF?.rsi || null,
-          momentum: sectorETF?.momentum || null,
-          oneDayChange: sectorETF?.oneDayChange || null,
-          fiveDayChange: sectorETF?.fiveDayChange || null,
-          zScore: sectorETF?.zScore || null,
-          adx: null, // Not available in sector ETF data
-          percentB: null // Not available in sector ETF data
+        return {
+          symbol,
+          timestamp: new Date(),
+          convergence_signals: signals,
+          technical_indicators: technicalIndicators,
+          signal_summary: {
+            total_signals: signals.length,
+            bullish_signals: bullishSignals,
+            bearish_signals: bearishSignals,
+            neutral_signals: signals.length - bullishSignals - bearishSignals
+          },
+          bollinger_squeeze_status: {
+            is_squeezing: false,
+            squeeze_duration_days: 0,
+            breakout_direction: null,
+            volatility_expansion_potential: 0.5
+          },
+          overall_bias: bullishSignals > bearishSignals ? "bullish" : 
+                       bearishSignals > bullishSignals ? "bearish" : "neutral",
+          confidence_score: Math.round(averageConfidence)
         };
 
         return {
@@ -169,6 +188,15 @@ router.get("/convergence-analysis", async (req, res) => {
           symbol,
           timestamp: new Date(),
           convergence_signals: [],
+          technical_indicators: {
+            rsi: null,
+            momentum: null,
+            oneDayChange: null,
+            fiveDayChange: null,
+            zScore: null,
+            adx: null,
+            percentB: null
+          },
           signal_summary: {
             total_signals: 0,
             bullish_signals: 0,
@@ -181,7 +209,7 @@ router.get("/convergence-analysis", async (req, res) => {
             breakout_direction: null,
             volatility_expansion_potential: 0.5
           },
-          overall_bias: "neutral",
+          overall_bias: "neutral" as const,
           confidence_score: 0
         };
       }
