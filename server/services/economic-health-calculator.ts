@@ -2,6 +2,7 @@ import { db } from '../db.js';
 import { sql } from 'drizzle-orm';
 import { logger } from '../utils/logger.js';
 import { cacheService } from './cache-unified.js';
+import { EconomicInsightClassifier } from './economic-insight-classifier.js';
 
 export interface EconomicHealthScore {
   overallScore: number;
@@ -15,8 +16,12 @@ export interface EconomicHealthScore {
     gdpHealth: number;
     employmentHealth: number;
     inflationStability: number;
-    correlationAlignment: number;
-    leadingConsistency: number;
+    // Enhanced Multi-Dimensional Components
+    signalClarity: number;
+    crossIndicatorHarmony: number;
+    conflictResolution: number;
+    forwardLookingAccuracy: number;
+    // Traditional Components
     alertFrequency: number;
     regimeStability: number;
     dataQuality: number;
@@ -31,22 +36,26 @@ export interface EconomicHealthScore {
 
 export class EconomicHealthCalculator {
   private cache = cacheService;
+  private insightClassifier = new EconomicInsightClassifier();
 
-  private readonly SCORE_WEIGHTS = {
-    // Core Economic Strength (40 points)
-    gdpHealth: 15,
-    employmentHealth: 15,
-    inflationStability: 10,
-    
-    // Cross-Indicator Harmony (25 points)
-    correlationAlignment: 15,
-    leadingConsistency: 10,
-    
+  // Enhanced Multi-Dimensional Score Weights (100 points total)
+  private readonly ENHANCED_SCORE_WEIGHTS = {
+    // Core Economic Strength (30 points) - reduced from 40
+    gdpHealth: 12,
+    employmentHealth: 12,
+    inflationStability: 6,
+
+    // Multi-Dimensional Signal Analysis (35 points) - NEW
+    signalClarity: 9,           // 25% of 35 - How definitively indicators point in direction
+    crossIndicatorHarmony: 12,  // 35% of 35 - Level-trend alignment across economy
+    conflictResolution: 7,      // 20% of 35 - Handling mixed economic signals
+    forwardLookingAccuracy: 7,  // 20% of 35 - Predictive capability with leading indicators
+
     // Market Stress & Volatility (20 points)
     alertFrequency: 10,
     regimeStability: 10,
-    
-    // Forward-Looking Confidence (15 points)
+
+    // Data Quality & Confidence (15 points)
     dataQuality: 8,
     sectorAlignment: 7
   };
@@ -100,14 +109,16 @@ export class EconomicHealthCalculator {
   }
 
   private async calculateComponentScores() {
-    logger.info('📊 Calculating individual component scores');
+    logger.info('📊 Calculating enhanced multi-dimensional component scores');
 
     const [
       gdpHealth,
       employmentHealth,
       inflationStability,
-      correlationAlignment,
-      leadingConsistency,
+      signalClarity,
+      crossIndicatorHarmony,
+      conflictResolution,
+      forwardLookingAccuracy,
       alertFrequency,
       regimeStability,
       dataQuality,
@@ -116,9 +127,11 @@ export class EconomicHealthCalculator {
       this.calculateGDPHealth(),
       this.calculateEmploymentHealth(),
       this.calculateInflationStability(),
-      this.calculateCorrelationAlignment(),
-      this.calculateLeadingConsistency(),
-      this.calculateAlertFrequency(),
+      this.calculateSignalClarity(),
+      this.calculateCrossIndicatorHarmony(),
+      this.calculateConflictResolution(),
+      this.calculateForwardLookingAccuracy(),
+      this.calculateEnhancedAlertFrequency(),
       this.calculateRegimeStability(),
       this.calculateDataQuality(),
       this.calculateSectorAlignment()
@@ -128,8 +141,10 @@ export class EconomicHealthCalculator {
       gdpHealth,
       employmentHealth,
       inflationStability,
-      correlationAlignment,
-      leadingConsistency,
+      signalClarity,
+      crossIndicatorHarmony,
+      conflictResolution,
+      forwardLookingAccuracy,
       alertFrequency,
       regimeStability,
       dataQuality,
@@ -718,7 +733,7 @@ export class EconomicHealthCalculator {
     let totalWeight = 0;
 
     for (const [component, score] of Object.entries(componentScores)) {
-      const weight = this.SCORE_WEIGHTS[component as keyof typeof this.SCORE_WEIGHTS] || 0;
+      const weight = this.ENHANCED_SCORE_WEIGHTS[component as keyof typeof this.ENHANCED_SCORE_WEIGHTS] || 0;
       totalScore += (score as number) * (weight / 100); // Convert weight to decimal
       totalWeight += weight;
     }
@@ -729,21 +744,28 @@ export class EconomicHealthCalculator {
   private calculateScoreBreakdown(componentScores: any) {
     return {
       coreHealth: Math.round(
-        (componentScores.gdpHealth * this.SCORE_WEIGHTS.gdpHealth +
-         componentScores.employmentHealth * this.SCORE_WEIGHTS.employmentHealth +
-         componentScores.inflationStability * this.SCORE_WEIGHTS.inflationStability) / 100
+        (componentScores.gdpHealth * this.ENHANCED_SCORE_WEIGHTS.gdpHealth +
+         componentScores.employmentHealth * this.ENHANCED_SCORE_WEIGHTS.employmentHealth +
+         componentScores.inflationStability * this.ENHANCED_SCORE_WEIGHTS.inflationStability) / 
+        (this.ENHANCED_SCORE_WEIGHTS.gdpHealth + this.ENHANCED_SCORE_WEIGHTS.employmentHealth + this.ENHANCED_SCORE_WEIGHTS.inflationStability)
       ),
       correlationHarmony: Math.round(
-        (componentScores.correlationAlignment * this.SCORE_WEIGHTS.correlationAlignment +
-         componentScores.leadingConsistency * this.SCORE_WEIGHTS.leadingConsistency) / 100
+        (componentScores.signalClarity * this.ENHANCED_SCORE_WEIGHTS.signalClarity +
+         componentScores.crossIndicatorHarmony * this.ENHANCED_SCORE_WEIGHTS.crossIndicatorHarmony +
+         componentScores.conflictResolution * this.ENHANCED_SCORE_WEIGHTS.conflictResolution +
+         componentScores.forwardLookingAccuracy * this.ENHANCED_SCORE_WEIGHTS.forwardLookingAccuracy) / 
+        (this.ENHANCED_SCORE_WEIGHTS.signalClarity + this.ENHANCED_SCORE_WEIGHTS.crossIndicatorHarmony + 
+         this.ENHANCED_SCORE_WEIGHTS.conflictResolution + this.ENHANCED_SCORE_WEIGHTS.forwardLookingAccuracy)
       ),
       marketStress: Math.round(
-        (componentScores.alertFrequency * this.SCORE_WEIGHTS.alertFrequency +
-         componentScores.regimeStability * this.SCORE_WEIGHTS.regimeStability) / 100
+        (componentScores.alertFrequency * this.ENHANCED_SCORE_WEIGHTS.alertFrequency +
+         componentScores.regimeStability * this.ENHANCED_SCORE_WEIGHTS.regimeStability) / 
+        (this.ENHANCED_SCORE_WEIGHTS.alertFrequency + this.ENHANCED_SCORE_WEIGHTS.regimeStability)
       ),
       confidence: Math.round(
-        (componentScores.dataQuality * this.SCORE_WEIGHTS.dataQuality +
-         componentScores.sectorAlignment * this.SCORE_WEIGHTS.sectorAlignment) / 100
+        (componentScores.dataQuality * this.ENHANCED_SCORE_WEIGHTS.dataQuality +
+         componentScores.sectorAlignment * this.ENHANCED_SCORE_WEIGHTS.sectorAlignment) / 
+        (this.ENHANCED_SCORE_WEIGHTS.dataQuality + this.ENHANCED_SCORE_WEIGHTS.sectorAlignment)
       )
     };
   }
@@ -825,8 +847,8 @@ export class EconomicHealthCalculator {
     return {
       overallScore: 50,
       scoreBreakdown: {
-        coreHealth: 20,
-        correlationHarmony: 12,
+        coreHealth: 15,
+        correlationHarmony: 17,
         marketStress: 10,
         confidence: 8
       },
@@ -834,8 +856,12 @@ export class EconomicHealthCalculator {
         gdpHealth: 50,
         employmentHealth: 50,
         inflationStability: 50,
-        correlationAlignment: 50,
-        leadingConsistency: 50,
+        // Enhanced Multi-Dimensional Components
+        signalClarity: 50,
+        crossIndicatorHarmony: 50,
+        conflictResolution: 50,
+        forwardLookingAccuracy: 50,
+        // Traditional Components
         alertFrequency: 50,
         regimeStability: 50,
         dataQuality: 50,
@@ -847,5 +873,592 @@ export class EconomicHealthCalculator {
       historicalPercentile: 50,
       recessonProbability: 15
     };
+  }
+
+  // Enhanced Multi-Dimensional Signal Analysis Methods
+
+  /**
+   * Signal Clarity (25% weight): How definitively indicators point in direction
+   * Measures: Z-score magnitude distribution, signal-to-noise ratio, confidence intervals
+   */
+  private async calculateSignalClarity(): Promise<number> {
+    try {
+      // Get all current economic indicators with z-scores
+      const result = await db.execute(sql`
+        SELECT 
+          metric,
+          CAST(COALESCE(NULLIF(z_score, ''), '0') AS DECIMAL) as z_score,
+          CAST(COALESCE(NULLIF(delta_z_score, ''), '0') AS DECIMAL) as delta_z_score
+        FROM economicIndicatorsCurrent 
+        WHERE CAST(COALESCE(NULLIF(z_score, ''), '0') AS DECIMAL) != 0
+        OR CAST(COALESCE(NULLIF(delta_z_score, ''), '0') AS DECIMAL) != 0
+      `);
+
+      if (result.rows.length === 0) return 50;
+
+      // Extract z-scores and analyze signal clarity
+      const indicators = result.rows.map(row => ({
+        metric: (row as any).metric,
+        zScore: parseFloat((row as any).z_score) || 0,
+        deltaZScore: parseFloat((row as any).delta_z_score) || 0
+      }));
+
+      // Calculate signal clarity metrics
+      let claritySum = 0;
+      let validSignals = 0;
+
+      for (const indicator of indicators) {
+        const primarySignal = Math.abs(indicator.zScore);
+        const deltaSignal = Math.abs(indicator.deltaZScore);
+        
+        // Use EconomicInsightClassifier to get signal strength
+        const insights = await this.insightClassifier.classifyEconomicInsight(indicator.metric, {
+          zScore: indicator.zScore,
+          deltaZScore: indicator.deltaZScore,
+          currentValue: 0, // Not needed for signal clarity
+          historicalMean: 0,
+          category: 'Growth' // Will be determined by classifier
+        });
+
+        // Score based on signal magnitude and confidence
+        let signalScore = 0;
+        
+        // Primary signal strength (0-100)
+        if (primarySignal > 2.5) signalScore += 40;      // Very strong signal
+        else if (primarySignal > 2.0) signalScore += 35; // Strong signal
+        else if (primarySignal > 1.5) signalScore += 25; // Moderate signal
+        else if (primarySignal > 1.0) signalScore += 15; // Weak signal
+        else if (primarySignal > 0.5) signalScore += 5;  // Noise level
+
+        // Delta signal consistency (0-30)
+        const signalAlignment = primarySignal > 0 && deltaSignal > 0 ? 
+          Math.min(primarySignal, deltaSignal) / Math.max(primarySignal, deltaSignal) : 0;
+        signalScore += signalAlignment * 30;
+
+        // Confidence bonus from classifier (0-30)
+        signalScore += insights.confidence * 30;
+
+        claritySum += signalScore;
+        validSignals++;
+      }
+
+      const averageClarity = validSignals > 0 ? claritySum / validSignals : 50;
+      
+      logger.info(`Signal Clarity: ${validSignals} indicators, average clarity: ${averageClarity.toFixed(1)}`);
+      return Math.max(0, Math.min(100, Math.round(averageClarity)));
+
+    } catch (error) {
+      logger.warn('Failed to calculate signal clarity:', error);
+      return 50;
+    }
+  }
+
+  /**
+   * Cross-Indicator Harmony (35% weight): Level-trend alignment across economy
+   * Measures: Multi-dimensional classification consistency, economic coherence
+   */
+  private async calculateCrossIndicatorHarmony(): Promise<number> {
+    try {
+      // Get key economic indicators by category
+      const keyIndicators = {
+        'Growth': ['GDP Growth Rate', 'Retail Sales', 'Housing Starts'],
+        'Labor': ['Unemployment Rate (Δ-adjusted)', 'Nonfarm Payrolls', 'Employment Population Ratio'],
+        'Inflation': ['Core CPI (Δ-adjusted)', 'Core PCE Price Index (Δ-adjusted)'],
+        'Monetary Policy': ['Federal Funds Rate (Δ-adjusted)', '10-Year Treasury Yield (Δ-adjusted)']
+      };
+
+      const categoryInsights: { [key: string]: any[] } = {};
+      
+      // Classify insights for each category
+      for (const [category, metrics] of Object.entries(keyIndicators)) {
+        categoryInsights[category] = [];
+        
+        for (const metric of metrics) {
+          const result = await db.execute(sql`
+            SELECT 
+              metric,
+              value,
+              CAST(COALESCE(NULLIF(z_score, ''), '0') AS DECIMAL) as z_score,
+              CAST(COALESCE(NULLIF(delta_z_score, ''), '0') AS DECIMAL) as delta_z_score
+            FROM economicIndicatorsCurrent 
+            WHERE metric = ${metric}
+            ORDER BY period_date DESC 
+            LIMIT 1
+          `);
+
+          if (result.rows.length > 0) {
+            const row = result.rows[0] as any;
+            const insights = await this.insightClassifier.classifyEconomicInsight(metric, {
+              zScore: parseFloat(row.z_score) || 0,
+              deltaZScore: parseFloat(row.delta_z_score) || 0,
+              currentValue: parseFloat(row.value) || 0,
+              historicalMean: 0,
+              category: category as any
+            });
+            
+            categoryInsights[category].push(insights);
+          }
+        }
+      }
+
+      // Calculate harmony within and across categories
+      let totalHarmony = 0;
+      let validCategories = 0;
+
+      for (const [category, insights] of Object.entries(categoryInsights)) {
+        if (insights.length >= 2) {
+          // Within-category harmony
+          const directions = insights.map(insight => 
+            insight.levelSignal === 'positive' ? 1 : 
+            insight.levelSignal === 'negative' ? -1 : 0
+          );
+          
+          const trendDirections = insights.map(insight => 
+            insight.trendSignal === 'improving' ? 1 : 
+            insight.trendSignal === 'deteriorating' ? -1 : 0
+          );
+
+          // Calculate directional consistency
+          const levelConsistency = this.calculateDirectionalConsistency(directions);
+          const trendConsistency = this.calculateDirectionalConsistency(trendDirections);
+          
+          // Average confidence within category
+          const avgConfidence = insights.reduce((sum, insight) => sum + insight.confidence, 0) / insights.length;
+          
+          const categoryHarmony = (levelConsistency + trendConsistency) / 2 * 100 * (0.7 + 0.3 * avgConfidence);
+          totalHarmony += categoryHarmony;
+          validCategories++;
+        }
+      }
+
+      // Cross-category harmony bonus
+      let crossCategoryBonus = 0;
+      if (validCategories >= 3) {
+        // Check for logical economic relationships
+        const growthPositive = this.getCategoryDirection(categoryInsights['Growth']);
+        const laborPositive = this.getCategoryDirection(categoryInsights['Labor']);
+        const inflationDirection = this.getCategoryDirection(categoryInsights['Inflation']);
+        
+        // Growth and employment should generally align
+        if (growthPositive !== null && laborPositive !== null && growthPositive === laborPositive) {
+          crossCategoryBonus += 10;
+        }
+        
+        // Moderate inflation with growth is healthy
+        if (growthPositive === 1 && inflationDirection !== null && Math.abs(inflationDirection) <= 1) {
+          crossCategoryBonus += 5;
+        }
+      }
+
+      const finalHarmony = validCategories > 0 ? 
+        Math.min(100, (totalHarmony / validCategories) + crossCategoryBonus) : 50;
+
+      logger.info(`Cross-Indicator Harmony: ${validCategories} categories, harmony: ${finalHarmony.toFixed(1)}`);
+      return Math.max(0, Math.min(100, Math.round(finalHarmony)));
+
+    } catch (error) {
+      logger.warn('Failed to calculate cross-indicator harmony:', error);
+      return 50;
+    }
+  }
+
+  /**
+   * Conflict Resolution (20% weight): Handling mixed economic signals
+   * Measures: Signal contradiction detection, resolution quality, confidence weighting
+   */
+  private async calculateConflictResolution(): Promise<number> {
+    try {
+      // Get all indicators with meaningful signals
+      const result = await db.execute(sql`
+        SELECT 
+          metric,
+          value,
+          CAST(COALESCE(NULLIF(z_score, ''), '0') AS DECIMAL) as z_score,
+          CAST(COALESCE(NULLIF(delta_z_score, ''), '0') AS DECIMAL) as delta_z_score
+        FROM economicIndicatorsCurrent 
+        WHERE ABS(CAST(COALESCE(NULLIF(z_score, ''), '0') AS DECIMAL)) > 0.5
+        OR ABS(CAST(COALESCE(NULLIF(delta_z_score, ''), '0') AS DECIMAL)) > 0.5
+      `);
+
+      if (result.rows.length < 3) return 50;
+
+      const conflicts: any[] = [];
+      const allInsights: any[] = [];
+
+      // Classify all indicators and identify conflicts
+      for (const row of result.rows) {
+        const metric = (row as any).metric;
+        const insights = await this.insightClassifier.classifyEconomicInsight(metric, {
+          zScore: parseFloat((row as any).z_score) || 0,
+          deltaZScore: parseFloat((row as any).delta_z_score) || 0,
+          currentValue: parseFloat((row as any).value) || 0,
+          historicalMean: 0,
+          category: this.determineCategory(metric)
+        });
+        
+        allInsights.push({ metric, ...insights });
+      }
+
+      // Identify contradictory signals
+      for (let i = 0; i < allInsights.length; i++) {
+        for (let j = i + 1; j < allInsights.length; j++) {
+          const insight1 = allInsights[i];
+          const insight2 = allInsights[j];
+          
+          // Check for level-trend conflicts within same indicator
+          if (insight1.metric === insight2.metric) continue;
+          
+          // Check for cross-indicator conflicts in related categories
+          const isConflict = this.detectSignalConflict(insight1, insight2);
+          if (isConflict) {
+            conflicts.push({
+              indicator1: insight1.metric,
+              indicator2: insight2.metric,
+              type: isConflict,
+              severity: this.calculateConflictSeverity(insight1, insight2)
+            });
+          }
+        }
+      }
+
+      // Calculate conflict resolution score
+      let resolutionScore = 100;
+      
+      if (conflicts.length > 0) {
+        // Penalty based on number and severity of conflicts
+        const totalSeverity = conflicts.reduce((sum, conflict) => sum + conflict.severity, 0);
+        const avgSeverity = totalSeverity / conflicts.length;
+        
+        // Base penalty for conflicts
+        resolutionScore -= conflicts.length * 5;
+        
+        // Additional penalty for severity
+        resolutionScore -= avgSeverity * 20;
+        
+        // Bonus for having mixed signals with high confidence (sophisticated economy)
+        const highConfidenceConflicts = conflicts.filter(c => 
+          allInsights.find(i => i.metric === c.indicator1)?.confidence > 0.7 &&
+          allInsights.find(i => i.metric === c.indicator2)?.confidence > 0.7
+        );
+        
+        if (highConfidenceConflicts.length > 0) {
+          resolutionScore += Math.min(15, highConfidenceConflicts.length * 3);
+        }
+      }
+
+      logger.info(`Conflict Resolution: ${conflicts.length} conflicts detected, resolution score: ${resolutionScore}`);
+      return Math.max(20, Math.min(100, Math.round(resolutionScore)));
+
+    } catch (error) {
+      logger.warn('Failed to calculate conflict resolution:', error);
+      return 50;
+    }
+  }
+
+  /**
+   * Forward-Looking Accuracy (20% weight): Predictive capability with leading indicators
+   * Measures: Leading indicator performance, trend prediction accuracy, regime forecasting
+   */
+  private async calculateForwardLookingAccuracy(): Promise<number> {
+    try {
+      const leadingIndicators = [
+        '10-Year Treasury Yield (Δ-adjusted)',
+        'Average Weekly Hours',
+        'Housing Starts',
+        'Michigan Consumer Sentiment',
+        'Yield Curve (10yr-2yr)'
+      ];
+
+      let accuracySum = 0;
+      let validPredictions = 0;
+
+      for (const indicator of leadingIndicators) {
+        // Get historical data for trend analysis
+        const result = await db.execute(sql`
+          SELECT 
+            value,
+            period_date,
+            CAST(COALESCE(NULLIF(z_score, ''), '0') AS DECIMAL) as z_score,
+            CAST(COALESCE(NULLIF(delta_z_score, ''), '0') AS DECIMAL) as delta_z_score
+          FROM economicIndicatorsCurrent 
+          WHERE metric = ${indicator}
+          ORDER BY period_date DESC 
+          LIMIT 6
+        `);
+
+        if (result.rows.length >= 4) {
+          const values = result.rows.map(row => ({
+            value: parseFloat((row as any).value),
+            date: (row as any).period_date,
+            zScore: parseFloat((row as any).z_score) || 0,
+            deltaZScore: parseFloat((row as any).delta_z_score) || 0
+          })).reverse(); // Chronological order
+
+          // Calculate prediction accuracy metrics
+          const currentInsight = await this.insightClassifier.classifyEconomicInsight(indicator, {
+            zScore: values[values.length - 1].zScore,
+            deltaZScore: values[values.length - 1].deltaZScore,
+            currentValue: values[values.length - 1].value,
+            historicalMean: 0,
+            category: this.determineCategory(indicator)
+          });
+
+          // Assess trend prediction capability
+          const trendAccuracy = this.assessTrendPredictionAccuracy(values);
+          
+          // Assess signal stability for forecasting
+          const signalStability = this.calculateSignalStability(values);
+          
+          // Combined accuracy score
+          const indicatorAccuracy = (
+            trendAccuracy * 0.4 +           // 40% trend prediction
+            signalStability * 0.3 +         // 30% signal stability  
+            currentInsight.confidence * 0.3  // 30% current signal confidence
+          ) * 100;
+
+          accuracySum += indicatorAccuracy;
+          validPredictions++;
+        }
+      }
+
+      // Calculate regime forecasting capability
+      const regimeForecast = await this.calculateRegimeForecastingCapability();
+      
+      const finalAccuracy = validPredictions > 0 ? 
+        (accuracySum / validPredictions) * 0.8 + regimeForecast * 0.2 : 50;
+
+      logger.info(`Forward-Looking Accuracy: ${validPredictions} indicators, accuracy: ${finalAccuracy.toFixed(1)}`);
+      return Math.max(0, Math.min(100, Math.round(finalAccuracy)));
+
+    } catch (error) {
+      logger.warn('Failed to calculate forward-looking accuracy:', error);
+      return 50;
+    }
+  }
+
+  /**
+   * Enhanced Alert Frequency - replaces the basic alert frequency with more sophisticated analysis
+   */
+  private async calculateEnhancedAlertFrequency(): Promise<number> {
+    try {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      // Get all significant alerts with categories
+      const result = await db.execute(sql`
+        SELECT 
+          metric,
+          CAST(COALESCE(NULLIF(z_score, ''), '0') AS DECIMAL) as z_score,
+          CAST(COALESCE(NULLIF(delta_z_score, ''), '0') AS DECIMAL) as delta_z_score,
+          period_date
+        FROM economicIndicatorsCurrent 
+        WHERE period_date >= ${thirtyDaysAgo.toISOString().split('T')[0]}
+        AND (
+          ABS(CAST(COALESCE(NULLIF(z_score, ''), '0') AS DECIMAL)) > 1.5
+          OR ABS(CAST(COALESCE(NULLIF(delta_z_score, ''), '0') AS DECIMAL)) > 2.0
+        )
+      `);
+
+      // Categorize alerts by severity and type
+      const alerts = {
+        critical: 0,    // |z-score| > 2.5
+        high: 0,        // |z-score| > 2.0
+        moderate: 0,    // |z-score| > 1.5
+        byCategory: {} as { [key: string]: number }
+      };
+
+      for (const row of result.rows) {
+        const zScore = Math.abs(parseFloat((row as any).z_score) || 0);
+        const deltaZScore = Math.abs(parseFloat((row as any).delta_z_score) || 0);
+        const maxScore = Math.max(zScore, deltaZScore);
+        
+        if (maxScore > 2.5) alerts.critical++;
+        else if (maxScore > 2.0) alerts.high++;
+        else alerts.moderate++;
+
+        // Categorize by economic category
+        const category = this.determineCategory((row as any).metric);
+        alerts.byCategory[category] = (alerts.byCategory[category] || 0) + 1;
+      }
+
+      // Calculate sophisticated stress score
+      let stressScore = 100;
+      
+      // Critical alerts have exponential impact
+      stressScore -= alerts.critical * 15;
+      stressScore -= alerts.high * 8;
+      stressScore -= alerts.moderate * 3;
+      
+      // Broad-based stress penalty (alerts across multiple categories)
+      const categoriesAffected = Object.keys(alerts.byCategory).length;
+      if (categoriesAffected > 3) stressScore -= (categoriesAffected - 3) * 5;
+      
+      // Concentration bonus (if alerts are concentrated in one area, less systemic)
+      const maxCategoryAlerts = Math.max(...Object.values(alerts.byCategory));
+      const totalAlerts = alerts.critical + alerts.high + alerts.moderate;
+      if (totalAlerts > 0 && maxCategoryAlerts / totalAlerts > 0.7) {
+        stressScore += 10; // Concentrated stress is better than broad-based
+      }
+
+      const finalScore = Math.max(10, Math.min(100, stressScore));
+      
+      logger.info(`Enhanced Alert Frequency: ${totalAlerts} alerts (${alerts.critical} critical), score: ${finalScore}`);
+      return finalScore;
+
+    } catch (error) {
+      logger.warn('Failed to calculate enhanced alert frequency:', error);
+      return 75;
+    }
+  }
+
+  // Helper methods for multi-dimensional analysis
+
+  private calculateDirectionalConsistency(directions: number[]): number {
+    if (directions.length < 2) return 0.5;
+    
+    const nonZeroDirections = directions.filter(d => d !== 0);
+    if (nonZeroDirections.length === 0) return 0.5;
+    
+    const positiveCount = nonZeroDirections.filter(d => d > 0).length;
+    const negativeCount = nonZeroDirections.filter(d => d < 0).length;
+    
+    return Math.max(positiveCount, negativeCount) / nonZeroDirections.length;
+  }
+
+  private getCategoryDirection(insights: any[]): number | null {
+    if (!insights || insights.length === 0) return null;
+    
+    const directions = insights.map(insight => 
+      insight.levelSignal === 'positive' ? 1 : 
+      insight.levelSignal === 'negative' ? -1 : 0
+    );
+    
+    const sum = directions.reduce((a, b) => a + b, 0);
+    return sum / directions.length;
+  }
+
+  private determineCategory(metric: string): 'Growth' | 'Labor' | 'Inflation' | 'Monetary Policy' | 'Sentiment' {
+    if (metric.includes('GDP') || metric.includes('Retail') || metric.includes('Housing') || metric.includes('Construction') || metric.includes('Income')) {
+      return 'Growth';
+    }
+    if (metric.includes('Unemployment') || metric.includes('Payrolls') || metric.includes('Employment') || metric.includes('JOLTS') || metric.includes('Labor Force')) {
+      return 'Labor';
+    }
+    if (metric.includes('CPI') || metric.includes('PCE') || metric.includes('PPI') || metric.includes('Inflation')) {
+      return 'Inflation';
+    }
+    if (metric.includes('Treasury') || metric.includes('Federal Funds') || metric.includes('Yield')) {
+      return 'Monetary Policy';
+    }
+    return 'Sentiment';
+  }
+
+  private detectSignalConflict(insight1: any, insight2: any): string | null {
+    // Check for directional conflicts between related indicators
+    if (insight1.levelSignal === 'positive' && insight2.levelSignal === 'negative') {
+      if (this.areRelatedIndicators(insight1.metric, insight2.metric)) {
+        return 'directional_conflict';
+      }
+    }
+    
+    // Check for level-trend conflicts within indicator
+    if (insight1.levelSignal === 'positive' && insight1.trendSignal === 'deteriorating') {
+      return 'level_trend_conflict';
+    }
+    
+    return null;
+  }
+
+  private areRelatedIndicators(metric1: string, metric2: string): boolean {
+    // Define economically related indicator pairs
+    const relatedPairs = [
+      ['GDP Growth Rate', 'Unemployment Rate'],
+      ['Nonfarm Payrolls', 'Unemployment Rate'],
+      ['Core CPI', 'Federal Funds Rate'],
+      ['Housing Starts', '10-Year Treasury Yield']
+    ];
+    
+    return relatedPairs.some(pair => 
+      (pair[0] === metric1 && pair[1] === metric2) ||
+      (pair[0] === metric2 && pair[1] === metric1)
+    );
+  }
+
+  private calculateConflictSeverity(insight1: any, insight2: any): number {
+    // Base severity on confidence levels and signal strength
+    const avgConfidence = (insight1.confidence + insight2.confidence) / 2;
+    const signalStrength = Math.max(
+      Math.abs(insight1.zScore || 0),
+      Math.abs(insight2.zScore || 0)
+    );
+    
+    return avgConfidence * (signalStrength / 3); // Normalize to 0-1 range
+  }
+
+  private assessTrendPredictionAccuracy(values: any[]): number {
+    if (values.length < 4) return 0.5;
+    
+    // Calculate how well trends predicted subsequent movements
+    let accuracySum = 0;
+    let predictions = 0;
+    
+    for (let i = 2; i < values.length - 1; i++) {
+      const prevTrend = values[i].value - values[i-1].value;
+      const actualNext = values[i+1].value - values[i].value;
+      
+      // Check if trend direction predicted next movement
+      const trendDirection = prevTrend > 0 ? 1 : (prevTrend < 0 ? -1 : 0);
+      const actualDirection = actualNext > 0 ? 1 : (actualNext < 0 ? -1 : 0);
+      
+      if (trendDirection === actualDirection && trendDirection !== 0) {
+        accuracySum += 1;
+      } else if (trendDirection === 0 || actualDirection === 0) {
+        accuracySum += 0.5;
+      }
+      
+      predictions++;
+    }
+    
+    return predictions > 0 ? accuracySum / predictions : 0.5;
+  }
+
+  private calculateSignalStability(values: any[]): number {
+    if (values.length < 3) return 0.5;
+    
+    // Calculate volatility of z-scores
+    const zScores = values.map(v => v.zScore);
+    const volatility = this.calculateVolatility(zScores);
+    
+    // Lower volatility = higher stability
+    if (volatility < 0.5) return 0.9;
+    if (volatility < 1.0) return 0.7;
+    if (volatility < 1.5) return 0.5;
+    if (volatility < 2.0) return 0.3;
+    return 0.1;
+  }
+
+  private async calculateRegimeForecastingCapability(): Promise<number> {
+    try {
+      // Use VIX trend and yield curve to assess regime forecasting
+      const vixResult = await db.execute(sql`
+        SELECT value, created_at
+        FROM market_sentiment 
+        WHERE metric = 'VIX'
+        ORDER BY created_at DESC 
+        LIMIT 10
+      `);
+      
+      if (vixResult.rows.length >= 5) {
+        const vixValues = vixResult.rows.map(row => parseFloat((row as any).value)).filter(v => !isNaN(v));
+        const trendConsistency = this.calculateTrendConsistency(vixValues);
+        
+        // Higher trend consistency = better forecasting capability
+        return Math.max(30, Math.min(90, 50 + trendConsistency * 40));
+      }
+      
+      return 50;
+    } catch (error) {
+      return 50;
+    }
   }
 }

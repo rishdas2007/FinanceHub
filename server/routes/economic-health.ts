@@ -171,15 +171,25 @@ router.get('/component-analysis', async (req, res) => {
       correlationHarmony: {
         score: healthScore.scoreBreakdown.correlationHarmony,
         components: {
-          correlationAlignment: {
-            score: healthScore.componentScores.correlationAlignment,
-            weight: 15,
-            description: 'Cross-indicator correlation alignment with historical norms'
+          signalClarity: {
+            score: healthScore.componentScores.signalClarity,
+            weight: 25,
+            description: 'How definitively indicators point in economic direction'
           },
-          leadingConsistency: {
-            score: healthScore.componentScores.leadingConsistency,
-            weight: 10,
-            description: 'Leading indicator trend consistency'
+          crossIndicatorHarmony: {
+            score: healthScore.componentScores.crossIndicatorHarmony,
+            weight: 35,
+            description: 'Level-trend alignment across economic categories'
+          },
+          conflictResolution: {
+            score: healthScore.componentScores.conflictResolution,
+            weight: 20,
+            description: 'Handling of mixed and contradictory economic signals'
+          },
+          forwardLookingAccuracy: {
+            score: healthScore.componentScores.forwardLookingAccuracy,
+            weight: 20,
+            description: 'Predictive capability with leading indicators'
           }
         }
       },
