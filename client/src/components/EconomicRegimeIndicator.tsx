@@ -96,11 +96,13 @@ export function EconomicRegimeIndicator() {
   };
 
   const getMostLikelyTransition = (probabilities: EconomicRegime['transitionProbabilities']) => {
+    if (!probabilities) return null;
+    
     const transitions = [
-      { regime: 'EXPANSION', probability: probabilities.toExpansion },
-      { regime: 'PEAK', probability: probabilities.toPeak },
-      { regime: 'CONTRACTION', probability: probabilities.toContraction },
-      { regime: 'TROUGH', probability: probabilities.toTrough }
+      { regime: 'EXPANSION', probability: probabilities.toExpansion || 0 },
+      { regime: 'PEAK', probability: probabilities.toPeak || 0 },
+      { regime: 'CONTRACTION', probability: probabilities.toContraction || 0 },
+      { regime: 'TROUGH', probability: probabilities.toTrough || 0 }
     ];
 
     return transitions
@@ -134,7 +136,7 @@ export function EconomicRegimeIndicator() {
     );
   }
 
-  const mostLikelyTransition = getMostLikelyTransition(regime.transitionProbabilities);
+  const mostLikelyTransition = regime?.transitionProbabilities ? getMostLikelyTransition(regime.transitionProbabilities) : null;
 
   return (
     <div className="space-y-6">
@@ -157,7 +159,7 @@ export function EconomicRegimeIndicator() {
                     <h3 className="text-2xl font-bold">{regime.regimeType}</h3>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-semibold">{regime.confidenceScore.toFixed(0)}%</div>
+                    <div className="text-lg font-semibold">{regime.confidenceScore ? regime.confidenceScore.toFixed(0) : '0'}%</div>
                     <div className="text-sm opacity-90">Confidence</div>
                   </div>
                 </div>
@@ -168,11 +170,11 @@ export function EconomicRegimeIndicator() {
                       <Clock className="w-3 h-3" />
                       <span>Duration</span>
                     </div>
-                    <div className="font-semibold">{regime.regimeDurationMonths} months</div>
+                    <div className="font-semibold">{regime.regimeDurationMonths || 0} months</div>
                   </div>
                   <div>
                     <div className="text-sm opacity-90">Average</div>
-                    <div className="font-semibold">{regime.historicalContext.averageRegimeDuration} months</div>
+                    <div className="font-semibold">{regime.historicalContext?.averageRegimeDuration || 0} months</div>
                   </div>
                 </div>
               </div>
@@ -186,7 +188,7 @@ export function EconomicRegimeIndicator() {
                       Entering {mostLikelyTransition.regime} phase
                     </span>
                     <span className={`font-bold ${getTransitionColor(mostLikelyTransition.probability)}`}>
-                      {(mostLikelyTransition.probability * 100).toFixed(0)}%
+                      {mostLikelyTransition.probability ? (mostLikelyTransition.probability * 100).toFixed(0) : '0'}%
                     </span>
                   </div>
                 </div>
@@ -217,10 +219,10 @@ export function EconomicRegimeIndicator() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-gray-400">
-                        Current: {indicator.currentValue.toFixed(1)}
+                        Current: {indicator.currentValue ? indicator.currentValue.toFixed(1) : 'N/A'}
                       </span>
                       <span className="text-xs text-blue-400">
-                        Contribution: {indicator.regimeContribution.toFixed(0)}%
+                        Contribution: {indicator.regimeContribution ? indicator.regimeContribution.toFixed(0) : '0'}%
                       </span>
                     </div>
                   </div>
