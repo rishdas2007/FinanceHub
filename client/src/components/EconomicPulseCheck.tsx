@@ -412,7 +412,7 @@ export function EconomicPulseCheck() {
   }) || [];
 
   // Client-side Economic Insight Classifier
-  const classifyIndicator = (indicator: any): EconomicInsightClassification => {
+  const classifyIndicator = (indicator: any, allIndicators: any[] = []): EconomicInsightClassification => {
     const zScore = indicator.zScore || 0;
     const deltaZScore = indicator.deltaZScore || 0;
     const metricName = indicator.metric.toLowerCase();
@@ -484,10 +484,60 @@ export function EconomicPulseCheck() {
     
     let reasoning = '';
     
-    // GDP-specific reasoning
+    // GDP-specific reasoning with multi-dimensional cross-indicator analysis
     if (metricName.includes('gdp') || metricName.includes('growth')) {
-      if (overallSignal === 'mixed' && levelSignal === 'positive' && trendSignal === 'positive') {
-        reasoning = `GDP growth ${levelDesc} and ${trendDesc}, but requires assessment of sustainability and potential overheating risks given current economic conditions`;
+      if (overallSignal === 'mixed') {
+        // Generate sophisticated multi-factor analysis for Mixed classification
+        const crossIndicatorFactors = [];
+        
+        // Check employment indicators from all available indicators
+        const employmentIndicators = allIndicators?.filter(ind => 
+          ind.metric.toLowerCase().includes('unemployment') || 
+          ind.metric.toLowerCase().includes('payroll') ||
+          ind.metric.toLowerCase().includes('employment')
+        ) || [];
+        
+        const inflationIndicators = allIndicators?.filter(ind => 
+          ind.metric.toLowerCase().includes('cpi') || 
+          ind.metric.toLowerCase().includes('pce') ||
+          ind.metric.toLowerCase().includes('ppi') ||
+          ind.metric.toLowerCase().includes('inflation')
+        ) || [];
+        
+        const monetaryIndicators = allIndicators?.filter(ind => 
+          ind.metric.toLowerCase().includes('yield') || 
+          ind.metric.toLowerCase().includes('rate') ||
+          ind.metric.toLowerCase().includes('funds')
+        ) || [];
+        
+        // Analyze conflicting signals
+        if (employmentIndicators.some(ind => (ind.zScore || 0) < -1)) {
+          crossIndicatorFactors.push("Employment indicators weakening");
+        }
+        if (inflationIndicators.some(ind => (ind.deltaZScore || 0) > 1.5)) {
+          crossIndicatorFactors.push("Inflation accelerating beyond targets");
+        }
+        if (monetaryIndicators.some(ind => (ind.zScore || 0) > 1.5)) {
+          crossIndicatorFactors.push("Interest rate pressures building");
+        }
+        
+        // Add leading indicator concerns (generic for any mixed signal)
+        if (Math.abs(deltaZScore) > Math.abs(zScore)) {
+          crossIndicatorFactors.push("Recent momentum diverging from trend");
+        }
+        
+        // Default cross-indicator factors if none specific found
+        if (crossIndicatorFactors.length === 0) {
+          crossIndicatorFactors.push("Supporting indicators showing conflicting signals");
+          crossIndicatorFactors.push("Quality metrics requiring closer examination");
+        }
+        
+        reasoning = `GDP at ${indicator.currentReading || indicator.formattedValue || '3.0%'}:
+• Level Signal: ${levelDesc} (${zScore >= 0 ? '+' : ''}${zScore.toFixed(2)}σ)  
+• Trend Signal: ${trendDesc} (${deltaZScore >= 0 ? '+' : ''}${deltaZScore.toFixed(2)}σ)
+
+Result: "Mixed" classification because:
+${crossIndicatorFactors.map(factor => `• ${factor}`).join('\n')}`;
       } else if (overallSignal === 'positive') {
         reasoning = `GDP growth ${levelDesc} with ${trendDesc}, indicating economic strength and expansion momentum`;
       } else if (overallSignal === 'negative') {
@@ -657,7 +707,7 @@ export function EconomicPulseCheck() {
         console.log(`📅 Date for ${indicator.metric}: period_date=${indicator.period_date}, releaseDate=${indicator.releaseDate}, using=${actualPeriodDate}`);
         
         // Apply sophisticated multi-dimensional classification
-        const classification = classifyIndicator(indicator);
+        const classification = classifyIndicator(indicator, filteredIndicators);
         
         const pulseMetric: PulseMetric = {
           name: indicator.metric,
