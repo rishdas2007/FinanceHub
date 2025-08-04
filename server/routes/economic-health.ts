@@ -1,13 +1,15 @@
 import { Router } from 'express';
 import { EconomicHealthCalculator } from '../services/economic-health-calculator.js';
+import { StatisticalHealthCalculator } from '../services/statistical-health-calculator.js';
 import { EconomicInsightsSynthesizer } from '../services/economic-insights-synthesizer.js';
 import { logger } from '../utils/logger.js';
 
 const router = Router();
 const healthCalculator = new EconomicHealthCalculator();
+const statisticalHealthCalculator = new StatisticalHealthCalculator();
 const insightsSynthesizer = new EconomicInsightsSynthesizer();
 
-// Get comprehensive economic health score
+// Get comprehensive economic health score (original method)
 router.get('/health-score', async (req, res) => {
   try {
     logger.info('🏥 Economic health score request');
@@ -22,6 +24,24 @@ router.get('/health-score', async (req, res) => {
   } catch (error) {
     logger.error('Error calculating economic health score:', error);
     res.status(500).json({ error: 'Failed to calculate economic health score' });
+  }
+});
+
+// Get statistical economic health score (data-driven method with confidence intervals)
+router.get('/statistical-score', async (req, res) => {
+  try {
+    logger.info('🧮 Statistical economic health score request');
+    
+    const statisticalScore = await statisticalHealthCalculator.calculateStatisticalHealthScore();
+    
+    res.json({
+      statisticalScore,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    logger.error('Error calculating statistical health score:', error);
+    res.status(500).json({ error: 'Failed to calculate statistical health score' });
   }
 });
 
