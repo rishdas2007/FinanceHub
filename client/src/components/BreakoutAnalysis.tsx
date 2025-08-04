@@ -38,21 +38,22 @@ export function BreakoutAnalysis() {
 
   if (isLoading || !convergenceData) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-yellow-500" />
-            Breakout Analysis
-          </CardTitle>
-          <CardDescription>Loading breakout signals...</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="bg-slate-900 rounded-lg border border-slate-700">
+        <div className="p-6 border-b border-slate-700">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+              <Zap className="h-5 w-5 text-blue-400" />
+              Breakout Analysis
+            </h2>
+          </div>
+        </div>
+        <div className="p-6">
           <div className="animate-pulse space-y-4">
             <div className="h-4 bg-slate-700 rounded w-3/4"></div>
             <div className="h-4 bg-slate-700 rounded w-1/2"></div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
@@ -132,58 +133,61 @@ export function BreakoutAnalysis() {
   };
 
   const SymbolCard = ({ symbol }: { symbol: BreakoutSymbol }) => (
-    <div className="p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+    <div className="bg-slate-800 rounded p-3 border border-slate-600">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-white">{symbol.symbol}</span>
+          <span className="font-semibold text-slate-200">{symbol.symbol}</span>
           {getBiasIcon(symbol.bias)}
-          <Badge className={getBiasColor(symbol.bias)}>
+          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+            symbol.bias === 'bullish' ? 'bg-green-900/50 text-green-400' :
+            symbol.bias === 'bearish' ? 'bg-red-900/50 text-red-400' :
+            'bg-yellow-900/50 text-yellow-400'
+          }`}>
             {symbol.bias}
-          </Badge>
+          </span>
         </div>
         {symbol.price && (
           <div className="text-right text-sm">
-            <div className="font-mono">${symbol.price.toFixed(2)}</div>
+            <div className="font-mono text-slate-300">${symbol.price.toFixed(2)}</div>
             <div className={`text-xs ${symbol.change && symbol.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {symbol.change?.toFixed(2)}%
             </div>
           </div>
         )}
       </div>
-      <div className="text-sm text-slate-300 mb-1">
-        <span className="font-medium text-yellow-400">{symbol.reason}:</span> {symbol.description}
+      <div className="text-sm text-slate-400 mb-1">
+        <span className="text-blue-400 font-medium">{symbol.reason}:</span> {symbol.description}
       </div>
-      <div className="text-xs text-slate-400">
+      <div className="text-xs text-slate-500">
         Confidence: {symbol.confidence}%
       </div>
     </div>
   );
 
   return (
-    <Card data-testid="breakout-analysis-card">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Zap className="h-5 w-5 text-yellow-500" />
-          Breakout Analysis
-        </CardTitle>
-        <CardDescription>
-          Real-time squeeze detection and breakout monitoring across all tracked symbols
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <div className="bg-slate-900 rounded-lg border border-slate-700" data-testid="breakout-analysis-card">
+      <div className="p-6 border-b border-slate-700">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+            <Zap className="h-5 w-5 text-blue-400" />
+            Breakout Analysis
+          </h2>
+        </div>
+      </div>
+      <div className="p-6 space-y-6">
         <div className="grid gap-6 md:grid-cols-2">
           {/* Symbols in Squeeze */}
           <div>
-            <h4 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+            <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-yellow-400" />
               Symbols in Squeeze
-              <Badge variant="outline" className="text-xs">
+              <span className="px-2 py-0.5 bg-slate-800 text-slate-400 text-xs rounded">
                 {symbolsInSqueeze.length}
-              </Badge>
+              </span>
             </h4>
             <div className="space-y-3">
               {symbolsInSqueeze.length === 0 ? (
-                <div className="text-sm text-slate-400 italic p-3 bg-slate-800/30 rounded border border-dashed border-slate-600">
+                <div className="text-sm text-slate-400 italic p-4 bg-slate-800 rounded border border-slate-600 border-dashed">
                   No active squeezes detected.
                 </div>
               ) : (
@@ -196,16 +200,16 @@ export function BreakoutAnalysis() {
 
           {/* Recent Successful Breakouts */}
           <div>
-            <h4 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-green-500" />
+            <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-green-400" />
               Recent Successful Breakouts
-              <Badge variant="outline" className="text-xs">
+              <span className="px-2 py-0.5 bg-slate-800 text-slate-400 text-xs rounded">
                 {recentBreakouts.length}
-              </Badge>
+              </span>
             </h4>
             <div className="space-y-3">
               {recentBreakouts.length === 0 ? (
-                <div className="text-sm text-slate-400 italic p-3 bg-slate-800/30 rounded border border-dashed border-slate-600">
+                <div className="text-sm text-slate-400 italic p-4 bg-slate-800 rounded border border-slate-600 border-dashed">
                   No recent successful breakouts.
                 </div>
               ) : (
@@ -220,12 +224,12 @@ export function BreakoutAnalysis() {
         {/* Potential Breakouts */}
         {potentialBreakouts.length > 0 && (
           <div>
-            <h4 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
-              <Zap className="h-4 w-4 text-blue-500" />
+            <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+              <Zap className="h-4 w-4 text-blue-400" />
               High Probability Setups
-              <Badge variant="outline" className="text-xs">
+              <span className="px-2 py-0.5 bg-slate-800 text-slate-400 text-xs rounded">
                 {potentialBreakouts.length}
-              </Badge>
+              </span>
             </h4>
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
               {potentialBreakouts.map((symbol, index) => (
@@ -236,16 +240,16 @@ export function BreakoutAnalysis() {
         )}
 
         {/* Methodology Footnote */}
-        <div className="mt-6 pt-4 border-t border-slate-700">
-          <h5 className="text-xs font-semibold text-slate-300 mb-2">Methodology</h5>
-          <div className="text-xs text-slate-400 space-y-1">
-            <p><strong>Bollinger Band Squeeze:</strong> Identifies periods of low volatility where Bollinger Bands contract, often preceding significant price movements.</p>
-            <p><strong>Successful Breakouts:</strong> Symbols that recently broke out of consolidation patterns with sustained momentum and volume confirmation.</p>
-            <p><strong>High Probability Setups:</strong> Symbols with convergence analysis confidence scores above 70%, indicating strong technical signal alignment.</p>
-            <p><strong>Real-time Data:</strong> Analysis updates every 30 seconds using live market data from Twelve Data WebSocket feed during market hours.</p>
+        <div className="pt-4 border-t border-slate-700">
+          <h5 className="text-xs font-semibold text-slate-400 mb-2">Methodology</h5>
+          <div className="text-xs text-slate-500 space-y-1">
+            <p><strong className="text-slate-400">Bollinger Band Squeeze:</strong> Identifies periods of low volatility where Bollinger Bands contract, often preceding significant price movements.</p>
+            <p><strong className="text-slate-400">Successful Breakouts:</strong> Symbols that recently broke out of consolidation patterns with sustained momentum and volume confirmation.</p>
+            <p><strong className="text-slate-400">High Probability Setups:</strong> Symbols with convergence analysis confidence scores above 70%, indicating strong technical signal alignment.</p>
+            <p><strong className="text-slate-400">Real-time Data:</strong> Analysis updates every 30 seconds using live market data from Twelve Data WebSocket feed during market hours.</p>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
