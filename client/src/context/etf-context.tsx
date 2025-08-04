@@ -5,19 +5,20 @@ interface ETF {
   name: string;
 }
 
+// Harmonized to match sector ETFs used across all dashboard sections for performance
 const ETF_OPTIONS: ETF[] = [
   { symbol: 'SPY', name: 'SPDR S&P 500 ETF' },
-  { symbol: 'QQQ', name: 'Invesco QQQ Trust' },
-  { symbol: 'IWM', name: 'iShares Russell 2000 ETF' },
-  { symbol: 'DIA', name: 'SPDR Dow Jones Industrial Average ETF' },
-  { symbol: 'VTI', name: 'Vanguard Total Stock Market ETF' },
-  { symbol: 'EFA', name: 'iShares MSCI EAFE ETF' },
-  { symbol: 'VWO', name: 'Vanguard Emerging Markets Stock Index Fund' },
-  { symbol: 'GLD', name: 'SPDR Gold Shares' },
-  { symbol: 'SLV', name: 'iShares Silver Trust' },
-  { symbol: 'XLF', name: 'Financial Select Sector SPDR Fund' },
   { symbol: 'XLK', name: 'Technology Select Sector SPDR Fund' },
+  { symbol: 'XLV', name: 'Health Care Select Sector SPDR Fund' },
+  { symbol: 'XLF', name: 'Financial Select Sector SPDR Fund' },
+  { symbol: 'XLY', name: 'Consumer Discretionary Select Sector SPDR Fund' },
+  { symbol: 'XLI', name: 'Industrial Select Sector SPDR Fund' },
+  { symbol: 'XLC', name: 'Communication Services Select Sector SPDR Fund' },
+  { symbol: 'XLP', name: 'Consumer Staples Select Sector SPDR Fund' },
   { symbol: 'XLE', name: 'Energy Select Sector SPDR Fund' },
+  { symbol: 'XLU', name: 'Utilities Select Sector SPDR Fund' },
+  { symbol: 'XLB', name: 'Materials Select Sector SPDR Fund' },
+  { symbol: 'XLRE', name: 'Real Estate Select Sector SPDR Fund' },
 ];
 
 interface ETFContextType {

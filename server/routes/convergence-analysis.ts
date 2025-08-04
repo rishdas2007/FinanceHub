@@ -20,51 +20,43 @@ router.get("/convergence-analysis", async (req, res) => {
       symbols = sectorETFs.map(etf => etf.symbol);
     }
     
-    // Get momentum analysis data with MA calculations - use internal service call to avoid HTTP overhead
-    let momentumData;
-    try {
-      const { financialDataService } = await import('../services/financial-data');
-      const sectorETFs = await financialDataService.getSectorETFs();
-      momentumData = { momentumStrategies: sectorETFs };
-    } catch (error) {
-      console.error('Error fetching momentum data:', error);
-      momentumData = { momentumStrategies: [] };
-    }
+    // Use cached momentum analysis data from the momentum service for better performance
+    const { momentumAnalysisService } = await import('../services/momentum-analysis-service');
+    const momentumResponse = await momentumAnalysisService.getMomentumAnalysis();
+    const momentumData = { momentumStrategies: momentumResponse.momentumStrategies };
     
-    // Generate convergence analysis for each symbol using existing data pipeline
+    // Generate convergence analysis for each symbol using cached data
     const analysis = await Promise.all(symbols.map(async (symbol) => {
       try {
-        // Get technical indicators using existing MarketDataService
-        const indicators = await marketDataService.getTechnicalIndicators(symbol);
+        // Use cached momentum data instead of fetching technical indicators separately
+        const sectorETF = momentumData.momentumStrategies.find(etf => etf.ticker === symbol);
         
-        // Get momentum data for this symbol from momentum analysis
-        const momentumInfo = momentumData.momentumStrategies?.find((m: any) => m.ticker === symbol || m.symbol === symbol);
-        console.log(`Debug: Looking for ${symbol}, found:`, momentumInfo ? `ticker: ${momentumInfo.ticker}, momentum: ${momentumInfo.momentum}` : 'null');
+        // Get momentum data for this symbol (same as sectorETF)
+        const momentumInfo = sectorETF;
         
         const signals = [];
         
-        // RSI-based signals with dynamic confidence
-        if (indicators.rsi) {
-          const rsi = parseFloat(indicators.rsi);
-          // Only generate signals if RSI is valid (not 0 or NaN)
-          if (rsi > 0 && !isNaN(rsi) && rsi < 30) {
+        // RSI-based signals with dynamic confidence using cached sector ETF data
+        if (sectorETF?.rsi) {
+          const rsi = sectorETF.rsi;
+          if (rsi < 30) {
             signals.push({
               id: `${symbol}-rsi-oversold-${Date.now()}`,
               symbol,
               signal_type: 'rsi_oversold',
               direction: 'bullish',
-              confidence: Math.min(95, 65 + (30 - rsi) * 2), // Dynamic confidence
+              confidence: Math.min(95, 65 + (30 - rsi) * 2),
               strength: Math.min(1.0, (30 - rsi) / 10),
               detected_at: new Date(),
               metadata: { rsi_value: rsi }
             });
-          } else if (rsi > 0 && !isNaN(rsi) && rsi > 70) {
+          } else if (rsi > 70) {
             signals.push({
               id: `${symbol}-rsi-overbought-${Date.now()}`,
               symbol,
               signal_type: 'rsi_overbought',
               direction: 'bearish',
-              confidence: Math.min(95, 65 + (rsi - 70) * 2), // Dynamic confidence
+              confidence: Math.min(95, 65 + (rsi - 70) * 2),
               strength: Math.min(1.0, (rsi - 70) / 10),
               detected_at: new Date(),
               metadata: { rsi_value: rsi }
@@ -129,15 +121,15 @@ router.get("/convergence-analysis", async (req, res) => {
           ? signals.reduce((sum, s) => sum + s.confidence, 0) / signals.length 
           : 0;
         
-        // Include raw technical indicators and momentum data for reference
+        // Include raw technical indicators and momentum data from cached sector ETF
         const technicalData = {
-          rsi: indicators.rsi ? parseFloat(indicators.rsi) : null,
-          momentum: momentumInfo?.momentum || null,
-          oneDayChange: momentumInfo?.oneDayChange || null,
-          fiveDayChange: momentumInfo?.fiveDayChange || null,
-          zScore: momentumInfo?.zScore || null,
-          adx: indicators.adx ? parseFloat(indicators.adx) : null,
-          percentB: indicators.percent_b ? parseFloat(indicators.percent_b) : null
+          rsi: sectorETF?.rsi || null,
+          momentum: sectorETF?.momentum || null,
+          oneDayChange: sectorETF?.oneDayChange || null,
+          fiveDayChange: sectorETF?.fiveDayChange || null,
+          zScore: sectorETF?.zScore || null,
+          adx: null, // Not available in sector ETF data
+          percentB: null // Not available in sector ETF data
         };
 
         return {
