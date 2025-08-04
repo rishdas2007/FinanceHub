@@ -1,19 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Button } from '@/components/ui/button';
 import { 
-  Activity, 
-  TrendingUp, 
-  TrendingDown, 
-  AlertTriangle, 
-  CheckCircle, 
   XCircle, 
-  Clock, 
   Target, 
-  Building2, 
   Shield,
   BarChart3,
   Calculator,
@@ -80,7 +71,6 @@ export function EnhancedEconomicHealthDashboard() {
   const [statisticalData, setStatisticalData] = useState<StatisticalHealthData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [useStatisticalMethod, setUseStatisticalMethod] = useState(false);
 
   useEffect(() => {
     fetchHealthData();
@@ -108,7 +98,7 @@ export function EnhancedEconomicHealthDashboard() {
         const statisticalData = await statisticalResponse.json();
         setStatisticalData(statisticalData.statisticalScore);
       } else {
-        console.warn('Statistical health data not available');
+        throw new Error('Statistical health data not available');
       }
 
     } catch (err) {
@@ -143,10 +133,8 @@ export function EnhancedEconomicHealthDashboard() {
     return 'bg-red-400';
   };
 
-  const currentData = useStatisticalMethod ? statisticalData : originalData;
-  const currentScore = useStatisticalMethod 
-    ? statisticalData?.overallScore || 0 
-    : originalData?.economicHealthScore || 0;
+  const currentData = statisticalData;
+  const currentScore = statisticalData?.overallScore || 0;
 
   if (loading) {
     return (
@@ -183,45 +171,28 @@ export function EnhancedEconomicHealthDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Method Toggle Header */}
+      {/* Statistical Health Score Header */}
       <Card className="bg-gray-900/50 border-gray-700">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Activity className="h-6 w-6 text-blue-400" />
+              <BarChart3 className="h-6 w-6 text-blue-400" />
               <CardTitle className="text-xl font-semibold text-white">
                 Economic Health Score
               </CardTitle>
               <Badge variant="outline" className="text-xs text-gray-400 border-gray-600">
-                Purely calculated from government & market data
+                Statistical Analysis with Z-Score Normalization
               </Badge>
             </div>
             
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Calculator className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-400">Original</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setUseStatisticalMethod(!useStatisticalMethod)}
-                  disabled={!statisticalData}
-                  className={`px-3 py-1 text-xs ${useStatisticalMethod ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
-                >
-                  {useStatisticalMethod ? 'Statistical' : 'Toggle'}
-                </Button>
-                <span className="text-sm text-gray-400">Statistical</span>
-                <BarChart3 className="h-4 w-4 text-gray-400" />
-              </div>
-              
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger>
                     <Info className="h-4 w-4 text-gray-500" />
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
-                    <p>Original: Rule-based scoring with hardcoded weights</p>
-                    <p>Statistical: Data-driven with Z-score normalization and confidence intervals</p>
+                    <p>Data-driven scoring with Z-score normalization, historical correlation-based weights, and confidence intervals</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -241,27 +212,14 @@ export function EnhancedEconomicHealthDashboard() {
             </div>
             
             {/* Statistical Confidence Interval */}
-            {useStatisticalMethod && statisticalData && (
+            {statisticalData && (
               <div className="text-right">
-                <div className="text-sm text-gray-400">95% Confidence</div>
+                <div className="text-sm text-gray-400">95% Confidence Interval</div>
                 <div className="text-white font-medium">
-                  {statisticalData.confidenceInterval[0]}-{statisticalData.confidenceInterval[1]}
+                  {Math.round(statisticalData.confidenceInterval[0])}-{Math.round(statisticalData.confidenceInterval[1])}
                 </div>
                 <div className="text-xs text-gray-500">
                   Data Quality: {statisticalData.dataQualityScore}%
-                </div>
-              </div>
-            )}
-            
-            {/* Original Method Info */}
-            {!useStatisticalMethod && originalData && (
-              <div className="text-right">
-                <div className="text-sm text-gray-400">Historical Percentile</div>
-                <div className="text-white font-medium">
-                  {originalData.historicalPercentile}th
-                </div>
-                <div className="text-xs text-gray-500">
-                  Confidence: {originalData.confidence}%
                 </div>
               </div>
             )}
@@ -275,8 +233,8 @@ export function EnhancedEconomicHealthDashboard() {
             ></div>
           </div>
           
-          {/* Method-specific details */}
-          {useStatisticalMethod && statisticalData && (
+          {/* Statistical Method Details */}
+          {statisticalData && (
             <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-400">Weighting Method:</span>
@@ -285,9 +243,9 @@ export function EnhancedEconomicHealthDashboard() {
                 </span>
               </div>
               <div>
-                <span className="text-gray-400">P-Value:</span>
+                <span className="text-gray-400">Statistical Significance:</span>
                 <span className="text-white ml-2">
-                  {statisticalData.statisticalSignificance.toFixed(3)}
+                  p = {statisticalData.statisticalSignificance.toFixed(3)}
                 </span>
               </div>
             </div>
@@ -367,12 +325,12 @@ export function EnhancedEconomicHealthDashboard() {
         })}
       </div>
 
-      {/* Statistical Component Breakdown (only for statistical method) */}
-      {useStatisticalMethod && statisticalData && (
+      {/* Statistical Component Breakdown */}
+      {statisticalData && (
         <Card className="bg-gray-900/50 border-gray-700">
           <CardHeader>
             <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-blue-400" />
+              <Calculator className="h-5 w-5 text-blue-400" />
               Statistical Component Analysis
             </CardTitle>
           </CardHeader>
@@ -399,65 +357,36 @@ export function EnhancedEconomicHealthDashboard() {
         </Card>
       )}
 
-      {/* Original Analysis Results (only for original method) */}
-      {!useStatisticalMethod && originalData && (
-        <>
-          {/* Key Insights */}
-          <Card className="bg-gray-900/50 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-400" />
-                Key Economic Insights
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-300 leading-relaxed">
-                {originalData.narrative}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Recommendations and Risk Factors */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-gray-900/50 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-green-400" />
-                  Recommendations
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {originalData.recommendations.map((rec, index) => (
-                    <li key={index} className="flex items-start gap-2 text-gray-300">
-                      <CheckCircle className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">{rec}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gray-900/50 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                  Risk Factors
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {originalData.riskFactors.map((risk, index) => (
-                    <li key={index} className="flex items-start gap-2 text-gray-300">
-                      <AlertTriangle className="h-4 w-4 text-yellow-400 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">{risk}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
-        </>
+      {/* Data-Driven Weights Visualization */}
+      {statisticalData && statisticalData.dataDrivenWeights && (
+        <Card className="bg-gray-900/50 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
+              <Target className="h-5 w-5 text-green-400" />
+              Data-Driven Component Weights
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 lg:grid-cols-9 gap-4">
+              {Object.entries(statisticalData.dataDrivenWeights).map(([key, weight]) => (
+                <div key={key} className="text-center">
+                  <div className="text-lg font-semibold text-green-400 mb-1">
+                    {weight}%
+                  </div>
+                  <div className="text-xs text-gray-400 capitalize">
+                    {key.replace(/([A-Z])/g, ' $1').trim()}
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-1 mt-2">
+                    <div 
+                      className="h-full rounded-full bg-green-500"
+                      style={{ width: `${(weight / 15) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
