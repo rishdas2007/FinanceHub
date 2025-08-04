@@ -8,6 +8,7 @@ import { StatisticalAlertSystem } from "@/components/StatisticalAlertSystem";
 import { EconomicPulseCheck } from "@/components/EconomicPulseCheck";
 import { BreakoutAnalysis } from "@/components/BreakoutAnalysis";
 import { EnhancedEconomicHealthDashboard } from "@/components/EnhancedEconomicHealthDashboard";
+import { EconomicHealthScoreAppendix } from "@/components/EconomicHealthScoreAppendix";
 
 import { MoodDataSources } from "@/components/MoodDataSources";
 import { AAIISentiment } from "@/components/aaii-sentiment";
@@ -96,8 +97,8 @@ export default function Dashboard() {
         {/* Macroeconomic Indicators Module - now includes AI Economic Analysis */}
         <MacroeconomicIndicators />
 
-
-
+        {/* Economic Health Score Components - Appendix */}
+        <EconomicHealthScoreAppendix />
 
       </div>
 
