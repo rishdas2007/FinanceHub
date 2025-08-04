@@ -194,17 +194,48 @@ router.get('/data-freshness', async (req, res) => {
   }
 });
 
-// Sector ETFs endpoint
+// ETF Technical Metrics endpoint - Database-first approach
+router.get('/etf-metrics', async (req, res) => {
+  try {
+    logger.info('📊 ETF metrics request - using database-first pipeline');
+    const { etfMetricsService } = await import('../services/etf-metrics-service');
+    
+    const metrics = await etfMetricsService.getConsolidatedETFMetrics();
+    
+    res.json({
+      success: true,
+      metrics,
+      count: metrics.length,
+      timestamp: new Date().toISOString(),
+      source: 'database-first-pipeline'
+    });
+    
+  } catch (error) {
+    logger.error('❌ ETF metrics error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Legacy sector ETFs endpoint - Now uses database-first approach
 router.get('/sector-etfs', async (req, res) => {
   try {
-    console.log('🔍 Fast Dashboard Route: GET /api/sector-etfs');
-    const { simplifiedSectorAnalysisService } = await import('../services/simplified-sector-analysis');
-    const { historicalDataFetcher } = await import('../services/historical-data-fetcher');
+    logger.info('📊 Sector ETFs request - redirecting to database-first pipeline');
+    const { etfMetricsService } = await import('../services/etf-metrics-service');
     
-    // Get current sector data
-    const currentSectorData = await historicalDataFetcher.getAllSectorETFData();
+    const metrics = await etfMetricsService.getConsolidatedETFMetrics();
     
-    res.json(currentSectorData);
+    // Transform to legacy format for backward compatibility
+    const sectorData = metrics.map(metric => ({
+      symbol: metric.symbol,
+      name: metric.name,
+      price: metric.price,
+      changePercent: metric.changePercent
+    }));
+    
+    res.json(sectorData);
     
   } catch (error) {
     logger.error('❌ Sector ETFs error:', error);
@@ -215,14 +246,22 @@ router.get('/sector-etfs', async (req, res) => {
   }
 });
 
-// Technical indicators endpoint
+// Technical indicators endpoint - Database-first
 router.get('/technical-indicators', async (req, res) => {
   try {
-    console.log('🔍 Fast Dashboard Route: GET /api/technical-indicators');
-    const { storage } = await import('../storage');
+    logger.info('📊 Technical indicators request - using database');
+    const { etfMetricsService } = await import('../services/etf-metrics-service');
     
-    // Get latest technical indicators from database
-    const indicators = await storage.getLatestTechnicalIndicators();
+    const metrics = await etfMetricsService.getConsolidatedETFMetrics();
+    
+    // Transform to technical indicators format
+    const indicators = metrics.map(metric => ({
+      symbol: metric.symbol,
+      rsi: metric.rsi,
+      atr: metric.atr,
+      bollingerPosition: metric.bollingerPosition,
+      vwapSignal: metric.vwapSignal
+    }));
     
     res.json({
       success: true,

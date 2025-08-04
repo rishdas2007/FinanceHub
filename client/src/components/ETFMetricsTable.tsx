@@ -155,80 +155,56 @@ const getVWAPSignal = (price: number, vwap: number | null): { signal: string; co
 };
 
 export default function ETFMetricsTable() {
-  const { data: sectorData } = useQuery({
-    queryKey: ['/api/sector-etfs'],
-    refetchInterval: 30000,
-  });
-
-  const { data: technicalData } = useQuery({
-    queryKey: ['/api/technical-indicators'],
-    refetchInterval: 30000,
-  });
-
-  const { data: momentumData } = useQuery({
-    queryKey: ['/api/momentum-analysis'],
-    refetchInterval: 30000,
+  // NEW: Single consolidated API call - Database-first approach
+  const { data: etfMetricsResponse, isLoading, error } = useQuery<{ 
+    success: boolean; 
+    metrics: ETFMetrics[]; 
+    count: number; 
+    timestamp: string;
+    source: string;
+  }>({
+    queryKey: ['/api/etf-metrics'],
+    refetchInterval: 300000, // 5 minutes - respects database-first caching
+    staleTime: 240000, // 4 minutes
+    retry: 2,
   });
 
   const etfMetrics = useMemo(() => {
-    if (!sectorData || !technicalData || !momentumData) return [];
+    if (!etfMetricsResponse?.success || !etfMetricsResponse?.metrics) {
+      return [];
+    }
+    return etfMetricsResponse.metrics;
+  }, [etfMetricsResponse]);
 
-    const metrics: ETFMetrics[] = [];
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-6" data-testid="etf-metrics-loading">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className="h-5 w-5 text-blue-600 animate-pulse" />
+          <h3 className="text-lg font-semibold text-gray-900">ETF Technical Metrics</h3>
+          <span className="text-sm text-blue-600">Loading from database...</span>
+        </div>
+        <div className="space-y-3">
+          {[1,2,3,4,5].map(i => (
+            <div key={i} className="h-12 bg-gray-100 rounded animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-    ETF_LIST.forEach(etf => {
-      const sectorETF = sectorData.find((s: ETFData) => s.symbol === etf.symbol);
-      const technical = technicalData.indicators?.find((t: TechnicalIndicators & { symbol: string }) => t.symbol === etf.symbol);
-      const momentum = momentumData.momentumStrategies?.find((m: MomentumStrategy) => m.ticker === etf.symbol);
-
-      if (!sectorETF) return;
-
-      const price = sectorETF.price || 0;
-      const changePercent = sectorETF.changePercent || 0;
-
-      // Bollinger analysis
-      const bollingerResult = getBollingerStatus(technical?.percent_b || null);
-      
-      // RSI analysis
-      const rsiResult = getRSIStatus(technical?.rsi || momentum?.rsi || null);
-      
-      // Moving Average analysis
-      const maResult = getMASignal(technical?.sma_20 || null, technical?.sma_50 || null, price);
-      
-      // VWAP analysis
-      const vwapResult = getVWAPSignal(price, technical?.vwap || null);
-
-      metrics.push({
-        symbol: etf.symbol,
-        name: etf.name,
-        price,
-        changePercent,
-        // Bollinger Bands & Position/Squeeze
-        bollingerPosition: technical?.percent_b || null,
-        bollingerSqueeze: bollingerResult.squeeze,
-        bollingerStatus: bollingerResult.status,
-        // ATR & Volatility
-        atr: technical?.atr || null,
-        volatility: momentum?.volatility || null,
-        // Moving Average (Trend)
-        maSignal: maResult.signal,
-        maTrend: maResult.trend,
-        // RSI (Momentum)
-        rsi: technical?.rsi || momentum?.rsi || null,
-        rsiSignal: rsiResult.signal,
-        rsiDivergence: false, // TODO: Implement RSI divergence detection
-        // Z-Score, Sharpe, Returns
-        zScore: momentum?.zScore || null,
-        sharpeRatio: momentum?.sharpeRatio || null,
-        fiveDayReturn: sectorETF.fiveDayChange || momentum?.fiveDayChange || null,
-        // Volume, VWAP, OBV
-        volumeRatio: null, // TODO: Calculate volume ratio
-        vwapSignal: vwapResult.signal,
-        obvTrend: 'N/A', // TODO: Implement OBV calculation
-      });
-    });
-
-    return metrics;
-  }, [sectorData, technicalData, momentumData]);
+  if (error || !etfMetricsResponse?.success) {
+    return (
+      <div className="bg-white rounded-lg border border-red-200 p-6" data-testid="etf-metrics-error">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className="h-5 w-5 text-red-600" />
+          <h3 className="text-lg font-semibold text-gray-900">ETF Technical Metrics</h3>
+          <span className="text-sm text-red-600">Database Error</span>
+        </div>
+        <p className="text-gray-600">Unable to load ETF metrics from database. Please refresh the page.</p>
+      </div>
+    );
+  }
 
   if (!etfMetrics.length) {
     return (
@@ -238,8 +214,7 @@ export default function ETFMetricsTable() {
           <h3 className="text-lg font-semibold text-gray-900">ETF Technical Metrics</h3>
         </div>
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-3 text-gray-600">Loading ETF metrics...</span>
+          <span className="text-gray-600">No ETF data available</span>
         </div>
       </div>
     );
@@ -300,8 +275,6 @@ export default function ETFMetricsTable() {
             {etfMetrics.map((etf, index) => {
               const rsiResult = getRSIStatus(etf.rsi);
               const bollingerResult = getBollingerStatus(etf.bollingerPosition);
-              const maResult = getMASignal(null, null, etf.price); // We already calculated this
-              const vwapResult = getVWAPSignal(etf.price, null); // We already calculated this
 
               return (
                 <tr key={etf.symbol} className={`border-b border-gray-100 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}>
@@ -404,7 +377,7 @@ export default function ETFMetricsTable() {
                   {/* Volume/VWAP */}
                   <td className="p-3 text-center">
                     <div className="flex flex-col items-center">
-                      <span className={`text-sm font-medium ${vwapResult.color}`}>
+                      <span className="text-sm font-medium text-gray-900">
                         {etf.vwapSignal}
                       </span>
                       <span className="text-xs text-gray-500">
