@@ -77,7 +77,8 @@ router.get("/convergence-analysis", async (req, res) => {
           const zScoreBonus = Math.min(15, Math.abs(zScore) * 5);
           const dynamicConfidence = Math.min(95, baseConfidence + momentumBonus + zScoreBonus);
 
-          if (momentum === 'bullish' && changePercent > 0) {
+          // Generate signals for all momentum directions to show more ETFs in breakout analysis
+          if (momentum === 'bullish') {
             signals.push({
               id: `${symbol}-ma-bullish-${Date.now()}`,
               symbol,
@@ -94,7 +95,7 @@ router.get("/convergence-analysis", async (req, res) => {
                 maGapStrength: maGapStrength.toFixed(2)
               }
             });
-          } else if (momentum === 'bearish' && changePercent < 0) {
+          } else if (momentum === 'bearish') {
             signals.push({
               id: `${symbol}-ma-bearish-${Date.now()}`,
               symbol,
