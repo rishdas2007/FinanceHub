@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, AlertCircle, RefreshCw, Search, Filter, ChevronUp, ChevronDown } from 'lucide-react';
 import { CorrelationMatrix } from '@/components/CorrelationMatrix';
+import { DataConfidencePanel } from '@/components/DataConfidencePanel';
 
 interface MacroIndicator {
   metric: string;
@@ -828,6 +829,11 @@ const MacroeconomicIndicators: React.FC = () => {
           </div>
         </div>
         <CorrelationMatrix />
+      </div>
+
+      {/* Priority 2: Data Confidence & Historical Context */}
+      <div className="mt-8">
+        <DataConfidencePanel />
       </div>
     </div>
   );

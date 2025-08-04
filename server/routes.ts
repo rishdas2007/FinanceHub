@@ -36,6 +36,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Gold Standard Data Quality & Pipeline endpoints
   app.use('/api/data-quality', (await import('./routes/data-quality-routes')).default);
   
+  // Data Confidence and Quality Analysis endpoints
+  app.use('/api/confidence', (await import('./routes/data-confidence')).default);
+  
   // Multi-Timeframe Technical Convergence Analysis endpoints
   app.use('/api', (await import('./routes/convergence-analysis')).default);
   
