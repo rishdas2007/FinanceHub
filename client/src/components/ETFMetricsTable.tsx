@@ -100,58 +100,58 @@ const formatNumber = (value: number | null | undefined, decimals: number = 2): s
 };
 
 const getRSIStatus = (rsi: number | null): { signal: string; color: string } => {
-  if (rsi === null) return { signal: 'N/A', color: 'text-gray-500' };
-  if (rsi >= 70) return { signal: 'Overbought', color: 'text-red-600' };
-  if (rsi <= 30) return { signal: 'Oversold', color: 'text-green-600' };
-  if (rsi >= 60) return { signal: 'Strong', color: 'text-orange-600' };
-  if (rsi <= 40) return { signal: 'Weak', color: 'text-blue-600' };
-  return { signal: 'Neutral', color: 'text-gray-600' };
+  if (rsi === null) return { signal: 'No Data', color: 'text-gray-500' };
+  if (rsi >= 70) return { signal: 'Overbought', color: 'text-red-600' }; // Bad - sell signal
+  if (rsi <= 30) return { signal: 'Oversold', color: 'text-green-600' }; // Good - buy signal
+  if (rsi >= 60) return { signal: 'Strong', color: 'text-yellow-600' }; // Neutral - caution
+  if (rsi <= 40) return { signal: 'Weak', color: 'text-yellow-600' }; // Neutral - caution
+  return { signal: 'Neutral', color: 'text-yellow-600' }; // Neutral
 };
 
 const getBollingerStatus = (percentB: number | null): { status: string; squeeze: boolean; color: string } => {
-  if (percentB === null) return { status: 'N/A', squeeze: false, color: 'text-gray-500' };
+  if (percentB === null) return { status: 'No Data', squeeze: false, color: 'text-gray-500' };
   
   const squeeze = percentB > 0.1 && percentB < 0.9; // Not near extremes = potential squeeze
   
-  if (percentB >= 1.0) return { status: 'Above Upper', squeeze, color: 'text-red-600' };
-  if (percentB <= 0.0) return { status: 'Below Lower', squeeze, color: 'text-green-600' };
-  if (percentB >= 0.8) return { status: 'Near Upper', squeeze, color: 'text-orange-500' };
-  if (percentB <= 0.2) return { status: 'Near Lower', squeeze, color: 'text-blue-500' };
-  return { status: 'Middle', squeeze, color: 'text-gray-600' };
+  if (percentB >= 1.0) return { status: 'Above Upper', squeeze, color: 'text-red-600' }; // Bad - overbought
+  if (percentB <= 0.0) return { status: 'Below Lower', squeeze, color: 'text-green-600' }; // Good - oversold
+  if (percentB >= 0.8) return { status: 'Near Upper', squeeze, color: 'text-yellow-600' }; // Neutral - caution
+  if (percentB <= 0.2) return { status: 'Near Lower', squeeze, color: 'text-yellow-600' }; // Neutral - caution
+  return { status: 'Middle', squeeze, color: 'text-yellow-600' }; // Neutral
 };
 
 const getMASignal = (sma20: number | null, sma50: number | null, price: number): { signal: string; trend: 'bullish' | 'bearish' | 'neutral'; color: string } => {
-  if (!sma20 || !sma50) return { signal: 'N/A', trend: 'neutral', color: 'text-gray-500' };
+  if (!sma20 || !sma50) return { signal: 'No Data', trend: 'neutral', color: 'text-gray-500' };
   
   const ma20AboveMA50 = sma20 > sma50;
   const priceAboveMA20 = price > sma20;
   const priceAboveMA50 = price > sma50;
   
   if (ma20AboveMA50 && priceAboveMA20 && priceAboveMA50) {
-    return { signal: 'Strong Bull', trend: 'bullish', color: 'text-green-600' };
+    return { signal: 'Strong Bull', trend: 'bullish', color: 'text-green-600' }; // Good
   }
   if (!ma20AboveMA50 && !priceAboveMA20 && !priceAboveMA50) {
-    return { signal: 'Strong Bear', trend: 'bearish', color: 'text-red-600' };
+    return { signal: 'Strong Bear', trend: 'bearish', color: 'text-red-600' }; // Bad
   }
   if (ma20AboveMA50) {
-    return { signal: 'Bull Trend', trend: 'bullish', color: 'text-green-500' };
+    return { signal: 'Bull Trend', trend: 'bullish', color: 'text-green-500' }; // Good
   }
   if (!ma20AboveMA50) {
-    return { signal: 'Bear Trend', trend: 'bearish', color: 'text-red-500' };
+    return { signal: 'Bear Trend', trend: 'bearish', color: 'text-red-500' }; // Bad
   }
-  return { signal: 'Mixed', trend: 'neutral', color: 'text-gray-600' };
+  return { signal: 'Mixed', trend: 'neutral', color: 'text-yellow-600' }; // Neutral
 };
 
-const getVWAPSignal = (price: number, vwap: number | null): { signal: string; color: string } => {
-  if (!vwap) return { signal: 'N/A', color: 'text-gray-500' };
+const getVWAPSignal = (price: number, vwap: number | null): { signal: string; color: string; deviation: number | null } => {
+  if (!vwap) return { signal: 'No Data', color: 'text-gray-500', deviation: null };
   
   const deviation = ((price - vwap) / vwap) * 100;
   
-  if (deviation >= 2) return { signal: 'Strong Above', color: 'text-green-600' };
-  if (deviation <= -2) return { signal: 'Strong Below', color: 'text-red-600' };
-  if (deviation > 0) return { signal: 'Above VWAP', color: 'text-green-500' };
-  if (deviation < 0) return { signal: 'Below VWAP', color: 'text-red-500' };
-  return { signal: 'At VWAP', color: 'text-gray-600' };
+  if (deviation >= 2) return { signal: 'Strong Above', color: 'text-green-600', deviation }; // Good
+  if (deviation <= -2) return { signal: 'Strong Below', color: 'text-red-600', deviation }; // Bad
+  if (deviation > 0) return { signal: 'Above VWAP', color: 'text-green-500', deviation }; // Good
+  if (deviation < 0) return { signal: 'Below VWAP', color: 'text-red-500', deviation }; // Bad
+  return { signal: 'At VWAP', color: 'text-yellow-600', deviation }; // Neutral
 };
 
 export default function ETFMetricsTable() {
@@ -266,7 +266,7 @@ export default function ETFMetricsTable() {
               <th className="text-center p-3 font-medium text-gray-700 min-w-[120px]">
                 <div className="flex items-center justify-center gap-1">
                   <Volume2 className="h-4 w-4" />
-                  <span>Volume/VWAP</span>
+                  <span>VWAP Signal</span>
                 </div>
               </th>
             </tr>
@@ -275,6 +275,7 @@ export default function ETFMetricsTable() {
             {etfMetrics.map((etf, index) => {
               const rsiResult = getRSIStatus(etf.rsi);
               const bollingerResult = getBollingerStatus(etf.bollingerPosition);
+              const vwapResult = getVWAPSignal(etf.price, null); // Will be updated with actual VWAP data
 
               return (
                 <tr key={etf.symbol} className={`border-b border-gray-100 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}>
@@ -374,18 +375,17 @@ export default function ETFMetricsTable() {
                     </div>
                   </td>
 
-                  {/* Volume/VWAP */}
+                  {/* VWAP Signal */}
                   <td className="p-3 text-center">
                     <div className="flex flex-col items-center">
-                      <span className="text-sm font-medium text-gray-900">
-                        {etf.vwapSignal}
+                      <span className={`text-sm font-medium ${vwapResult.color}`}>
+                        {etf.vwapSignal || vwapResult.signal}
                       </span>
-                      <span className="text-xs text-gray-500">
-                        Vol Ratio: {formatNumber(etf.volumeRatio, 2)}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        OBV: {etf.obvTrend}
-                      </span>
+                      {vwapResult.deviation !== null && (
+                        <span className="text-xs text-gray-500">
+                          {vwapResult.deviation > 0 ? '+' : ''}{vwapResult.deviation.toFixed(2)}%
+                        </span>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -397,13 +397,18 @@ export default function ETFMetricsTable() {
 
       <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
         <p className="text-sm text-gray-700">
-          <strong>Metrics Guide:</strong> 
-          <strong> Bollinger Bands</strong> - %B position: &gt;1.0 (above upper), &lt;0.0 (below lower), 0.1-0.9 (potential squeeze). 
-          <strong> ATR</strong> - Average True Range for volatility measurement. 
-          <strong> MA Trend</strong> - Moving average crossover signals (20/50 day). 
-          <strong> RSI</strong> - &gt;70 overbought, &lt;30 oversold, 30-70 neutral. 
-          <strong> Z-Score</strong> - Standard deviations from mean (&gt;±2 significant). 
-          <strong> VWAP</strong> - Volume Weighted Average Price vs current price.
+          <strong>Color Guide:</strong> 
+          <span className="text-green-600 font-medium">Green = Good/Buy signals</span>, 
+          <span className="text-yellow-600 font-medium">Yellow = Neutral/Caution</span>, 
+          <span className="text-red-600 font-medium">Red = Bad/Sell signals</span>. 
+          <br />
+          <strong>Metrics:</strong> 
+          <strong> Bollinger</strong> - Price position in bands (oversold=good, overbought=bad). 
+          <strong> ATR</strong> - Volatility measure. 
+          <strong> MA Trend</strong> - Bull/bear crossover signals. 
+          <strong> RSI</strong> - Momentum (oversold=good, overbought=bad). 
+          <strong> Z-Score</strong> - Historical performance deviation. 
+          <strong> VWAP</strong> - Price vs volume-weighted average.
         </p>
       </div>
     </div>

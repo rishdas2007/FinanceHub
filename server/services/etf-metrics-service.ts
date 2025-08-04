@@ -179,12 +179,21 @@ class ETFMetricsService {
       const momentumCacheKey = 'momentum-analysis-cache-v2';
       const cached = cacheService.get(momentumCacheKey);
       
-      if (cached && Array.isArray(cached.momentumStrategies)) {
+      if (cached && cached.momentumStrategies && Array.isArray(cached.momentumStrategies)) {
+        logger.info(`📊 Using cached momentum data for ${cached.momentumStrategies.length} ETFs`);
         return cached.momentumStrategies;
       }
 
-      // Fallback: Return empty array for now, would integrate with momentum service
-      logger.warn('No momentum data in cache, using empty fallback');
+      // Fallback: Try to fetch fresh momentum data to improve consistency
+      try {
+        // For now, return empty array since momentum service integration needs more work
+        logger.info('📊 Momentum service integration pending - using fallback');
+        return [];
+      } catch (momentumError) {
+        logger.warn('Failed to fetch fresh momentum data:', momentumError);
+      }
+
+      logger.warn('No momentum data available, using empty fallback');
       return [];
     } catch (error) {
       logger.warn('Could not fetch momentum data:', error);
