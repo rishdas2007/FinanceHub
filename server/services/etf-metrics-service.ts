@@ -223,7 +223,8 @@ class ETFMetricsService {
         symbol,
         name: this.ETF_NAMES[symbol as keyof typeof this.ETF_NAMES] || symbol,
         price: sector ? parseFloat(sector.price) : 0,
-        changePercent: sector ? parseFloat(sector.changePercent) : 0,
+        changePercent: momentumETF?.oneDayChange ? parseFloat(momentumETF.oneDayChange.toString()) : 
+                      (sector ? parseFloat(sector.changePercent) : 0),
         
         // Bollinger Bands & Position/Squeeze
         bollingerPosition: technical?.percent_b ? parseFloat(technical.percent_b) : null,

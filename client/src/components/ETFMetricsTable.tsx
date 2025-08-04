@@ -222,10 +222,27 @@ export default function ETFMetricsTable() {
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6" data-testid="etf-metrics-table">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-3">
         <BarChart3 className="h-5 w-5 text-blue-600" />
         <h3 className="text-lg font-semibold text-gray-900">ETF Technical Metrics</h3>
         <span className="text-sm text-gray-500">({etfMetrics.length} ETFs)</span>
+      </div>
+
+      <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+        <p className="text-sm text-gray-700">
+          <strong>Color Guide:</strong> 
+          <span className="text-green-600 font-medium">Green = Good/Buy signals</span>, 
+          <span className="text-yellow-600 font-medium">Yellow = Neutral/Caution</span>, 
+          <span className="text-red-600 font-medium">Red = Bad/Sell signals</span>. 
+          <br />
+          <strong>Metrics:</strong> 
+          <strong> Bollinger</strong> - Price position in bands (oversold=good, overbought=bad). 
+          <strong> ATR</strong> - Volatility measure. 
+          <strong> MA Trend</strong> - Bull/bear crossover signals. 
+          <strong> RSI</strong> - Momentum (oversold=good, overbought=bad). 
+          <strong> Z-Score</strong> - Historical performance deviation. 
+          <strong> VWAP</strong> - Price vs volume-weighted average.
+        </p>
       </div>
 
       <div className="overflow-x-auto">
@@ -395,22 +412,7 @@ export default function ETFMetricsTable() {
         </table>
       </div>
 
-      <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-        <p className="text-sm text-gray-700">
-          <strong>Color Guide:</strong> 
-          <span className="text-green-600 font-medium">Green = Good/Buy signals</span>, 
-          <span className="text-yellow-600 font-medium">Yellow = Neutral/Caution</span>, 
-          <span className="text-red-600 font-medium">Red = Bad/Sell signals</span>. 
-          <br />
-          <strong>Metrics:</strong> 
-          <strong> Bollinger</strong> - Price position in bands (oversold=good, overbought=bad). 
-          <strong> ATR</strong> - Volatility measure. 
-          <strong> MA Trend</strong> - Bull/bear crossover signals. 
-          <strong> RSI</strong> - Momentum (oversold=good, overbought=bad). 
-          <strong> Z-Score</strong> - Historical performance deviation. 
-          <strong> VWAP</strong> - Price vs volume-weighted average.
-        </p>
-      </div>
+
     </div>
   );
 }
