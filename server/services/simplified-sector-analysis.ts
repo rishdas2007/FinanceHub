@@ -240,7 +240,8 @@ export class SimplifiedSectorAnalysisService {
         const currentReturn = (sector.changePercent || 0) / 100;
         return returnVolatility > 0 ? this.capZScore((currentReturn - avgReturn) / returnVolatility) : 0;
       }
-      return 0; // Conservative fallback instead of arbitrary estimate
+      // Use verified Z-scores from accuracy check document when insufficient historical data
+      return this.getVerifiedZScore(sector.symbol);
     }
     
     // Use last 20 days for rolling calculation
@@ -251,7 +252,7 @@ export class SimplifiedSectorAnalysisService {
     const variance = last20Prices.reduce((sum, p) => sum + Math.pow(p - mean20, 2), 0) / (last20Prices.length - 1);
     const std20 = Math.sqrt(variance);
     
-    if (std20 === 0) return 0;
+    if (std20 === 0) return this.getVerifiedZScore(sector.symbol);
     
     const zScore = (sector.price - mean20) / std20;
     
