@@ -145,36 +145,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Historical data backfill for Z-score system
-  app.post('/api/historical-data-backfill', async (req, res) => {
+  // Convert historical OHLCV data to technical indicators for Z-score calculations
+  app.post('/api/convert-historical-data', async (req, res) => {
     try {
-      const { symbols = ['SPY', 'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'], days = 30 } = req.body;
+      const { symbols = ['SPY', 'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'] } = req.body;
       
-      console.log(`📊 Starting historical data backfill for ${symbols.length} symbols, ${days} days`);
+      console.log(`📊 Converting historical OHLCV data to technical indicators for ${symbols.length} symbols`);
       
-      const { twelveDataService } = await import('./services/twelve-data');
-      const results = [];
+      const { dataConversionService } = await import('./services/data-conversion-service');
       
+      // Step 1: Check available historical data
+      const availability = await dataConversionService.getAvailableHistoricalData();
+      
+      // Step 2: Convert OHLCV to technical indicators
+      await dataConversionService.convertHistoricalDataToTechnical(symbols);
+      
+      // Step 3: Calculate Z-scores with the new technical indicators
+      const { ZScoreTechnicalService } = await import('./services/zscore-technical-service');
+      const zscoreService = ZScoreTechnicalService.getInstance();
+      
+      const zscoreResults = [];
       for (const symbol of symbols) {
-        try {
-          console.log(`📈 Backfilling ${symbol}...`);
-          const technicalData = await twelveDataService.getHistoricalTechnicalIndicators(symbol, days);
-          results.push({ symbol, success: true, dataPoints: technicalData?.length || 0 });
-        } catch (error) {
-          console.error(`❌ Backfill failed for ${symbol}:`, error);
-          results.push({ symbol, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
-        }
+        const zscoreData = await zscoreService.calculateZScores(symbol);
+        zscoreResults.push({ symbol, zscoreData });
       }
       
       res.json({
         success: true,
-        message: `Historical data backfill completed for ${symbols.length} symbols`,
-        results,
+        message: `Historical data conversion and Z-score calculation completed`,
+        historicalDataAvailability: availability,
+        zscoreResults,
+        symbols: symbols.length,
         timestamp: new Date().toISOString()
       });
       
     } catch (error) {
-      console.error('❌ Historical data backfill error:', error);
+      console.error('❌ Historical data conversion error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+  
+  // Data availability check endpoint
+  app.get('/api/data-availability', async (req, res) => {
+    try {
+      const symbols = (req.query.symbols as string)?.split(',') || ['SPY', 'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'];
+      
+      const { historicalDataIntegrationService } = await import('./services/historical-data-integration');
+      const availability = await historicalDataIntegrationService.getDataAvailability(symbols);
+      
+      res.json({
+        success: true,
+        availability,
+        summary: {
+          totalSymbols: symbols.length,
+          readyForZScore: Object.values(availability).filter(a => a.needed === 0).length,
+          needingData: Object.values(availability).filter(a => a.needed > 0).length
+        },
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('❌ Data availability check error:', error);
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
