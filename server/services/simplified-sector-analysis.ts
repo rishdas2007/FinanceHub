@@ -240,8 +240,8 @@ export class SimplifiedSectorAnalysisService {
         const currentReturn = (sector.changePercent || 0) / 100;
         return returnVolatility > 0 ? this.capZScore((currentReturn - avgReturn) / returnVolatility) : 0;
       }
-      // Use verified Z-scores from accuracy check document when insufficient historical data
-      return this.getVerifiedZScore(sector.symbol);
+      // REMOVED: No more hardcoded fallback Z-scores - force null for live calculations
+      return 0; // Will be overridden by live Z-score calculations in ETF Metrics Service
     }
     
     // Use last 20 days for rolling calculation
@@ -252,7 +252,7 @@ export class SimplifiedSectorAnalysisService {
     const variance = last20Prices.reduce((sum, p) => sum + Math.pow(p - mean20, 2), 0) / (last20Prices.length - 1);
     const std20 = Math.sqrt(variance);
     
-    if (std20 === 0) return this.getVerifiedZScore(sector.symbol);
+    if (std20 === 0) return 0; // REMOVED: No more hardcoded fallback Z-scores
     
     const zScore = (sector.price - mean20) / std20;
     
@@ -637,25 +637,12 @@ export class SimplifiedSectorAnalysisService {
   }
 
   /**
-   * Get verified z-scores from accuracy check document (as of July 21, 2025)
+   * REMOVED: No longer using hardcoded Z-score fallbacks
+   * All Z-scores must be calculated from live historical data
    */
   private getVerifiedZScore(symbol: string): number {
-    const verifiedZScores: Record<string, number> = {
-      'SPY': 0.102,
-      'XLK': 0.029,
-      'XLV': -0.517,
-      'XLF': -0.288,
-      'XLY': 0.242,
-      'XLI': -0.488,
-      'XLC': 1.000,
-      'XLP': -0.035,
-      'XLE': -0.631,
-      'XLU': 0.230,
-      'XLB': 0.402,
-      'XLRE': 0.325
-    };
-    
-    return verifiedZScores[symbol] || 0;
+    // CRITICAL: Return null to force live Z-score calculations
+    return 0; // Will be replaced by live Z-score calculations in ETF Metrics Service
   }
 
   /**

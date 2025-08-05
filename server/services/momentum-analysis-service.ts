@@ -112,7 +112,7 @@ export class MomentumAnalysisService {
       // Use real-time z-score calculations
       const zScore = this.calculateZScore(sector, sectorHistory);
       const fiveDayZScore = this.calculateFiveDayZScore(sector, sectorHistory);
-      console.log(`📊 Calculated z-score for ${sector.symbol}: ${zScore} (verified fallback: ${this.getVerifiedZScore(sector.symbol)})`);
+      console.log(`📊 Calculated z-score for ${sector.symbol}: ${zScore} (live calculation from ${validPrices.length} historical records)`);
       
       // Correlation with SPY
       const sectorReturns = this.calculateDailyReturns(sectorHistory);
@@ -347,22 +347,10 @@ export class MomentumAnalysisService {
    * Get verified z-scores from accuracy check document (as of July 21, 2025)
    */
   private getVerifiedZScore(symbol: string): number {
-    const verifiedZScores: Record<string, number> = {
-      'SPY': 0.102,
-      'XLK': 0.029,
-      'XLV': -0.517,
-      'XLF': -0.288,
-      'XLY': 0.242,
-      'XLI': -0.488,
-      'XLC': 1.000,
-      'XLP': -0.035,
-      'XLE': -0.631,
-      'XLU': 0.230,
-      'XLB': 0.402,
-      'XLRE': 0.325
-    };
-    
-    return verifiedZScores[symbol] || 0;
+    // REMOVED: No longer using hardcoded fallback values
+    // All Z-scores must come from live calculations using historical data
+    // Fallback values were causing incorrect signals
+    return 0; // Will be replaced by live calculations
   }
 
   /**
@@ -376,9 +364,9 @@ export class MomentumAnalysisService {
       .map(h => h.price);
       
     if (validPrices.length < 20) {
-      // Use verified Z-scores from accuracy check document when insufficient historical data
-      console.log(`📊 Using verified Z-score for ${sector.symbol} (insufficient historical data: ${validPrices.length} records)`);
-      return this.getVerifiedZScore(sector.symbol);
+      // Reject calculation with insufficient data instead of using fallback values
+      console.log(`📊 Insufficient historical data for ${sector.symbol}: ${validPrices.length} records, minimum 20 required`);
+      return 0; // Return neutral Z-score instead of fallback
     }
     
     // Use last 20 days for rolling calculation
@@ -389,7 +377,7 @@ export class MomentumAnalysisService {
     const variance = last20Prices.reduce((sum, p) => sum + Math.pow(p - mean20, 2), 0) / (last20Prices.length - 1);
     const std20 = Math.sqrt(variance);
     
-    if (std20 === 0) return this.getVerifiedZScore(sector.symbol);
+    if (std20 === 0) return 0; // Neutral Z-score when no volatility
     
     const zScore = (sector.price - mean20) / std20;
     

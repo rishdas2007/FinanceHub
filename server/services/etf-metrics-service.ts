@@ -297,8 +297,8 @@ class ETFMetricsService {
         rsiSignal: this.getRSISignal(momentumETF?.rsi || technical?.rsi),
         rsiDivergence: false, // Would need historical analysis
         
-        // Z-Score, Sharpe, Returns - Enhanced integration with momentum data
-        zScore: momentumETF?.zScore || null,
+        // Z-Score - Use live calculations, NOT cached momentum data
+        zScore: null, // Will be calculated fresh from Z-score Technical Service
         sharpeRatio: momentumETF?.sharpeRatio || null,
         fiveDayReturn: momentumETF?.fiveDayChange || null,
         
@@ -313,11 +313,19 @@ class ETFMetricsService {
         zScoreData: null
       };
 
-      // Calculate weighted scoring system with Z-score integration
+      // Calculate weighted scoring system with LIVE Z-score integration
       const weightedResult = await this.calculateWeightedTechnicalScore(metrics, momentumETF);
       metrics.weightedScore = weightedResult.score;
       metrics.weightedSignal = weightedResult.signal;
       metrics.zScoreData = weightedResult.zScoreData;
+      
+      // Override Z-score with live calculation from Z-score Technical Service
+      if (weightedResult.zScoreData?.compositeZScore !== undefined) {
+        metrics.zScore = weightedResult.zScoreData.compositeZScore;
+        console.log(`✅ Live Z-score assigned for ${metrics.symbol}: ${weightedResult.zScoreData.compositeZScore}`);
+      } else {
+        console.log(`⚠️ No live Z-score data available for ${metrics.symbol}`);
+      }
 
       return metrics;
     }));
