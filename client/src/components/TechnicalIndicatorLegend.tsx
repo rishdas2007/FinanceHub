@@ -81,7 +81,7 @@ export function TechnicalIndicatorLegend({ className = '' }: TechnicalIndicatorL
                     <p><strong className="text-blue-400">✅ Bollinger %B Direction Corrected:</strong> High %B now properly identified as bearish (overbought) signal</p>
                   </div>
                   <div className="bg-blue-900/20 p-3 rounded border border-blue-700">
-                    <p><strong className="text-blue-400">✅ Signal Thresholds Adjusted:</strong> Current thresholds ±0.25 for practical trading signals (BUY ≥0.25, SELL ≤-0.25)</p>
+                    <p><strong className="text-blue-400">✅ Signal Thresholds Updated:</strong> Statistically-derived thresholds (BUY ≥1.0, SELL ≤-1.0) based on 68% confidence levels</p>
                   </div>
                   <div className="bg-blue-900/20 p-3 rounded border border-blue-700">
                     <p><strong className="text-blue-400">✅ Z-score to Signal Conversion Improved:</strong> From stepped thresholds to smooth scaling (zscore/2)</p>
@@ -186,15 +186,15 @@ export function TechnicalIndicatorLegend({ className = '' }: TechnicalIndicatorL
                 <div className="space-y-2 text-sm text-gray-300">
                   <div className="flex justify-between">
                     <span>BUY Signal</span>
-                    <span className="text-green-400">Composite Score ≥ +0.6</span>
+                    <span className="text-green-400">Z-Score ≥ +1.0 (68% confidence)</span>
                   </div>
                   <div className="flex justify-between">
                     <span>SELL Signal</span>
-                    <span className="text-red-400">Composite Score ≤ -0.6</span>
+                    <span className="text-red-400">Z-Score ≤ -1.0 (68% confidence)</span>
                   </div>
                   <div className="flex justify-between">
                     <span>HOLD Signal</span>
-                    <span className="text-yellow-400">-0.6 &lt; Score &lt; +0.6</span>
+                    <span className="text-yellow-400">-1.0 &lt; Z-Score &lt; +1.0</span>
                   </div>
                 </div>
               </div>
@@ -202,10 +202,10 @@ export function TechnicalIndicatorLegend({ className = '' }: TechnicalIndicatorL
               <div className="bg-gray-800 p-4 rounded-lg">
                 <h4 className="font-medium text-gray-200 mb-3">Z-Score Statistical Analysis</h4>
                 <div className="space-y-2 text-sm text-gray-300">
-                  <p><strong>Window:</strong> 20-day rolling window (standardized across ETF metrics)</p>
-                  <p><strong>Scaling:</strong> Smooth scaling (zscore/2) instead of stepped thresholds</p>
-                  <p><strong>Extreme Values:</strong> ±5 statistical threshold with unprecedented event flagging</p>
-                  <p><strong>Sample Variance:</strong> Corrected from population (N) to sample (N-1) calculation</p>
+                  <p><strong>Window:</strong> 63-day rolling window (3-month standardized for ETF analysis)</p>
+                  <p><strong>Thresholds:</strong> Statistically-derived confidence levels (1.0σ=68%, 1.96σ=95%, 2.58σ=99%)</p>
+                  <p><strong>Statistical Integrity:</strong> No arbitrary capping, proper sample variance (N-1) calculation</p>
+                  <p><strong>Data Quality:</strong> Comprehensive validation with outlier detection and gap analysis</p>
                 </div>
               </div>
             </div>
