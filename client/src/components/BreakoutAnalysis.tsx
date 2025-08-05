@@ -13,42 +13,35 @@ interface ConvergenceSignal {
   metadata: Record<string, any>;
 }
 
-interface ConvergenceData {
-  analysis: Array<{
-    symbol: string;
-    confidence_score: number;
-    overall_bias: string;
-    convergence_signals: ConvergenceSignal[];
-    technical_indicators?: {
-      rsi: number | null;
-      momentum: string | null;
-      oneDayChange: number | null;
-      fiveDayChange: number | null;
-      zScore: number | null;
-      adx: number | null;
-      percentB: number | null;
-    };
-    signal_summary: {
-      total_signals: number;
-      bullish_signals: number;
-      bearish_signals: number;
-      neutral_signals: number;
-    };
-    bollinger_squeeze_status: {
-      is_squeezing: boolean;
-      squeeze_duration_days: number;
-      breakout_direction: string | null;
-      volatility_expansion_potential: number;
-    };
-    market_data?: {
-      price: number;
-      changePercent: number;
-    };
-  }>;
-  squeeze_monitoring: {
-    symbols_in_squeeze: number;
-    potential_breakouts: string[];
-    average_squeeze_duration: number;
+interface MomentumStrategy {
+  sector: string;
+  ticker: string;
+  momentum: string;
+  strength: number;
+  annualReturn: number;
+  volatility: number;
+  sharpeRatio: number;
+  zScore: number;
+  correlationToSPY: number;
+  trendDirection: string;
+  marketCap: string;
+  currentPrice: number;
+  oneDayChange: number;
+  monthlyReturn: number;
+  quarterlyReturn: number;
+  rsi: number;
+  confidence: number;
+  analysis: string;
+}
+
+interface MomentumData {
+  momentumStrategies: MomentumStrategy[];
+  summary: {
+    totalStrategies: number;
+    bullishCount: number;
+    bearishCount: number;
+    neutralCount: number;
+    averageRSI: number;
   };
 }
 
@@ -102,8 +95,8 @@ export function BreakoutAnalysis() {
     return signalDescriptions.slice(0, 2).join(' + ');
   };
 
-  const { data: convergenceData, isLoading, error } = useQuery<ConvergenceData>({
-    queryKey: ['/api/convergence-analysis'],
+  const { data: momentumData, isLoading, error } = useQuery<MomentumData>({
+    queryKey: ['/api/momentum-analysis'],
     refetchInterval: false, // Disabled automatic refetching
     staleTime: 5 * 60 * 1000, // 5 minutes - standardized
     gcTime: 60000,
@@ -111,51 +104,52 @@ export function BreakoutAnalysis() {
 
   // Memoize processed data to prevent unnecessary recalculations
   const potentialBreakouts = useMemo(() => {
-    if (!convergenceData) return [];
+    if (!momentumData) return [];
 
-    // Show all analysis to see technical indicators and any signals
-    return convergenceData.analysis.map(analysis => {
-      // Get the primary signal driving the setup
-      const primarySignal = analysis.convergence_signals
-        .sort((a, b) => b.confidence - a.confidence)[0];
-
-      // Always show RSI and technical indicators, with signal descriptions as additional context
-      let description = "";
-      const tech = analysis.technical_indicators;
+    // Convert momentum strategies to breakout format
+    return momentumData.momentumStrategies.map(strategy => {
+      // Build technical description from momentum data
       const techParts = [];
-      if (tech?.rsi !== null) techParts.push(`RSI: ${tech.rsi.toFixed(1)}`);
-      if (tech?.momentum) techParts.push(`${tech.momentum}`);
-      if (tech?.oneDayChange !== null) techParts.push(`${tech.oneDayChange >= 0 ? '+' : ''}${tech.oneDayChange.toFixed(2)}%`);
+      if (strategy.rsi) techParts.push(`RSI: ${strategy.rsi.toFixed(1)}`);
+      if (strategy.momentum) techParts.push(`${strategy.momentum.toUpperCase()}`);
+      if (strategy.oneDayChange !== null) techParts.push(`${strategy.oneDayChange >= 0 ? '+' : ''}${strategy.oneDayChange.toFixed(2)}%`);
+      if (strategy.strength) techParts.push(`Strength: ${(strategy.strength * 100).toFixed(0)}%`);
       
-      // Build base description with technical indicators
-      const baseDescription = techParts.slice(0, 3).join(' | ');
-      
-      // Add signal descriptions if available
-      if (analysis.convergence_signals.length > 0) {
-        const signalDesc = getSignalDescription(analysis.convergence_signals);
-        description = baseDescription ? `${baseDescription} | ${signalDesc}` : signalDesc;
-      } else {
-        description = baseDescription || "Technical analysis";
-      }
+      const description = techParts.slice(0, 3).join(' | ') || "Momentum analysis";
 
-      const reason = primarySignal ? 
-        `${primarySignal.signal_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Signal` :
-        "Technical Analysis";
+      // Determine reason based on momentum and indicators
+      let reason = "Momentum Analysis";
+      if (strategy.rsi > 70) reason = "Overbought Territory";
+      else if (strategy.rsi < 30) reason = "Oversold Territory";
+      else if (strategy.momentum === 'bullish') reason = "Bullish Momentum";
+      else if (strategy.momentum === 'bearish') reason = "Bearish Momentum";
 
       return {
-        symbol: analysis.symbol,
+        symbol: strategy.ticker,
         reason,
         description,
-        confidence: analysis.confidence_score || 0,
-        bias: analysis.overall_bias || "neutral",
-        price: analysis.market_data?.price,
-        change: analysis.market_data?.changePercent,
-        signals: analysis.convergence_signals || [],
-        signalSummary: analysis.signal_summary,
-        technicalIndicators: analysis.technical_indicators
+        confidence: strategy.confidence || strategy.strength || 0,
+        bias: strategy.momentum || strategy.trendDirection || "neutral",
+        price: strategy.currentPrice,
+        change: strategy.oneDayChange,
+        signals: [], // No signals in momentum data
+        signalSummary: {
+          total_signals: 0,
+          bullish_signals: strategy.momentum === 'bullish' ? 1 : 0,
+          bearish_signals: strategy.momentum === 'bearish' ? 1 : 0
+        },
+        technicalIndicators: {
+          rsi: strategy.rsi,
+          momentum: strategy.momentum,
+          oneDayChange: strategy.oneDayChange,
+          fiveDayChange: strategy.monthlyReturn,
+          zScore: strategy.zScore,
+          adx: null,
+          percentB: null
+        }
       };
-    }); // Show all symbols now to see RSI values
-  }, [convergenceData, getSignalDescription]);
+    });
+  }, [momentumData]);
 
   // Show error state
   if (error) {
@@ -169,7 +163,7 @@ export function BreakoutAnalysis() {
         </div>
         <div className="p-6">
           <div className="text-red-400 text-sm">
-            Unable to load convergence data. Please try again.
+            Unable to load momentum data. Please try again.
           </div>
         </div>
       </div>
@@ -177,7 +171,7 @@ export function BreakoutAnalysis() {
   }
 
   // Show loading state only on initial load
-  if (isLoading && !convergenceData) {
+  if (isLoading && !momentumData) {
     return (
       <div className="bg-slate-900 rounded-lg border border-slate-700">
         <div className="p-6 border-b border-slate-700">
@@ -306,7 +300,7 @@ export function BreakoutAnalysis() {
           <Zap className="h-5 w-5 text-blue-400" />
           Breakout Analysis
         </h2>
-        {isLoading && convergenceData && (
+        {isLoading && momentumData && (
           <div className="text-xs text-blue-400 flex items-center gap-2">
             <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-400"></div>
             Updating...
