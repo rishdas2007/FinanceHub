@@ -5,8 +5,8 @@ import type { MarketSentiment } from "@/types/financial";
 export function MarketSentimentComponent() {
   const { data: sentiment, isLoading } = useQuery<MarketSentiment>({
     queryKey: ['/api/sentiment'],
-    refetchInterval: 120000, // Refresh every 2 minutes
-    staleTime: 90000, // Data is fresh for 90 seconds
+    refetchInterval: false, // Disabled automatic refetching
+    staleTime: 5 * 60 * 1000, // 5 minutes - standardized
   });
 
   if (isLoading) {

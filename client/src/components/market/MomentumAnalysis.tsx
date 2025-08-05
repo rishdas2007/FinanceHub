@@ -8,8 +8,8 @@ import { ErrorDisplay } from './ErrorDisplay';
 export function MomentumAnalysis() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['/api/momentum-analysis'],
-    staleTime: 1 * 60 * 1000, // 1 minute
-    gcTime: 2 * 60 * 1000,    // 2 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - standardized
+    gcTime: 10 * 60 * 1000,   // 10 minutes cache retention
   });
 
   if (error) {

@@ -204,128 +204,88 @@ export class HistoricalContextAnalyzer {
   }
 
   /**
-   * Get historical data based on data source
+   * Get historical data based on data source - CONSOLIDATED SINGLE QUERY
    */
   private async getHistoricalData(dataSource: string, field: string): Promise<Array<{value: string, timestamp: Date}>> {
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
     try {
-      switch (dataSource) {
-        case 'technical':
-          if (field === 'rsi') {
-            const techData = await db
-              .select({
-                value: sql`${technicalIndicators.rsi}::text`,
-                timestamp: technicalIndicators.timestamp
-              })
-              .from(technicalIndicators)
-              .where(
-                and(
-                  gte(technicalIndicators.timestamp, sixMonthsAgo),
-                  sql`${technicalIndicators.rsi} IS NOT NULL`
-                )
-              )
-              .orderBy(desc(technicalIndicators.timestamp))
-              .limit(500);
-            
-            return techData.map(d => ({
-              value: d.value as string,
-              timestamp: d.timestamp
-            }));
-          } else if (field === 'macd') {
-            const techData = await db
-              .select({
-                value: sql`${technicalIndicators.macd}::text`,
-                timestamp: technicalIndicators.timestamp
-              })
-              .from(technicalIndicators)
-              .where(
-                and(
-                  gte(technicalIndicators.timestamp, sixMonthsAgo),
-                  sql`${technicalIndicators.macd} IS NOT NULL`
-                )
-              )
-              .orderBy(desc(technicalIndicators.timestamp))
-              .limit(500);
-            
-            return techData.map(d => ({
-              value: d.value as string,
-              timestamp: d.timestamp
-            }));
-          }
-          return [];
-
-        case 'sentiment':
-          if (field === 'vix') {
-            const sentimentData = await db
-              .select({
-                value: sql`${marketSentiment.vix}::text`,
-                timestamp: marketSentiment.timestamp
-              })
-              .from(marketSentiment)
-              .where(
-                and(
-                  gte(marketSentiment.timestamp, sixMonthsAgo),
-                  sql`${marketSentiment.vix} IS NOT NULL`
-                )
-              )
-              .orderBy(desc(marketSentiment.timestamp))
-              .limit(500);
-            
-            return sentimentData.map(d => ({
-              value: d.value as string,
-              timestamp: d.timestamp
-            }));
-          } else if (field === 'aaiiBullish') {
-            const sentimentData = await db
-              .select({
-                value: sql`${marketSentiment.aaiiBullish}::text`,
-                timestamp: marketSentiment.timestamp
-              })
-              .from(marketSentiment)
-              .where(
-                and(
-                  gte(marketSentiment.timestamp, sixMonthsAgo),
-                  sql`${marketSentiment.aaiiBullish} IS NOT NULL`
-                )
-              )
-              .orderBy(desc(marketSentiment.timestamp))
-              .limit(500);
-            
-            return sentimentData.map(d => ({
-              value: d.value as string,
-              timestamp: d.timestamp
-            }));
-          }
-          return [];
-
-        case 'stock':
-          const stockPriceData = await db
-            .select({
-              value: sql`${stockData.price}::text`,
-              timestamp: stockData.timestamp
-            })
-            .from(stockData)
-            .where(
-              and(
-                eq(stockData.symbol, 'SPY'),
-                gte(stockData.timestamp, sixMonthsAgo)
-              )
+      // CONSOLIDATED QUERY: Single JOIN query instead of multiple sequential queries
+      if (dataSource === 'technical' || dataSource === 'sentiment' || dataSource === 'stock') {
+        const consolidatedData = await db
+          .select({
+            value: sql`
+              CASE 
+                WHEN ${sql.raw(`'${dataSource}'`)} = 'technical' AND ${sql.raw(`'${field}'`)} = 'rsi' THEN ${technicalIndicators.rsi}::text
+                WHEN ${sql.raw(`'${dataSource}'`)} = 'technical' AND ${sql.raw(`'${field}'`)} = 'macd' THEN ${technicalIndicators.macd}::text
+                WHEN ${sql.raw(`'${dataSource}'`)} = 'sentiment' AND ${sql.raw(`'${field}'`)} = 'vix' THEN ${marketSentiment.vix}::text
+                WHEN ${sql.raw(`'${dataSource}'`)} = 'sentiment' AND ${sql.raw(`'${field}'`)} = 'aaiiBullish' THEN ${marketSentiment.aaiiBullish}::text
+                WHEN ${sql.raw(`'${dataSource}'`)} = 'stock' THEN ${stockData.price}::text
+                ELSE NULL
+              END
+            `,
+            timestamp: sql`
+              CASE 
+                WHEN ${sql.raw(`'${dataSource}'`)} = 'technical' THEN ${technicalIndicators.timestamp}
+                WHEN ${sql.raw(`'${dataSource}'`)} = 'sentiment' THEN ${marketSentiment.timestamp}
+                WHEN ${sql.raw(`'${dataSource}'`)} = 'stock' THEN ${stockData.timestamp}
+                ELSE NULL
+              END
+            `
+          })
+          .from(technicalIndicators)
+          .leftJoin(marketSentiment, eq(technicalIndicators.timestamp, marketSentiment.timestamp))
+          .leftJoin(stockData, and(
+            eq(technicalIndicators.timestamp, stockData.timestamp),
+            eq(stockData.symbol, 'SPY')
+          ))
+          .where(
+            and(
+              gte(
+                sql`
+                  CASE 
+                    WHEN ${sql.raw(`'${dataSource}'`)} = 'technical' THEN ${technicalIndicators.timestamp}
+                    WHEN ${sql.raw(`'${dataSource}'`)} = 'sentiment' THEN ${marketSentiment.timestamp}
+                    WHEN ${sql.raw(`'${dataSource}'`)} = 'stock' THEN ${stockData.timestamp}
+                    ELSE NULL
+                  END
+                `,
+                sixMonthsAgo
+              ),
+              sql`
+                CASE 
+                  WHEN ${sql.raw(`'${dataSource}'`)} = 'technical' AND ${sql.raw(`'${field}'`)} = 'rsi' THEN ${technicalIndicators.rsi} IS NOT NULL
+                  WHEN ${sql.raw(`'${dataSource}'`)} = 'technical' AND ${sql.raw(`'${field}'`)} = 'macd' THEN ${technicalIndicators.macd} IS NOT NULL
+                  WHEN ${sql.raw(`'${dataSource}'`)} = 'sentiment' AND ${sql.raw(`'${field}'`)} = 'vix' THEN ${marketSentiment.vix} IS NOT NULL
+                  WHEN ${sql.raw(`'${dataSource}'`)} = 'sentiment' AND ${sql.raw(`'${field}'`)} = 'aaiiBullish' THEN ${marketSentiment.aaiiBullish} IS NOT NULL
+                  WHEN ${sql.raw(`'${dataSource}'`)} = 'stock' THEN ${stockData.price} IS NOT NULL
+                  ELSE FALSE
+                END
+              `
             )
-            .orderBy(desc(stockData.timestamp))
-            .limit(500);
-          
-          return stockPriceData.map(d => ({
-            value: d.value as string,
-            timestamp: d.timestamp
-          }));
+          )
+          .orderBy(sql`
+            CASE 
+              WHEN ${sql.raw(`'${dataSource}'`)} = 'technical' THEN ${technicalIndicators.timestamp}
+              WHEN ${sql.raw(`'${dataSource}'`)} = 'sentiment' THEN ${marketSentiment.timestamp}
+              WHEN ${sql.raw(`'${dataSource}'`)} = 'stock' THEN ${stockData.timestamp}
+              ELSE NULL
+            END DESC
+          `)
+          .limit(500);
 
-        default:
-          throw new Error(`Unknown data source: ${dataSource}`);
+        return consolidatedData
+          .filter(d => d.value !== null && d.timestamp !== null)
+          .map(d => ({
+            value: d.value as string,
+            timestamp: d.timestamp as Date
+          }));
       }
+
+      throw new Error(`Unknown data source: ${dataSource}`);
     } catch (error) {
-      console.error(`❌ Error fetching historical data for ${dataSource}.${field}:`, error as Error);
+      console.error(`❌ Error fetching consolidated historical data for ${dataSource}.${field}:`, error as Error);
       return [];
     }
   }

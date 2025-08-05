@@ -254,8 +254,8 @@ const MacroeconomicIndicators: React.FC = () => {
       if (!response.ok) throw new Error('Failed to fetch macro data');
       return response.json();
     },
-    refetchInterval: 5 * 60 * 1000,
-    staleTime: 2 * 60 * 1000,
+    refetchInterval: false, // Disable automatic refetching
+    staleTime: 5 * 60 * 1000, // 5 minutes - standardized
   });
 
 

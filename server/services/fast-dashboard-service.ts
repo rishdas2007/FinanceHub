@@ -21,6 +21,52 @@ interface DataFreshness {
 
 export class FastDashboardService {
   
+  /**
+   * PARALLEL DASHBOARD LOADING - Load all dashboard components simultaneously
+   */
+  async getFastDashboardData(): Promise<{
+    momentum: DashboardData;
+    economic: DashboardData;
+    technical: DashboardData;
+    sentiment: DashboardData;
+    totalLoadTime: number;
+  }> {
+    const startTime = Date.now();
+    
+    try {
+      // Load all dashboard components in parallel using Promise.all
+      const [momentum, economic, technical, sentiment] = await Promise.all([
+        this.getFastMomentumAnalysis(),
+        this.getFastEconomicReadings(),
+        this.getFastTechnicalData(),
+        this.getFastSentimentData()
+      ]);
+      
+      const totalLoadTime = Date.now() - startTime;
+      logger.info(`🚀 Parallel dashboard load completed in ${totalLoadTime}ms`);
+      
+      return {
+        momentum,
+        economic,
+        technical,
+        sentiment,
+        totalLoadTime
+      };
+    } catch (error) {
+      const totalLoadTime = Date.now() - startTime;
+      logger.error('❌ Parallel dashboard load error:', error);
+      
+      // Return fallback data for all components
+      return {
+        momentum: this.createFallbackData('momentum-analysis'),
+        economic: this.createFallbackData('economic-readings'),
+        technical: this.createFallbackData('technical-data'),
+        sentiment: this.createFallbackData('sentiment-data'),
+        totalLoadTime
+      };
+    }
+  }
+
   async getFastMomentumAnalysis(): Promise<DashboardData> {
     const startTime = Date.now();
     

@@ -63,8 +63,8 @@ export function AISummaryOptimized() {
       }
       return response.json();
     },
-    staleTime: 0, // Always fetch fresh data to see database changes
-    gcTime: 0,   // No caching to ensure fresh data
+    staleTime: 5 * 60 * 1000, // 5 minutes - standardized across components
+    gcTime: 10 * 60 * 1000,   // 10 minutes cache retention
     retry: 1,
     refetchOnMount: true,
     refetchOnWindowFocus: true,

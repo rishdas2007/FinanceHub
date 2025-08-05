@@ -104,8 +104,8 @@ export function BreakoutAnalysis() {
 
   const { data: convergenceData, isLoading, error } = useQuery<ConvergenceData>({
     queryKey: ['/api/convergence-analysis'],
-    refetchInterval: 30000,
-    staleTime: 15000,
+    refetchInterval: false, // Disabled automatic refetching
+    staleTime: 5 * 60 * 1000, // 5 minutes - standardized
     gcTime: 60000,
   });
 

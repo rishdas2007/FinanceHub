@@ -20,7 +20,7 @@ interface EconomicEvent {
 export function EconomicCalendar() {
   const { data: events, isLoading } = useQuery<EconomicEvent[]>({
     queryKey: ['/api/economic-events'],
-    refetchInterval: 300000, // Refresh every 5 minutes
+    refetchInterval: false, // Disabled automatic refetching
   });
 
   // Filter events to show only those with actual values and sort in descending chronological order

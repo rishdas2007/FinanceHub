@@ -27,12 +27,12 @@ export function PriceChart() {
 
   const { data: stockHistory, isLoading: historyLoading } = useQuery<StockData[]>({
     queryKey: [`/api/stocks/${selectedETF.symbol}/history?limit=${currentTimeframe.limit}`],
-    refetchInterval: 60000, // Reduced frequency for real API data
+    refetchInterval: false, // Disabled automatic refetching
   });
 
   const { data: technical } = useQuery<TechnicalIndicators>({
     queryKey: [`/api/technical/${selectedETF.symbol}`],
-    refetchInterval: 60000,
+    refetchInterval: false,
   });
 
   // Generate more realistic RSI based on price movements
