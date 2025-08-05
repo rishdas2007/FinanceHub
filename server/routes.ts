@@ -48,6 +48,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Multi-Timeframe Technical Convergence Analysis endpoints
   app.use('/api', (await import('./routes/convergence-analysis')).default);
   
+  // Week 2-4 Performance Optimization endpoints
+  app.use('/api/performance-optimizations', (await import('./routes/performance-optimizations')).default);
+  
   // Economic Correlation Analysis endpoints
   app.use('/api/economic', (await import('./routes/economic-correlation')).default);
   
