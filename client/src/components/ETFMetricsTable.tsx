@@ -297,13 +297,6 @@ export default function ETFMetricsTable() {
                   <span>RSI</span>
                 </div>
               </th>
-              <th className="text-center p-3 font-medium text-gray-300 min-w-[120px]">
-                <div className="flex items-center justify-center gap-1">
-                  <Activity className="h-4 w-4" />
-                  <span>Z-Score Composite</span>
-                </div>
-              </th>
-
             </tr>
           </thead>
           <tbody>
@@ -415,44 +408,6 @@ export default function ETFMetricsTable() {
                       </span>
                     </div>
                   </td>
-
-                  {/* Z-Score Composite */}
-                  <td className="p-3 text-center">
-                    <div className="flex flex-col items-center">
-                      {etf.zScoreData?.compositeZScore !== null && etf.zScoreData?.compositeZScore !== undefined ? (
-                        <>
-                          <span className={`text-sm font-medium ${
-                            etf.zScoreData.compositeZScore > 0.25 ? 'text-green-400' :
-                            etf.zScoreData.compositeZScore < -0.25 ? 'text-red-400' : 'text-yellow-400'
-                          }`}>
-                            {formatNumber(etf.zScoreData.compositeZScore, 3)}
-                          </span>
-                          <span className={`text-xs font-medium ${
-                            etf.zScoreData.signal === 'BUY' ? 'text-green-400' :
-                            etf.zScoreData.signal === 'SELL' ? 'text-red-400' : 'text-yellow-400'
-                          }`}>
-                            {etf.zScoreData.signal}
-                          </span>
-                          <span className="text-xs text-gray-400">
-                            Z-Score System
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <span className={`text-sm font-medium ${
-                            etf.zScore && etf.zScore > 2 ? 'text-green-400' :
-                            etf.zScore && etf.zScore < -2 ? 'text-red-400' : 'text-white'
-                          }`}>
-                            {formatNumber(etf.zScore, 2)}
-                          </span>
-                          <span className="text-xs text-gray-400">
-                            Legacy Z-Score
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </td>
-
 
                 </tr>
               );
