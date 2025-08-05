@@ -260,8 +260,8 @@ export class FinancialDataService {
     try {
       console.log(`📊 Fetching enhanced technical indicators for ${symbol} with 144/min limit...`);
       
-      // With 144 calls/minute, we can fetch multiple indicators simultaneously
-      const [rsiResponse, macdResponse, bbandsResponse, percentBResponse, adxResponse, stochResponse, vwapResponse, atrResponse, willrResponse, sma50Response] = await Promise.all([
+      // With 144 calls/minute, we can fetch comprehensive indicators simultaneously
+      const [rsiResponse, macdResponse, bbandsResponse, percentBResponse, adxResponse, stochResponse, vwapResponse, atrResponse, willrResponse, sma50Response, ema12Response, ema26Response] = await Promise.all([
         this.fetchIndicator('rsi', symbol, { time_period: 14 }),
         this.fetchIndicator('macd', symbol),
         this.fetchIndicator('bbands', symbol, { time_period: 20, sd: 2 }),
@@ -271,7 +271,9 @@ export class FinancialDataService {
         this.fetchIndicator('vwap', symbol),
         this.fetchIndicator('atr', symbol, { time_period: 14 }),
         this.fetchIndicator('willr', symbol, { time_period: 14 }),
-        this.fetchIndicator('sma', symbol, { time_period: 50 })
+        this.fetchIndicator('sma', symbol, { time_period: 50 }),
+        this.fetchIndicator('ema', symbol, { time_period: 12 }),
+        this.fetchIndicator('ema', symbol, { time_period: 26 })
       ]);
 
       // Parse all indicator responses
@@ -285,12 +287,15 @@ export class FinancialDataService {
       const atr = this.parseIndicator(atrResponse, 'atr', 12.45);
       const willr = this.parseIndicator(willrResponse, 'willr', -28.5);
       const sma50 = this.parseIndicator(sma50Response, 'sma', 620.50); // SPY 50-day SMA fallback
+      const ema12 = this.parseIndicator(ema12Response, 'ema', 624.30); // SPY 12-day EMA fallback
+      const ema26 = this.parseIndicator(ema26Response, 'ema', 618.75); // SPY 26-day EMA fallback
 
       const indicators = {
         symbol,
         rsi,
         macd: macdData.macd,
         macdSignal: macdData.macdSignal,
+        macdHistogram: macdData.macd - macdData.macdSignal, // Calculate MACD histogram
         bb_upper: bbandsData.upper,
         bb_middle: bbandsData.middle,
         bb_lower: bbandsData.lower,
@@ -302,7 +307,9 @@ export class FinancialDataService {
         atr,
         willr,
         sma_20: bbandsData.middle, // BB middle is essentially SMA 20
-        sma_50: sma50
+        sma_50: sma50,
+        ema_12: ema12,
+        ema_26: ema26
       };
 
       await this.storeTechnicalIndicators(indicators);
@@ -381,6 +388,7 @@ export class FinancialDataService {
         rsi: indicators.rsi?.toString(),
         macd: indicators.macd?.toString(),
         macdSignal: indicators.macdSignal?.toString(),
+        macdHistogram: indicators.macdHistogram?.toString(),
         bb_upper: indicators.bb_upper?.toString(),
         bb_middle: indicators.bb_middle?.toString(),
         bb_lower: indicators.bb_lower?.toString(),
@@ -393,6 +401,8 @@ export class FinancialDataService {
         willr: indicators.willr?.toString(),
         sma_20: indicators.sma_20?.toString(),
         sma_50: indicators.sma_50?.toString(),
+        ema_12: indicators.ema_12?.toString(),
+        ema_26: indicators.ema_26?.toString(),
       });
     } catch (error) {
       console.error('Error storing enhanced technical indicators:', error);
@@ -402,9 +412,9 @@ export class FinancialDataService {
   private getFallbackTechnicalIndicators(symbol: string) {
     // Enhanced fallback with realistic values based on symbol type
     const fallbacks: { [key: string]: any } = {
-      'SPY': { rsi: 68.16, macd: 8.256, macdSignal: 8.722, bb_upper: 640.25, bb_middle: 628.15, bb_lower: 616.05, percent_b: 0.65, adx: 25.3, stoch_k: 65.4, stoch_d: 68.2, vwap: 626.87, atr: 12.45, willr: -28.5, sma_50: 612.25 },
-      'QQQ': { rsi: 71.92, macd: 12.34, macdSignal: 11.89, bb_upper: 485.67, bb_middle: 470.23, bb_lower: 454.79, percent_b: 0.72, adx: 28.7, stoch_k: 78.3, stoch_d: 75.6, vwap: 468.34, atr: 18.92, willr: -22.1, sma_50: 465.30 },
-      'IWM': { rsi: 62.04, macd: 3.87, macdSignal: 4.12, bb_upper: 225.45, bb_middle: 218.67, bb_lower: 211.89, percent_b: 0.45, adx: 22.1, stoch_k: 58.7, stoch_d: 61.2, vwap: 217.92, atr: 8.76, willr: -35.8, sma_50: 215.80 }
+      'SPY': { rsi: 68.16, macd: 8.256, macdSignal: 8.722, bb_upper: 640.25, bb_middle: 628.15, bb_lower: 616.05, percent_b: 0.65, adx: 25.3, stoch_k: 65.4, stoch_d: 68.2, vwap: 626.87, atr: 12.45, willr: -28.5, sma_50: 612.25, ema_12: 624.30, ema_26: 618.75 },
+      'QQQ': { rsi: 71.92, macd: 12.34, macdSignal: 11.89, bb_upper: 485.67, bb_middle: 470.23, bb_lower: 454.79, percent_b: 0.72, adx: 28.7, stoch_k: 78.3, stoch_d: 75.6, vwap: 468.34, atr: 18.92, willr: -22.1, sma_50: 465.30, ema_12: 472.15, ema_26: 468.90 },
+      'IWM': { rsi: 62.04, macd: 3.87, macdSignal: 4.12, bb_upper: 225.45, bb_middle: 218.67, bb_lower: 211.89, percent_b: 0.45, adx: 22.1, stoch_k: 58.7, stoch_d: 61.2, vwap: 217.92, atr: 8.76, willr: -35.8, sma_50: 215.80, ema_12: 219.25, ema_26: 217.45 }
     };
     
     const base = fallbacks[symbol] || fallbacks['SPY'];
@@ -414,6 +424,7 @@ export class FinancialDataService {
       rsi: base.rsi,
       macd: base.macd,
       macdSignal: base.macdSignal,
+      macdHistogram: base.macd - base.macdSignal,
       bb_upper: base.bb_upper,
       bb_middle: base.bb_middle,
       bb_lower: base.bb_lower,
@@ -426,6 +437,8 @@ export class FinancialDataService {
       willr: base.willr,
       sma_20: base.bb_middle,
       sma_50: base.sma_50,
+      ema_12: base.ema_12,
+      ema_26: base.ema_26,
     };
   }
 
