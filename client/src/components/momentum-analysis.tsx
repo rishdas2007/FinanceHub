@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, TrendingUp, TrendingDown, ArrowRight, ChevronUp, ChevronDown } from 'lucide-react';
+import { TechnicalIndicatorLegend } from './TechnicalIndicatorLegend';
 import { Scatter, ScatterChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList, ReferenceLine } from 'recharts';
 
 interface MomentumStrategy {
@@ -401,9 +402,12 @@ const MomentumAnalysis = () => {
       {/* Momentum Strategies Table */}
       <Card className="bg-gray-100 border-gray-300">
         <CardHeader>
-          <CardTitle className="text-lg text-gray-800">
-            Momentum Strategies with Enhanced Metrics
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg text-gray-800" title="Enhanced momentum analysis with fixed RSI calculations, corrected Z-score scaling, and industry-standard moving average calculations. No dynamic period adjustments compromise indicator integrity.">
+              Momentum Strategies with Enhanced Metrics
+            </CardTitle>
+            <TechnicalIndicatorLegend />
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto bg-gray-50 rounded-lg p-4">
@@ -428,10 +432,10 @@ const MomentumAnalysis = () => {
                   <th className="text-right p-2 text-gray-700 font-semibold w-16 cursor-pointer hover:bg-gray-200" onClick={() => handleSort('oneMonthChange')}>
                     1-Month<br/>Move{getSortIcon('oneMonthChange')}
                   </th>
-                  <th className="text-right p-2 text-gray-700 font-semibold w-16 cursor-pointer hover:bg-gray-200" onClick={() => handleSort('rsi')}>
+                  <th className="text-right p-2 text-gray-700 font-semibold w-16 cursor-pointer hover:bg-gray-200" onClick={() => handleSort('rsi')} title="Relative Strength Index (14-period). Fixed calculation ensures proper sample size validation.">
                     RSI{getSortIcon('rsi')}
                   </th>
-                  <th className="text-right p-2 text-gray-700 font-semibold w-20 cursor-pointer hover:bg-gray-200" onClick={() => handleSort('zScore')}>
+                  <th className="text-right p-2 text-gray-700 font-semibold w-20 cursor-pointer hover:bg-gray-200" onClick={() => handleSort('zScore')} title="Z-Score statistical analysis using 20-day rolling window. Improved scaling and enhanced extreme value handling.">
                     Z-Score of Latest<br/>1-Day Move{getSortIcon('zScore')}
                   </th>
                   <th className="text-right p-2 text-gray-700 font-semibold w-20 cursor-pointer hover:bg-gray-200" onClick={() => handleSort('annualReturn')}>

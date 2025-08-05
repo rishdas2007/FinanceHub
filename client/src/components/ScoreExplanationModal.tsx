@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { HelpCircle, TrendingUp, Activity, BarChart3, Database } from 'lucide-react';
+import { HelpCircle, TrendingUp, Activity, BarChart3, Database, AlertCircle, Users, Target, Eye } from 'lucide-react';
 
 interface ScoreExplanationModalProps {
   healthScore: any;
@@ -73,10 +73,9 @@ export function ScoreExplanationModal({ healthScore, className = '' }: ScoreExpl
   };
 
   const weightings = {
-    'Core Health': 40,
-    'Market Stress': 20, 
-    'Correlations': 25,
-    'Confidence': 15
+    'Core Economic Momentum': 60,
+    'Inflation & Policy Balance': 25, 
+    'Forward-Looking Confidence': 15
   };
 
   return (
@@ -91,7 +90,7 @@ export function ScoreExplanationModal({ healthScore, className = '' }: ScoreExpl
         <DialogHeader>
           <DialogTitle className="text-xl text-white flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-blue-400" />
-            Economic Health Score Methodology
+            Economic Pulse Score - 3-Layer Methodology
           </DialogTitle>
         </DialogHeader>
 
@@ -140,8 +139,8 @@ export function ScoreExplanationModal({ healthScore, className = '' }: ScoreExpl
               <div className="space-y-3">
                 <h4 className="font-medium text-gray-200">What This Score Means</h4>
                 <div className="space-y-2 text-sm text-gray-300">
-                  <p>Your Economic Health Score synthesizes 9 key components using purely calculated data from government sources and market data.</p>
-                  <p>The score reflects current economic conditions, market stress levels, and data reliability - giving you a comprehensive view of economic health.</p>
+                  <p>Your Economic Pulse Score uses a revolutionary 3-layer validation-driven methodology with 6 core components from authentic government sources.</p>
+                  <p>The score prioritizes simplicity and predictive accuracy over complexity, focusing on Core Economic Momentum, Inflation & Policy Balance, and Forward-Looking Confidence.</p>
                 </div>
                 
                 <div className="bg-gray-800 p-3 rounded-lg">
@@ -175,50 +174,71 @@ export function ScoreExplanationModal({ healthScore, className = '' }: ScoreExpl
 
           <TabsContent value="components" className="space-y-4 mt-4">
             <div className="grid gap-4">
-              <ComponentExplanation
-                title="GDP Health"
-                score={healthScore?.gdpHealth || 0}
-                weight={15}
-                description="Measures economic growth strength based on GDP growth rate with trend analysis"
-                calculation="Base score 50 + Growth bonus (>2.5% = +30, >1.5% = +20, >0% = +10) + Trend consistency bonus up to 20 points"
-                icon={TrendingUp}
-              />
-              
-              <ComponentExplanation
-                title="Employment Health"
-                score={healthScore?.employmentHealth || 0}
-                weight={15}
-                description="Evaluates job market strength using unemployment rate and employment ratios"
-                calculation="Base score 50, adjusted by unemployment level (<4% = +30, <5% = +20, etc.) and employment population ratio benchmarks"
-                icon={Activity}
-              />
-              
-              <ComponentExplanation
-                title="Inflation Stability"
-                score={healthScore?.inflationStability || 0}
-                weight={10}
-                description="Assesses price stability using multiple inflation measures (CPI, PCE, PPI)"
-                calculation="Composite score from Core CPI, PCE, and PPI with 2% target optimization and volatility penalties"
-                icon={BarChart3}
-              />
-              
-              <ComponentExplanation
-                title="Correlation Alignment"
-                score={healthScore?.correlationAlignment || 0}
-                weight={15}
-                description="Measures how well economic indicators correlate as expected (GDP-Employment, GDP-Inflation)"
-                calculation="Pearson correlation analysis between key indicators vs expected relationships, weighted by importance"
-                icon={Database}
-              />
-              
-              <ComponentExplanation
-                title="Leading Consistency"
-                score={healthScore?.leadingConsistency || 0}
-                weight={10}
-                description="Evaluates trend consistency in forward-looking indicators (Treasury yields, housing starts)"
-                calculation="Trend strength analysis across leading indicators with consistency bonuses for sustained directions"
-                icon={TrendingUp}
-              />
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-200 text-lg">Layer 1: Core Economic Momentum (60%)</h4>
+                
+                <ComponentExplanation
+                  title="Growth Momentum"
+                  score={healthScore?.growthMomentum || 0}
+                  weight={25}
+                  description="GDP growth rate, housing starts, and construction spending trends"
+                  calculation="Weighted composite of GDP growth velocity, housing market strength, and construction activity with regime-adaptive scoring"
+                  icon={TrendingUp}
+                />
+                
+                <ComponentExplanation
+                  title="Financial Stress"
+                  score={healthScore?.financialStress || 0}
+                  weight={20}
+                  description="Credit spreads, treasury yield curve, and market volatility assessment"
+                  calculation="Inverse scoring of financial stress indicators including yield curve inversions, VIX levels, and credit market conditions"
+                  icon={AlertCircle}
+                />
+                
+                <ComponentExplanation
+                  title="Labor Health"
+                  score={healthScore?.laborHealth || 0}
+                  weight={15}
+                  description="Employment population ratio, nonfarm payrolls, and jobless claims"
+                  calculation="Composite employment strength using multiple labor indicators with dynamic regime detection"
+                  icon={Users}
+                />
+              </div>
+
+              <div className="space-y-3 mt-6">
+                <h4 className="font-medium text-gray-200 text-lg">Layer 2: Inflation & Policy Balance (25%)</h4>
+                
+                <ComponentExplanation
+                  title="Inflation Trajectory"
+                  score={healthScore?.inflationTrajectory || 0}
+                  weight={15}
+                  description="Core CPI, PCE, and PPI trend analysis relative to 2% target"
+                  calculation="Multi-measure inflation assessment with trend momentum and target distance scoring"
+                  icon={BarChart3}
+                />
+                
+                <ComponentExplanation
+                  title="Policy Effectiveness"
+                  score={healthScore?.policyEffectiveness || 0}
+                  weight={10}
+                  description="Federal funds rate positioning and monetary policy transmission"
+                  calculation="Assessment of policy rate appropriateness and economic response effectiveness"
+                  icon={Target}
+                />
+              </div>
+
+              <div className="space-y-3 mt-6">
+                <h4 className="font-medium text-gray-200 text-lg">Layer 3: Forward-Looking Confidence (15%)</h4>
+                
+                <ComponentExplanation
+                  title="Economic Expectations"
+                  score={healthScore?.economicExpectations || 0}
+                  weight={15}
+                  description="Consumer sentiment, business confidence, and leading indicators"
+                  calculation="Forward-looking indicator composite with confidence interval assessment and expectation stability"
+                  icon={Eye}
+                />
+              </div>
             </div>
           </TabsContent>
 
@@ -237,10 +257,11 @@ export function ScoreExplanationModal({ healthScore, className = '' }: ScoreExpl
               <div className="bg-gray-800 p-4 rounded-lg">
                 <h4 className="font-medium text-gray-200 mb-3">Calculation Approach</h4>
                 <div className="space-y-2 text-sm text-gray-300">
-                  <p><strong>Statistical Scoring:</strong> Components scored 0-100 based on historical percentiles</p>
-                  <p><strong>Weighted Aggregation:</strong> Core Health (40%), Correlations (25%), Market Stress (20%), Confidence (15%)</p>
-                  <p><strong>Dynamic Thresholds:</strong> Scoring bands adapt to current economic regime</p>
-                  <p><strong>Quality Controls:</strong> Data freshness and completeness factored into confidence scoring</p>
+                  <p><strong>3-Layer Architecture:</strong> Core Economic Momentum (60%), Inflation & Policy Balance (25%), Forward-Looking Confidence (15%)</p>
+                  <p><strong>Simplified Methodology:</strong> Focuses on 6 core components instead of complex multi-component calculations</p>
+                  <p><strong>Dynamic Regime Detection:</strong> Automatic economic regime identification (expansion/slowdown/recession/recovery) for adaptive weighting</p>
+                  <p><strong>Enhanced Predictive Accuracy:</strong> Prioritizes most predictive economic indicators rather than comprehensive coverage</p>
+                  <p><strong>Confidence Intervals:</strong> Statistical confidence scoring with 95% confidence intervals and data quality assessment</p>
                 </div>
               </div>
 

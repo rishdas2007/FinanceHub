@@ -88,10 +88,10 @@ export function EconomicHealthScoreAppendix() {
         <h2 className="text-lg font-semibold text-gray-400 mb-2">Appendix</h2>
         <h3 className="text-xl font-semibold text-white flex items-center gap-2">
           <Calculator className="h-5 w-5 text-blue-400" />
-          Economic Health Score Components
+          Economic Pulse Score - 3-Layer Methodology Components
         </h3>
         <p className="text-sm text-gray-400 mt-2">
-          Technical breakdown of statistical analysis components and data-driven weightings
+          Technical breakdown of the new simplified 3-layer validation-driven methodology focusing on Core Economic Momentum (60%), Inflation & Policy Balance (25%), and Forward-Looking Confidence (15%)
         </p>
       </div>
 
@@ -101,7 +101,7 @@ export function EconomicHealthScoreAppendix() {
           <CardHeader>
             <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
               <Calculator className="h-5 w-5 text-blue-400" />
-              Statistical Component Analysis
+              6-Component Statistical Analysis (New Methodology)
             </CardTitle>
           </CardHeader>
           <CardContent>

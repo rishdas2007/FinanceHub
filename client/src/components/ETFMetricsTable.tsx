@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { TrendingUp, TrendingDown, Activity, BarChart3, Zap, Volume2, DollarSign } from "lucide-react";
+import { TechnicalIndicatorLegend } from './TechnicalIndicatorLegend';
 
 interface ETFData {
   symbol: string;
@@ -240,10 +241,13 @@ export default function ETFMetricsTable() {
 
   return (
     <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6" data-testid="etf-metrics-table">
-      <div className="flex items-center gap-2 mb-3">
-        <BarChart3 className="h-5 w-5 text-blue-400" />
-        <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
-        <span className="text-sm text-gray-400">({etfMetrics.length} ETFs)</span>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-blue-400" />
+          <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
+          <span className="text-sm text-gray-400">({etfMetrics.length} ETFs)</span>
+        </div>
+        <TechnicalIndicatorLegend />
       </div>
 
       <div className="mb-4 p-3 bg-gray-800/50 rounded-lg border border-gray-600">

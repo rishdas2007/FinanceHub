@@ -96,7 +96,7 @@ export function SPYBaseline() {
         <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-600">
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-400">RSI:</span>
+              <span className="text-sm text-gray-400" title="Relative Strength Index (14-period). Fixed calculation ensures proper sample size validation.">RSI:</span>
               <Badge variant={
                 spyData.rsi > 70 ? 'destructive' : 
                 spyData.rsi < 30 ? 'default' : 'secondary'
@@ -105,7 +105,7 @@ export function SPYBaseline() {
               </Badge>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-400">Z-Score:</span>
+              <span className="text-sm text-gray-400" title="Z-Score using 20-day rolling window. Enhanced extreme value handling and improved scaling (zscore/2).">Z-Score:</span>
               <span className="text-sm font-medium text-white">
                 {spyData.zScore.toFixed(2)}
               </span>
