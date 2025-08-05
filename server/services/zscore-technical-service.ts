@@ -3,7 +3,8 @@ import {
   zscoreTechnicalIndicators, 
   rollingStatistics, 
   technicalIndicators,
-  historicalStockData 
+  historicalStockData,
+  historicalSectorData 
 } from '@shared/schema';
 import { desc, eq, and, gte, sql, lte } from 'drizzle-orm';
 import { logger } from '../middleware/logging';
@@ -163,30 +164,43 @@ class ZScoreTechnicalService {
     cutoffDate.setDate(cutoffDate.getDate() - lookbackDays);
     
     try {
+      // FIXED: Query historicalSectorData where we actually store the price data
       const priceData = await db
-        .select()
-        .from(historicalStockData)
+        .select({
+          symbol: historicalSectorData.symbol,
+          date: historicalSectorData.date,
+          price: historicalSectorData.price
+        })
+        .from(historicalSectorData)
         .where(
           and(
-            eq(historicalStockData.symbol, symbol),
-            gte(historicalStockData.date, cutoffDate)
+            eq(historicalSectorData.symbol, symbol),
+            gte(historicalSectorData.date, cutoffDate),
+            sql`price IS NOT NULL AND price > 0`
           )
         )
-        .orderBy(historicalStockData.date);
+        .orderBy(historicalSectorData.date);
+      
+      logger.info(`📊 Found ${priceData.length} price records for ${symbol} momentum calculation`);
       
       const momentum: Array<{ date: Date; priceChange: number }> = [];
       
       for (let i = 1; i < priceData.length; i++) {
-        const currentPrice = parseFloat(priceData[i].close.toString());
-        const previousPrice = parseFloat(priceData[i - 1].close.toString());
-        const priceChange = (currentPrice - previousPrice) / previousPrice;
+        // Use price field from historicalSectorData
+        const currentPrice = parseFloat(priceData[i].price?.toString() || '0');
+        const previousPrice = parseFloat(priceData[i - 1].price?.toString() || '0');
         
-        momentum.push({
-          date: priceData[i].date,
-          priceChange
-        });
+        if (currentPrice > 0 && previousPrice > 0) {
+          const priceChange = (currentPrice - previousPrice) / previousPrice;
+          
+          momentum.push({
+            date: priceData[i].date,
+            priceChange
+          });
+        }
       }
       
+      logger.info(`✅ Calculated ${momentum.length} price momentum points for ${symbol}`);
       return momentum;
     } catch (error) {
       logger.error(`Error calculating price momentum for ${symbol}:`, error);
