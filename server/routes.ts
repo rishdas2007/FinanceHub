@@ -161,12 +161,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await dataConversionService.convertHistoricalDataToTechnical(symbols);
       
       // Step 3: Calculate Z-scores with the new technical indicators
-      const { ZScoreTechnicalService } = await import('./services/zscore-technical-service');
-      const zscoreService = ZScoreTechnicalService.getInstance();
+      const { zscoreTechnicalService } = await import('./services/zscore-technical-service');
       
       const zscoreResults = [];
       for (const symbol of symbols) {
-        const zscoreData = await zscoreService.calculateZScores(symbol);
+        const zscoreData = await zscoreTechnicalService.calculateZScores(symbol);
         zscoreResults.push({ symbol, zscoreData });
       }
       
