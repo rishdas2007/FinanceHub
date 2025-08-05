@@ -272,11 +272,9 @@ class ETFMetricsService {
         vwapSignal: this.getVWAPSignal(technical, sector, momentumETF),
         obvTrend: momentumETF?.signal ? this.parseOBVFromSignal(momentumETF.signal) : 'neutral',
         
-        // Weighted Technical Indicator Scoring System (will be filled by weighted calculation)
-        weightedScore: 0,
-        weightedSignal: 'HOLD',
-        
-        // Z-Score data (will be filled by weighted calculation)
+        // Initialize properties for Z-score system
+        weightedScore: null,
+        weightedSignal: null,
         zScoreData: null
       };
 
@@ -407,8 +405,9 @@ class ETFMetricsService {
    * Implements Z-score normalized weighting for scale independence and statistical consistency
    */
   private async calculateWeightedTechnicalScore(metrics: any, momentumETF?: any): Promise<{ score: number; signal: string; zScoreData: any }> {
-    // First, try to get Z-score data for this ETF
-    const zScoreData = await zscoreTechnicalService.getLatestZScoreData(metrics.symbol);
+    // First, process Z-score calculations for this ETF
+    console.log(`🔄 Calculating Z-scores for ${metrics.symbol}...`);
+    const zScoreData = await zscoreTechnicalService.processETFZScores(metrics.symbol);
     
     if (zScoreData && zScoreData.compositeZScore !== null) {
       // Use Z-score system with momentum-focused weights

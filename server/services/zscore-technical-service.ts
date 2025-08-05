@@ -280,26 +280,19 @@ class ZScoreTechnicalService {
       const atrZScore = latestAtrStats ? this.calculateZScore(currentAtr, latestAtrStats.mean, latestAtrStats.stdDev) : null;
       const maTrendZScore = latestMaTrendStats ? this.calculateZScore(currentMaTrend, latestMaTrendStats.mean, latestMaTrendStats.stdDev) : null;
       
-      // Debug MA Trend calculation
-      if (symbol === 'SPY') {
-        logger.info(`🔍 MA Trend Debug for ${symbol}:`, {
-          currentSMA20: parseFloat(latest.sma_20?.toString() || '0'),
-          currentSMA50: parseFloat(latest.sma_50?.toString() || '0'),
-          currentMaTrend,
-          maTrendDataPoints: maTrendValues.length,
-          historicalTechLength: historicalTech.length,
-          historicalSMA50Records: historicalTech.filter(h => h.sma_50 !== null && h.sma_50 !== '').length,
-          latestMaTrendStats: latestMaTrendStats ? {
-            mean: latestMaTrendStats.mean,
-            stdDev: latestMaTrendStats.stdDev
-          } : null,
-          maTrendZScore,
-          sampleMaTrendValues: maTrendValues.slice(-5).map(v => ({ 
-            date: v.date.toISOString().split('T')[0], 
-            value: v.value 
-          }))
-        });
+      // Debug MA Trend calculation with immediate console output
+      console.log(`🔍 MA TREND DEBUG FOR ${symbol}:`);
+      console.log(`  Current SMA20: ${parseFloat(latest.sma_20?.toString() || '0')}`);
+      console.log(`  Current SMA50: ${parseFloat(latest.sma_50?.toString() || '0')}`);
+      console.log(`  Current MA Trend: ${currentMaTrend}`);
+      console.log(`  MA Trend Data Points: ${maTrendValues.length}`);
+      console.log(`  Has MA Trend Stats: ${latestMaTrendStats ? 'YES' : 'NO'}`);
+      if (latestMaTrendStats) {
+        console.log(`  MA Trend Mean: ${latestMaTrendStats.mean}`);
+        console.log(`  MA Trend StdDev: ${latestMaTrendStats.stdDev}`);
       }
+      console.log(`  MA Trend Z-Score: ${maTrendZScore}`);
+      console.log(`  Sample Values:`, maTrendValues.slice(-3).map(v => v.value));
       const priceMomentumZScore = latestPriceStats ? this.calculateZScore(currentPriceChange, latestPriceStats.mean, latestPriceStats.stdDev) : null;
 
       // Calculate composite Z-score with weights
