@@ -48,6 +48,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Data Sufficiency and Backfill Management endpoints
   app.use('/api/data-sufficiency', (await import('./routes/data-sufficiency-routes')).default);
   
+  // Optimized Backfill Execution endpoints
+  app.use('/api/backfill', (await import('./routes/backfill-routes')).backfillRoutes);
+  
 
   
   // Week 2-4 Performance Optimization endpoints

@@ -46,9 +46,9 @@ interface DataSufficiencyReport {
  */
 export class HistoricalDataBackfillService {
   private financialDataService: FinancialDataService;
-  private readonly TWELVE_DATA_RATE_LIMIT = 8; // 8 calls per minute for free tier
-  private readonly API_DELAY_MS = 8000; // 8 seconds between calls to stay under limit
-  private readonly MAX_DAILY_API_CALLS = 800; // Conservative daily limit
+  private readonly TWELVE_DATA_RATE_LIMIT = 120; // Updated to 120 calls per minute (aggressive rate from strategy)
+  private readonly API_DELAY_MS = 500; // 500ms between calls for 120 calls/minute
+  private readonly MAX_DAILY_API_CALLS = 207360; // Updated daily limit based on strategy
   
   // Data sufficiency requirements based on attached analysis
   private readonly MIN_OBSERVATIONS = {
