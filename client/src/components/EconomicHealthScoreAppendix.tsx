@@ -130,13 +130,16 @@ export function EconomicHealthScoreAppendix() {
                     <div className="text-gray-400 text-xs">Weight: 25%</div>
                   </div>
                 </div>
-                <div className="bg-gray-900 p-3 rounded border border-blue-600/30">
-                  <div className="text-blue-300 font-medium mb-2 text-sm">Calculation:</div>
-                  <div className="font-mono text-xs space-y-1">
-                    <div>Growth Score = (1.22 × 0.40) + (1.13 × 0.35) + (-1.69 × 0.25)</div>
-                    <div>Growth Score = 0.488 + 0.396 - 0.423 = <span className="text-green-400 font-bold">0.461</span></div>
-                    <div>Normalized (0-100): <span className="text-green-400 font-bold">68 points</span></div>
-                    <div className="text-blue-400">Contribution: 68 × 0.25 × 0.60 = <span className="font-bold">10.2 points</span></div>
+                <div className="bg-slate-800 p-4 rounded-lg border border-blue-500/50">
+                  <div className="text-blue-200 font-semibold mb-3 text-base">Calculation:</div>
+                  <div className="font-mono text-sm space-y-2 text-gray-100">
+                    <div className="bg-slate-700/50 p-2 rounded">Growth Score = (1.22 × 0.40) + (1.13 × 0.35) + (-1.69 × 0.25)</div>
+                    <div className="bg-slate-700/50 p-2 rounded">Growth Score = 0.488 + 0.396 - 0.423 = <span className="text-green-300 font-bold text-base">0.461</span></div>
+                    <div className="bg-slate-700/50 p-2 rounded">Normalized (0-100): <span className="text-green-300 font-bold text-base">68 points</span></div>
+                    <div className="bg-blue-900/40 p-2 rounded border border-blue-400/30">
+                      <span className="text-blue-200">Final Contribution: 68 × 0.25 × 0.60 = </span>
+                      <span className="font-bold text-lg text-blue-300">10.2 points</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -164,12 +167,15 @@ export function EconomicHealthScoreAppendix() {
                     <div className="text-gray-400 text-xs">Weight: 20%</div>
                   </div>
                 </div>
-                <div className="bg-gray-900 p-3 rounded border border-blue-600/30">
-                  <div className="text-blue-300 font-medium mb-2 text-sm">Calculation (Inverse Stress):</div>
-                  <div className="font-mono text-xs space-y-1">
-                    <div>Stress = (0.00 × 0.50) + (-0.8 × 0.30) + (0.00 × 0.20) = -0.240</div>
-                    <div>Inverted: <span className="text-green-400 font-bold">+0.240</span> → <span className="text-green-400 font-bold">72 points</span></div>
-                    <div className="text-blue-400">Contribution: 72 × 0.20 × 0.60 = <span className="font-bold">8.6 points</span></div>
+                <div className="bg-slate-800 p-4 rounded-lg border border-blue-500/50">
+                  <div className="text-blue-200 font-semibold mb-3 text-base">Calculation (Inverse Stress):</div>
+                  <div className="font-mono text-sm space-y-2 text-gray-100">
+                    <div className="bg-slate-700/50 p-2 rounded">Stress = (0.00 × 0.50) + (-0.8 × 0.30) + (0.00 × 0.20) = -0.240</div>
+                    <div className="bg-slate-700/50 p-2 rounded">Inverted: <span className="text-green-300 font-bold text-base">+0.240</span> → <span className="text-green-300 font-bold text-base">72 points</span></div>
+                    <div className="bg-blue-900/40 p-2 rounded border border-blue-400/30">
+                      <span className="text-blue-200">Final Contribution: 72 × 0.20 × 0.60 = </span>
+                      <span className="font-bold text-lg text-blue-300">8.6 points</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -197,12 +203,15 @@ export function EconomicHealthScoreAppendix() {
                     <div className="text-gray-400 text-xs">Weight: 20%</div>
                   </div>
                 </div>
-                <div className="bg-gray-900 p-3 rounded border border-blue-600/30">
-                  <div className="text-blue-300 font-medium mb-2 text-sm">Calculation:</div>
-                  <div className="font-mono text-xs space-y-1">
-                    <div>Labor = (-1.31 × 0.40) + (-0.33 × 0.40) + (-0.77 × 0.20) = -0.810</div>
-                    <div>Normalized: <span className="text-red-400 font-bold">42 points</span></div>
-                    <div className="text-blue-400">Contribution: 42 × 0.15 × 0.60 = <span className="font-bold">3.8 points</span></div>
+                <div className="bg-slate-800 p-4 rounded-lg border border-blue-500/50">
+                  <div className="text-blue-200 font-semibold mb-3 text-base">Calculation:</div>
+                  <div className="font-mono text-sm space-y-2 text-gray-100">
+                    <div className="bg-slate-700/50 p-2 rounded">Labor = (-1.31 × 0.40) + (-0.33 × 0.40) + (-0.77 × 0.20) = -0.810</div>
+                    <div className="bg-slate-700/50 p-2 rounded">Normalized: <span className="text-red-300 font-bold text-base">42 points</span></div>
+                    <div className="bg-blue-900/40 p-2 rounded border border-blue-400/30">
+                      <span className="text-blue-200">Final Contribution: 42 × 0.15 × 0.60 = </span>
+                      <span className="font-bold text-lg text-blue-300">3.8 points</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -247,13 +256,16 @@ export function EconomicHealthScoreAppendix() {
                     <div className="text-gray-400 text-xs">Weight: 15%</div>
                   </div>
                 </div>
-                <div className="bg-gray-900 p-3 rounded border border-blue-600/30">
-                  <div className="text-blue-300 font-medium mb-2 text-sm">Calculation (Target Distance Penalty):</div>
-                  <div className="font-mono text-xs space-y-1">
-                    <div>Inflation = (0.83 × 0.50) + (0.24 × 0.35) + (0.38 × 0.15) = +0.556</div>
-                    <div>Target Penalty (above 2%): 0.556 × 0.85 = <span className="text-yellow-400 font-bold">+0.473</span></div>
-                    <div>Normalized: <span className="text-yellow-400 font-bold">65 points</span></div>
-                    <div className="text-blue-400">Contribution: 65 × 0.15 = <span className="font-bold">9.8 points</span></div>
+                <div className="bg-slate-800 p-4 rounded-lg border border-blue-500/50">
+                  <div className="text-blue-200 font-semibold mb-3 text-base">Calculation (Target Distance Penalty):</div>
+                  <div className="font-mono text-sm space-y-2 text-gray-100">
+                    <div className="bg-slate-700/50 p-2 rounded">Inflation = (0.83 × 0.50) + (0.24 × 0.35) + (0.38 × 0.15) = +0.556</div>
+                    <div className="bg-slate-700/50 p-2 rounded">Target Penalty (above 2%): 0.556 × 0.85 = <span className="text-yellow-300 font-bold text-base">+0.473</span></div>
+                    <div className="bg-slate-700/50 p-2 rounded">Normalized: <span className="text-yellow-300 font-bold text-base">65 points</span></div>
+                    <div className="bg-blue-900/40 p-2 rounded border border-blue-400/30">
+                      <span className="text-blue-200">Final Contribution: 65 × 0.15 = </span>
+                      <span className="font-bold text-lg text-blue-300">9.8 points</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -275,11 +287,14 @@ export function EconomicHealthScoreAppendix() {
                     <div className="text-gray-400 text-xs">Weight: 30%</div>
                   </div>
                 </div>
-                <div className="bg-gray-900 p-3 rounded border border-blue-600/30">
-                  <div className="text-blue-300 font-medium mb-2 text-sm">Calculation:</div>
-                  <div className="font-mono text-xs space-y-1">
-                    <div>Policy = (75 × 0.70) + (75 × 0.30) = <span className="text-yellow-400 font-bold">75 points</span></div>
-                    <div className="text-blue-400">Contribution: 75 × 0.10 = <span className="font-bold">7.5 points</span></div>
+                <div className="bg-slate-800 p-4 rounded-lg border border-blue-500/50">
+                  <div className="text-blue-200 font-semibold mb-3 text-base">Calculation:</div>
+                  <div className="font-mono text-sm space-y-2 text-gray-100">
+                    <div className="bg-slate-700/50 p-2 rounded">Policy = (75 × 0.70) + (75 × 0.30) = <span className="text-yellow-300 font-bold text-base">75 points</span></div>
+                    <div className="bg-blue-900/40 p-2 rounded border border-blue-400/30">
+                      <span className="text-blue-200">Final Contribution: 75 × 0.10 = </span>
+                      <span className="font-bold text-lg text-blue-300">7.5 points</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -318,11 +333,14 @@ export function EconomicHealthScoreAppendix() {
                     <div className="text-gray-400 text-xs">Weight: 40%</div>
                   </div>
                 </div>
-                <div className="bg-gray-900 p-3 rounded border border-blue-600/30">
-                  <div className="text-blue-300 font-medium mb-2 text-sm">Calculation:</div>
-                  <div className="font-mono text-xs space-y-1">
-                    <div>Expectations = (60 × 0.60) + (72 × 0.40) = <span className="text-blue-400 font-bold">64.8 points</span></div>
-                    <div className="text-blue-400">Contribution: 64.8 × 0.15 = <span className="font-bold">9.7 points</span></div>
+                <div className="bg-slate-800 p-4 rounded-lg border border-blue-500/50">
+                  <div className="text-blue-200 font-semibold mb-3 text-base">Calculation:</div>
+                  <div className="font-mono text-sm space-y-2 text-gray-100">
+                    <div className="bg-slate-700/50 p-2 rounded">Expectations = (60 × 0.60) + (72 × 0.40) = <span className="text-blue-300 font-bold text-base">64.8 points</span></div>
+                    <div className="bg-blue-900/40 p-2 rounded border border-blue-400/30">
+                      <span className="text-blue-200">Final Contribution: 64.8 × 0.15 = </span>
+                      <span className="font-bold text-lg text-blue-300">9.7 points</span>
+                    </div>
                   </div>
                 </div>
               </div>
