@@ -7,7 +7,7 @@ import { AIEconomicAnalysis } from "@/components/AIEconomicAnalysis";
 import { StatisticalAlertSystem } from "@/components/StatisticalAlertSystem";
 import { EconomicPulseCheck } from "@/components/EconomicPulseCheck";
 import ETFMetricsTable from "@/components/ETFMetricsTable";
-import { EnhancedEconomicHealthDashboard } from "@/components/EnhancedEconomicHealthDashboard";
+
 import { EconomicHealthScoreAppendix } from "@/components/EconomicHealthScoreAppendix";
 
 import { MoodDataSources } from "@/components/MoodDataSources";
@@ -86,7 +86,7 @@ export default function Dashboard() {
         <ETFMetricsTable />
 
         {/* Enhanced Economic Health Dashboard - Original + Statistical Methods */}
-        <EnhancedEconomicHealthDashboard />
+
 
         {/* Economic Analysis - 2x5 grid above Momentum Analysis */}
         <EconomicPulseCheck />
