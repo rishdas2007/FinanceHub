@@ -139,27 +139,27 @@ class DataConversionServiceImpl implements DataConversionService {
     const lows = historicalWindow.map(d => parseFloat(d.low));
     const volumes = historicalWindow.map(d => parseFloat(d.volume || 0));
     
-    // Simple Moving Averages
+    // Simple Moving Averages - Use fixed periods for indicator integrity
     const sma_20 = this.calculateSMA(closes, 20);
-    const sma_50 = this.calculateSMA(closes, Math.min(50, closes.length));
+    const sma_50 = this.calculateSMA(closes, 50);
     
-    // RSI (14-period)
-    const rsi = this.calculateRSI(closes, Math.min(14, closes.length - 1));
+    // RSI (14-period) - Fixed period requirement
+    const rsi = this.calculateRSI(closes, 14);
     
-    // MACD (12, 26, 9)
+    // MACD (12, 26, 9) - Fixed periods for accurate calculation
     const { macd, signal } = this.calculateMACD(closes);
     
-    // Bollinger Bands
+    // Bollinger Bands (20-period) - Standard period
     const { upper, middle, lower, percent_b } = this.calculateBollingerBands(closes, 20, 2);
     
-    // ATR (14-period)
-    const atr = this.calculateATR(highs, lows, closes, Math.min(14, closes.length - 1));
+    // ATR (14-period) - Fixed period requirement  
+    const atr = this.calculateATR(highs, lows, closes, 14);
     
-    // Williams %R (14-period)
-    const willr = this.calculateWilliamsR(highs, lows, closes, Math.min(14, closes.length));
+    // Williams %R (14-period) - Fixed period requirement
+    const willr = this.calculateWilliamsR(highs, lows, closes, 14);
     
-    // Stochastic %K and %D
-    const { stoch_k, stoch_d } = this.calculateStochastic(highs, lows, closes, Math.min(14, closes.length));
+    // Stochastic %K and %D (14-period) - Fixed period requirement
+    const { stoch_k, stoch_d } = this.calculateStochastic(highs, lows, closes, 14);
     
     // VWAP
     const vwap = this.calculateVWAP(closes, highs, lows, volumes);
@@ -211,7 +211,8 @@ class DataConversionServiceImpl implements DataConversionService {
   }
 
   private calculateMACD(closes: number[]): { macd: number | null; signal: number | null } {
-    if (closes.length < 26) return { macd: null, signal: null };
+    // Need at least 52 data points for proper MACD (26*2 for EMA seeding)
+    if (closes.length < 52) return { macd: null, signal: null };
     
     const ema12 = this.calculateEMA(closes, 12);
     const ema26 = this.calculateEMA(closes, 26);
@@ -225,12 +226,16 @@ class DataConversionServiceImpl implements DataConversionService {
   }
 
   private calculateEMA(values: number[], period: number): number | null {
-    if (values.length < period) return null;
+    // Need at least 2x period for proper EMA seeding
+    if (values.length < period * 2) return null;
     
     const multiplier = 2 / (period + 1);
-    let ema = values[0];
     
-    for (let i = 1; i < values.length; i++) {
+    // Seed with SMA of first 'period' values (proper EMA initialization)
+    let ema = values.slice(0, period).reduce((sum, val) => sum + val, 0) / period;
+    
+    // Apply EMA to remaining values starting from period index
+    for (let i = period; i < values.length; i++) {
       ema = (values[i] * multiplier) + (ema * (1 - multiplier));
     }
     
