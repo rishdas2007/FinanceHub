@@ -72,7 +72,9 @@ class ZScoreTechnicalService {
    * Calculate Z-Score: (Current Value - 20-day Mean) / 20-day Standard Deviation
    */
   private calculateZScore(currentValue: number, mean: number, stdDev: number): number {
-    if (stdDev === 0) return 0; // Avoid division by zero
+    if (stdDev === 0 || isNaN(stdDev) || isNaN(currentValue) || isNaN(mean)) {
+      return 0; // Avoid division by zero or NaN values
+    }
     return (currentValue - mean) / stdDev;
   }
 
@@ -221,7 +223,10 @@ class ZScoreTechnicalService {
         .map(h => ({ date: h.timestamp, value: parseFloat(h.atr?.toString() || '0') }));
       
       const maTrendValues = historicalTech
-        .filter(h => h.sma_20 !== null && h.sma_50 !== null)
+        .filter(h => h.sma_20 !== null && h.sma_50 !== null && 
+                     h.sma_20 !== '' && h.sma_50 !== '' &&
+                     parseFloat(h.sma_20?.toString() || '0') > 0 && 
+                     parseFloat(h.sma_50?.toString() || '0') > 0)
         .map(h => ({
           date: h.timestamp,
           value: parseFloat(h.sma_20?.toString() || '0') - parseFloat(h.sma_50?.toString() || '0')
@@ -260,6 +265,27 @@ class ZScoreTechnicalService {
       const bollingerZScore = latestBollingerStats ? this.calculateZScore(currentPercentB, latestBollingerStats.mean, latestBollingerStats.stdDev) : null;
       const atrZScore = latestAtrStats ? this.calculateZScore(currentAtr, latestAtrStats.mean, latestAtrStats.stdDev) : null;
       const maTrendZScore = latestMaTrendStats ? this.calculateZScore(currentMaTrend, latestMaTrendStats.mean, latestMaTrendStats.stdDev) : null;
+      
+      // Debug MA Trend calculation
+      if (symbol === 'SPY') {
+        logger.info(`🔍 MA Trend Debug for ${symbol}:`, {
+          currentSMA20: parseFloat(latest.sma_20?.toString() || '0'),
+          currentSMA50: parseFloat(latest.sma_50?.toString() || '0'),
+          currentMaTrend,
+          maTrendDataPoints: maTrendValues.length,
+          historicalTechLength: historicalTech.length,
+          historicalSMA50Records: historicalTech.filter(h => h.sma_50 !== null && h.sma_50 !== '').length,
+          latestMaTrendStats: latestMaTrendStats ? {
+            mean: latestMaTrendStats.mean,
+            stdDev: latestMaTrendStats.stdDev
+          } : null,
+          maTrendZScore,
+          sampleMaTrendValues: maTrendValues.slice(-5).map(v => ({ 
+            date: v.date.toISOString().split('T')[0], 
+            value: v.value 
+          }))
+        });
+      }
       const priceMomentumZScore = latestPriceStats ? this.calculateZScore(currentPriceChange, latestPriceStats.mean, latestPriceStats.stdDev) : null;
 
       // Calculate composite Z-score with weights
