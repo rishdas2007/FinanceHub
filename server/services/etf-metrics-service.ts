@@ -37,6 +37,7 @@ export interface ETFMetrics {
   // Moving Average (Trend)
   maSignal: string;
   maTrend: 'bullish' | 'bearish' | 'neutral';
+  maGap: number | null; // SMA_20 - SMA_50 gap value
   // RSI (Momentum)
   rsi: number | null;
   rsiSignal: string;
@@ -263,6 +264,14 @@ class ETFMetricsService {
         });
       }
 
+      // Log MA gap calculations to identify placeholder data
+      if (technical?.sma_20 && technical?.sma_50) {
+        const gap = parseFloat((parseFloat(technical.sma_20) - parseFloat(technical.sma_50)).toFixed(2));
+        if (gap === 5.00) {
+          logger.warn(`⚠️ PLACEHOLDER DATA DETECTED: ${symbol} has suspicious MA gap of exactly 5.00 (SMA20: ${technical.sma_20}, SMA50: ${technical.sma_50})`);
+        }
+      }
+
       const metrics = {
         symbol,
         name: this.ETF_NAMES[symbol as keyof typeof this.ETF_NAMES] || symbol,
@@ -363,8 +372,16 @@ class ETFMetricsService {
       });
       return null;
     }
+    
     const sma20 = parseFloat(technical.sma_20);
     const sma50 = parseFloat(technical.sma_50);
+    
+    // Check for invalid values
+    if (isNaN(sma20) || isNaN(sma50)) {
+      logger.warn(`Invalid SMA values for ${technical?.symbol}:`, { sma20, sma50 });
+      return null;
+    }
+    
     const gap = parseFloat((sma20 - sma50).toFixed(2));
     logger.info(`✅ MA Gap calculated for ${technical?.symbol}: ${gap} (SMA20: ${sma20}, SMA50: ${sma50})`);
     return gap;
