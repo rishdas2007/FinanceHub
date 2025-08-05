@@ -145,6 +145,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Z-Score Technical Analysis API - Statistical normalized indicator analysis
+  app.get('/api/zscore-technical', async (req, res) => {
+    try {
+      console.log('🔍 Fast Dashboard Route: GET /api/zscore-technical');
+      const { zscoreTechnicalService } = await import('./services/zscore-technical-service');
+      const data = await zscoreTechnicalService.processAllETFZScores();
+      
+      res.json({
+        success: true,
+        data,
+        count: data.length,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('Failed to get Z-Score technical analysis:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to generate Z-Score technical analysis',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
   
   // Convert historical OHLCV data to technical indicators for Z-score calculations
   app.post('/api/convert-historical-data', async (req, res) => {

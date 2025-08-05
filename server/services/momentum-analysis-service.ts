@@ -1,4 +1,6 @@
 import { db } from '../db';
+import { zscoreTechnicalIndicators } from '../../shared/schema';
+import { eq, desc } from 'drizzle-orm';
 
 interface SectorETF {
   symbol: string;
@@ -110,9 +112,9 @@ export class MomentumAnalysisService {
       const sharpeRatio = this.getVerifiedSharpeRatio(sector.symbol);
       
       // Use real-time z-score calculations
-      const zScore = this.calculateZScore(sector, sectorHistory);
+      const zScore = await this.calculateZScore(sector, sectorHistory);
       const fiveDayZScore = this.calculateFiveDayZScore(sector, sectorHistory);
-      console.log(`📊 Calculated z-score for ${sector.symbol}: ${zScore} (live calculation from ${validPrices.length} historical records)`);
+      console.log(`📊 Calculated z-score for ${sector.symbol}: ${zScore.toFixed(4)} (database or live calculation)`);
       
       // Correlation with SPY
       const sectorReturns = this.calculateDailyReturns(sectorHistory);
@@ -357,14 +359,32 @@ export class MomentumAnalysisService {
    * Calculate z-score: (current_price - rolling_mean_20) / rolling_std_20
    * Uses verified Z-scores when historical data is insufficient
    */
-  private calculateZScore(sector: SectorETF, sectorHistory: HistoricalData[]): number {
-    // Validate input data - filter out invalid prices
+  private async calculateZScore(sector: SectorETF, sectorHistory: HistoricalData[]): Promise<number> {
+    try {
+      // First, try to get the composite Z-score from the zscore_technical_indicators table
+      const latestZScore = await db
+        .select()
+        .from(zscoreTechnicalIndicators)
+        .where(eq(zscoreTechnicalIndicators.symbol, sector.symbol))
+        .orderBy(desc(zscoreTechnicalIndicators.date))
+        .limit(1);
+      
+      if (latestZScore.length > 0 && latestZScore[0].compositeZScore) {
+        const zScore = parseFloat(latestZScore[0].compositeZScore.toString());
+        console.log(`✅ Using database Z-score for ${sector.symbol}: ${zScore.toFixed(4)}`);
+        return zScore;
+      }
+      console.log(`⚠️ No Z-score found in database for ${sector.symbol}, calculating from price data`);
+    } catch (error) {
+      console.log(`⚠️ Error fetching Z-score for ${sector.symbol}:`, error);
+    }
+    
+    // Fallback to price-based calculation
     const validPrices = sectorHistory
       .filter(h => h.price && h.price > 0 && !isNaN(h.price) && h.price < 1000000)
       .map(h => h.price);
       
     if (validPrices.length < 20) {
-      // Reject calculation with insufficient data instead of using fallback values
       console.log(`📊 Insufficient historical data for ${sector.symbol}: ${validPrices.length} records, minimum 20 required`);
       return 0; // Return neutral Z-score instead of fallback
     }

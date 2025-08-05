@@ -164,22 +164,22 @@ class ZScoreTechnicalService {
     cutoffDate.setDate(cutoffDate.getDate() - lookbackDays);
     
     try {
-      // FIXED: Query historicalSectorData where we actually store the price data
+      // FIXED: Query historicalStockData where we actually store the price data
       const priceData = await db
         .select({
-          symbol: historicalSectorData.symbol,
-          date: historicalSectorData.date,
-          price: historicalSectorData.price
+          symbol: historicalStockData.symbol,
+          date: historicalStockData.date,
+          price: historicalStockData.price
         })
-        .from(historicalSectorData)
+        .from(historicalStockData)
         .where(
           and(
-            eq(historicalSectorData.symbol, symbol),
-            gte(historicalSectorData.date, cutoffDate),
+            eq(historicalStockData.symbol, symbol),
+            gte(historicalStockData.date, cutoffDate),
             sql`price IS NOT NULL AND price > 0`
           )
         )
-        .orderBy(historicalSectorData.date);
+        .orderBy(historicalStockData.date);
       
       logger.info(`📊 Found ${priceData.length} price records for ${symbol} momentum calculation`);
       
