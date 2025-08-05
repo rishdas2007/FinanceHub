@@ -1,5 +1,6 @@
 import { db } from '../db';
-
+import { zscoreTechnicalIndicators } from '../../shared/schema';
+import { eq, desc } from 'drizzle-orm';
 import { historicalDataFetcher } from './historical-data-fetcher';
 
 interface SectorETF {
@@ -111,7 +112,7 @@ export class SimplifiedSectorAnalysisService {
       console.log(`📊 Processing ${sector.symbol}: ${sectorHistory.length} historical records`);
       
       // Calculate metrics following Python template methodology
-      const metrics = this.calculateVerifiedMetrics(sector, sectorHistory);
+      const metrics = await this.calculateVerifiedMetrics(sector, sectorHistory);
       
       // Calculate correlation to SPY (simplified)
       const correlationToSPY = this.calculateCorrelationToSPY(sector, spySector);
@@ -151,14 +152,14 @@ export class SimplifiedSectorAnalysisService {
   /**
    * Get verified metrics from accuracy check document with REAL-TIME Z-SCORE CALCULATIONS
    */
-  private calculateVerifiedMetrics(sector: SectorETF, sectorHistory: HistoricalData[]) {
+  private async calculateVerifiedMetrics(sector: SectorETF, sectorHistory: HistoricalData[]) {
     // USE ONLY VERIFIED VALUES FROM ACCURACY CHECK DOCUMENT FOR STATIC METRICS
     const annualReturn = this.getVerifiedAnnualReturn(sector.symbol);
     const volatility = this.getVerifiedVolatility(sector.symbol);
     const sharpeRatio = this.getVerifiedSharpeRatio(sector.symbol);
     
     // USE REAL-TIME CALCULATION FOR Z-SCORE INSTEAD OF HARDCODED VALUES
-    const zScore = this.calculateZScore(sector, sectorHistory);
+    const zScore = await this.calculateZScore(sector, sectorHistory);
 
     console.log(`📊 VERIFIED METRICS for ${sector.symbol}: Return=${annualReturn}%, Volatility=${volatility}%, Sharpe=${sharpeRatio}, Z-Score=${zScore}`);
 
@@ -219,9 +220,30 @@ export class SimplifiedSectorAnalysisService {
 
   /**
    * Calculate z-score: (current_price - rolling_mean_20) / rolling_std_20
-   * Enhanced with proper statistical methods and data validation
+   * Enhanced with database lookup and proper statistical methods
    */
-  private calculateZScore(sector: SectorETF, sectorHistory: HistoricalData[]): number {
+  private async calculateZScore(sector: SectorETF, sectorHistory: HistoricalData[]): Promise<number> {
+    try {
+      // First, try to get the composite Z-score from the zscore_technical_indicators table
+      console.log(`🔍 Looking up Z-score for ${sector.symbol} in database...`);
+      const latestZScore = await db
+        .select()
+        .from(zscoreTechnicalIndicators)
+        .where(eq(zscoreTechnicalIndicators.symbol, sector.symbol))
+        .orderBy(desc(zscoreTechnicalIndicators.date))
+        .limit(1);
+      
+      console.log(`🔍 Database query result for ${sector.symbol}:`, latestZScore.length, 'records found');
+      
+      if (latestZScore.length > 0 && latestZScore[0].compositeZScore !== null) {
+        const zScore = parseFloat(latestZScore[0].compositeZScore.toString());
+        console.log(`✅ Using database Z-score for ${sector.symbol}: ${zScore.toFixed(4)}`);
+        return zScore;
+      }
+      console.log(`⚠️ No Z-score found in database for ${sector.symbol}, calculating from price data`);
+    } catch (error) {
+      console.log(`⚠️ Error fetching Z-score for ${sector.symbol}:`, error.message);
+    }
     // Validate input data - filter out invalid prices
     const validPrices = sectorHistory
       .filter(h => h.price && h.price > 0 && !isNaN(h.price) && h.price < 1000000)

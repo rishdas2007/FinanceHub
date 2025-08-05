@@ -362,6 +362,7 @@ export class MomentumAnalysisService {
   private async calculateZScore(sector: SectorETF, sectorHistory: HistoricalData[]): Promise<number> {
     try {
       // First, try to get the composite Z-score from the zscore_technical_indicators table
+      console.log(`🔍 Looking up Z-score for ${sector.symbol} in database...`);
       const latestZScore = await db
         .select()
         .from(zscoreTechnicalIndicators)
@@ -369,14 +370,16 @@ export class MomentumAnalysisService {
         .orderBy(desc(zscoreTechnicalIndicators.date))
         .limit(1);
       
-      if (latestZScore.length > 0 && latestZScore[0].compositeZScore) {
+      console.log(`🔍 Database query result for ${sector.symbol}:`, latestZScore.length, 'records found');
+      
+      if (latestZScore.length > 0 && latestZScore[0].compositeZScore !== null) {
         const zScore = parseFloat(latestZScore[0].compositeZScore.toString());
         console.log(`✅ Using database Z-score for ${sector.symbol}: ${zScore.toFixed(4)}`);
         return zScore;
       }
       console.log(`⚠️ No Z-score found in database for ${sector.symbol}, calculating from price data`);
     } catch (error) {
-      console.log(`⚠️ Error fetching Z-score for ${sector.symbol}:`, error);
+      console.log(`⚠️ Error fetching Z-score for ${sector.symbol}:`, error.message);
     }
     
     // Fallback to price-based calculation
