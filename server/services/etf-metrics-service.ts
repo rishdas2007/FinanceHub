@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { technicalIndicators, sectorData, historicalTechnicalIndicators, zscoreTechnicalIndicators } from '@shared/schema';
+import { technicalIndicators, zscoreTechnicalIndicators } from '@shared/schema';
 import { desc, eq, and, gte } from 'drizzle-orm';
 import { cacheService } from './cache-unified';
 import { logger } from '../middleware/logging';
@@ -115,14 +115,14 @@ class ETFMetricsService {
       }
 
       // 2. Fetch from database (prioritized)
-      const [dbTechnicals, dbSectorData, momentumData] = await Promise.all([
+      const [dbTechnicals, dbZScoreData, momentumData] = await Promise.all([
         this.getLatestTechnicalIndicatorsFromDB(),
-        this.getLatestSectorDataFromDB(),
+        this.getLatestZScoreDataFromDB(),
         this.getMomentumDataFromCache()
       ]);
 
       // 3. Consolidate data
-      const etfMetrics = await this.consolidateETFMetrics(dbTechnicals, dbSectorData, momentumData);
+      const etfMetrics = await this.consolidateETFMetrics(dbTechnicals, dbZScoreData, momentumData);
 
       // 4. Cache results
       cacheService.set(this.CACHE_KEY, etfMetrics, this.CACHE_TTL);
@@ -171,25 +171,33 @@ class ETFMetricsService {
   }
 
   /**
-   * DATABASE-FIRST: Get latest sector data from database
+   * DATABASE-FIRST: Get latest Z-score technical data from database
    */
-  private async getLatestSectorDataFromDB() {
+  private async getLatestZScoreDataFromDB() {
     const results = new Map();
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 30); // Get data from last 30 days only
     
     for (const symbol of this.ETF_SYMBOLS) {
       try {
         const latest = await db
           .select()
-          .from(sectorData)
-          .where(eq(sectorData.symbol, symbol))
-          .orderBy(desc(sectorData.timestamp))
+          .from(zscoreTechnicalIndicators)
+          .where(and(
+            eq(zscoreTechnicalIndicators.symbol, symbol),
+            gte(zscoreTechnicalIndicators.date, cutoffDate)
+          ))
+          .orderBy(desc(zscoreTechnicalIndicators.date))
           .limit(1);
 
         if (latest.length > 0) {
           results.set(symbol, latest[0]);
+          logger.info(`📊 Found Z-score data for ${symbol}: ${latest[0].date.toISOString()}`);
+        } else {
+          logger.warn(`❌ No recent Z-score data for ${symbol} in last 30 days`);
         }
       } catch (error) {
-        logger.warn(`No sector data for ${symbol}:`, error);
+        logger.warn(`No Z-score data for ${symbol}:`, error);
       }
     }
 
@@ -206,9 +214,9 @@ class ETFMetricsService {
         const response = await fetch('http://localhost:5000/api/momentum-analysis');
         if (response.ok) {
           const data = await response.json();
-          if (data.momentumStrategies && Array.isArray(data.momentumStrategies)) {
-            logger.info(`📊 Fetched fresh momentum data for ${data.momentumStrategies.length} ETFs from API`);
-            return data.momentumStrategies;
+          if ((data as any).momentumStrategies && Array.isArray((data as any).momentumStrategies)) {
+            logger.info(`📊 Fetched fresh momentum data for ${(data as any).momentumStrategies.length} ETFs from API`);
+            return (data as any).momentumStrategies;
           }
         }
       } catch (fetchError) {
@@ -219,9 +227,9 @@ class ETFMetricsService {
       const momentumCacheKey = 'momentum-analysis-cache-v2';
       const cached = cacheService.get(momentumCacheKey);
       
-      if (cached && cached.momentumStrategies && Array.isArray(cached.momentumStrategies)) {
-        logger.info(`📊 Using cached momentum data for ${cached.momentumStrategies.length} ETFs`);
-        return cached.momentumStrategies;
+      if (cached && (cached as any).momentumStrategies && Array.isArray((cached as any).momentumStrategies)) {
+        logger.info(`📊 Using cached momentum data for ${(cached as any).momentumStrategies.length} ETFs`);
+        return (cached as any).momentumStrategies;
       }
 
       logger.warn('No momentum data available, using empty fallback');
@@ -237,12 +245,12 @@ class ETFMetricsService {
    */
   private async consolidateETFMetrics(
     technicals: Map<string, any>,
-    sectors: Map<string, any>,
+    zscoreData: Map<string, any>,
     momentum: MomentumData[]
   ): Promise<ETFMetrics[]> {
     const processedMetrics = await Promise.all(this.ETF_SYMBOLS.map(async (symbol) => {
       const technical = technicals.get(symbol);
-      const sector = sectors.get(symbol);
+      const zscore = zscoreData.get(symbol);
       const momentumETF = momentum.find(m => m.ticker === symbol);
       
       // Debug technical data for problematic ETFs
@@ -258,9 +266,8 @@ class ETFMetricsService {
       const metrics = {
         symbol,
         name: this.ETF_NAMES[symbol as keyof typeof this.ETF_NAMES] || symbol,
-        price: this.getETFPrice(symbol, sector, momentumETF),
-        changePercent: momentumETF?.oneDayChange ? parseFloat(momentumETF.oneDayChange.toString()) : 
-                      (sector?.changePercent ? parseFloat(sector.changePercent.toString()) : 0),
+        price: this.getETFPrice(symbol, zscore, momentumETF),
+        changePercent: momentumETF?.oneDayChange ? parseFloat(momentumETF.oneDayChange.toString()) : 0,
         
         // Bollinger Bands & Position/Squeeze
         bollingerPosition: technical?.percent_b ? parseFloat(technical.percent_b) : null,
@@ -287,8 +294,8 @@ class ETFMetricsService {
         fiveDayReturn: momentumETF?.fiveDayChange || null,
         
         // Volume, VWAP, OBV - Enhanced VWAP integration
-        volumeRatio: this.calculateVolumeRatio(sector),
-        vwapSignal: this.getVWAPSignal(technical, sector, momentumETF),
+        volumeRatio: null, // Will be calculated from Z-score data if available
+        vwapSignal: this.getVWAPSignal(technical, zscore, momentumETF),
         obvTrend: momentumETF?.signal ? this.parseOBVFromSignal(momentumETF.signal) : 'neutral',
         
         // Initialize properties for Z-score system
@@ -619,13 +626,20 @@ class ETFMetricsService {
       name: this.ETF_NAMES[symbol as keyof typeof this.ETF_NAMES] || symbol,
       price: 0,
       changePercent: 0,
+      
+      // Required Z-Score weighted fields
+      weightedScore: null,
+      weightedSignal: 'HOLD',
+      zScoreData: null,
+      
       bollingerPosition: null,
       bollingerSqueeze: false,
       bollingerStatus: 'Loading...',
       atr: null,
       volatility: null,
       maSignal: 'Loading...',
-      maTrend: 'neutral',
+      maTrend: 'neutral' as const,
+      maGap: null,
       rsi: null,
       rsiSignal: 'Loading...',
       rsiDivergence: false,
@@ -634,7 +648,7 @@ class ETFMetricsService {
       fiveDayReturn: null,
       volumeRatio: null,
       vwapSignal: 'Loading...',
-      obvTrend: 'neutral'
+      obvTrend: 'neutral' as const
     }));
   }
 

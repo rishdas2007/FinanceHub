@@ -1,12 +1,10 @@
 import { FinancialDataService } from './financial-data.js';
 import { db } from '../db.js';
 import { 
-  historicalStockData, 
   historicalTechnicalIndicators, 
   historicalSectorData,
   historicalMarketSentiment,
-  dataCollectionAudit,
-  stockData
+  dataCollectionAudit
 } from '@shared/schema.js';
 import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
 import { ETF_SYMBOLS, API_RATE_LIMITS } from '@shared/constants.js';

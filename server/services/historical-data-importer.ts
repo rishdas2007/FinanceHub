@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { historicalStockData, historicalMarketSentiment } from '@shared/schema';
+import { historicalMarketSentiment } from '@shared/schema';
 import { eq, gt, desc, asc } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
@@ -174,7 +174,8 @@ export class HistoricalDataImporter {
           
           if (isNaN(close) || close <= 0) continue;
           
-          await db.insert(historicalStockData).values({
+          // historicalStockData table removed during technical debt cleanup
+          console.log('Historical stock data table removed - skipping insert for', {
             date: date,
             symbol: 'SPY',
             close: close,
@@ -332,8 +333,8 @@ export class HistoricalDataImporter {
         .where(gt(historicalMarketSentiment.aaiiBullish, 0));
       
       // Count SPY records
-      const spyCount = await db.select().from(historicalStockData)
-        .where(eq(historicalStockData.symbol, 'SPY'));
+      // historicalStockData table removed during technical debt cleanup
+      const spyCount = [];
       
       // Get date range
       const oldestVix = await db.select().from(historicalMarketSentiment)

@@ -1,7 +1,6 @@
 import { db } from '../db';
 import { 
   technicalIndicators, 
-  historicalStockData, 
   zscoreTechnicalIndicators,
   rollingStatistics 
 } from '@shared/schema';
@@ -41,10 +40,8 @@ class HistoricalDataIntegrationServiceImpl implements HistoricalDataIntegrationS
     for (const symbol of symbols) {
       try {
         // Check historical stock data (OHLCV)
-        const historicalCount = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(historicalStockData)
-          .where(eq(historicalStockData.symbol, symbol));
+        // historicalStockData table removed during technical debt cleanup
+        const historicalCount = [{ count: 0 }];
 
         // Check technical indicators data
         const technicalCount = await db
@@ -112,13 +109,9 @@ class HistoricalDataIntegrationServiceImpl implements HistoricalDataIntegrationS
    */
   private async convertHistoricalStockDataToTechnical(symbol: string, days: number): Promise<void> {
     try {
-      // Get recent historical data
-      const historicalData = await db
-        .select()
-        .from(historicalStockData)
-        .where(eq(historicalStockData.symbol, symbol))
-        .orderBy(desc(historicalStockData.date))
-        .limit(days);
+      // historicalStockData table removed during technical debt cleanup
+      // Return empty array to maintain API compatibility
+      const historicalData: any[] = [];
 
       if (historicalData.length === 0) {
         logger.warn(`No historical data found for ${symbol}`);

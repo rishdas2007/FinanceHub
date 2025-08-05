@@ -123,8 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/etf-metrics', async (req, res) => {
     try {
       console.log('[00:' + new Date().toISOString().slice(14, 19) + '] INFO: 📊 ETF metrics request - using database-first pipeline');
-      const { ETFMetricsService } = await import('./services/etf-metrics-service');
-      const etfMetricsService = ETFMetricsService.getInstance();
+      const { etfMetricsService } = await import('./services/etf-metrics-service');
       
       const metrics = await etfMetricsService.getConsolidatedETFMetrics();
       

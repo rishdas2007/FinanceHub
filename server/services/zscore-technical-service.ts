@@ -2,8 +2,7 @@ import { db } from '../db';
 import { 
   zscoreTechnicalIndicators, 
   rollingStatistics, 
-  technicalIndicators, 
-  historicalStockData 
+  technicalIndicators 
 } from '@shared/schema';
 import { desc, eq, and, gte, sql, lte } from 'drizzle-orm';
 import { logger } from '../middleware/logging';
