@@ -1,5 +1,5 @@
 import express from 'express';
-import { dataQualityValidator } from '../services/data-quality-validator';
+import { DataQualityValidator } from '../services/data-quality-validator';
 import { dataLineageTracker } from '../services/data-lineage-tracker';
 import { enhancedFredService } from '../services/enhanced-fred-service';
 import { logger } from '../../shared/utils/logger';

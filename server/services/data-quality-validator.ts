@@ -1,177 +1,215 @@
-import { logger } from '../../shared/utils/logger';
+import pino from 'pino';
+
+const logger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  transport: {
+    target: 'pino-pretty',
+    options: {
+      colorize: true,
+      translateTime: 'HH:MM:ss',
+      ignore: 'pid,hostname'
+    }
+  }
+});
 
 /**
- * Gold Standard Data Quality Validator
- * Implements comprehensive data validation following best practices
+ * Data Quality Validation Service
+ * Implements robust validation for financial data used in Z-Score calculations
  */
 
-export interface ValidationResult {
+interface DataQualityResult {
   isValid: boolean;
-  errors: string[];
-  warnings: string[];
-  cleanedValue?: number;
-  confidence: 'high' | 'medium' | 'low';
+  quality: number; // 0-1 scale
+  issues: string[];
+  recommendations: string[];
 }
 
-export interface DataQualityMetrics {
-  totalRecords: number;
-  validRecords: number;
-  errorRate: number;
+interface OutlierDetectionResult {
   outlierCount: number;
-  missingValueCount: number;
+  outlierRatio: number;
+  cleanedValues: number[];
+  outlierIndices: number[];
 }
 
 export class DataQualityValidator {
+  private static instance: DataQualityValidator;
   
+  // Minimum observations required for reliable statistics
+  private readonly MIN_OBSERVATIONS = {
+    EQUITIES: 252,      // 1 year daily data
+    ETF_TECHNICAL: 63,  // 3 months daily data  
+    ECONOMIC_MONTHLY: 36, // 3 years monthly data
+    ECONOMIC_QUARTERLY: 40, // 10 years quarterly data
+    VOLATILITY: 22      // 1 month for vol calculations
+  };
+  
+  // Maximum allowable gap ratio in time series
+  private readonly MAX_GAP_RATIO = 0.1; // 10% missing data points
+  private readonly MAX_OUTLIER_RATIO = 0.05; // 5% outliers
+  
+  public static getInstance(): DataQualityValidator {
+    if (!DataQualityValidator.instance) {
+      DataQualityValidator.instance = new DataQualityValidator();
+    }
+    return DataQualityValidator.instance;
+  }
+
   /**
-   * Schema validation - ensure data conforms to expected types and structures
+   * Comprehensive data quality validation for Z-Score calculations
    */
-  validateSchema(data: any, seriesId: string): ValidationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
+  validateDataQuality(values: number[], assetClass: keyof typeof this.MIN_OBSERVATIONS): DataQualityResult {
+    const issues: string[] = [];
+    const recommendations: string[] = [];
     
-    // Check required fields
-    if (!data.date || !data.value) {
-      errors.push(`Missing required fields for ${seriesId}`);
-      return { isValid: false, errors, warnings, confidence: 'low' };
+    // Check for sufficient data
+    const minObs = this.MIN_OBSERVATIONS[assetClass];
+    if (values.length < minObs) {
+      issues.push(`Insufficient data: ${values.length} < ${minObs} required observations`);
+      recommendations.push(`Collect at least ${minObs - values.length} more data points`);
+      return { isValid: false, quality: 0, issues, recommendations };
     }
+
+    // Check for data gaps
+    const gapRatio = this.calculateGapRatio(values);
+    if (gapRatio > this.MAX_GAP_RATIO) {
+      issues.push(`High gap ratio: ${(gapRatio * 100).toFixed(1)}% missing data`);
+      recommendations.push('Fill data gaps or use interpolation');
+    }
+
+    // Check for outliers that could skew statistics
+    const outlierResult = this.detectOutliers(values);
+    if (outlierResult.outlierRatio > this.MAX_OUTLIER_RATIO) {
+      issues.push(`High outlier ratio: ${(outlierResult.outlierRatio * 100).toFixed(1)}% outliers detected`);
+      recommendations.push('Consider outlier treatment or robust statistics');
+    }
+
+    // Check for constant values (zero variance)
+    const variance = this.calculateSampleVariance(values);
+    if (variance === 0) {
+      issues.push('Zero variance: all values are identical');
+      recommendations.push('Data may be stale or incorrectly sourced');
+      return { isValid: false, quality: 0, issues, recommendations };
+    }
+
+    // Check for extreme skewness that violates normal distribution assumptions
+    const skewness = this.calculateSkewness(values);
+    if (Math.abs(skewness) > 2) {
+      issues.push(`High skewness: ${skewness.toFixed(2)} (data not normally distributed)`);
+      recommendations.push('Consider data transformation or non-parametric methods');
+    }
+
+    // Calculate overall quality score
+    let quality = 1.0;
+    quality *= Math.max(0, 1 - gapRatio * 2);
+    quality *= Math.max(0, 1 - outlierResult.outlierRatio * 4);
+    quality *= Math.max(0, 1 - Math.abs(skewness) / 4);
+
+    const isValid = quality > 0.7 && issues.length === 0;
+
+    logger.debug('Data quality validation', {
+      assetClass,
+      dataPoints: values.length,
+      quality: quality.toFixed(3),
+      isValid,
+      issues: issues.length,
+      recommendations: recommendations.length
+    });
+
+    return { isValid, quality, issues, recommendations };
+  }
+
+  /**
+   * Calculate ratio of missing/null values in the dataset
+   */
+  private calculateGapRatio(values: number[]): number {
+    const nullValues = values.filter(v => v === null || v === undefined || isNaN(v) || !isFinite(v)).length;
+    return nullValues / values.length;
+  }
+
+  /**
+   * Detect outliers using IQR method (more robust than z-score for outlier detection)
+   */
+  private detectOutliers(values: number[]): OutlierDetectionResult {
+    const sortedValues = [...values].filter(v => isFinite(v)).sort((a, b) => a - b);
+    const n = sortedValues.length;
     
-    // Validate date format
-    const dateValue = new Date(data.date);
-    if (isNaN(dateValue.getTime())) {
-      errors.push(`Invalid date format: ${data.date}`);
-    }
+    const q1Index = Math.floor(n * 0.25);
+    const q3Index = Math.floor(n * 0.75);
     
-    // Validate numeric value
-    const numericValue = parseFloat(data.value);
-    if (isNaN(numericValue)) {
-      errors.push(`Non-numeric value: ${data.value}`);
-      return { isValid: false, errors, warnings, confidence: 'low' };
-    }
+    const q1 = sortedValues[q1Index];
+    const q3 = sortedValues[q3Index];
+    const iqr = q3 - q1;
+    
+    const lowerBound = q1 - 1.5 * iqr;
+    const upperBound = q3 + 1.5 * iqr;
+    
+    const outlierIndices: number[] = [];
+    const cleanedValues: number[] = [];
+    
+    values.forEach((value, index) => {
+      if (isFinite(value) && value >= lowerBound && value <= upperBound) {
+        cleanedValues.push(value);
+      } else {
+        outlierIndices.push(index);
+      }
+    });
     
     return {
-      isValid: errors.length === 0,
-      errors,
-      warnings,
-      cleanedValue: numericValue,
-      confidence: warnings.length === 0 ? 'high' : 'medium'
+      outlierCount: outlierIndices.length,
+      outlierRatio: outlierIndices.length / values.length,
+      cleanedValues,
+      outlierIndices
     };
   }
-  
+
   /**
-   * Economic data quality checks - detect anomalies and outliers
+   * Calculate sample variance (N-1 denominator) for finite samples
    */
-  validateEconomicData(value: number, seriesId: string, historicalValues: number[]): ValidationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
+  private calculateSampleVariance(values: number[]): number {
+    const validValues = values.filter(v => isFinite(v));
+    if (validValues.length < 2) return 0;
     
-    // Calculate statistical bounds
-    const mean = historicalValues.reduce((a, b) => a + b, 0) / historicalValues.length;
-    const variance = historicalValues.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / historicalValues.length;
+    const mean = validValues.reduce((sum, val) => sum + val, 0) / validValues.length;
+    const variance = validValues.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (validValues.length - 1);
+    
+    return variance;
+  }
+
+  /**
+   * Calculate skewness to test normality assumption
+   */
+  private calculateSkewness(values: number[]): number {
+    const validValues = values.filter(v => isFinite(v));
+    if (validValues.length < 3) return 0;
+    
+    const n = validValues.length;
+    const mean = validValues.reduce((sum, val) => sum + val, 0) / n;
+    const variance = this.calculateSampleVariance(validValues);
     const stdDev = Math.sqrt(variance);
     
-    // Check for extreme outliers (beyond 3 standard deviations)
-    const zScore = Math.abs((value - mean) / stdDev);
-    if (zScore > 3) {
-      warnings.push(`Extreme outlier detected for ${seriesId}: z-score = ${zScore.toFixed(2)}`);
-    }
+    if (stdDev === 0) return 0;
     
-    // Economic-specific validations
-    const economicValidation = this.validateEconomicBounds(value, seriesId);
-    errors.push(...economicValidation.errors);
-    warnings.push(...economicValidation.warnings);
+    const skewness = validValues.reduce((sum, val) => {
+      return sum + Math.pow((val - mean) / stdDev, 3);
+    }, 0) / n;
     
-    return {
-      isValid: errors.length === 0,
-      errors,
-      warnings,
-      cleanedValue: value,
-      confidence: errors.length === 0 && warnings.length === 0 ? 'high' : 
-                  errors.length === 0 ? 'medium' : 'low'
-    };
+    return skewness;
   }
-  
+
   /**
-   * Economic bounds validation - flag impossible values
+   * Generate standardized data quality report
    */
-  private validateEconomicBounds(value: number, seriesId: string): { errors: string[], warnings: string[] } {
-    const errors: string[] = [];
-    const warnings: string[] = [];
+  generateQualityReport(values: number[], assetClass: keyof typeof this.MIN_OBSERVATIONS, symbol: string): void {
+    const result = this.validateDataQuality(values, assetClass);
     
-    switch (seriesId) {
-      case 'UNRATE': // Unemployment Rate
-        if (value < 0 || value > 100) {
-          errors.push(`Invalid unemployment rate: ${value}% (must be 0-100%)`);
-        }
-        if (value > 25) {
-          warnings.push(`Unusually high unemployment rate: ${value}%`);
-        }
-        break;
-        
-      case 'PAYEMS': // Nonfarm Payrolls (thousands)
-        if (value < 0) {
-          errors.push(`Negative employment impossible: ${value}K`);
-        }
-        if (value > 200000) {
-          warnings.push(`Unusually high payroll number: ${value}K`);
-        }
-        break;
-        
-      case 'HOUST': // Housing Starts (thousands)
-        if (value < 0) {
-          errors.push(`Negative housing starts impossible: ${value}K`);
-        }
-        break;
-        
-      case 'CPIAUCSL': // CPI (index)
-        if (value < 0) {
-          errors.push(`Negative CPI impossible: ${value}`);
-        }
-        break;
-    }
-    
-    return { errors, warnings };
-  }
-  
-  /**
-   * Missing value handling strategy
-   */
-  handleMissingValue(seriesId: string, previousValues: number[]): number | null {
-    if (previousValues.length === 0) {
-      logger.warn(`No historical data for imputation: ${seriesId}`);
-      return null;
-    }
-    
-    // For economic data, use simple forward-fill for most recent value
-    // More sophisticated imputation can be added based on series characteristics
-    const lastValue = previousValues[previousValues.length - 1];
-    
-    logger.info(`Imputed missing value for ${seriesId}: ${lastValue} (forward-fill)`);
-    return lastValue;
-  }
-  
-  /**
-   * Generate data quality metrics report
-   */
-  generateQualityReport(validationResults: ValidationResult[]): DataQualityMetrics {
-    const totalRecords = validationResults.length;
-    const validRecords = validationResults.filter(r => r.isValid).length;
-    const errorRate = ((totalRecords - validRecords) / totalRecords) * 100;
-    const outlierCount = validationResults.filter(r => 
-      r.warnings.some(w => w.includes('outlier'))
-    ).length;
-    const missingValueCount = validationResults.filter(r => 
-      r.errors.some(e => e.includes('Missing'))
-    ).length;
-    
-    return {
-      totalRecords,
-      validRecords,
-      errorRate: Math.round(errorRate * 100) / 100,
-      outlierCount,
-      missingValueCount
-    };
+    logger.info('Data Quality Report', {
+      symbol,
+      assetClass,
+      dataPoints: values.length,
+      quality: (result.quality * 100).toFixed(1) + '%',
+      status: result.isValid ? 'PASS' : 'FAIL',
+      issues: result.issues,
+      recommendations: result.recommendations
+    });
   }
 }
-
-export const dataQualityValidator = new DataQualityValidator();

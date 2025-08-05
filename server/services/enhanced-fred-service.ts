@@ -1,5 +1,5 @@
 import { logger } from '../../shared/utils/logger';
-import { dataQualityValidator } from './data-quality-validator';
+import { DataQualityValidator } from './data-quality-validator';
 import { dataLineageTracker } from './data-lineage-tracker';
 import { db } from '../db';
 import { sql } from 'drizzle-orm';

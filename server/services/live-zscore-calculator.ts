@@ -53,9 +53,9 @@ const ECONOMIC_DIRECTIONALITY: Record<string, number> = {
   'Core CPI Year-over-Year': -1,
   'PCE Price Index YoY': -1,
   'Unemployment Rate': -1,
-  'Federal Funds Rate': -1,
-  '10-Year Treasury Yield': -1,
-  'Personal Savings Rate': -1,
+  'Federal Funds Rate': 0, // Context-dependent: positive during high inflation, negative during recession
+  '10-Year Treasury Yield': 0, // Context-dependent: reflects growth and inflation expectations
+  'Personal Savings Rate': 0, // Context-dependent: good during recessions, mixed during expansions
   'Continuing Jobless Claims': -1,
   'Initial Jobless Claims': -1,
   'U-6 Unemployment Rate': -1,

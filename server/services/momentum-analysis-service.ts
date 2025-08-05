@@ -387,25 +387,26 @@ export class MomentumAnalysisService {
       .filter(h => h.price && h.price > 0 && !isNaN(h.price) && h.price < 1000000)
       .map(h => h.price);
       
-    if (validPrices.length < 20) {
-      console.log(`📊 Insufficient historical data for ${sector.symbol}: ${validPrices.length} records, minimum 20 required`);
-      return 0; // Return neutral Z-score instead of fallback
+    if (validPrices.length < 63) {
+      console.log(`📊 Insufficient historical data for ${sector.symbol}: ${validPrices.length} records, minimum 63 required for ETF analysis`);
+      return null; // Return null instead of arbitrary 0 for insufficient data
     }
     
-    // Use last 20 days for rolling calculation
-    const last20Prices = validPrices.slice(0, 20);
-    const mean20 = last20Prices.reduce((sum, p) => sum + p, 0) / last20Prices.length;
+    // Use standardized 63-day window (3 months) for ETF technical analysis
+    const windowSize = Math.min(63, validPrices.length);
+    const recentPrices = validPrices.slice(0, windowSize);
+    const mean = recentPrices.reduce((sum, p) => sum + p, 0) / recentPrices.length;
     
-    // Use sample standard deviation (N-1) for better accuracy
-    const variance = last20Prices.reduce((sum, p) => sum + Math.pow(p - mean20, 2), 0) / (last20Prices.length - 1);
-    const std20 = Math.sqrt(variance);
+    // Use sample standard deviation (N-1) for finite samples - critical for accurate statistics
+    const variance = recentPrices.reduce((sum, p) => sum + Math.pow(p - mean, 2), 0) / Math.max(1, recentPrices.length - 1);
+    const stdDev = Math.sqrt(variance);
     
-    if (std20 === 0) return 0; // Neutral Z-score when no volatility
+    if (stdDev === 0) return null; // Return null for zero variance instead of arbitrary 0
     
-    const zScore = (sector.price - mean20) / std20;
+    const zScore = (sector.price - mean) / stdDev;
     
-    // Cap extreme values to prevent outlier distortion
-    return Math.max(-5, Math.min(5, zScore));
+    // Remove arbitrary Z-Score capping - maintain statistical integrity
+    return zScore;
   }
 
   /**

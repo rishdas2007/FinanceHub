@@ -57,10 +57,12 @@ class ZScoreTechnicalService {
     atr: 0.00            // Removed from directional signals, used as modifier
   };
   
-  // Signal thresholds - Adjusted for more practical trading signals
-  private readonly BUY_THRESHOLD = 0.25;   // BUY signal at ≥0.25
-  private readonly SELL_THRESHOLD = -0.25;  // SELL signal at ≤-0.25
-  private readonly ZSCORE_WINDOW = 20; // 20-day rolling window (standardized across ETF metrics)
+  // Statistically-derived signal thresholds based on confidence levels
+  private readonly BUY_THRESHOLD = 1.0;    // BUY signal at ≥1.0 (68% confidence)
+  private readonly SELL_THRESHOLD = -1.0;  // SELL signal at ≤-1.0 (68% confidence)
+  private readonly STRONG_BUY_THRESHOLD = 1.96;  // STRONG BUY at ≥1.96 (95% confidence)
+  private readonly STRONG_SELL_THRESHOLD = -1.96; // STRONG SELL at ≤-1.96 (95% confidence)
+  private readonly ZSCORE_WINDOW = 63; // 3-month daily data (asset-class appropriate for ETFs)
   
   public static getInstance(): ZScoreTechnicalService {
     if (!ZScoreTechnicalService.instance) {
@@ -70,22 +72,28 @@ class ZScoreTechnicalService {
   }
 
   /**
-   * Calculate Z-Score: (Current Value - 20-day Mean) / 20-day Standard Deviation
+   * Calculate Z-Score: (Current Value - Mean) / Standard Deviation
+   * Returns null for invalid calculations to maintain statistical integrity
    */
-  private calculateZScore(currentValue: number, mean: number, stdDev: number): number {
-    if (stdDev === 0 || isNaN(stdDev) || isNaN(currentValue) || isNaN(mean)) {
-      return 0; // Avoid division by zero or NaN values
+  private calculateZScore(currentValue: number, mean: number, stdDev: number): number | null {
+    if (stdDev === 0 || isNaN(stdDev) || isNaN(currentValue) || isNaN(mean) || !isFinite(currentValue)) {
+      return null; // Return null instead of 0 for invalid calculations
     }
     return (currentValue - mean) / stdDev;
   }
 
   /**
-   * Convert Z-score to signal strength (-1 to +1)
-   * Improved scaling for better signal distribution
+   * Convert Z-score to signal strength based on statistical confidence levels
+   * Maintains statistical significance instead of arbitrary scaling
    */
   private zscoreToSignal(zscore: number): number {
-    // Scale z-scores to ±1 range with better distribution
-    return Math.max(-1, Math.min(1, zscore / 2));
+    if (zscore === null || !isFinite(zscore)) return 0;
+    
+    // Use proper statistical thresholds
+    if (Math.abs(zscore) > 2.58) return Math.sign(zscore) * 1.0;    // 99% confidence
+    if (Math.abs(zscore) > 1.96) return Math.sign(zscore) * 0.75;   // 95% confidence  
+    if (Math.abs(zscore) > 1.0) return Math.sign(zscore) * 0.5;     // 68% confidence
+    return zscore * 0.25; // Linear scaling for small deviations
   }
 
   /**
@@ -115,8 +123,8 @@ class ZScoreTechnicalService {
       const windowValues = window.map(w => w.value);
       
       const mean = windowValues.reduce((sum, val) => sum + val, 0) / windowSize;
-      // Use sample variance (N-1) instead of population variance (N) for more accurate statistical calculations
-      const variance = windowValues.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (windowSize - 1);
+      // Use sample variance (N-1) for finite samples - critical for accurate statistics
+      const variance = windowValues.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / Math.max(1, windowValues.length - 1);
       const stdDev = Math.sqrt(variance);
       
       results.push({

@@ -122,10 +122,11 @@ export class EconomicCalculationsService {
 
     const zScore = (current - mean) / stdDev;
     
-    // Cap extreme Z-Score values to prevent outlier distortion
-    const cappedZScore = Math.max(-5, Math.min(5, zScore));
+    // Remove arbitrary Z-Score capping - maintain statistical integrity
+    // Statistical significance: |z| > 3.29 = 99.9% confidence, |z| > 2.58 = 99% confidence
+    const cleanZScore = Math.round(zScore * 1000) / 1000; // Precision to 3 decimal places
     
-    return Math.round(cappedZScore * 100) / 100;
+    return cleanZScore;
   }
 
   /**
