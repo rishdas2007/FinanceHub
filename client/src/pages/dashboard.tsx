@@ -50,6 +50,14 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center space-x-4">
             <a 
+              href="/data-sufficiency" 
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+              data-testid="data-sufficiency-link"
+            >
+              <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+              Data Sufficiency
+            </a>
+            <a 
               href="/data-quality" 
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
             >

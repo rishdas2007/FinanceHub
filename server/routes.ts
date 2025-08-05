@@ -45,6 +45,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Economic Health Dashboard endpoints
   app.use('/api/economic-health', (await import('./routes/economic-health')).default);
   
+  // Data Sufficiency and Backfill Management endpoints
+  app.use('/api/data-sufficiency', (await import('./routes/data-sufficiency-routes')).default);
+  
 
   
   // Week 2-4 Performance Optimization endpoints

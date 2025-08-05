@@ -47,9 +47,27 @@ The application uses a monorepo architecture with `client/` (React frontend), `s
 - **Statistical Analysis Fixes**: Standardized sample variance, enhanced data sufficiency, improved extreme value handling, and standardized window sizes for Z-score implementations.
 - **Weighted System Methodology Fixes**: Corrected Bollinger %B direction, adjusted signal thresholds, improved Z-score to signal conversion, optimized ATR usage, and rebalanced weights for reliable trading signal generation.
 - **Moving Average Calculation Accuracy Fixes**: Fixed EMA seeding, improved MACD accuracy, removed dynamic period adjustments, and standardized data requirements.
+- **Data Sufficiency Solution**: Comprehensive Week 1-Month 2 solution addressing critical data gaps with intelligent historical data backfill service, real-time sufficiency warnings, and integrated confidence scoring for z-score reliability.
 
 ### Database Design
 The schema includes key tables for: `users`, `stock_data`, `market_sentiment`, `technical_indicators`, `ai_analysis`, `economic_events`, `fredUpdateLog`, `economicIndicatorsCurrent`, `historical_sector_data`, `historical_technical_indicators`, `historical_market_sentiment`, `historical_economic_data`, `economic_data_audit`, `data_collection_audit`.
+
+### Data Sufficiency Management
+**Critical Issue Addressed**: Z-score calculations were unreliable due to insufficient historical data (20-60 days available vs 252 days required for equities).
+
+**Comprehensive Solution Implemented**:
+- **Historical Data Backfill Service**: Intelligent API-rate-limited service using Twelve Data API for systematic historical data collection
+- **Data Sufficiency Analysis**: Real-time assessment of data coverage with confidence scoring and reliability classifications
+- **Integrated UI Warnings**: Dashboard alerts and detailed reporting for data reliability issues
+- **Enhanced Z-Score Service**: Confidence-adjusted calculations with sufficiency-based signal dampening
+- **Strategic Backfill Management**: Prioritized data collection focusing on critical gaps while respecting API limits
+
+**Technical Implementation**:
+- `/api/data-sufficiency/*` endpoints for reports, warnings, and backfill management
+- Data quality validation with minimum observation requirements (252 days equity, 63 days ETF)
+- Reliability classifications: high (>90%), medium (60-90%), low (30-60%), unreliable (<30%)
+- Confidence scoring integrated into z-score calculations to prevent false signals
+- Dashboard integration with /data-sufficiency route for management interface
 
 ## External Dependencies
 
