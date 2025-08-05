@@ -119,6 +119,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const fastDashboardRoutes = (await import('./routes/fast-dashboard-routes')).default;
   app.use('/api', fastDashboardRoutes);
   
+  // ETF metrics with Z-score system
+  app.get('/api/etf-metrics', async (req, res) => {
+    try {
+      console.log('[00:' + new Date().toISOString().slice(14, 19) + '] INFO: 📊 ETF metrics request - using database-first pipeline');
+      const { ETFMetricsService } = await import('./services/etf-metrics-service');
+      const etfMetricsService = ETFMetricsService.getInstance();
+      
+      const metrics = await etfMetricsService.getConsolidatedETFMetrics();
+      
+      res.json({
+        success: true,
+        metrics,
+        count: metrics.length,
+        timestamp: new Date().toISOString(),
+        source: 'database-first-pipeline'
+      });
+    } catch (error) {
+      console.error('❌ ETF metrics error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+  
+  // Historical data backfill for Z-score system
+  app.post('/api/historical-data-backfill', async (req, res) => {
+    try {
+      const { symbols = ['SPY', 'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'], days = 30 } = req.body;
+      
+      console.log(`📊 Starting historical data backfill for ${symbols.length} symbols, ${days} days`);
+      
+      const { twelveDataService } = await import('./services/twelve-data');
+      const results = [];
+      
+      for (const symbol of symbols) {
+        try {
+          console.log(`📈 Backfilling ${symbol}...`);
+          const technicalData = await twelveDataService.getHistoricalTechnicalIndicators(symbol, days);
+          results.push({ symbol, success: true, dataPoints: technicalData?.length || 0 });
+        } catch (error) {
+          console.error(`❌ Backfill failed for ${symbol}:`, error);
+          results.push({ symbol, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+        }
+      }
+      
+      res.json({
+        success: true,
+        message: `Historical data backfill completed for ${symbols.length} symbols`,
+        results,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('❌ Historical data backfill error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+  
   // Unified dashboard cache endpoints
   const unifiedDashboardRoutes = (await import('./routes/unified-dashboard')).default;
   app.use('/api/unified', unifiedDashboardRoutes);
