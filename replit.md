@@ -22,6 +22,15 @@ UI Preference: Clean, actionable interface without overly technical explanations
 - ✅ **Schema streamlined** from 25+ tables to 5 core active tables
 - ✅ **TypeScript compilation errors resolved** with ES2015+ iteration fixes
 
+### Deployment Schema Fix (August 5, 2025)
+**COMPLETED**: Resolved deployment build failures caused by missing schema exports
+- ✅ **Missing schema exports restored** for `historicalStockData`, `historicalMarketSentiment`, `historicalTechnicalIndicators`
+- ✅ **Service import compatibility** updated across comprehensive-historical-collector and historical-context-analyzer
+- ✅ **Database field mappings** corrected to match actual schema definitions
+- ✅ **TypeScript compilation** now successful with all LSP diagnostics resolved
+- ✅ **Build process** verified working with vite build and esbuild compilation
+- ✅ **Deployment readiness** confirmed with successful application startup and data flow
+
 ## System Architecture
 
 ### Full-Stack Monorepo Structure

@@ -1,6 +1,8 @@
 import { FinancialDataService } from './financial-data.js';
 import { db } from '../db.js';
 import { 
+  historicalStockData,
+  stockData,
   historicalTechnicalIndicators, 
   historicalSectorData,
   historicalMarketSentiment,
@@ -163,10 +165,9 @@ export class ComprehensiveHistoricalCollector {
             symbol: symbol,
             price: quote.price.toString(),
             change: quote.change.toString(),
-            changePercent: quote.changePercent.toString(),
-            volume: quote.volume?.toString() || '0',
-            high52Week: '0',
-            low52Week: '0'
+            percentChange: quote.changePercent.toString(),
+            volume: quote.volume || 0,
+            marketCap: null
           }).onConflictDoNothing();
           
           stats.totalRecords++;
@@ -208,16 +209,14 @@ export class ComprehensiveHistoricalCollector {
             rsi: technical.rsi?.toString() || null,
             macd: technical.macd?.toString() || null,
             macdSignal: technical.macdSignal?.toString() || null,
-            macdHistogram: null, // Field not available in current technical data
-            vwap: technical.vwap?.toString() || null,
-            bollingerUpper: technical.bb_upper?.toString() || null,
-            bollingerMiddle: technical.bb_middle?.toString() || null,
-            bollingerLower: technical.bb_lower?.toString() || null,
+            bb_upper: technical.bb_upper?.toString() || null,
+            bb_middle: technical.bb_middle?.toString() || null,
+            bb_lower: technical.bb_lower?.toString() || null,
+            percent_b: technical.percent_b?.toString() || null,
             atr: technical.atr?.toString() || null,
             adx: technical.adx?.toString() || null,
-            stochK: technical.stoch_k?.toString() || null,
-            stochD: technical.stoch_d?.toString() || null,
-            williamsR: technical.willr?.toString() || null,
+            stoch_k: technical.stoch_k?.toString() || null,
+            stoch_d: technical.stoch_d?.toString() || null,
           }).onConflictDoNothing();
           
           stats.totalRecords++;
@@ -252,14 +251,11 @@ export class ComprehensiveHistoricalCollector {
       for (const sector of sectors) {
         try {
           await db.insert(historicalSectorData).values({
-            symbol: sector.symbol,
+            sectorName: sector.symbol,
             date: new Date(),
-            open: sector.price?.toString() || '0',
-            high: sector.price?.toString() || '0',
-            low: sector.price?.toString() || '0',
-            close: sector.price?.toString() || '0',
+            performance: sector.changePercent?.toString() || '0',
             volume: sector.volume || 0,
-            changePercent: sector.changePercent?.toString() || '0',
+            marketCap: null,
           }).onConflictDoNothing();
           
           stats.totalRecords++;
@@ -297,12 +293,12 @@ export class ComprehensiveHistoricalCollector {
       if (sentiment) {
         await db.insert(historicalMarketSentiment).values({
           date: new Date(),
-          vix: sentiment.vix?.toString() || null,
+          vix: sentiment.vix?.toString() || '0',
           vixChange: sentiment.vixChange?.toString() || null,
           putCallRatio: sentiment.putCallRatio?.toString() || null,
-          fearGreedIndex: null, // Field not available in current sentiment data
           aaiiBullish: sentiment.aaiiBullish?.toString() || null,
           aaiiBearish: sentiment.aaiiBearish?.toString() || null,
+          aaiiNeutral: sentiment.aaiiNeutral?.toString() || null,
         }).onConflictDoNothing();
         
         stats.totalRecords++;
@@ -329,10 +325,9 @@ export class ComprehensiveHistoricalCollector {
           symbol: symbol,
           price: quote.price.toString(),
           change: quote.change.toString(),
-          changePercent: quote.changePercent.toString(),
-          volume: quote.volume?.toString() || '0',
-          high52Week: '0',
-          low52Week: '0'
+          percentChange: quote.changePercent.toString(),
+          volume: quote.volume || 0,
+          marketCap: null
         }).onConflictDoNothing();
         
         console.log(`📊 Updated ${symbol}: $${quote.price}`);
@@ -355,7 +350,6 @@ export class ComprehensiveHistoricalCollector {
           rsi: technical.rsi?.toString() || null,
           macd: technical.macd?.toString() || null,
           macdSignal: technical.macdSignal?.toString() || null,
-          vwap: technical.vwap?.toString() || null,
           adx: technical.adx?.toString() || null,
         }).onConflictDoNothing();
         
@@ -375,14 +369,11 @@ export class ComprehensiveHistoricalCollector {
       
       for (const sector of sectors.slice(0, 3)) { // Limit to avoid API overload
         await db.insert(historicalSectorData).values({
-          symbol: sector.symbol,
+          sectorName: sector.symbol,
           date: new Date(),
-          open: sector.price?.toString() || '0',
-          high: sector.price?.toString() || '0',
-          low: sector.price?.toString() || '0',
-          close: sector.price?.toString() || '0',
+          performance: sector.changePercent?.toString() || '0',
           volume: sector.volume || 0,
-          changePercent: sector.changePercent?.toString() || '0',
+          marketCap: null,
         }).onConflictDoNothing();
       }
       
@@ -401,11 +392,12 @@ export class ComprehensiveHistoricalCollector {
       if (sentiment) {
         await db.insert(historicalMarketSentiment).values({
           date: new Date(),
-          vix: sentiment.vix?.toString() || null,
+          vix: sentiment.vix?.toString() || '0',
           vixChange: sentiment.vixChange?.toString() || null,
           putCallRatio: sentiment.putCallRatio?.toString() || null,
           aaiiBullish: sentiment.aaiiBullish?.toString() || null,
           aaiiBearish: sentiment.aaiiBearish?.toString() || null,
+          aaiiNeutral: sentiment.aaiiNeutral?.toString() || null,
         }).onConflictDoNothing();
         
         console.log(`😰 Updated sentiment: VIX ${sentiment.vix}`);
