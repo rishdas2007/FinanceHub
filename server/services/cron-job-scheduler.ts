@@ -3,6 +3,10 @@ import { logger } from '../middleware/logging';
 import { marketHoursDetector } from './market-hours-detector';
 import { unifiedDashboardCache } from './unified-dashboard-cache';
 import { storage } from '../storage';
+import { db } from '../db';
+import { technicalIndicators } from '@shared/schema';
+import { sql } from 'drizzle-orm';
+import { container } from '../container';
 
 interface JobStatus {
   name: string;
@@ -163,8 +167,40 @@ export class CronJobScheduler {
       }
     });
 
+    // 8. Historical Data Backfill - Every minute until we have 365+ days
+    this.scheduleJob('historical-data-backfill', '* * * * *', async () => {
+      await this.runJobSafely('historical-data-backfill', async () => {
+        logger.info('📊 Checking historical data coverage...');
+        
+        // Check if we need more historical data
+        const needsBackfill = await this.checkHistoricalDataCoverage();
+        
+        if (needsBackfill) {
+          logger.info('⏳ Historical data insufficient - starting backfill collection');
+          
+          // Collect historical data per run to avoid rate limits
+          const etfSymbols = ['XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'];
+          
+          // Trigger technical indicators collection for each ETF
+          for (const symbol of etfSymbols) {
+            try {
+              await fetch(`http://localhost:5000/api/technical/${symbol}`);
+              logger.debug(`✅ Historical technical data collected for ${symbol}`);
+            } catch (error) {
+              logger.error(`❌ Failed to collect historical data for ${symbol}:`, error);
+            }
+          }
+          
+          logger.info('✅ Historical data backfill batch completed');
+        } else {
+          logger.info('✅ Historical data coverage sufficient - stopping backfill job');
+          this.stopJob('historical-data-backfill');
+        }
+      });
+    });
+
     this.isInitialized = true;
-    logger.info('📅 Cron scheduler initialized with 7 jobs');
+    logger.info('📅 Cron scheduler initialized with 8 jobs');
   }
 
   private scheduleJob(
@@ -223,6 +259,52 @@ export class CronJobScheduler {
     // Run off-hours updates every 15 minutes (3 out of 4 intervals)
     const minute = new Date().getMinutes();
     return minute % 15 === 0;
+  }
+
+  private async checkHistoricalDataCoverage(): Promise<boolean> {
+    try {
+      // Check technical indicators table for data coverage
+      const coverage = await db.execute(sql`
+        SELECT symbol, 
+          COUNT(*) as total_records,
+          COUNT(DISTINCT DATE(date)) as unique_days,
+          MIN(date) as earliest_date,
+          MAX(date) as latest_date
+        FROM ${technicalIndicators} 
+        WHERE symbol IN ('XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE')
+        GROUP BY symbol
+      `);
+
+      // Need at least 365 unique days and 1000+ records per ETF for robust moving averages
+      const sufficientCoverage = coverage.every((row: any) => 
+        row.unique_days >= 365 && row.total_records >= 1000
+      );
+
+      if (!sufficientCoverage) {
+        logger.info(`📊 Current coverage: ${coverage.length} ETFs with insufficient data`);
+        coverage.forEach((row: any) => {
+          logger.info(`   ${row.symbol}: ${row.unique_days} days, ${row.total_records} records`);
+        });
+        return true; // Need more data
+      }
+
+      logger.info('✅ All ETFs have sufficient historical data coverage');
+      return false; // No more backfill needed
+    } catch (error) {
+      logger.error('❌ Error checking historical data coverage:', error);
+      return true; // Continue trying if there's an error
+    }
+  }
+
+  public stopJob(jobName: string): void {
+    const job = this.jobs.get(jobName);
+    if (job) {
+      job.stop();
+      job.destroy();
+      this.jobs.delete(jobName);
+      this.jobStatuses.delete(jobName);
+      logger.info(`🛑 Job stopped and removed: ${jobName}`);
+    }
   }
 
   private async checkDataConsistency(): Promise<void> {
