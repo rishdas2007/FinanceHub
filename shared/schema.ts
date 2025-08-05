@@ -147,32 +147,10 @@ export const rollingStatistics = pgTable("rolling_statistics", {
   symbolIndicatorIdx: index("rolling_stats_symbol_indicator_idx").on(table.symbol, table.indicator),
 }));
 
-// Multi-Timeframe Technical Convergence Analysis Tables
-export const technicalIndicatorsMultiTimeframe = pgTable("technical_indicators_multi_timeframe", {
-  id: serial("id").primaryKey(),
-  symbol: text("symbol").notNull(),
-  timeframe: text("timeframe").notNull(), // 1m, 5m, 1h, 1d, 1w, 1M
-  rsi: decimal("rsi", { precision: 5, scale: 2 }),
-  macd_line: decimal("macd_line", { precision: 10, scale: 4 }),
-  macd_signal: decimal("macd_signal", { precision: 10, scale: 4 }),
-  macd_histogram: decimal("macd_histogram", { precision: 10, scale: 4 }),
-  bollinger_upper: decimal("bollinger_upper", { precision: 10, scale: 2 }),
-  bollinger_middle: decimal("bollinger_middle", { precision: 10, scale: 2 }),
-  bollinger_lower: decimal("bollinger_lower", { precision: 10, scale: 2 }),
-  bollinger_width: decimal("bollinger_width", { precision: 10, scale: 4 }),
-  bollinger_position: decimal("bollinger_position", { precision: 5, scale: 4 }),
-  volume_sma_20: decimal("volume_sma_20", { precision: 15, scale: 0 }),
-  volume_ratio: decimal("volume_ratio", { precision: 5, scale: 2 }),
-  atr: decimal("atr", { precision: 10, scale: 4 }),
-  timestamp: timestamp("timestamp").notNull().defaultNow(),
-  created_at: timestamp("created_at").notNull().defaultNow(),
-}, (table) => ({
-  symbolTimeframeIdx: index("symbol_timeframe_idx").on(table.symbol, table.timeframe),
-  timestampIdx: index("multi_timeframe_timestamp_idx").on(table.timestamp),
-}));
-
-// Note: convergenceSignals, signalQualityScores, and bollingerSqueezeEvents tables removed 
-// during technical debt cleanup - these were unused multi-timeframe analysis features
+// Note: Multi-timeframe analysis tables removed during technical debt cleanup:
+// - technicalIndicatorsMultiTimeframe 
+// - convergenceSignals, signalQualityScores, and bollingerSqueezeEvents 
+// These were unused multi-timeframe analysis features
 
 export const vixData = pgTable("vix_data", {
   id: serial("id").primaryKey(),
