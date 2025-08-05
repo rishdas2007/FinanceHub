@@ -57,9 +57,17 @@ export class DataScheduler {
       console.log('📈 Updating economic calendar with FRED data...');
       await this.economicService.scrapeMarketWatchCalendar();
       
-      // Update technical indicators
+      // Update technical indicators for all ETFs
       console.log('⚡ Updating technical indicators...');
-      await this.financialService.getTechnicalIndicators('SPY');
+      const etfSymbols = ['SPY', 'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'];
+      for (const symbol of etfSymbols) {
+        try {
+          await this.financialService.getTechnicalIndicators(symbol);
+          console.log(`✅ Technical indicators updated for ${symbol}`);
+        } catch (error) {
+          console.error(`❌ Failed to update technical indicators for ${symbol}:`, error);
+        }
+      }
       
       // Update sentiment data
       console.log('💭 Updating sentiment data...');

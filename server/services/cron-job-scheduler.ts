@@ -75,13 +75,34 @@ export class CronJobScheduler {
       
       if (marketStatus.session === 'regular' || marketStatus.session === 'premarket') {
         await this.runJobSafely('technical-indicators-update', async () => {
-          logger.info('📈 Updating technical indicators');
+          logger.info('📈 Updating technical indicators for all ETFs');
           
-          // Update SPY technical data
-          const spyTech = await fetch('http://localhost:5000/api/technical/SPY');
-          const vixData = await fetch('http://localhost:5000/api/stocks/VIX');
+          // Update technical indicators for all ETFs
+          const etfSymbols = ['SPY', 'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'];
+          for (const symbol of etfSymbols) {
+            try {
+              const response = await fetch(`http://localhost:5000/api/technical/${symbol}`);
+              if (response.ok) {
+                logger.debug(`✅ Technical indicators updated for ${symbol}`);
+              } else {
+                logger.warn(`⚠️ Failed to fetch technical indicators for ${symbol}: ${response.status}`);
+              }
+            } catch (error) {
+              logger.error(`❌ Error updating technical indicators for ${symbol}:`, error);
+            }
+          }
           
-          logger.info('📈 Technical indicators updated');
+          // Also update VIX data
+          try {
+            const vixData = await fetch('http://localhost:5000/api/stocks/VIX');
+            if (vixData.ok) {
+              logger.debug('✅ VIX data updated');
+            }
+          } catch (error) {
+            logger.warn('⚠️ Failed to update VIX data:', error);
+          }
+          
+          logger.info('📈 Technical indicators update completed for all symbols');
         });
       }
     });
