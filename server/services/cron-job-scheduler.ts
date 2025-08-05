@@ -4,9 +4,10 @@ import { marketHoursDetector } from './market-hours-detector';
 import { unifiedDashboardCache } from './unified-dashboard-cache';
 import { storage } from '../storage';
 import { db } from '../db';
-import { technicalIndicators } from '@shared/schema';
+import { technicalIndicators, historicalSectorData } from '@shared/schema';
 import { sql } from 'drizzle-orm';
-import { container } from '../container';
+import type { ComprehensiveHistoricalCollector } from './comprehensive-historical-collector';
+import type { FinancialDataService } from './financial-data';
 
 interface JobStatus {
   name: string;
@@ -44,7 +45,7 @@ export class CronJobScheduler {
       const marketStatus = marketHoursDetector.getCurrentMarketStatus();
       
       // Adjust frequency based on market status
-      if (marketStatus.session === 'regular' || marketStatus.session === 'premarket') {
+      if (marketStatus.session === 'open' || marketStatus.session === 'premarket') {
         await this.runJobSafely('unified-data-refresh', async () => {
           logger.info('🔄 Refreshing unified dashboard data (market hours)');
           await unifiedDashboardCache.refreshUnifiedData();
@@ -176,22 +177,45 @@ export class CronJobScheduler {
         const needsBackfill = await this.checkHistoricalDataCoverage();
         
         if (needsBackfill) {
-          logger.info('⏳ Historical data insufficient - starting backfill collection');
+          logger.info('⏳ Historical price data insufficient - starting backfill collection');
           
           // Collect historical data per run to avoid rate limits
-          const etfSymbols = ['XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'];
+          const etfSymbols = ['SPY', 'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'];
           
-          // Trigger technical indicators collection for each ETF
-          for (const symbol of etfSymbols) {
-            try {
-              await fetch(`http://localhost:5000/api/technical/${symbol}`);
-              logger.debug(`✅ Historical technical data collected for ${symbol}`);
-            } catch (error) {
-              logger.error(`❌ Failed to collect historical data for ${symbol}:`, error);
+          // Trigger comprehensive historical collector for price data backfill
+          try {
+            const comprehensiveCollector = container.get<ComprehensiveHistoricalCollector>('ComprehensiveHistoricalCollector');
+            await comprehensiveCollector.collectComprehensiveHistory(etfSymbols, 1); // 1 month lookback for faster backfill
+            logger.info(`✅ Historical price data backfill batch completed for ${etfSymbols.length} symbols`);
+          } catch (error) {
+            logger.error(`❌ Failed to run comprehensive historical collection:`, error);
+            
+            // Fallback: collect current data only
+            const financialDataService = container.get<FinancialDataService>('FinancialDataService');
+            const sectors = await financialDataService.getSectorETFs();
+            
+            for (const sector of sectors) {
+              try {
+                await db.insert(historicalSectorData).values({
+                  symbol: sector.symbol,
+                  date: new Date(),
+                  price: sector.price || 0,
+                  volume: sector.volume || 0,
+                  change_percent: sector.changePercent || 0,
+                  open: sector.price || 0,
+                  high: sector.price || 0,
+                  low: sector.price || 0,
+                  close: sector.price || 0,
+                }).onConflictDoNothing();
+                
+                logger.debug(`✅ Stored current price data for ${sector.symbol}: $${sector.price}`);
+              } catch (error) {
+                logger.error(`❌ Failed to store price data for ${sector.symbol}:`, error);
+              }
             }
+            
+            logger.info('✅ Fallback current price data collection completed');
           }
-          
-          logger.info('✅ Historical data backfill batch completed');
         } else {
           logger.info('✅ Historical data coverage sufficient - stopping backfill job');
           this.stopJob('historical-data-backfill');
@@ -263,32 +287,42 @@ export class CronJobScheduler {
 
   private async checkHistoricalDataCoverage(): Promise<boolean> {
     try {
-      // Check technical indicators table for data coverage
+      // FIXED: Check historical_sector_data table for price data coverage (needed for Z-scores)
       const coverage = await db.execute(sql`
         SELECT symbol, 
           COUNT(*) as total_records,
           COUNT(DISTINCT DATE(date)) as unique_days,
           MIN(date) as earliest_date,
           MAX(date) as latest_date
-        FROM ${technicalIndicators} 
-        WHERE symbol IN ('XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE')
+        FROM ${historicalSectorData} 
+        WHERE symbol IN ('SPY', 'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE')
+          AND price IS NOT NULL AND price > 0
         GROUP BY symbol
       `);
 
-      // Need at least 365 unique days and 1000+ records per ETF for robust moving averages
+      // Need at least 25 unique days for Z-score calculations (reduced from 365 for practical backfill)
       const sufficientCoverage = coverage.every((row: any) => 
-        row.unique_days >= 365 && row.total_records >= 1000
+        row.unique_days >= 25
       );
 
       if (!sufficientCoverage) {
-        logger.info(`📊 Current coverage: ${coverage.length} ETFs with insufficient data`);
+        logger.info(`📊 Historical price data coverage: ${coverage.length} ETFs with insufficient data`);
         coverage.forEach((row: any) => {
           logger.info(`   ${row.symbol}: ${row.unique_days} days, ${row.total_records} records`);
         });
+        
+        // Log missing symbols
+        const existingSymbols = coverage.map((row: any) => row.symbol);
+        const allSymbols = ['SPY', 'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'];
+        const missingSymbols = allSymbols.filter(symbol => !existingSymbols.includes(symbol));
+        if (missingSymbols.length > 0) {
+          logger.info(`   Missing symbols: ${missingSymbols.join(', ')}`);
+        }
+        
         return true; // Need more data
       }
 
-      logger.info('✅ All ETFs have sufficient historical data coverage');
+      logger.info('✅ All ETFs have sufficient historical price data coverage');
       return false; // No more backfill needed
     } catch (error) {
       logger.error('❌ Error checking historical data coverage:', error);

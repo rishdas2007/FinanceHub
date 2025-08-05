@@ -250,15 +250,21 @@ export class ComprehensiveHistoricalCollector {
       
       for (const sector of sectors) {
         try {
+          // Store with correct schema mapping for Z-score calculations
           await db.insert(historicalSectorData).values({
-            sectorName: sector.symbol,
+            symbol: sector.symbol,           // FIXED: Use symbol instead of sectorName
             date: new Date(),
-            performance: sector.changePercent?.toString() || '0',
+            price: sector.price || 0,        // FIXED: Store actual price for Z-score calculations
             volume: sector.volume || 0,
-            marketCap: null,
+            change_percent: sector.changePercent || 0,  // FIXED: Use correct field name
+            open: sector.price || 0,         // Approximate - could be enhanced with real OHLC
+            high: sector.price || 0,
+            low: sector.price || 0,
+            close: sector.price || 0,
           }).onConflictDoNothing();
           
           stats.totalRecords++;
+          console.log(`✅ Stored price data for ${sector.symbol}: $${sector.price}`);
           
         } catch (insertError) {
           console.error(`❌ Error storing sector data for ${sector.symbol}:`, insertError);
