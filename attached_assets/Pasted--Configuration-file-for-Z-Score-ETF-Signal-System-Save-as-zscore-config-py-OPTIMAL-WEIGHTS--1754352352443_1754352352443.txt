@@ -1,0 +1,92 @@
+
+# Configuration file for Z-Score ETF Signal System
+# Save as 'zscore_config.py'
+
+# OPTIMAL WEIGHTS (from backtest analysis)
+OPTIMAL_WEIGHTS = {
+    'rsi': 0.30,      # RSI Z-score (primary momentum signal)
+    'macd': 0.25,     # MACD Z-score (trend confirmation)
+    'bollinger': 0.20, # Bollinger Bands Z-score (volatility/reversal)
+    'ma_trend': 0.10, # Moving Average trend differential Z-score
+    'z_score': 0.10,  # Price momentum Z-score
+    'atr': 0.05,      # Average True Range Z-score (volatility)
+    'vwap': 0.00      # VWAP relative position Z-score
+}
+
+# SIGNAL THRESHOLDS
+BUY_THRESHOLD = 0.25    # Composite Z-score >= 0.25 triggers BUY
+SELL_THRESHOLD = -0.25  # Composite Z-score <= -0.25 triggers SELL
+# Values between thresholds result in HOLD
+
+# Z-SCORE CALCULATION PARAMETERS
+ZSCORE_WINDOW = 20      # Rolling window for Z-score calculation (20 days)
+MIN_HISTORY_DAYS = 70   # Minimum days of data needed for stable signals
+
+# TECHNICAL INDICATOR PARAMETERS
+RSI_PERIOD = 14         # RSI calculation period
+MACD_FAST = 12         # MACD fast EMA period
+MACD_SLOW = 26         # MACD slow EMA period
+MACD_SIGNAL = 9        # MACD signal line EMA period
+BB_PERIOD = 20         # Bollinger Bands period
+BB_STD_DEV = 2         # Bollinger Bands standard deviations
+ATR_PERIOD = 14        # Average True Range period
+SMA_SHORT = 20         # Short-term Simple Moving Average
+SMA_LONG = 50          # Long-term Simple Moving Average
+VWAP_PERIOD = 20       # Volume Weighted Average Price period
+
+# Z-SCORE SIGNAL THRESHOLDS (for individual indicators)
+ZSCORE_STRONG_BULLISH = 1.5    # Z-score > 1.5 = very bullish signal
+ZSCORE_MILD_BULLISH = 0.5      # Z-score > 0.5 = mildly bullish signal
+ZSCORE_MILD_BEARISH = -0.5     # Z-score < -0.5 = mildly bearish signal
+ZSCORE_STRONG_BEARISH = -1.5   # Z-score < -1.5 = very bearish signal
+
+# ETF UNIVERSE
+DEFAULT_ETFS = [
+    'SPY',   # S&P 500
+    'XLK',   # Technology
+    'XLV',   # Healthcare
+    'XLF',   # Financial
+    'XLI',   # Industrial
+    'XLY',   # Consumer Discretionary
+    'XLP',   # Consumer Staples
+    'XLE',   # Energy
+    'XLU',   # Utilities
+    'XLB',   # Materials
+    'XLRE'   # Real Estate
+]
+
+# DATA REQUIREMENTS
+REQUIRED_COLUMNS = ['date', 'open', 'high', 'low', 'close', 'volume']
+
+# OUTPUT CONFIGURATION
+OUTPUT_COLUMNS = [
+    'etf', 'date', 'close', 'volume',
+    # Original indicators
+    'rsi', 'macd_line', 'percent_b', 'atr', 'price_zscore',
+    'sma_20', 'sma_50', 'vwap',
+    # Z-score normalized indicators
+    'rsi_zscore', 'macd_zscore', 'percent_b_zscore', 'atr_zscore',
+    'price_zscore_zscore', 'ma_trend_zscore', 'vwap_zscore',
+    # Final signals
+    'composite_zscore', 'signal', 'signal_description'
+]
+
+# PERFORMANCE EXPECTATIONS (from backtesting)
+EXPECTED_PERFORMANCE = {
+    'avg_buy_return_5d': 0.352,  # Average 5-day return for buy signals (%)
+    'buy_win_rate': 59.97,       # Win rate for buy signals (%)
+    'signal_frequency': 19.12,    # Percentage of days with buy signals
+    'statistical_significance': 0.007  # P-value (statistically significant)
+}
+
+# ALERT THRESHOLDS
+STRONG_SIGNAL_THRESHOLD = 0.5   # Alert when |composite_zscore| >= 0.5
+HIGH_CONFIDENCE_THRESHOLD = 0.75 # High confidence when |composite_zscore| >= 0.75
+
+# FILE NAMING CONVENTIONS
+OUTPUT_FILENAME = 'zscore_etf_signals_complete.csv'
+INDIVIDUAL_ETF_PREFIX = 'zscore_signals_'  # e.g., zscore_signals_SPY.csv
+
+# VALIDATION PARAMETERS
+FORWARD_RETURN_PERIODS = [5, 10, 20]  # Days for forward return calculation
+MIN_SIGNAL_COUNT = 30  # Minimum signals needed for meaningful backtesting

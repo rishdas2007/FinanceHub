@@ -1,8 +1,9 @@
 import { db } from '../db';
-import { technicalIndicators, sectorData, historicalTechnicalIndicators } from '@shared/schema';
+import { technicalIndicators, sectorData, historicalTechnicalIndicators, zscoreTechnicalIndicators } from '@shared/schema';
 import { desc, eq, and, gte } from 'drizzle-orm';
 import { cacheService } from './cache-unified';
 import { logger } from '../middleware/logging';
+import { zscoreTechnicalService } from './zscore-technical-service';
 
 export interface ETFMetrics {
   symbol: string;
@@ -10,9 +11,21 @@ export interface ETFMetrics {
   price: number;
   changePercent: number;
   
-  // Weighted Technical Indicator Scoring System
+  // Z-Score Weighted Technical Indicator Scoring System
   weightedScore: number | null;
   weightedSignal: string | null;
+  
+  // Z-Score indicators
+  zScoreData: {
+    rsiZScore: number | null;
+    macdZScore: number | null;
+    bollingerZScore: number | null;
+    atrZScore: number | null;
+    priceMomentumZScore: number | null;
+    maTrendZScore: number | null;
+    compositeZScore: number | null;
+    signal: string | null;
+  } | null;
   
   // Bollinger Bands & Position/Squeeze
   bollingerPosition: number | null; // %B
@@ -109,7 +122,7 @@ class ETFMetricsService {
       ]);
 
       // 3. Consolidate data
-      const etfMetrics = this.consolidateETFMetrics(dbTechnicals, dbSectorData, momentumData);
+      const etfMetrics = await this.consolidateETFMetrics(dbTechnicals, dbSectorData, momentumData);
 
       // 4. Cache results
       cacheService.set(this.CACHE_KEY, etfMetrics, this.CACHE_TTL);
@@ -214,12 +227,12 @@ class ETFMetricsService {
   /**
    * CONSOLIDATE: Merge all data sources into unified ETF metrics
    */
-  private consolidateETFMetrics(
+  private async consolidateETFMetrics(
     technicals: Map<string, any>,
     sectors: Map<string, any>,
     momentum: MomentumData[]
-  ): ETFMetrics[] {
-    return this.ETF_SYMBOLS.map(symbol => {
+  ): Promise<ETFMetrics[]> {
+    const processedMetrics = await Promise.all(this.ETF_SYMBOLS.map(async (symbol) => {
       const technical = technicals.get(symbol);
       const sector = sectors.get(symbol);
       const momentumETF = momentum.find(m => m.ticker === symbol);
@@ -261,16 +274,22 @@ class ETFMetricsService {
         
         // Weighted Technical Indicator Scoring System (placeholder for now)
         weightedScore: null,
-        weightedSignal: null
+        weightedSignal: null,
+        
+        // Z-Score data placeholder
+        zScoreData: null
       };
 
-      // Calculate weighted scoring system
-      const weightedResult = this.calculateWeightedTechnicalScore(metrics, momentumETF);
+      // Calculate weighted scoring system with Z-score integration
+      const weightedResult = await this.calculateWeightedTechnicalScore(metrics, momentumETF);
       metrics.weightedScore = weightedResult.score;
       metrics.weightedSignal = weightedResult.signal;
+      metrics.zScoreData = weightedResult.zScoreData;
 
       return metrics;
-    });
+    }));
+    
+    return processedMetrics;
   }
 
   // HELPER METHODS: Technical analysis calculations
@@ -347,53 +366,85 @@ class ETFMetricsService {
   }
 
   /**
-   * WEIGHTED TECHNICAL INDICATOR SCORING SYSTEM
-   * Implements scientifically-backed weighting based on predictive power
+   * Z-SCORE WEIGHTED TECHNICAL INDICATOR SCORING SYSTEM
+   * Implements Z-score normalized weighting for scale independence and statistical consistency
    */
-  private calculateWeightedTechnicalScore(metrics: any, momentumETF?: any): { score: number; signal: string } {
+  private async calculateWeightedTechnicalScore(metrics: any, momentumETF?: any): Promise<{ score: number; signal: string; zScoreData: any }> {
+    // First, try to get Z-score data for this ETF
+    const zScoreData = await zscoreTechnicalService.getLatestZScoreData(metrics.symbol);
+    
+    if (zScoreData && zScoreData.compositeZScore !== null) {
+      // Use Z-score system with momentum-focused weights
+      return {
+        score: zScoreData.compositeZScore,
+        signal: zScoreData.signal,
+        zScoreData: {
+          rsiZScore: zScoreData.rsiZScore,
+          macdZScore: zScoreData.macdZScore,
+          bollingerZScore: zScoreData.bollingerZScore,
+          atrZScore: zScoreData.atrZScore,
+          priceMomentumZScore: zScoreData.priceMomentumZScore,
+          maTrendZScore: zScoreData.maTrendZScore,
+          compositeZScore: zScoreData.compositeZScore,
+          signal: zScoreData.signal
+        }
+      };
+    }
+    
+    // Fallback to legacy weighting system if Z-score data unavailable
     let totalScore = 0;
     let totalWeight = 0;
+    
+    // Legacy weights
+    const LEGACY_WEIGHTS = {
+      bollinger: 0.40,  
+      rsi: 0.20,        
+      atr: 0.15,        
+      macd: 0.10,       
+      maTrend: 0.10,    
+      zScore: 0.05      
+    };
 
     // 1. Bollinger Bands - Highest weight (40%) - Strong volatility/reversal predictor
     const bollingerScore = this.getBollingerScore(metrics.bollingerPosition, metrics.bollingerStatus);
     if (bollingerScore !== null) {
-      totalScore += bollingerScore * 0.40;
-      totalWeight += 0.40;
+      totalScore += bollingerScore * LEGACY_WEIGHTS.bollinger;
+      totalWeight += LEGACY_WEIGHTS.bollinger;
     }
 
     // 2. RSI - High weight (20%) - Momentum confirmation
     const rsiScore = this.getRSIScore(metrics.rsi);
     if (rsiScore !== null) {
-      totalScore += rsiScore * 0.20;
-      totalWeight += 0.20;
+      totalScore += rsiScore * LEGACY_WEIGHTS.rsi;
+      totalWeight += LEGACY_WEIGHTS.rsi;
     }
 
     // 3. ATR/Volatility - Medium weight (15%) - Risk and momentum predictor
     const atrScore = this.getATRScore(metrics.atr, metrics.volatility, momentumETF);
     if (atrScore !== null) {
-      totalScore += atrScore * 0.15;
-      totalWeight += 0.15;
+      totalScore += atrScore * LEGACY_WEIGHTS.atr;
+      totalWeight += LEGACY_WEIGHTS.atr;
     }
 
     // 4. MACD - Medium weight (10%) - Trend following
     const macdScore = this.getMACDScore(momentumETF);
     if (macdScore !== null) {
-      totalScore += macdScore * 0.10;
-      totalWeight += 0.10;
+      totalScore += macdScore * LEGACY_WEIGHTS.macd;
+      totalWeight += LEGACY_WEIGHTS.macd;
     }
 
     // 5. MA Trend - Medium weight (10%) - Trend confirmation
     const maScore = this.getMAScore(metrics.maSignal, metrics.maTrend);
     if (maScore !== null) {
-      totalScore += maScore * 0.10;
-      totalWeight += 0.10;
+      totalScore += maScore * LEGACY_WEIGHTS.maTrend;
+      totalWeight += LEGACY_WEIGHTS.maTrend;
     }
 
     // 6. Z-Score - Low weight (5%) - Statistical deviation
     const zScore = this.getZScore(metrics.zScore);
     if (zScore !== null) {
-      totalScore += zScore * 0.05;
-      totalWeight += 0.05;
+      totalScore += zScore * LEGACY_WEIGHTS.zScore;
+      totalWeight += LEGACY_WEIGHTS.zScore;
     }
 
     // Normalize score if we have any data
@@ -409,7 +460,7 @@ class ETFMetricsService {
       signal = 'HOLD';
     }
 
-    return { score: finalScore, signal };
+    return { score: finalScore, signal, zScoreData: null };
   }
 
   // Individual scoring methods for each indicator

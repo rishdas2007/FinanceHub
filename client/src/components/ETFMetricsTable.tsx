@@ -56,6 +56,18 @@ interface ETFMetrics {
   weightedScore: number | null;
   weightedSignal: string | null;
   
+  // Z-Score data from new system
+  zScoreData: {
+    rsiZScore: number | null;
+    macdZScore: number | null;
+    bollingerZScore: number | null;
+    atrZScore: number | null;
+    priceMomentumZScore: number | null;
+    maTrendZScore: number | null;
+    compositeZScore: number | null;
+    signal: string | null;
+  } | null;
+  
   // Bollinger Bands & Position/Squeeze
   bollingerPosition: number | null; // %B
   bollingerSqueeze: boolean;
@@ -241,12 +253,12 @@ export default function ETFMetricsTable() {
           <span className="text-red-600 font-medium">Red = Bad/Sell signals</span>. 
           <br />
           <strong>Metrics:</strong> 
-          <strong> Signal</strong> - Weighted Technical Score (Bollinger 40%, RSI 20%, ATR 15%, MACD 10%, MA 10%, Z-Score 5%). BUY ≥0.25, SELL ≤-0.25, HOLD -0.25 to 0.25.
+          <strong> Signal</strong> - Z-Score Weighted System (RSI 30%, MACD 25%, Bollinger 20%, MA Trend 10%, Price Momentum 10%, ATR 5%). BUY ≥0.25, SELL ≤-0.25, HOLD -0.25 to 0.25.
           <strong> Bollinger</strong> - Price position in bands (oversold=good, overbought=bad). 
           <strong> ATR</strong> - Volatility measure. 
           <strong> MA Trend</strong> - Bull/bear crossover signals. 
           <strong> RSI</strong> - Momentum (oversold=good, overbought=bad). 
-          <strong> Z-Score</strong> - Historical performance deviation.
+          <strong> Z-Score Composite</strong> - Statistical normalization with 20-day rolling window for scale-independent signals.
         </p>
       </div>
 
@@ -288,7 +300,7 @@ export default function ETFMetricsTable() {
               <th className="text-center p-3 font-medium text-gray-700 min-w-[120px]">
                 <div className="flex items-center justify-center gap-1">
                   <Activity className="h-4 w-4" />
-                  <span>Z-Score/Sharpe</span>
+                  <span>Z-Score Composite</span>
                 </div>
               </th>
 
@@ -390,23 +402,40 @@ export default function ETFMetricsTable() {
                     </div>
                   </td>
 
-                  {/* Z-Score/Sharpe */}
+                  {/* Z-Score Composite */}
                   <td className="p-3 text-center">
                     <div className="flex flex-col items-center">
-                      <span className={`text-sm font-medium ${
-                        etf.zScore && etf.zScore > 2 ? 'text-green-600' :
-                        etf.zScore && etf.zScore < -2 ? 'text-red-600' : 'text-gray-900'
-                      }`}>
-                        Z: {formatNumber(etf.zScore, 2)}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        Sharpe: {formatNumber(etf.sharpeRatio, 2)}
-                      </span>
-                      <span className={`text-xs ${
-                        etf.fiveDayReturn && etf.fiveDayReturn > 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        5d: {formatPercentage(etf.fiveDayReturn)}
-                      </span>
+                      {etf.zScoreData?.compositeZScore !== null && etf.zScoreData?.compositeZScore !== undefined ? (
+                        <>
+                          <span className={`text-sm font-medium ${
+                            etf.zScoreData.compositeZScore > 0.25 ? 'text-green-600' :
+                            etf.zScoreData.compositeZScore < -0.25 ? 'text-red-600' : 'text-yellow-600'
+                          }`}>
+                            {formatNumber(etf.zScoreData.compositeZScore, 3)}
+                          </span>
+                          <span className={`text-xs font-medium ${
+                            etf.zScoreData.signal === 'BUY' ? 'text-green-600' :
+                            etf.zScoreData.signal === 'SELL' ? 'text-red-600' : 'text-yellow-600'
+                          }`}>
+                            {etf.zScoreData.signal}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            Z-Score System
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className={`text-sm font-medium ${
+                            etf.zScore && etf.zScore > 2 ? 'text-green-600' :
+                            etf.zScore && etf.zScore < -2 ? 'text-red-600' : 'text-gray-900'
+                          }`}>
+                            {formatNumber(etf.zScore, 2)}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            Legacy Z-Score
+                          </span>
+                        </>
+                      )}
                     </div>
                   </td>
 

@@ -1,0 +1,266 @@
+
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+
+class ZScoreTechnicalSignals:
+    """
+    Complete implementation of Z-Score Momentum-Focused ETF technical signal system
+    """
+
+    def __init__(self):
+        # Optimal weights from backtest analysis
+        self.weights = {
+            'rsi': 0.30,      # Primary momentum signal
+            'macd': 0.25,     # Trend confirmation  
+            'bollinger': 0.20, # Volatility/reversal
+            'ma_trend': 0.10, # Trend direction
+            'z_score': 0.10,  # Statistical momentum
+            'atr': 0.05,      # Volatility context
+            'vwap': 0.00      # Minimal predictive value
+        }
+
+        # Signal thresholds
+        self.buy_threshold = 0.25
+        self.sell_threshold = -0.25
+
+        # Z-score calculation window
+        self.zscore_window = 20
+
+    def calculate_technical_indicators(self, data):
+        """Calculate all required technical indicators"""
+        df = data.copy()
+
+        # RSI (14-day)
+        df['rsi'] = self._calculate_rsi(df['close'], 14)
+
+        # MACD
+        df['macd_line'], df['macd_signal'] = self._calculate_macd(df['close'])
+
+        # Bollinger Bands
+        df['bb_upper'], df['bb_middle'], df['bb_lower'], df['percent_b'] = self._calculate_bollinger_bands(df['close'])
+
+        # ATR
+        df['atr'] = self._calculate_atr(df['high'], df['low'], df['close'])
+
+        # Moving Averages
+        df['sma_20'] = df['close'].rolling(window=20).mean()
+        df['sma_50'] = df['close'].rolling(window=50).mean()
+
+        # VWAP (simplified 20-day)
+        df['vwap'] = (df['close'] * df['volume']).rolling(window=20).sum() / df['volume'].rolling(window=20).sum()
+
+        # Price momentum Z-score
+        returns = df['close'].pct_change()
+        df['price_zscore'] = (returns - returns.rolling(window=20).mean()) / returns.rolling(window=20).std()
+
+        return df
+
+    def calculate_zscore_indicators(self, data):
+        """Convert technical indicators to Z-scores"""
+        df = data.copy()
+
+        # Z-score normalize each indicator
+        df['rsi_zscore'] = self._zscore_normalize(df['rsi'], self.zscore_window)
+        df['macd_zscore'] = self._zscore_normalize(df['macd_line'], self.zscore_window)
+        df['percent_b_zscore'] = self._zscore_normalize(df['percent_b'], self.zscore_window)
+        df['atr_zscore'] = self._zscore_normalize(df['atr'], self.zscore_window)
+        df['price_zscore_zscore'] = self._zscore_normalize(df['price_zscore'], self.zscore_window)
+
+        # MA trend differential as Z-score
+        ma_diff = df['sma_20'] - df['sma_50']
+        df['ma_trend_zscore'] = self._zscore_normalize(ma_diff, self.zscore_window)
+
+        # VWAP relative position as Z-score
+        vwap_relative = (df['close'] - df['vwap']) / df['vwap']
+        df['vwap_zscore'] = self._zscore_normalize(vwap_relative, self.zscore_window)
+
+        return df
+
+    def generate_signals(self, data):
+        """Generate buy/sell/hold signals based on Z-score composite score"""
+        df = data.copy()
+
+        # Calculate composite Z-score signal
+        df['composite_zscore'] = (
+            self.weights['rsi'] * self._zscore_signal(df['rsi_zscore']) +
+            self.weights['macd'] * self._zscore_signal(df['macd_zscore']) +
+            self.weights['bollinger'] * self._zscore_signal(df['percent_b_zscore']) +
+            self.weights['ma_trend'] * self._zscore_signal(df['ma_trend_zscore']) +
+            self.weights['atr'] * self._zscore_signal(df['atr_zscore']) +
+            self.weights['z_score'] * self._zscore_signal(df['price_zscore_zscore']) +
+            self.weights['vwap'] * self._zscore_signal(df['vwap_zscore'])
+        )
+
+        # Generate trading signals
+        df['signal'] = 0  # Default: Hold
+        df.loc[df['composite_zscore'] >= self.buy_threshold, 'signal'] = 1   # Buy
+        df.loc[df['composite_zscore'] <= self.sell_threshold, 'signal'] = -1  # Sell
+
+        # Add signal descriptions
+        df['signal_description'] = df['signal'].map({1: 'BUY', 0: 'HOLD', -1: 'SELL'})
+
+        return df
+
+    def _calculate_rsi(self, prices, window=14):
+        """Calculate RSI"""
+        delta = prices.diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
+        rs = gain / loss
+        rsi = 100 - (100 / (1 + rs))
+        return rsi
+
+    def _calculate_macd(self, prices, fast=12, slow=26, signal=9):
+        """Calculate MACD"""
+        ema_fast = prices.ewm(span=fast).mean()
+        ema_slow = prices.ewm(span=slow).mean()
+        macd_line = ema_fast - ema_slow
+        macd_signal = macd_line.ewm(span=signal).mean()
+        return macd_line, macd_signal
+
+    def _calculate_bollinger_bands(self, prices, window=20, num_std=2):
+        """Calculate Bollinger Bands"""
+        sma = prices.rolling(window=window).mean()
+        std = prices.rolling(window=window).std()
+        upper_band = sma + (std * num_std)
+        lower_band = sma - (std * num_std)
+        percent_b = (prices - lower_band) / (upper_band - lower_band)
+        return upper_band, sma, lower_band, percent_b
+
+    def _calculate_atr(self, high, low, close, window=14):
+        """Calculate Average True Range"""
+        tr1 = high - low
+        tr2 = abs(high - close.shift())
+        tr3 = abs(low - close.shift())
+        tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+        atr = tr.rolling(window=window).mean()
+        return atr
+
+    def _zscore_normalize(self, series, window=20):
+        """Calculate rolling Z-score normalization"""
+        rolling_mean = series.rolling(window=window).mean()
+        rolling_std = series.rolling(window=window).std()
+        zscore = (series - rolling_mean) / rolling_std
+        return zscore
+
+    def _zscore_signal(self, zscore_series):
+        """Convert Z-score to signal strength (-1 to +1)"""
+        signals = pd.Series(0.0, index=zscore_series.index)
+
+        # Strong signals (>1.5 std dev)
+        signals.loc[zscore_series > 1.5] = 1.0   # Very bullish
+        signals.loc[zscore_series < -1.5] = -1.0  # Very bearish
+
+        # Medium signals (0.5-1.5 std dev)
+        signals.loc[(zscore_series > 0.5) & (zscore_series <= 1.5)] = 0.5   # Bullish
+        signals.loc[(zscore_series < -0.5) & (zscore_series >= -1.5)] = -0.5  # Bearish
+
+        # Weak signals (0-0.5 std dev) remain at 0
+
+        return signals
+
+    def process_etf_data(self, etf_data, ticker):
+        """Complete processing pipeline for a single ETF"""
+        # Ensure data is sorted by date
+        df = etf_data.sort_values('date').reset_index(drop=True)
+
+        # Calculate technical indicators
+        df = self.calculate_technical_indicators(df)
+
+        # Calculate Z-score indicators  
+        df = self.calculate_zscore_indicators(df)
+
+        # Generate signals
+        df = self.generate_signals(df)
+
+        # Add ETF identifier
+        df['etf'] = ticker
+
+        # Remove rows with insufficient data (first 70 days needed for Z-score stability)
+        df_valid = df.iloc[70:].copy()
+
+        return df_valid
+
+    def save_historical_data(self, processed_data, filename):
+        """Save processed data with Z-scores and signals to CSV"""
+
+        # Select key columns for export
+        export_columns = [
+            'etf', 'date', 'close', 'volume',
+            # Original indicators
+            'rsi', 'macd_line', 'percent_b', 'atr', 'price_zscore',
+            'sma_20', 'sma_50', 'vwap',
+            # Z-score normalized indicators
+            'rsi_zscore', 'macd_zscore', 'percent_b_zscore', 'atr_zscore',
+            'price_zscore_zscore', 'ma_trend_zscore', 'vwap_zscore',
+            # Final signals
+            'composite_zscore', 'signal', 'signal_description'
+        ]
+
+        # Filter to available columns
+        available_columns = [col for col in export_columns if col in processed_data.columns]
+        export_data = processed_data[available_columns].copy()
+
+        # Round numerical columns for readability
+        numeric_columns = export_data.select_dtypes(include=[np.number]).columns
+        export_data[numeric_columns] = export_data[numeric_columns].round(6)
+
+        # Save to CSV
+        export_data.to_csv(filename, index=False)
+
+        return len(export_data)
+
+# Usage example function
+def implement_zscore_system():
+    """
+    Example implementation of the complete Z-Score system
+    """
+    # Initialize the signal system
+    signal_system = ZScoreTechnicalSignals()
+
+    # Example: Process multiple ETFs
+    etf_tickers = ['SPY', 'XLK', 'XLV', 'XLF', 'XLI', 'XLY', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE']
+
+    all_processed_data = []
+
+    for ticker in etf_tickers:
+        # Load your price data (replace this with your data loading method)
+        # etf_data = load_price_data(ticker)  # Your data loading function
+
+        # Process the ETF data
+        # processed_data = signal_system.process_etf_data(etf_data, ticker)
+        # all_processed_data.append(processed_data)
+
+        print(f"Processed {ticker}")
+
+    # Combine all ETF data
+    # combined_data = pd.concat(all_processed_data, ignore_index=True)
+
+    # Save to CSV
+    # records_saved = signal_system.save_historical_data(combined_data, 'zscore_etf_signals.csv')
+    # print(f"Saved {records_saved} records to zscore_etf_signals.csv")
+
+    return signal_system
+
+# Example of real-time signal generation
+def generate_current_signals(current_data, signal_system):
+    """
+    Generate signals for current market data
+    """
+    # Process current data
+    processed = signal_system.process_etf_data(current_data, 'CURRENT')
+
+    # Get latest signal
+    latest_signal = processed.iloc[-1]
+
+    return {
+        'etf': latest_signal['etf'],
+        'date': latest_signal['date'],
+        'price': latest_signal['close'],
+        'composite_zscore': latest_signal['composite_zscore'],
+        'signal': latest_signal['signal_description'],
+        'rsi_zscore': latest_signal['rsi_zscore'],
+        'macd_zscore': latest_signal['macd_zscore'],
+        'bollinger_zscore': latest_signal['percent_b_zscore']
+    }
