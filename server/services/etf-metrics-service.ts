@@ -310,9 +310,13 @@ class ETFMetricsService {
   }
 
   private getMASignal(technical: any): string {
-    if (!technical?.sma_20) return 'No Data';
-    // Would compare current price to SMA for signal
-    return 'Above 20 SMA';
+    if (!technical?.sma_20 || !technical?.sma_50) return 'No Data';
+    const sma20 = parseFloat(technical.sma_20);
+    const sma50 = parseFloat(technical.sma_50);
+    
+    if (sma20 > sma50) return 'Bull Cross';
+    if (sma20 < sma50) return 'Bear Cross';
+    return 'Neutral';
   }
 
   private getMATrend(technical: any): 'bullish' | 'bearish' | 'neutral' {
