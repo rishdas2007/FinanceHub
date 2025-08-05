@@ -141,18 +141,26 @@ class ETFMetricsService {
    */
   private async getLatestTechnicalIndicatorsFromDB() {
     const results = new Map();
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 30); // Get data from last 30 days only
     
     for (const symbol of this.ETF_SYMBOLS) {
       try {
         const latest = await db
           .select()
           .from(technicalIndicators)
-          .where(eq(technicalIndicators.symbol, symbol))
-          .orderBy(desc(technicalIndicators.id))
+          .where(and(
+            eq(technicalIndicators.symbol, symbol),
+            gte(technicalIndicators.timestamp, cutoffDate)
+          ))
+          .orderBy(desc(technicalIndicators.timestamp))
           .limit(1);
 
         if (latest.length > 0) {
           results.set(symbol, latest[0]);
+          logger.warn(`🔧 FIXED ${symbol} Technical Data: ${latest[0].timestamp.toISOString()} (SMA20: ${latest[0].sma_20}, SMA50: ${latest[0].sma_50}, Gap: ${parseFloat(latest[0].sma_20 || '0') - parseFloat(latest[0].sma_50 || '0')})`);
+        } else {
+          logger.error(`❌ No recent technical data for ${symbol} in last 30 days`);
         }
       } catch (error) {
         logger.warn(`No technical data for ${symbol}:`, error);
@@ -236,6 +244,16 @@ class ETFMetricsService {
       const technical = technicals.get(symbol);
       const sector = sectors.get(symbol);
       const momentumETF = momentum.find(m => m.ticker === symbol);
+      
+      // Debug technical data for problematic ETFs
+      if (['XLI', 'XLY', 'XLC', 'XLP', 'XLE', 'XLB'].includes(symbol)) {
+        logger.warn(`🔍 DEBUG ${symbol} Technical Data:`, { 
+          hasTechnical: !!technical,
+          sma_20: technical?.sma_20,
+          sma_50: technical?.sma_50,
+          timestamp: technical?.timestamp 
+        });
+      }
 
       const metrics = {
         symbol,
@@ -330,10 +348,19 @@ class ETFMetricsService {
   }
 
   private getMAGap(technical: any): number | null {
-    if (!technical?.sma_20 || !technical?.sma_50) return null;
+    if (!technical?.sma_20 || !technical?.sma_50) {
+      logger.warn(`Missing SMA data for MA Gap calculation:`, { 
+        sma_20: technical?.sma_20, 
+        sma_50: technical?.sma_50,
+        symbol: technical?.symbol 
+      });
+      return null;
+    }
     const sma20 = parseFloat(technical.sma_20);
     const sma50 = parseFloat(technical.sma_50);
-    return parseFloat((sma20 - sma50).toFixed(2));
+    const gap = parseFloat((sma20 - sma50).toFixed(2));
+    logger.info(`✅ MA Gap calculated for ${technical?.symbol}: ${gap} (SMA20: ${sma20}, SMA50: ${sma50})`);
+    return gap;
   }
 
   private getRSISignal(rsi: string | number | null): string {
