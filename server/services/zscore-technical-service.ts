@@ -56,9 +56,9 @@ class ZScoreTechnicalService {
     atr: 0.00            // Removed from directional signals, used as modifier
   };
   
-  // Signal thresholds - Adjusted for -1 to +1 signal range
-  private readonly BUY_THRESHOLD = 0.6;   // More reasonable for weighted signal range
-  private readonly SELL_THRESHOLD = -0.6;
+  // Signal thresholds - Adjusted for more practical trading signals
+  private readonly BUY_THRESHOLD = 0.25;   // BUY signal at ≥0.25
+  private readonly SELL_THRESHOLD = -0.25;  // SELL signal at ≤-0.25
   private readonly ZSCORE_WINDOW = 20; // 20-day rolling window (standardized across ETF metrics)
   
   public static getInstance(): ZScoreTechnicalService {

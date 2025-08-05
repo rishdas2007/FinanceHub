@@ -41,7 +41,7 @@ export const EMA_TOOLTIP = "Exponential Moving Average. Fixed critical bug: EMA 
 
 export const SMA_TOOLTIP = "Simple Moving Average. Standardized data requirements: SMA20 requires 20 data points, SMA50 requires 50 data points. No fallback compromised calculations.";
 
-export const BOLLINGER_TOOLTIP = "Bollinger Bands %B position. Fixed signal direction: High %B (>0.8) now properly identified as bearish (overbought) signal. Current signal thresholds: ±0.6 for optimal sensitivity in weighted signal range.";
+export const BOLLINGER_TOOLTIP = "Bollinger Bands %B position. Fixed signal direction: High %B (>0.8) now properly identified as bearish (overbought) signal. Current signal thresholds: ±0.25 for practical trading signals.";
 
 export const ZSCORE_TOOLTIP = "Z-Score statistical analysis using 20-day rolling window. Improved scaling from stepped thresholds to smooth scaling (zscore/2). Enhanced extreme value handling from arbitrary ±50 capping to ±5 statistical threshold.";
 

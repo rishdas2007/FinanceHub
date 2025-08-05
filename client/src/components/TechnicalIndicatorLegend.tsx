@@ -81,7 +81,7 @@ export function TechnicalIndicatorLegend({ className = '' }: TechnicalIndicatorL
                     <p><strong className="text-blue-400">✅ Bollinger %B Direction Corrected:</strong> High %B now properly identified as bearish (overbought) signal</p>
                   </div>
                   <div className="bg-blue-900/20 p-3 rounded border border-blue-700">
-                    <p><strong className="text-blue-400">✅ Signal Thresholds Adjusted:</strong> Current thresholds ±0.6 for appropriate sensitivity in weighted signal range</p>
+                    <p><strong className="text-blue-400">✅ Signal Thresholds Adjusted:</strong> Current thresholds ±0.25 for practical trading signals (BUY ≥0.25, SELL ≤-0.25)</p>
                   </div>
                   <div className="bg-blue-900/20 p-3 rounded border border-blue-700">
                     <p><strong className="text-blue-400">✅ Z-score to Signal Conversion Improved:</strong> From stepped thresholds to smooth scaling (zscore/2)</p>
