@@ -240,9 +240,10 @@ class ETFMetricsService {
       const metrics = {
         symbol,
         name: this.ETF_NAMES[symbol as keyof typeof this.ETF_NAMES] || symbol,
-        price: sector ? parseFloat(sector.price) : 0,
+        price: sector?.price ? parseFloat(sector.price.toString()) : 
+               (momentumETF?.price ? parseFloat(momentumETF.price.toString()) : 0),
         changePercent: momentumETF?.oneDayChange ? parseFloat(momentumETF.oneDayChange.toString()) : 
-                      (sector ? parseFloat(sector.changePercent) : 0),
+                      (sector?.changePercent ? parseFloat(sector.changePercent.toString()) : 0),
         
         // Bollinger Bands & Position/Squeeze
         bollingerPosition: technical?.percent_b ? parseFloat(technical.percent_b) : null,
@@ -272,11 +273,11 @@ class ETFMetricsService {
         vwapSignal: this.getVWAPSignal(technical, sector, momentumETF),
         obvTrend: momentumETF?.signal ? this.parseOBVFromSignal(momentumETF.signal) : 'neutral',
         
-        // Weighted Technical Indicator Scoring System (placeholder for now)
-        weightedScore: null,
-        weightedSignal: null,
+        // Weighted Technical Indicator Scoring System (will be filled by weighted calculation)
+        weightedScore: 0,
+        weightedSignal: 'HOLD',
         
-        // Z-Score data placeholder
+        // Z-Score data (will be filled by weighted calculation)
         zScoreData: null
       };
 

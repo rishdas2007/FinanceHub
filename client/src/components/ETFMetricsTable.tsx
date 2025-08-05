@@ -195,15 +195,15 @@ export default function ETFMetricsTable() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6" data-testid="etf-metrics-loading">
+      <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6" data-testid="etf-metrics-loading">
         <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="h-5 w-5 text-blue-600 animate-pulse" />
-          <h3 className="text-lg font-semibold text-gray-900">ETF Technical Metrics</h3>
-          <span className="text-sm text-blue-600">Loading from database...</span>
+          <BarChart3 className="h-5 w-5 text-blue-400 animate-pulse" />
+          <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
+          <span className="text-sm text-blue-400">Loading from database...</span>
         </div>
         <div className="space-y-3">
           {[1,2,3,4,5].map(i => (
-            <div key={i} className="h-12 bg-gray-100 rounded animate-pulse" />
+            <div key={i} className="h-12 bg-gray-800 rounded animate-pulse" />
           ))}
         </div>
       </div>
@@ -212,92 +212,92 @@ export default function ETFMetricsTable() {
 
   if (error || !etfMetricsResponse?.success) {
     return (
-      <div className="bg-white rounded-lg border border-red-200 p-6" data-testid="etf-metrics-error">
+      <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-red-500 p-6" data-testid="etf-metrics-error">
         <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="h-5 w-5 text-red-600" />
-          <h3 className="text-lg font-semibold text-gray-900">ETF Technical Metrics</h3>
-          <span className="text-sm text-red-600">Database Error</span>
+          <BarChart3 className="h-5 w-5 text-red-400" />
+          <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
+          <span className="text-sm text-red-400">Database Error</span>
         </div>
-        <p className="text-gray-600">Unable to load ETF metrics from database. Please refresh the page.</p>
+        <p className="text-gray-300">Unable to load ETF metrics from database. Please refresh the page.</p>
       </div>
     );
   }
 
   if (!etfMetrics.length) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6">
         <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="h-5 w-5 text-blue-600" />
-          <h3 className="text-lg font-semibold text-gray-900">ETF Technical Metrics</h3>
+          <BarChart3 className="h-5 w-5 text-blue-400" />
+          <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
         </div>
         <div className="flex items-center justify-center py-8">
-          <span className="text-gray-600">No ETF data available</span>
+          <span className="text-gray-400">No ETF data available</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6" data-testid="etf-metrics-table">
+    <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6" data-testid="etf-metrics-table">
       <div className="flex items-center gap-2 mb-3">
-        <BarChart3 className="h-5 w-5 text-blue-600" />
-        <h3 className="text-lg font-semibold text-gray-900">ETF Technical Metrics</h3>
-        <span className="text-sm text-gray-500">({etfMetrics.length} ETFs)</span>
+        <BarChart3 className="h-5 w-5 text-blue-400" />
+        <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
+        <span className="text-sm text-gray-400">({etfMetrics.length} ETFs)</span>
       </div>
 
-      <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-        <p className="text-sm text-gray-700">
-          <strong>Color Guide:</strong> 
-          <span className="text-green-600 font-medium">Green = Good/Buy signals</span>, 
-          <span className="text-yellow-600 font-medium">Yellow = Neutral/Caution</span>, 
-          <span className="text-red-600 font-medium">Red = Bad/Sell signals</span>. 
+      <div className="mb-4 p-3 bg-gray-800/50 rounded-lg border border-gray-600">
+        <p className="text-sm text-gray-300">
+          <strong className="text-white">Color Guide:</strong> 
+          <span className="text-green-400 font-medium">Green = Good/Buy signals</span>, 
+          <span className="text-yellow-400 font-medium">Yellow = Neutral/Caution</span>, 
+          <span className="text-red-400 font-medium">Red = Bad/Sell signals</span>. 
           <br />
-          <strong>Metrics:</strong> 
-          <strong> Signal</strong> - Z-Score Weighted System (RSI 30%, MACD 25%, Bollinger 20%, MA Trend 10%, Price Momentum 10%, ATR 5%). BUY ≥0.25, SELL ≤-0.25, HOLD -0.25 to 0.25.
-          <strong> Bollinger</strong> - Price position in bands (oversold=good, overbought=bad). 
-          <strong> ATR</strong> - Volatility measure. 
-          <strong> MA Trend</strong> - Bull/bear crossover signals. 
-          <strong> RSI</strong> - Momentum (oversold=good, overbought=bad). 
-          <strong> Z-Score Composite</strong> - Statistical normalization with 20-day rolling window for scale-independent signals.
+          <strong className="text-white">Metrics:</strong> 
+          <strong className="text-white"> Signal</strong> - Z-Score Weighted System (RSI 30%, MACD 25%, Bollinger 20%, MA Trend 10%, Price Momentum 10%, ATR 5%). BUY ≥0.25, SELL ≤-0.25, HOLD -0.25 to 0.25.
+          <strong className="text-white"> Bollinger</strong> - Price position in bands (oversold=good, overbought=bad). 
+          <strong className="text-white"> ATR</strong> - Volatility measure. 
+          <strong className="text-white"> MA Trend</strong> - Bull/bear crossover signals. 
+          <strong className="text-white"> RSI</strong> - Momentum (oversold=good, overbought=bad). 
+          <strong className="text-white"> Z-Score Composite</strong> - Statistical normalization with 20-day rolling window for scale-independent signals.
         </p>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="text-left p-3 font-medium text-gray-900 sticky left-0 bg-gray-50 z-10">ETF</th>
-              <th className="text-center p-3 font-medium text-gray-700 min-w-[100px]">
+            <tr className="bg-gray-800/50 border-b border-gray-600">
+              <th className="text-left p-3 font-medium text-white sticky left-0 bg-gray-800/50 z-10">ETF</th>
+              <th className="text-center p-3 font-medium text-gray-300 min-w-[100px] bg-gray-700/80">
                 <div className="flex items-center justify-center gap-1">
                   <TrendingUp className="h-4 w-4" />
                   <span>Signal</span>
                 </div>
               </th>
-              <th className="text-center p-3 font-medium text-gray-700 min-w-[120px]">
+              <th className="text-center p-3 font-medium text-gray-300 min-w-[120px]">
                 <div className="flex items-center justify-center gap-1">
                   <Activity className="h-4 w-4" />
                   <span>Bollinger Bands</span>
                 </div>
               </th>
-              <th className="text-center p-3 font-medium text-gray-700 min-w-[100px]">
+              <th className="text-center p-3 font-medium text-gray-300 min-w-[100px]">
                 <div className="flex items-center justify-center gap-1">
                   <Zap className="h-4 w-4" />
                   <span>ATR/Volatility</span>
                 </div>
               </th>
-              <th className="text-center p-3 font-medium text-gray-700 min-w-[100px]">
+              <th className="text-center p-3 font-medium text-gray-300 min-w-[100px]">
                 <div className="flex items-center justify-center gap-1">
                   <TrendingUp className="h-4 w-4" />
                   <span>MA Trend</span>
                 </div>
               </th>
-              <th className="text-center p-3 font-medium text-gray-700 min-w-[100px]">
+              <th className="text-center p-3 font-medium text-gray-300 min-w-[100px]">
                 <div className="flex items-center justify-center gap-1">
                   <BarChart3 className="h-4 w-4" />
                   <span>RSI</span>
                 </div>
               </th>
-              <th className="text-center p-3 font-medium text-gray-700 min-w-[120px]">
+              <th className="text-center p-3 font-medium text-gray-300 min-w-[120px]">
                 <div className="flex items-center justify-center gap-1">
                   <Activity className="h-4 w-4" />
                   <span>Z-Score Composite</span>
@@ -313,29 +313,35 @@ export default function ETFMetricsTable() {
 
 
               return (
-                <tr key={etf.symbol} className={`border-b border-gray-100 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}>
+                <tr key={etf.symbol} className={`border-b border-gray-600 hover:bg-gray-800/50 ${index % 2 === 0 ? 'bg-gray-900/50' : 'bg-gray-800/30'}`}>
                   {/* ETF Column */}
-                  <td className="p-3 sticky left-0 bg-white z-10 border-r border-gray-100">
+                  <td className="p-3 sticky left-0 bg-gray-900/95 z-10 border-r border-gray-600">
                     <div className="flex flex-col">
-                      <span className="font-medium text-gray-900">{etf.symbol}</span>
-                      <span className="text-xs text-gray-500">{etf.name}</span>
+                      <span className="font-medium text-white">{etf.symbol}</span>
+                      <span className="text-xs text-gray-400">{etf.name}</span>
                       <div className="flex items-center gap-1 mt-1">
-                        <span className="text-sm font-medium">${etf.price.toFixed(2)}</span>
-                        <span className={`text-xs ${etf.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <span className="text-sm font-medium text-white">
+                          ${etf.price > 0 ? etf.price.toFixed(2) : 'Loading...'}
+                        </span>
+                        <span className={`text-xs ${etf.changePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                           {formatPercentage(etf.changePercent)}
                         </span>
                       </div>
                     </div>
                   </td>
 
-                  {/* Weighted Signal Column */}
-                  <td className="p-3 text-center">
+                  {/* Weighted Signal Column - Dark and prominent */}
+                  <td className="p-3 text-center bg-gray-700/80">
                     <div className="flex flex-col items-center">
-                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${etf.weightedSignal === 'BUY' ? 'bg-green-100 text-green-800' : etf.weightedSignal === 'SELL' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                        {etf.weightedSignal || 'HOLD'}
+                      <span className={`inline-block px-3 py-2 rounded-lg text-sm font-bold border-2 ${
+                        etf.zScoreData?.signal === 'BUY' ? 'bg-green-900/50 text-green-300 border-green-500' : 
+                        etf.zScoreData?.signal === 'SELL' ? 'bg-red-900/50 text-red-300 border-red-500' : 
+                        'bg-gray-800/50 text-yellow-300 border-yellow-500'
+                      }`}>
+                        {etf.zScoreData?.signal || 'HOLD'}
                       </span>
-                      <span className="text-xs text-gray-500 mt-1">
-                        {etf.weightedScore !== null && etf.weightedScore !== undefined ? etf.weightedScore.toFixed(2) : 'N/A'}
+                      <span className="text-xs text-gray-400 mt-1">
+                        Z: {etf.zScoreData?.compositeZScore ? etf.zScoreData.compositeZScore.toFixed(2) : 'N/A'}
                       </span>
                     </div>
                   </td>
@@ -343,14 +349,18 @@ export default function ETFMetricsTable() {
                   {/* Bollinger Bands */}
                   <td className="p-3 text-center">
                     <div className="flex flex-col items-center">
-                      <span className={`text-sm font-medium ${bollingerResult.color}`}>
+                      <span className={`text-sm font-medium ${
+                        bollingerResult.color.includes('green') ? 'text-green-400' :
+                        bollingerResult.color.includes('red') ? 'text-red-400' :
+                        'text-yellow-400'
+                      }`}>
                         {etf.bollingerStatus}
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-400">
                         %B: {formatNumber(etf.bollingerPosition, 3)}
                       </span>
                       {etf.bollingerSqueeze && (
-                        <span className="text-xs bg-yellow-100 text-yellow-800 px-1 rounded mt-1">
+                        <span className="text-xs bg-yellow-900/50 text-yellow-300 px-1 rounded mt-1">
                           Squeeze
                         </span>
                       )}
@@ -360,10 +370,10 @@ export default function ETFMetricsTable() {
                   {/* ATR/Volatility */}
                   <td className="p-3 text-center">
                     <div className="flex flex-col items-center">
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-medium text-white">
                         {formatNumber(etf.atr, 2)}
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-400">
                         Vol: {formatPercentage(etf.volatility)}
                       </span>
                     </div>
@@ -373,18 +383,18 @@ export default function ETFMetricsTable() {
                   <td className="p-3 text-center">
                     <div className="flex flex-col items-center">
                       <span className={`text-sm font-medium ${
-                        etf.maTrend === 'bullish' ? 'text-green-600' : 
-                        etf.maTrend === 'bearish' ? 'text-red-600' : 'text-gray-600'
+                        etf.maTrend === 'bullish' ? 'text-green-400' : 
+                        etf.maTrend === 'bearish' ? 'text-red-400' : 'text-gray-400'
                       }`}>
                         {etf.maSignal}
                       </span>
                       <div className="flex items-center gap-1 mt-1">
                         {etf.maTrend === 'bullish' ? (
-                          <TrendingUp className="h-3 w-3 text-green-600" />
+                          <TrendingUp className="h-3 w-3 text-green-400" />
                         ) : etf.maTrend === 'bearish' ? (
-                          <TrendingDown className="h-3 w-3 text-red-600" />
+                          <TrendingDown className="h-3 w-3 text-red-400" />
                         ) : (
-                          <Activity className="h-3 w-3 text-gray-500" />
+                          <Activity className="h-3 w-3 text-gray-400" />
                         )}
                       </div>
                     </div>
@@ -393,10 +403,14 @@ export default function ETFMetricsTable() {
                   {/* RSI */}
                   <td className="p-3 text-center">
                     <div className="flex flex-col items-center">
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-medium text-white">
                         {formatNumber(etf.rsi, 1)}
                       </span>
-                      <span className={`text-xs ${rsiResult.color}`}>
+                      <span className={`text-xs ${
+                        rsiResult.color.includes('green') ? 'text-green-400' :
+                        rsiResult.color.includes('red') ? 'text-red-400' :
+                        'text-yellow-400'
+                      }`}>
                         {etf.rsiSignal}
                       </span>
                     </div>
@@ -408,30 +422,30 @@ export default function ETFMetricsTable() {
                       {etf.zScoreData?.compositeZScore !== null && etf.zScoreData?.compositeZScore !== undefined ? (
                         <>
                           <span className={`text-sm font-medium ${
-                            etf.zScoreData.compositeZScore > 0.25 ? 'text-green-600' :
-                            etf.zScoreData.compositeZScore < -0.25 ? 'text-red-600' : 'text-yellow-600'
+                            etf.zScoreData.compositeZScore > 0.25 ? 'text-green-400' :
+                            etf.zScoreData.compositeZScore < -0.25 ? 'text-red-400' : 'text-yellow-400'
                           }`}>
                             {formatNumber(etf.zScoreData.compositeZScore, 3)}
                           </span>
                           <span className={`text-xs font-medium ${
-                            etf.zScoreData.signal === 'BUY' ? 'text-green-600' :
-                            etf.zScoreData.signal === 'SELL' ? 'text-red-600' : 'text-yellow-600'
+                            etf.zScoreData.signal === 'BUY' ? 'text-green-400' :
+                            etf.zScoreData.signal === 'SELL' ? 'text-red-400' : 'text-yellow-400'
                           }`}>
                             {etf.zScoreData.signal}
                           </span>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-gray-400">
                             Z-Score System
                           </span>
                         </>
                       ) : (
                         <>
                           <span className={`text-sm font-medium ${
-                            etf.zScore && etf.zScore > 2 ? 'text-green-600' :
-                            etf.zScore && etf.zScore < -2 ? 'text-red-600' : 'text-gray-900'
+                            etf.zScore && etf.zScore > 2 ? 'text-green-400' :
+                            etf.zScore && etf.zScore < -2 ? 'text-red-400' : 'text-white'
                           }`}>
                             {formatNumber(etf.zScore, 2)}
                           </span>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-gray-400">
                             Legacy Z-Score
                           </span>
                         </>
