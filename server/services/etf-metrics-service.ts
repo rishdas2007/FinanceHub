@@ -432,6 +432,8 @@ class ETFMetricsService {
     let totalScore = 0;
     let totalWeight = 0;
     
+    console.log(`⚠️ No Z-score data found for ${metrics.symbol}, using legacy calculation`);
+    
     // Legacy weights
     const LEGACY_WEIGHTS = {
       bollinger: 0.40,  
