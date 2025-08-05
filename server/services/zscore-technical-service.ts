@@ -46,19 +46,19 @@ export interface ZScoreWeights {
 class ZScoreTechnicalService {
   private static instance: ZScoreTechnicalService;
   
-  // Z-Score Momentum-Focused Weights (from your specification)
+  // Z-Score Momentum-Focused Weights (Rebalanced without directional ATR)
   private readonly weights: ZScoreWeights = {
-    rsi: 0.30,           // Primary momentum signal
-    macd: 0.25,          // Trend confirmation
-    bollinger: 0.20,     // Volatility/reversal
-    maTrend: 0.10,       // Trend direction
-    priceMomentum: 0.10, // Statistical momentum
-    atr: 0.05            // Volatility context
+    rsi: 0.35,           // Primary momentum signal (increased)
+    macd: 0.30,          // Trend confirmation (increased)  
+    bollinger: 0.20,     // Volatility/reversal (delta-adjusted)
+    maTrend: 0.15,       // Trend direction (increased)
+    priceMomentum: 0.10, // Statistical momentum (unchanged)
+    atr: 0.00            // Removed from directional signals, used as modifier
   };
   
-  // Signal thresholds
-  private readonly BUY_THRESHOLD = 0.25;
-  private readonly SELL_THRESHOLD = -0.25;
+  // Signal thresholds - Adjusted for -1 to +1 signal range
+  private readonly BUY_THRESHOLD = 0.6;   // More reasonable for weighted signal range
+  private readonly SELL_THRESHOLD = -0.6;
   private readonly ZSCORE_WINDOW = 20; // 20-day rolling window (standardized across ETF metrics)
   
   public static getInstance(): ZScoreTechnicalService {
@@ -80,13 +80,22 @@ class ZScoreTechnicalService {
 
   /**
    * Convert Z-score to signal strength (-1 to +1)
+   * Improved scaling for better signal distribution
    */
   private zscoreToSignal(zscore: number): number {
-    if (zscore > 1.5) return 1.0;   // Very bullish
-    if (zscore < -1.5) return -1.0; // Very bearish
-    if (zscore > 0.5) return 0.5;   // Bullish
-    if (zscore < -0.5) return -0.5; // Bearish
-    return 0.0; // Neutral
+    // Scale z-scores to ±1 range with better distribution
+    return Math.max(-1, Math.min(1, zscore / 2));
+  }
+
+  /**
+   * Apply ATR as volatility signal strength modifier
+   */
+  private applyAtrModifier(compositeScore: number, atrZScore: number | null): number {
+    if (atrZScore === null) return compositeScore;
+    
+    // High volatility increases signal strength (both positive and negative)
+    const atrMultiplier = 1 + Math.abs(atrZScore) * 0.1;
+    return compositeScore * atrMultiplier;
   }
 
   /**
@@ -296,15 +305,19 @@ class ZScoreTechnicalService {
       console.log(`  Sample Values:`, maTrendValues.slice(-3).map(v => v.value));
       const priceMomentumZScore = latestPriceStats ? this.calculateZScore(currentPriceChange, latestPriceStats.mean, latestPriceStats.stdDev) : null;
 
-      // Calculate composite Z-score with weights
-      const compositeZScore = (
+      // Calculate composite Z-score with weights and directional corrections
+      const rawCompositeZScore = (
         (rsiZScore !== null ? this.weights.rsi * this.zscoreToSignal(rsiZScore) : 0) +
         (macdZScore !== null ? this.weights.macd * this.zscoreToSignal(macdZScore) : 0) +
-        (bollingerZScore !== null ? this.weights.bollinger * this.zscoreToSignal(bollingerZScore) : 0) +
+        // CRITICAL FIX: Invert Bollinger %B direction (high %B = overbought = bearish)
+        (bollingerZScore !== null ? this.weights.bollinger * this.zscoreToSignal(-bollingerZScore) : 0) +
         (maTrendZScore !== null ? this.weights.maTrend * this.zscoreToSignal(maTrendZScore) : 0) +
-        (priceMomentumZScore !== null ? this.weights.priceMomentum * this.zscoreToSignal(priceMomentumZScore) : 0) +
-        (atrZScore !== null ? this.weights.atr * this.zscoreToSignal(atrZScore) : 0)
+        (priceMomentumZScore !== null ? this.weights.priceMomentum * this.zscoreToSignal(priceMomentumZScore) : 0)
+        // ATR removed from directional calculation, used as volatility modifier below
       );
+
+      // Apply ATR as volatility signal strength modifier instead of directional component
+      const compositeZScore = this.applyAtrModifier(rawCompositeZScore, atrZScore);
 
       // Generate signal
       let signal: 'BUY' | 'SELL' | 'HOLD' = 'HOLD';

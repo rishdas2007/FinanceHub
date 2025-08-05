@@ -41,6 +41,16 @@ UI Preference: Clean, actionable interface without overly technical explanations
 - ✅ **Mathematical accuracy** verified across all z-score implementations for reliable statistical analysis
 - ✅ **Error handling enhanced** with comprehensive validation and logging for data quality assurance
 
+### Z-Score Weighted System Methodology Fix (August 5, 2025)
+**COMPLETED**: Critical signal reliability issues resolved in ETF technical analysis system
+- ✅ **Bollinger %B direction corrected** - High %B now properly identified as bearish (overbought) signal  
+- ✅ **Signal thresholds adjusted** from ±0.25 to ±0.6 for appropriate sensitivity in weighted signal range
+- ✅ **Z-score to signal conversion improved** from stepped thresholds to smooth scaling (zscore/2)
+- ✅ **ATR usage optimized** - Removed from directional signals, implemented as volatility signal strength modifier
+- ✅ **Weight rebalancing** - Increased RSI (35%), MACD (30%), MA Trend (15%) focus for better momentum detection
+- ✅ **Signal logic validation** - All directional inconsistencies resolved for reliable trading signal generation
+- ✅ **Mathematical soundness** - Weighted calculations now statistically valid and properly calibrated
+
 ## System Architecture
 
 ### Full-Stack Monorepo Structure

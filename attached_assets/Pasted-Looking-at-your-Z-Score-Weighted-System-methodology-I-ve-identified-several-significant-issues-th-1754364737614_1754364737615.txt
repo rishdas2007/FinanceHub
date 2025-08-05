@@ -1,0 +1,102 @@
+Looking at your Z-Score Weighted System methodology, I've identified
+  several significant issues that could affect signal reliability:
+
+  Critical Issues with Current Implementation
+
+  1. Z-Score to Signal Conversion Problem 
+  (zscore-technical-service.ts:83-89)
+
+  private zscoreToSignal(zscore: number): number {
+      if (zscore > 1.5) return 1.0;   // Very bullish
+      if (zscore < -1.5) return -1.0; // Very bearish
+      if (zscore > 0.5) return 0.5;   // Bullish
+      if (zscore < -0.5) return -0.5; // Bearish
+      return 0.0; // Neutral
+  }
+
+  Problem: You're converting z-scores to signals (-1 to +1) then weighting,
+   but your thresholds (±0.25) are much smaller than the weighted signal
+  range. With your weights summing to 1.0, the composite score ranges from
+  -1.0 to +1.0, making ±0.25 thresholds very sensitive.
+
+  2. Directional Inconsistencies Need Delta-Adjustment
+
+  RSI (30% weight): ✅ No delta-adjustment needed
+  - High RSI = overbought (bearish) = negative signal ✅
+  - Low RSI = oversold (bullish) = positive signal ✅
+
+  MACD (25% weight): ✅ No delta-adjustment needed
+  - Positive MACD = bullish momentum ✅
+  - Negative MACD = bearish momentum ✅
+
+  Bollinger %B (20% weight): ❌ NEEDS DELTA-ADJUSTMENT
+  - Current: High %B = positive z-score = bullish signal
+  - Should be: High %B (>0.8) = overbought = bearish signal
+  - Fix: Multiply Bollinger z-score by -1
+
+  MA Trend (10% weight): ✅ No delta-adjustment needed
+  - SMA20 > SMA50 = bullish trend ✅
+
+  Price Momentum (10% weight): ✅ No delta-adjustment needed
+  - Positive price change = bullish ✅
+
+  ATR (5% weight): ❌ QUESTIONABLE FOR DIRECTIONAL SIGNALS
+  - High volatility isn't inherently bullish or bearish
+  - Consider removing from directional composite or using as a separate
+  filter
+
+  3. Statistical Issues from Earlier Analysis
+
+  The variance calculation bug systematically inflates all z-scores, making
+   your ±0.25 thresholds even more problematic.
+
+  Recommended Fixes
+
+  1. Fix Bollinger Direction
+
+  // In composite calculation (line ~299):
+  (bollingerZScore !== null ? this.weights.bollinger *
+  this.zscoreToSignal(-bollingerZScore) : 0) +
+  //                                                                      ^
+   Add negative sign
+
+  2. Adjust Thresholds or Signal Conversion
+
+  Option A: Adjust thresholds to match signal range
+  private readonly BUY_THRESHOLD = 0.75;   // More reasonable for -1 to +1 
+  range
+  private readonly SELL_THRESHOLD = -0.75;
+
+  Option B: Use raw z-scores with smaller weights
+  private zscoreToSignal(zscore: number): number {
+      return Math.max(-1, Math.min(1, zscore / 2)); // Scale z-scores to ±1
+   range
+  }
+
+  3. Consider ATR Usage
+
+  Instead of directional signal, use ATR as a signal strength modifier:
+  const atrMultiplier = atrZScore !== null ? (1 + Math.abs(atrZScore) *
+  0.1) : 1;
+  const adjustedComposite = compositeZScore * atrMultiplier;
+
+  4. Validate Signal Logic
+
+  Your current methodology assumes:
+  - All indicators should contribute equally in their direction
+  - Linear combination of signals is meaningful
+  - Fixed thresholds work across all market conditions
+
+  Consider: Dynamic thresholds based on market volatility or regime
+  detection.
+
+  Bottom Line
+
+  Your methodology is conceptually sound, but needs:
+  1. Bollinger z-score inversion (critical fix)
+  2. Threshold adjustment (current ±0.25 too sensitive)
+  3. ATR reconsideration (not inherently directional)
+  4. Variance calculation fix from earlier analysis
+
+  The delta-adjustment for Bollinger is essential - without it, you're
+  treating overbought conditions as buy signals.
