@@ -307,8 +307,13 @@ export default function ETFMetricsTable() {
           <tbody>
             {etfMetrics.map((etf, index) => {
               const rsiResult = getRSIStatus(etf.rsi);
-              const bollingerResult = getBollingerStatus(etf.bollingerPosition);
-
+              // Get color based on backend bollingerStatus text instead of calculating from position
+              const getBollingerColor = (status: string): string => {
+                if (status === 'Oversold') return 'text-green-400'; // Good - buy signal
+                if (status === 'Overbought') return 'text-red-400'; // Bad - sell signal
+                if (status === 'Strong' || status === 'Weak') return 'text-yellow-400'; // Neutral - caution
+                return 'text-yellow-400'; // Neutral (includes 'No Data', 'Neutral', etc.)
+              };
 
               return (
                 <tr key={etf.symbol} className={`border-b border-gray-600 hover:bg-gray-800/50 ${index % 2 === 0 ? 'bg-gray-900/50' : 'bg-gray-800/30'}`}>
@@ -347,11 +352,7 @@ export default function ETFMetricsTable() {
                   {/* Bollinger Bands */}
                   <td className="p-3 text-center">
                     <div className="flex flex-col items-center">
-                      <span className={`text-sm font-medium ${
-                        bollingerResult.color.includes('green') ? 'text-green-400' :
-                        bollingerResult.color.includes('red') ? 'text-red-400' :
-                        'text-yellow-400'
-                      }`}>
+                      <span className={`text-sm font-medium ${getBollingerColor(etf.bollingerStatus)}`}>
                         {etf.bollingerStatus}
                       </span>
                       <span className="text-xs text-gray-400">
@@ -359,8 +360,8 @@ export default function ETFMetricsTable() {
                       </span>
                       {etf.zScoreData?.bollingerZScore !== null && etf.zScoreData?.bollingerZScore !== undefined && (
                         <span className={`text-xs font-mono mt-1 ${
-                          etf.zScoreData.bollingerZScore > 0 ? 'text-green-300' :
-                          etf.zScoreData.bollingerZScore < 0 ? 'text-red-300' : 'text-gray-300'
+                          etf.zScoreData.bollingerZScore > 0 ? 'text-red-300' :
+                          etf.zScoreData.bollingerZScore < 0 ? 'text-green-300' : 'text-gray-300'
                         }`}>
                           Z: {formatNumber(etf.zScoreData.bollingerZScore, 2)}
                         </span>
@@ -384,8 +385,8 @@ export default function ETFMetricsTable() {
                       </span>
                       {etf.zScoreData?.atrZScore !== null && etf.zScoreData?.atrZScore !== undefined && (
                         <span className={`text-xs font-mono mt-1 ${
-                          etf.zScoreData.atrZScore > 0 ? 'text-green-300' :
-                          etf.zScoreData.atrZScore < 0 ? 'text-red-300' : 'text-gray-300'
+                          etf.zScoreData.atrZScore > 0 ? 'text-red-300' :
+                          etf.zScoreData.atrZScore < 0 ? 'text-green-300' : 'text-gray-300'
                         }`}>
                           Z: {formatNumber(etf.zScoreData.atrZScore, 2)}
                         </span>
@@ -442,8 +443,8 @@ export default function ETFMetricsTable() {
                       </span>
                       {etf.zScoreData?.rsiZScore !== null && etf.zScoreData?.rsiZScore !== undefined && (
                         <span className={`text-xs font-mono mt-1 ${
-                          etf.zScoreData.rsiZScore > 0 ? 'text-green-300' :
-                          etf.zScoreData.rsiZScore < 0 ? 'text-red-300' : 'text-gray-300'
+                          etf.zScoreData.rsiZScore > 0 ? 'text-red-300' :
+                          etf.zScoreData.rsiZScore < 0 ? 'text-green-300' : 'text-gray-300'
                         }`}>
                           Z: {formatNumber(etf.zScoreData.rsiZScore, 2)}
                         </span>
