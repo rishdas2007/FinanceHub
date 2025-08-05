@@ -104,7 +104,7 @@ export class EconomicCalculationsService {
       return null;
     }
 
-    // Use last 12 data points for rolling window
+    // Use last 12 data points for rolling window (standardized for economic indicators)
     const last12Months = validData.slice(-12);
     const values = last12Months.map(d => d.value);
     

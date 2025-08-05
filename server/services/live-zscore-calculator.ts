@@ -321,9 +321,17 @@ export class LiveZScoreCalculator {
           ? (currentValue - historicalMean) / historicalStd 
           : 0;
         
-        // Cap extreme z-scores for display while preserving mathematical accuracy
-        // Values beyond ±50 are likely unprecedented economic events
-        const zScore = Math.abs(rawZScore) > 50 ? Math.sign(rawZScore) * 50 : rawZScore;
+        // Flag unprecedented economic events instead of arbitrary capping
+        // Values beyond ±5 are statistically extreme (99.9999% confidence)
+        let zScore = rawZScore;
+        let isUnprecedentedEvent = false;
+        
+        if (Math.abs(rawZScore) > 5) {
+          isUnprecedentedEvent = true;
+          logger.warn(`📊 Unprecedented economic event detected for ${row.metric_name}: z-score ${rawZScore.toFixed(2)}`);
+          // Cap at ±5 for display consistency while flagging as unprecedented
+          zScore = Math.sign(rawZScore) * 5;
+        }
         
         // Calculate variances live
         const varianceFromMean = currentValue - historicalMean;
@@ -343,8 +351,16 @@ export class LiveZScoreCalculator {
           ? (currentPeriodChange - deltaHistoricalMean) / deltaHistoricalStd 
           : 0;
         
-        // Cap delta z-score as well to handle extreme change events
-        const deltaZScore = Math.abs(rawDeltaZScore) > 50 ? Math.sign(rawDeltaZScore) * 50 : rawDeltaZScore;
+        // Apply same unprecedented event logic to delta z-scores
+        let deltaZScore = rawDeltaZScore;
+        let isDeltaUnprecedentedEvent = false;
+        
+        if (Math.abs(rawDeltaZScore) > 5) {
+          isDeltaUnprecedentedEvent = true;
+          logger.warn(`📊 Unprecedented period change detected for ${row.metric_name}: delta z-score ${rawDeltaZScore.toFixed(2)}`);
+          // Cap at ±5 for display consistency while flagging as unprecedented
+          deltaZScore = Math.sign(rawDeltaZScore) * 5;
+        }
         
         // Get frequency for this indicator
         const frequency = INDICATOR_FREQUENCY[row.metric_name] || 'monthly';
@@ -356,7 +372,7 @@ export class LiveZScoreCalculator {
           historicalMean,
           historicalStd,
           zScore,
-          deltaAdjustedZScore: Math.abs(rawZScore) > 50 ? Math.sign(rawZScore) * 50 * directionality : zScore * directionality,
+          deltaAdjustedZScore: zScore * directionality,
           priorValue,
           varianceFromMean,
           varianceFromPrior,
@@ -365,7 +381,7 @@ export class LiveZScoreCalculator {
           type: row.type,
           unit: row.unit,
           directionality,
-          isUnprecedentedEvent: Math.abs(rawZScore) > 10, // Flag for special handling
+          isUnprecedentedEvent: isUnprecedentedEvent || isDeltaUnprecedentedEvent,
           // Delta z-score fields
           deltaZScore,
           deltaHistoricalMean,

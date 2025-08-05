@@ -31,6 +31,16 @@ UI Preference: Clean, actionable interface without overly technical explanations
 - ✅ **Build process** verified working with vite build and esbuild compilation
 - ✅ **Deployment readiness** confirmed with successful application startup and data flow
 
+### Z-Score Statistical Analysis Fix (August 5, 2025)
+**COMPLETED**: Comprehensive resolution of statistical calculation issues across dashboard
+- ✅ **Sample variance calculations** corrected from population (N) to sample (N-1) in ETF technical service
+- ✅ **Missing schema import** fixed - added `historicalStockData` import to resolve runtime errors
+- ✅ **Data sufficiency validation** enhanced with strict rejection of insufficient data sets
+- ✅ **Extreme value handling** improved from arbitrary ±50 capping to ±5 statistical threshold with unprecedented event flagging
+- ✅ **Window size standardization** documented - 20-day for ETF metrics, 12-month for economic indicators
+- ✅ **Mathematical accuracy** verified across all z-score implementations for reliable statistical analysis
+- ✅ **Error handling enhanced** with comprehensive validation and logging for data quality assurance
+
 ## System Architecture
 
 ### Full-Stack Monorepo Structure

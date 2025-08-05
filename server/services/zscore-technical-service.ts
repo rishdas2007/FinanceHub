@@ -2,7 +2,8 @@ import { db } from '../db';
 import { 
   zscoreTechnicalIndicators, 
   rollingStatistics, 
-  technicalIndicators 
+  technicalIndicators,
+  historicalStockData 
 } from '@shared/schema';
 import { desc, eq, and, gte, sql, lte } from 'drizzle-orm';
 import { logger } from '../middleware/logging';
@@ -58,7 +59,7 @@ class ZScoreTechnicalService {
   // Signal thresholds
   private readonly BUY_THRESHOLD = 0.25;
   private readonly SELL_THRESHOLD = -0.25;
-  private readonly ZSCORE_WINDOW = 20; // 20-day rolling window
+  private readonly ZSCORE_WINDOW = 20; // 20-day rolling window (standardized across ETF metrics)
   
   public static getInstance(): ZScoreTechnicalService {
     if (!ZScoreTechnicalService.instance) {
@@ -104,7 +105,8 @@ class ZScoreTechnicalService {
       const windowValues = window.map(w => w.value);
       
       const mean = windowValues.reduce((sum, val) => sum + val, 0) / windowSize;
-      const variance = windowValues.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / windowSize;
+      // Use sample variance (N-1) instead of population variance (N) for more accurate statistical calculations
+      const variance = windowValues.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (windowSize - 1);
       const stdDev = Math.sqrt(variance);
       
       results.push({
@@ -193,8 +195,8 @@ class ZScoreTechnicalService {
       // Fetch historical technical indicators
       const historicalTech = await this.getHistoricalTechnicalData(symbol);
       if (historicalTech.length < this.ZSCORE_WINDOW) {
-        logger.warn(`Insufficient data for ${symbol}: ${historicalTech.length} records`);
-        return null;
+        logger.error(`Insufficient data for ${symbol}: ${historicalTech.length} records, minimum ${this.ZSCORE_WINDOW} required`);
+        return null; // Reject processing to prevent unreliable z-score calculations
       }
 
       // Fetch price momentum data
