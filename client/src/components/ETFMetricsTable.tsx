@@ -78,6 +78,7 @@ interface ETFMetrics {
   // Moving Average (Trend)
   maSignal: string;
   maTrend: 'bullish' | 'bearish' | 'neutral';
+  maGap: number | null;
   // RSI (Momentum)
   rsi: number | null;
   rsiSignal: string;
@@ -397,6 +398,11 @@ export default function ETFMetricsTable() {
                       }`}>
                         {etf.maSignal}
                       </span>
+                      {etf.maGap !== null && (
+                        <span className="text-xs text-gray-300 mt-1">
+                          Gap: {formatNumber(etf.maGap, 2)}
+                        </span>
+                      )}
                       <div className="flex items-center gap-1 mt-1">
                         {etf.maTrend === 'bullish' ? (
                           <TrendingUp className="h-3 w-3 text-green-400" />

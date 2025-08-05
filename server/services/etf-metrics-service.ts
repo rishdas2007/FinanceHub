@@ -256,6 +256,7 @@ class ETFMetricsService {
         // Moving Average (Trend)
         maSignal: this.getMASignal(technical),
         maTrend: this.getMATrend(technical),
+        maGap: this.getMAGap(technical), // SMA_20 - SMA_50 gap value
         
         // RSI (Momentum) - Prioritize momentum data, fallback to technical
         rsi: momentumETF?.rsi ? parseFloat(momentumETF.rsi.toString()) : (technical?.rsi ? parseFloat(technical.rsi) : null),
@@ -263,9 +264,9 @@ class ETFMetricsService {
         rsiDivergence: false, // Would need historical analysis
         
         // Z-Score, Sharpe, Returns - Enhanced integration with momentum data
-        zScore: momentumETF?.zScore || momentumETF?.zScoreOfLatest1DayMove || null,
+        zScore: momentumETF?.zScore || null,
         sharpeRatio: momentumETF?.sharpeRatio || null,
-        fiveDayReturn: momentumETF?.fiveDayChange || momentumETF?.fiveDayMove || momentumETF?.oneDayMove || null,
+        fiveDayReturn: momentumETF?.fiveDayChange || null,
         
         // Volume, VWAP, OBV - Enhanced VWAP integration
         volumeRatio: this.calculateVolumeRatio(sector),
@@ -273,8 +274,8 @@ class ETFMetricsService {
         obvTrend: momentumETF?.signal ? this.parseOBVFromSignal(momentumETF.signal) : 'neutral',
         
         // Initialize properties for Z-score system
-        weightedScore: null,
-        weightedSignal: null,
+        weightedScore: 0,
+        weightedSignal: 'HOLD',
         zScoreData: null
       };
 
@@ -315,9 +316,20 @@ class ETFMetricsService {
   }
 
   private getMATrend(technical: any): 'bullish' | 'bearish' | 'neutral' {
-    if (!technical?.sma_20) return 'neutral';
-    // Simplified logic - would need historical SMA comparison
+    if (!technical?.sma_20 || !technical?.sma_50) return 'neutral';
+    const sma20 = parseFloat(technical.sma_20);
+    const sma50 = parseFloat(technical.sma_50);
+    
+    if (sma20 > sma50) return 'bullish';
+    if (sma20 < sma50) return 'bearish';
     return 'neutral';
+  }
+
+  private getMAGap(technical: any): number | null {
+    if (!technical?.sma_20 || !technical?.sma_50) return null;
+    const sma20 = parseFloat(technical.sma_20);
+    const sma50 = parseFloat(technical.sma_50);
+    return parseFloat((sma20 - sma50).toFixed(2));
   }
 
   private getRSISignal(rsi: string | number | null): string {
