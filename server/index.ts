@@ -153,10 +153,15 @@ app.use((req, res, next) => {
         name: 'real-time-market-service',
         timeout: 10000,
         initializer: async () => {
-          const { getRealTimeMarketService } = await import('./services/real-time-market-service');
-          const marketService = getRealTimeMarketService();
-          marketService.initialize();
-          console.log('✅ Real-time market service initialized');
+          try {
+            const { getRealTimeMarketService } = await import('./services/real-time-market-service');
+            const marketService = getRealTimeMarketService();
+            marketService.initialize();
+            console.log('✅ Real-time market service initialized');
+          } catch (error) {
+            console.warn('⚠️ Real-time market service failed to initialize:', error);
+            console.log('📊 Continuing without real-time market data');
+          }
         }
       },
       {
@@ -198,7 +203,7 @@ app.use((req, res, next) => {
         dependencies: ['data-scheduler'],
         timeout: 5000,
         initializer: async () => {
-          await fredSchedulerIncremental.startScheduler();
+          fredSchedulerIncremental.start();
         }
       },
       {

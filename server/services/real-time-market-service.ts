@@ -40,8 +40,9 @@ export class RealTimeMarketService extends EventEmitter {
     });
 
     this.ws.on('error', (error: Error) => {
-      console.error('Real-time market service error:', error);
-      this.emit('error', error);
+      console.warn('⚠️ Real-time market service error (non-fatal):', error.message);
+      // Don't emit error to parent to prevent crashes - just log it
+      // The service will attempt reconnection automatically
     });
   }
 
@@ -80,8 +81,15 @@ export class RealTimeMarketService extends EventEmitter {
     }
 
     console.log('🚀 Initializing real-time market service...');
-    this.ws.connect();
-    this.isInitialized = true;
+    
+    try {
+      this.ws.connect();
+      this.isInitialized = true;
+    } catch (error) {
+      console.warn('⚠️ Failed to initialize real-time market service:', error);
+      console.log('📊 Application will continue without real-time market data');
+      // Don't throw - let the app continue without real-time data
+    }
   }
 
   subscribeToSymbol(symbol: string): void {

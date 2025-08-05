@@ -190,7 +190,7 @@ export class FredSchedulerIncremental {
 
         } catch (error) {
           lastError = error instanceof Error ? error : new Error('Unknown error');
-          logger.error(`❌ FRED update attempt ${attempt} failed:`, lastError);
+          logger.error(`❌ FRED update attempt ${attempt} failed:`, lastError.message);
 
           if (attempt < this.config.maxRetries) {
             const delayMs = this.config.retryDelayMinutes * 60 * 1000;
@@ -291,7 +291,7 @@ export class FredSchedulerIncremental {
       this.start();
     }
 
-    logger.info('FRED scheduler configuration updated:', this.config);
+    logger.info('FRED scheduler configuration updated:', JSON.stringify(this.config));
   }
 
   /**
@@ -320,7 +320,7 @@ export class FredSchedulerIncremental {
         databaseHealth: `${seriesCount} series tracked, last update: ${lastDbUpdate ? lastDbUpdate.toISOString() : 'never'}`
       };
     } catch (error) {
-      logger.error('Health check failed:', error);
+      logger.error('Health check failed:', error instanceof Error ? error.message : String(error));
       return {
         schedulerStatus: 'error',
         lastUpdate: null,

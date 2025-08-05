@@ -77,7 +77,16 @@ export class TwelveDataWebSocket extends EventEmitter {
 
     this.ws.on('error', (error: Error) => {
       console.error('❌ WebSocket error:', error);
+      this.isConnected = false;
+      this.stopHeartbeat();
+      
+      // Don't crash the app, just emit the error for logging
       this.emit('error', error);
+      
+      // Schedule reconnect if we haven't exceeded max attempts
+      if (this.reconnectAttempts < this.maxReconnectAttempts) {
+        this.scheduleReconnect();
+      }
     });
   }
 
