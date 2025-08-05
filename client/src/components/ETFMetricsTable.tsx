@@ -352,6 +352,14 @@ export default function ETFMetricsTable() {
                       <span className="text-xs text-gray-400">
                         %B: {formatNumber(etf.bollingerPosition, 3)}
                       </span>
+                      {etf.zScoreData?.bollingerZScore !== null && etf.zScoreData?.bollingerZScore !== undefined && (
+                        <span className={`text-xs font-mono mt-1 ${
+                          etf.zScoreData.bollingerZScore > 0 ? 'text-green-300' :
+                          etf.zScoreData.bollingerZScore < 0 ? 'text-red-300' : 'text-gray-300'
+                        }`}>
+                          Z: {formatNumber(etf.zScoreData.bollingerZScore, 2)}
+                        </span>
+                      )}
                       {etf.bollingerSqueeze && (
                         <span className="text-xs bg-yellow-900/50 text-yellow-300 px-1 rounded mt-1">
                           Squeeze
@@ -369,6 +377,14 @@ export default function ETFMetricsTable() {
                       <span className="text-xs text-gray-400">
                         Vol: {formatPercentage(etf.volatility)}
                       </span>
+                      {etf.zScoreData?.atrZScore !== null && etf.zScoreData?.atrZScore !== undefined && (
+                        <span className={`text-xs font-mono mt-1 ${
+                          etf.zScoreData.atrZScore > 0 ? 'text-green-300' :
+                          etf.zScoreData.atrZScore < 0 ? 'text-red-300' : 'text-gray-300'
+                        }`}>
+                          Z: {formatNumber(etf.zScoreData.atrZScore, 2)}
+                        </span>
+                      )}
                     </div>
                   </td>
 
@@ -390,6 +406,14 @@ export default function ETFMetricsTable() {
                           <Activity className="h-3 w-3 text-gray-400" />
                         )}
                       </div>
+                      {etf.zScoreData?.maTrendZScore !== null && etf.zScoreData?.maTrendZScore !== undefined && (
+                        <span className={`text-xs font-mono mt-1 ${
+                          etf.zScoreData.maTrendZScore > 0 ? 'text-green-300' :
+                          etf.zScoreData.maTrendZScore < 0 ? 'text-red-300' : 'text-gray-300'
+                        }`}>
+                          Z: {formatNumber(etf.zScoreData.maTrendZScore, 2)}
+                        </span>
+                      )}
                     </div>
                   </td>
 
@@ -406,6 +430,14 @@ export default function ETFMetricsTable() {
                       }`}>
                         {etf.rsiSignal}
                       </span>
+                      {etf.zScoreData?.rsiZScore !== null && etf.zScoreData?.rsiZScore !== undefined && (
+                        <span className={`text-xs font-mono mt-1 ${
+                          etf.zScoreData.rsiZScore > 0 ? 'text-green-300' :
+                          etf.zScoreData.rsiZScore < 0 ? 'text-red-300' : 'text-gray-300'
+                        }`}>
+                          Z: {formatNumber(etf.zScoreData.rsiZScore, 2)}
+                        </span>
+                      )}
                     </div>
                   </td>
 
