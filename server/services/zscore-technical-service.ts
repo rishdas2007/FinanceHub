@@ -232,6 +232,20 @@ class ZScoreTechnicalService {
           value: parseFloat(h.sma_20?.toString() || '0') - parseFloat(h.sma_50?.toString() || '0')
         }));
 
+      // DEBUG: Log data availability for troubleshooting
+      if (symbol === 'SPY' || maTrendValues.length < 5) {
+        logger.info(`🔍 MA Trend Data Check for ${symbol}:`, {
+          totalHistoricalRecords: historicalTech.length,
+          validMATrendRecords: maTrendValues.length,
+          requiredWindow: this.ZSCORE_WINDOW,
+          hasSufficientData: maTrendValues.length >= this.ZSCORE_WINDOW,
+          sampleData: maTrendValues.slice(-3).map(v => ({
+            date: v.date.toISOString().split('T')[0],
+            value: v.value
+          }))
+        });
+      }
+
       const priceChangeValues = priceMomentum.map(p => ({ date: p.date, value: p.priceChange }));
 
       // Calculate rolling statistics for each indicator
