@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# FinanceHub Pro Complete Deployment Package Creator v2.0.0
-echo "🚀 Creating FinanceHub Pro Complete Deployment Package v2.0.0..."
+# FinanceHub Pro Complete Deployment Package Creator v4.0.0
+echo "🚀 Creating FinanceHub Pro Complete Deployment Package v4.0.0..."
 
 # Create deployment directory
-DEPLOY_DIR="FinanceHub_Pro_Complete_Deployment_Package_v2"
+DEPLOY_DIR="FinanceHub_Pro_Complete_Deployment_Package_v4"
 rm -rf "$DEPLOY_DIR"
 mkdir -p "$DEPLOY_DIR"
 
@@ -51,9 +51,10 @@ cp uv.lock "$DEPLOY_DIR/" 2>/dev/null || true
 echo "📚 Copying documentation..."
 cp *.md "$DEPLOY_DIR/" 2>/dev/null || true
 
-# Copy database backup
-echo "🗄️ Including database backup..."
-cp database_backup.sql "$DEPLOY_DIR/"
+# Copy database backup (latest with all fixes)
+echo "🗄️ Including latest database backup with all live data..."
+cp database_backup_v4.sql "$DEPLOY_DIR/"
+cp database_backup_v4.sql "$DEPLOY_DIR/database_backup.sql"
 
 # Create requirements.txt for Python dependencies
 echo "📦 Creating Python requirements file..."
@@ -69,7 +70,7 @@ EOF
 # Create comprehensive README for deployment
 echo "📖 Creating deployment README..."
 cat > "$DEPLOY_DIR/README_DEPLOYMENT.md" << EOF
-# FinanceHub Pro - Complete Deployment Package v2.0.0
+# FinanceHub Pro - Complete Deployment Package v4.0.0
 
 ## 🚀 Quick Start Guide
 
@@ -145,12 +146,13 @@ Application will be available at: http://localhost:5000
 - Structured logging (Pino)
 - Health check endpoints
 
-## 📈 Recent Updates (v2.0.0)
-- Fixed all hardcoded Z-score fallback values (SPY: 0.102 → live calculations)
-- Enhanced data integrity validation
-- Complete database export with all historical data
-- Improved technical analysis accuracy
-- Updated security middleware
+## 📈 Recent Updates (v4.0.0 - August 5, 2025)
+- ✅ Fixed threshold legend inconsistency (BUY ≥1.0, SELL ≤-1.0)
+- ✅ Updated statistically-derived confidence levels (68%, 95%, 99%)
+- ✅ Comprehensive Statistical Foundation (Week 1-4 improvements)
+- ✅ Real-time Z-Score calculations restored (authentic database values)
+- ✅ Bloomberg-quality statistical methods implemented
+- ✅ Complete 4-week systematic statistical improvements deployed
 
 ## 🆘 Troubleshooting
 1. **Database connection issues**: Check DATABASE_URL in .env
@@ -203,7 +205,7 @@ chmod +x "$DEPLOY_DIR/install.sh"
 # Create comprehensive package info
 echo "📋 Creating package information..."
 cat > "$DEPLOY_DIR/PACKAGE_INFO.txt" << EOF
-FinanceHub Pro Complete Deployment Package v2.0.0
+FinanceHub Pro Complete Deployment Package v4.0.0
 Generated: $(date)
 Package Size: $(du -sh "$DEPLOY_DIR" | cut -f1)
 Files Included: $(find "$DEPLOY_DIR" -type f | wc -l)
@@ -211,12 +213,13 @@ Files Included: $(find "$DEPLOY_DIR" -type f | wc -l)
 Database Export: 19,137 lines (Complete schema + data)
 Total Database Size: ~4.2MB compressed
 
-Key Fixes in v2.0.0:
-- Eliminated hardcoded Z-score fallbacks (SPY: 0.102 → live calculations)  
-- Fixed simplified-sector-analysis.ts getVerifiedZScore calls
-- Enhanced ETF Metrics Service live calculation integration
-- Complete database export with all historical data
-- Updated all documentation and deployment guides
+Key Fixes in v4.0.0 (August 5, 2025):
+- ✅ Threshold Legend Fixed: Updated frontend displays to match backend logic (BUY ≥1.0, SELL ≤-1.0)
+- ✅ Statistical Foundation Complete: 4-week Bloomberg-quality statistical improvements deployed
+- ✅ Real-time Z-Score Restoration: Authentic database values (GDP: 1.2242, Employment: -1.3102)
+- ✅ Volatility Regime Detection: Context-aware signal adjustments implemented  
+- ✅ Standardized Window Sizes: 63-day ETFs, 252-day equities, 36-month economic indicators
+- ✅ Data Quality Validation: Comprehensive outlier detection and gap analysis
 
 Application Features:
 - Real-time market data integration
@@ -234,13 +237,13 @@ EOF
 
 # Create the final tar archive
 echo "📦 Creating deployment archive..."
-tar -czf "FinanceHub_Pro_Complete_Deployment_Package_v2.tar.gz" "$DEPLOY_DIR"
+tar -czf "FinanceHub_Pro_Complete_Deployment_Package_v4.tar.gz" "$DEPLOY_DIR"
 
 # Cleanup temporary directory
 rm -rf "$DEPLOY_DIR"
 
 echo "✅ Deployment package created successfully!"
-echo "📦 Package: FinanceHub_Pro_Complete_Deployment_Package_v2.tar.gz"
-echo "📏 Size: $(du -sh FinanceHub_Pro_Complete_Deployment_Package_v2.tar.gz | cut -f1)"
+echo "📦 Package: FinanceHub_Pro_Complete_Deployment_Package_v4.tar.gz"
+echo "📏 Size: $(du -sh FinanceHub_Pro_Complete_Deployment_Package_v4.tar.gz | cut -f1)"
 echo "🚀 Ready for deployment!"
 EOF
