@@ -53,8 +53,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
 
   
-  // Week 2-4 Performance Optimization endpoints
-  app.use('/api/performance-optimizations', (await import('./routes/performance-optimizations')).default);
+  // Enhanced Performance Optimization endpoints
+  app.use('/api/performance', (await import('./routes/performance-optimization-routes')).default);
   
   // Economic Correlation Analysis endpoints
   app.use('/api/economic', (await import('./routes/economic-correlation')).default);
