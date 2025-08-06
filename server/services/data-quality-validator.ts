@@ -34,13 +34,13 @@ interface OutlierDetectionResult {
 export class DataQualityValidator {
   private static instance: DataQualityValidator;
   
-  // Minimum observations required for reliable statistics
+  // Minimum observations required for reliable statistics - Updated for 10 years of data
   private readonly MIN_OBSERVATIONS = {
-    EQUITIES: 252,      // 1 year daily data
-    ETF_TECHNICAL: 63,  // 3 months daily data  
-    ECONOMIC_MONTHLY: 36, // 3 years monthly data
-    ECONOMIC_QUARTERLY: 40, // 10 years quarterly data
-    VOLATILITY: 22      // 1 month for vol calculations
+    EQUITIES: 1260,     // 5 years minimum (upgraded from 252) with 10 years available
+    ETF_TECHNICAL: 252, // 1 year minimum (upgraded from 63) for reliable ETF analysis
+    ECONOMIC_MONTHLY: 60, // 5 years monthly (upgraded from 36) for economic indicators
+    ECONOMIC_QUARTERLY: 40, // 10 years quarterly data for GDP, etc.
+    VOLATILITY: 63      // 3 months minimum (upgraded from 22) for volatility calculations
   };
   
   // Maximum allowable gap ratio in time series

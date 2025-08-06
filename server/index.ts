@@ -16,6 +16,9 @@ import { metricsMiddleware } from './utils/MetricsCollector';
 // Import quality monitoring services
 import qualityRoutes from './routes/quality';
 import { performanceTrackingMiddleware } from './middleware/performance-tracking';
+
+// Import enhanced statistical demo routes
+import enhancedZScoreRoutes from './routes/enhanced-zscore-demo';
 import { setupVite, serveStatic, log } from "./vite";
 import healthRoutes from "./routes/health";
 
@@ -127,6 +130,9 @@ app.use((req, res, next) => {
     
     // Quality Monitoring Routes (NEW)
     app.use('/api/quality', qualityRoutes);
+    
+    // Enhanced Statistical Demo Routes (10-Year Data Showcase)
+    app.use('/api/statistical', enhancedZScoreRoutes);
 
     // Register original routes (maintain backward compatibility)
     const server = await registerRoutes(app);
