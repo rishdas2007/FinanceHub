@@ -100,7 +100,7 @@ export const zscoreTechnicalIndicators = pgTable("zscore_technical_indicators", 
   priceChange: decimal("price_change", { precision: 8, scale: 4 }),
   maTrend: decimal("ma_trend", { precision: 10, scale: 4 }),
   
-  // Z-Score normalized values (20-day rolling window)
+  // Z-Score normalized values (252-day rolling window for enhanced accuracy)
   rsiZScore: decimal("rsi_zscore", { precision: 8, scale: 4 }),
   macdZScore: decimal("macd_zscore", { precision: 8, scale: 4 }),
   bollingerZScore: decimal("bollinger_zscore", { precision: 8, scale: 4 }),
@@ -113,8 +113,8 @@ export const zscoreTechnicalIndicators = pgTable("zscore_technical_indicators", 
   signal: text("signal").notNull(), // BUY, SELL, HOLD
   signalStrength: decimal("signal_strength", { precision: 3, scale: 2 }),
   
-  // Statistical metadata
-  lookbackPeriod: integer("lookback_period").notNull().default(20),
+  // Statistical metadata - Updated for 10-year dataset analysis
+  lookbackPeriod: integer("lookback_period").notNull().default(252), // 1-year default for enhanced accuracy
   dataQuality: text("data_quality").notNull().default("good"), // good, partial, insufficient
   
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -126,26 +126,8 @@ export const zscoreTechnicalIndicators = pgTable("zscore_technical_indicators", 
 }));
 
 // Historical rolling statistics for Z-score calculations
-export const rollingStatistics = pgTable("rolling_statistics", {
-  id: serial("id").primaryKey(),
-  symbol: text("symbol").notNull(),
-  date: timestamp("date").notNull(),
-  indicator: text("indicator").notNull(), // rsi, macd, bollinger, atr, price_momentum, ma_trend
-  
-  // 20-day rolling window statistics
-  mean: decimal("mean", { precision: 12, scale: 6 }),
-  standardDeviation: decimal("standard_deviation", { precision: 12, scale: 6 }),
-  count: integer("count").notNull(),
-  minimum: decimal("minimum", { precision: 12, scale: 6 }),
-  maximum: decimal("maximum", { precision: 12, scale: 6 }),
-  
-  // Z-score calculation metadata
-  windowSize: integer("window_size").notNull().default(20),
-  calculationDate: timestamp("calculation_date").notNull().defaultNow(),
-}, (table) => ({
-  symbolDateIndicatorIdx: unique().on(table.symbol, table.date, table.indicator),
-  symbolIndicatorIdx: index("rolling_stats_symbol_indicator_idx").on(table.symbol, table.indicator),
-}));
+// Note: rollingStatistics table removed during enhanced 10-year dataset optimization
+// This table was unused and replaced by direct in-memory statistical calculations
 
 // Note: Multi-timeframe analysis tables removed during technical debt cleanup:
 // - technicalIndicatorsMultiTimeframe 

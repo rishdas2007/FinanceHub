@@ -34,13 +34,22 @@ interface OutlierDetectionResult {
 export class DataQualityValidator {
   private static instance: DataQualityValidator;
   
-  // Minimum observations required for reliable statistics - Updated for 10 years of data
+  // Enhanced minimum observations for 10-year dataset institutional-grade accuracy
   private readonly MIN_OBSERVATIONS = {
-    EQUITIES: 1260,     // 5 years minimum (upgraded from 252) with 10 years available
-    ETF_TECHNICAL: 252, // 1 year minimum (upgraded from 63) for reliable ETF analysis
-    ECONOMIC_MONTHLY: 60, // 5 years monthly (upgraded from 36) for economic indicators
-    ECONOMIC_QUARTERLY: 40, // 10 years quarterly data for GDP, etc.
-    VOLATILITY: 63      // 3 months minimum (upgraded from 22) for volatility calculations
+    EQUITIES: 1260,         // 5 years minimum (was 252) - Enhanced for institutional accuracy
+    ETF_TECHNICAL: 252,     // 1 year minimum (was 63) - Improved ETF analysis reliability  
+    ECONOMIC_MONTHLY: 60,   // 5 years monthly (was 36) - Enhanced economic indicator precision
+    ECONOMIC_QUARTERLY: 40, // 10 years quarterly - Long-term economic trend analysis
+    VOLATILITY: 63          // 3 months minimum (was 22) - Improved volatility calculations
+  };
+  
+  // Expected observations with 10-year dataset for validation warnings
+  private readonly EXPECTED_OBSERVATIONS_10_YEAR = {
+    EQUITIES: 2520,         // 10 years daily data
+    ETF_TECHNICAL: 2520,    // 10 years ETF data  
+    ECONOMIC_MONTHLY: 120,  // 10 years monthly data
+    ECONOMIC_QUARTERLY: 40, // 10 years quarterly data
+    VOLATILITY: 2520        // 10 years volatility data
   };
   
   // Maximum allowable gap ratio in time series
@@ -61,12 +70,20 @@ export class DataQualityValidator {
     const issues: string[] = [];
     const recommendations: string[] = [];
     
-    // Check for sufficient data
+    // Enhanced validation for 10-year dataset expectations
     const minObs = this.MIN_OBSERVATIONS[assetClass];
+    const expectedObs = this.EXPECTED_OBSERVATIONS_10_YEAR[assetClass] || minObs;
+    
     if (values.length < minObs) {
       issues.push(`Insufficient data: ${values.length} < ${minObs} required observations`);
-      recommendations.push(`Collect at least ${minObs - values.length} more data points`);
+      recommendations.push(`Collect at least ${minObs - values.length} more data points for reliable analysis`);
       return { isValid: false, quality: 0, issues, recommendations };
+    }
+    
+    // Warning for datasets smaller than 10-year expectation
+    if (values.length < expectedObs * 0.8) { // 80% of expected 10-year dataset
+      logger.warn(`Dataset smaller than expected 10-year data: ${values.length} vs ${expectedObs} expected for ${assetClass}`);
+      recommendations.push(`Consider historical data backfill: current ${values.length} vs optimal ${expectedObs} data points`);
     }
 
     // Check for data gaps
