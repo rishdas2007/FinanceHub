@@ -322,9 +322,13 @@ class ETFMetricsService {
       // Override Z-score with live calculation from Z-score Technical Service
       if (weightedResult.zScoreData?.compositeZScore !== undefined) {
         metrics.zScore = weightedResult.zScoreData.compositeZScore;
+        // CRITICAL FIX: Add z-score data to main metrics object for API response
+        metrics.compositeZScore = weightedResult.zScoreData.compositeZScore;
+        metrics.zscoreSignal = weightedResult.zScoreData.signal;
+        metrics.zscoreStrength = Math.abs(weightedResult.zScoreData.compositeZScore);
         console.log(`✅ Live Z-score assigned for ${metrics.symbol}: ${weightedResult.zScoreData.compositeZScore}`);
       } else {
-        console.log(`⚠️ No live Z-score data available for ${metrics.symbol}`);
+        console.log(`⚠️ No Z-score data available for ${metrics.symbol}`);
       }
 
       return metrics;
