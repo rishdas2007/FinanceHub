@@ -71,13 +71,23 @@ export class EnvironmentValidator {
           log(`   • ${err.path.join('.')}: ${err.message}`);
         });
         
-        log('\n📋 Required environment variables:');
+        log('\n📋 Required environment variables for deployment:');
         log('   • FRED_API_KEY - Get from: https://fred.stlouisfed.org/docs/api/api_key.html');
         log('   • TWELVE_DATA_API_KEY - Get from: https://twelvedata.com/');
         log('   • OPENAI_API_KEY - Get from: https://platform.openai.com/api-keys');
         log('   • DATABASE_URL - PostgreSQL connection string');
+        log('\n🚨 In production, set these secrets in the Deployments configuration panel');
+        log('🔧 In development, add them to your .env file or environment');
         
-        process.exit(1);
+        // In production, exit immediately on validation failure
+        if (process.env.NODE_ENV === 'production') {
+          log('🚨 Production deployment cannot continue without required environment variables');
+          process.exit(1);
+        } else {
+          // In development, log warning but allow continuation
+          log('⚠️ Development mode: Continuing with missing environment variables (some features may not work)');
+          throw error; // Let the caller handle this appropriately
+        }
       }
       
       throw error;
