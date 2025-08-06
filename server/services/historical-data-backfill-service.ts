@@ -50,13 +50,13 @@ export class HistoricalDataBackfillService {
   private readonly API_DELAY_MS = 500; // 500ms between calls for 120 calls/minute
   private readonly MAX_DAILY_API_CALLS = 207360; // Updated daily limit based on strategy
   
-  // Data sufficiency requirements based on attached analysis
+  // Data sufficiency requirements updated for 10-year enhanced dataset (August 6, 2025)
   private readonly MIN_OBSERVATIONS = {
-    EQUITIES: 252,      // 1 year daily data (needs 252 trading days)
-    ETF_TECHNICAL: 63,  // 3 months daily data (needs 63 trading days) 
-    ECONOMIC_MONTHLY: 36, // 3 years monthly data (needs 36 data points)
+    EQUITIES: 1260,     // 5 years minimum (upgraded from 252) with 10 years available
+    ETF_TECHNICAL: 252, // 1 year minimum (upgraded from 63) for reliable ETF analysis
+    ECONOMIC_MONTHLY: 60, // 5 years monthly (upgraded from 36) for economic indicators
     ECONOMIC_QUARTERLY: 40, // 10 years quarterly data (needs 40 quarters)
-    VOLATILITY: 22      // 1 month daily data (needs 22 trading days)
+    VOLATILITY: 63      // 3 months daily (upgraded from 22) for volatility calculations
   };
 
   constructor() {
@@ -377,39 +377,50 @@ export class HistoricalDataBackfillService {
   }
 
   /**
-   * Calculate optimized confidence based on data quality factors
+   * Calculate optimized confidence based on 10-year enhanced dataset (August 6, 2025)
    */
   private calculateOptimizedConfidence(recordCount: number, required: number, assetClass: 'equity' | 'etf' | 'economic'): number {
     const baseSufficiency = recordCount / required;
     
-    // For ETFs with 30+ records in our 42-day window, apply optimization
-    if (assetClass === 'etf' && recordCount >= 30 && recordCount <= 42) {
-      // High-quality recent data within available window gets significant boost  
-      const qualityMultiplier = 1.4; // Up to 40% confidence boost
-      const optimizedConfidence = Math.min(baseSufficiency * qualityMultiplier, 1.0);
-      
-      // Additional quality factors
-      if (recordCount >= 30) {
-        return Math.min(optimizedConfidence + 0.25, 1.0); // +25% for complete 30-day coverage
+    // Enhanced calculation for 10-year dataset with institutional-grade thresholds
+    if (assetClass === 'etf') {
+      // ETFs with comprehensive 10-year data (2000+ records available)
+      if (recordCount >= 2000) {
+        return 1.0; // Maximum confidence with full 10-year dataset
+      } else if (recordCount >= 1000) {
+        return Math.min(baseSufficiency * 1.2 + 0.15, 1.0); // High confidence with 4+ years
+      } else if (recordCount >= 500) {
+        return Math.min(baseSufficiency * 1.1 + 0.1, 1.0); // Good confidence with 2+ years
+      } else if (recordCount >= 252) {
+        return Math.min(baseSufficiency + 0.1, 1.0); // Enhanced confidence with 1+ year
+      }
+    } else if (assetClass === 'equity') {
+      // Equities with enhanced 10-year thresholds
+      if (recordCount >= 2520) {
+        return 1.0; // Maximum confidence with full 10-year dataset
+      } else if (recordCount >= 1260) {
+        return Math.min(baseSufficiency * 1.1 + 0.1, 1.0); // High confidence with 5+ years
       }
     }
     
-    // For equities, use standard calculation
+    // Standard calculation for other cases
     return Math.min(baseSufficiency, 1.0);
   }
 
   /**
-   * Generate optimized recommendation based on confidence score
+   * Generate optimized recommendation based on enhanced 10-year dataset confidence
    */
   private generateOptimizedRecommendation(confidence: number, assetClass: 'equity' | 'etf' | 'economic'): string {
-    if (confidence >= 0.8) {
-      return 'Z-scores highly reliable for trading decisions';
-    } else if (confidence >= 0.6) {
-      return 'Z-scores suitable for trend analysis with moderate confidence';
-    } else if (confidence >= 0.4) {
-      return 'Z-scores usable for directional signals with caution';
+    if (confidence >= 0.95) {
+      return 'Z-scores institutional-grade reliable with 10-year statistical foundation';
+    } else if (confidence >= 0.85) {
+      return 'Z-scores highly reliable for professional trading decisions';
+    } else if (confidence >= 0.7) {
+      return 'Z-scores suitable for systematic trading with enhanced confidence';
+    } else if (confidence >= 0.5) {
+      return 'Z-scores usable for trend analysis with moderate reliability';
     } else {
-      return 'Insufficient data - z-scores unreliable, consider postponing trading decisions';
+      return 'Limited data reliability - consider data collection before trading';
     }
   }
 
@@ -465,15 +476,21 @@ export class HistoricalDataBackfillService {
     const sufficiencyRatio = dataPoints / required;
     const confidence = Math.min(1.0, sufficiencyRatio * 0.7); // Reduce confidence for insufficient data
 
+    // Enhanced warning logic for 10-year dataset (updated August 6, 2025)
+    const enhancedConfidence = this.calculateOptimizedConfidence(dataPoints, required, assetClass);
+    
     return {
-      hasWarning: sufficiencyRatio < 0.9,
-      confidence,
-      reliability: sufficiencyRatio >= 0.9 ? 'high' : 
-                   sufficiencyRatio >= 0.6 ? 'medium' : 
-                   sufficiencyRatio >= 0.3 ? 'low' : 'unreliable',
-      message: sufficiencyRatio < 0.9 ? 
-        `Limited data reliability: ${Math.round(sufficiencyRatio * 100)}% (${dataPoints}/${required} required data points)` :
-        'Sufficient data for reliable analysis'
+      hasWarning: enhancedConfidence < 0.8,
+      confidence: enhancedConfidence,
+      reliability: enhancedConfidence >= 0.95 ? 'maximum' :
+                   enhancedConfidence >= 0.85 ? 'high' : 
+                   enhancedConfidence >= 0.7 ? 'medium' : 
+                   enhancedConfidence >= 0.5 ? 'low' : 'unreliable',
+      message: enhancedConfidence >= 0.95 ? 
+        `Maximum reliability: Institutional-grade z-score accuracy (${dataPoints}/${required} enhanced data points)` :
+        enhancedConfidence >= 0.8 ?
+        `High reliability: Professional-grade z-score calculations (${dataPoints}/${required} data points)` :
+        `Enhanced data needed: ${Math.round(enhancedConfidence * 100)}% reliability (${dataPoints}/${required} required data points)`
     };
   }
 }
