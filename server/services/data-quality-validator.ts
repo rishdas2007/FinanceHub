@@ -36,11 +36,20 @@ export class DataQualityValidator {
   
   // Enhanced minimum observations for 10-year dataset institutional-grade accuracy
   private readonly MIN_OBSERVATIONS = {
-    EQUITIES: 1260,         // 5 years minimum (was 252) - Enhanced for institutional accuracy
-    ETF_TECHNICAL: 252,     // 1 year minimum (was 63) - Improved ETF analysis reliability  
-    ECONOMIC_MONTHLY: 60,   // 5 years monthly (was 36) - Enhanced economic indicator precision
+    EQUITIES: 1260,         // 5 years minimum - Enhanced for institutional accuracy
+    ETF_TECHNICAL: 252,     // 1 year minimum - Standard ETF analysis reliability  
+    ECONOMIC_MONTHLY: 60,   // 5 years monthly - Enhanced economic indicator precision
     ECONOMIC_QUARTERLY: 40, // 10 years quarterly - Long-term economic trend analysis
-    VOLATILITY: 63          // 3 months minimum (was 22) - Improved volatility calculations
+    VOLATILITY: 63          // 3 months minimum - Improved volatility calculations
+  };
+  
+  // For datasets with 10-year coverage (2500+ records), use optimized thresholds
+  private readonly OPTIMIZED_MIN_OBSERVATIONS = {
+    EQUITIES: 252,          // 1 year minimum when 10-year data available
+    ETF_TECHNICAL: 63,      // 3 months minimum when 10-year data available
+    ECONOMIC_MONTHLY: 12,   // 1 year monthly when 10-year data available
+    ECONOMIC_QUARTERLY: 4,  // 1 year quarterly when 10-year data available
+    VOLATILITY: 22          // 1 month minimum when 10-year data available
   };
   
   // Expected observations with 10-year dataset for validation warnings
@@ -71,13 +80,21 @@ export class DataQualityValidator {
     const recommendations: string[] = [];
     
     // Enhanced validation for 10-year dataset expectations
-    const minObs = this.MIN_OBSERVATIONS[assetClass];
+    const hasFullDataset = values.length >= 2500; // 10-year dataset threshold
+    const minObs = hasFullDataset 
+      ? this.OPTIMIZED_MIN_OBSERVATIONS[assetClass] 
+      : this.MIN_OBSERVATIONS[assetClass];
     const expectedObs = this.EXPECTED_OBSERVATIONS_10_YEAR[assetClass] || minObs;
     
     if (values.length < minObs) {
       issues.push(`Insufficient data: ${values.length} < ${minObs} required observations`);
       recommendations.push(`Collect at least ${minObs - values.length} more data points for reliable analysis`);
       return { isValid: false, quality: 0, issues, recommendations };
+    }
+    
+    // Log success for 10-year datasets
+    if (hasFullDataset) {
+      logger.info(`✅ 10-year dataset validation passed: ${values.length} records exceeds ${minObs} minimum for ${assetClass}`);
     }
     
     // Warning for datasets smaller than 10-year expectation

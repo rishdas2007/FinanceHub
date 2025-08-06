@@ -104,10 +104,19 @@ export class CentralizedZScoreService {
     const startTime = Date.now();
     const config = getAssetClassConfig(assetClass);
     
-    // Validate data quality
-    const qualityResult = this.dataQualityValidator.validateDataQuality(values, 
-      assetClass === 'economic' ? 'ECONOMIC_MONTHLY' : 'ETF_TECHNICAL'
-    );
+    // Validate data quality with proper asset class mapping for 10-year dataset
+    let validationClass: 'EQUITIES' | 'ETF_TECHNICAL' | 'ECONOMIC_MONTHLY' | 'ECONOMIC_QUARTERLY' | 'VOLATILITY';
+    
+    if (assetClass === 'economic') {
+      validationClass = 'ECONOMIC_MONTHLY';
+    } else if (values.length >= 2500) {
+      // ETFs with 10-year data should use institutional EQUITIES standards
+      validationClass = 'EQUITIES';
+    } else {
+      validationClass = 'ETF_TECHNICAL';
+    }
+    
+    const qualityResult = this.dataQualityValidator.validateDataQuality(values, validationClass);
 
     if (!qualityResult.isValid) {
       logger.warn('Data quality validation failed', {
