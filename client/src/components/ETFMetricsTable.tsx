@@ -258,12 +258,12 @@ export default function ETFMetricsTable() {
           <span className="text-red-400 font-medium">Red = Bad/Sell signals</span>. 
           <br />
           <strong className="text-white">Metrics:</strong> 
-          <strong className="text-white"> Signal</strong> - Z-Score Weighted System (RSI 35%, MACD 30%, Bollinger 20%, MA Trend 15%, Price Momentum 10%, ATR 0%). BUY ≥1.0, SELL ≤-1.0, HOLD -1.0 to 1.0.
+          <strong className="text-white"> Signal</strong> - Optimized Z-Score Weighted System (MACD 35%, RSI 25%, MA Trend 20%, Bollinger 15%, Price Momentum 5%, ATR 0%). BUY ≥0.75, SELL ≤-0.75, HOLD -0.75 to 0.75. Dynamic thresholds adjust for market volatility.
           <strong className="text-white"> Bollinger</strong> - Price position in bands (oversold=good, overbought=bad). 
           <strong className="text-white"> ATR</strong> - Volatility measure. 
           <strong className="text-white"> MA Trend</strong> - Bull/bear crossover signals. 
           <strong className="text-white"> RSI</strong> - Momentum (oversold=good, overbought=bad). 
-          <strong className="text-white"> Z-Score Composite</strong> - Statistical normalization with 20-day rolling window for scale-independent signals.
+          <strong className="text-white"> Z-Score Composite</strong> - Enhanced statistical normalization with 252-day institutional-grade window using 10-year historical datasets (2015-2025) for reliable scale-independent signals.
         </p>
       </div>
 
