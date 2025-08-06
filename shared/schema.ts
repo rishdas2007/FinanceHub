@@ -164,19 +164,16 @@ export const vixData = pgTable("vix_data", {
 export const historicalTechnicalIndicators = pgTable("historical_technical_indicators", {
   id: serial("id").primaryKey(),
   symbol: text("symbol").notNull(),
+  date: timestamp("date").notNull(),
   rsi: decimal("rsi", { precision: 5, scale: 2 }),
   macd: decimal("macd", { precision: 10, scale: 4 }),
   macdSignal: decimal("macd_signal", { precision: 10, scale: 4 }),
-  bb_upper: decimal("bb_upper", { precision: 10, scale: 2 }),
-  bb_middle: decimal("bb_middle", { precision: 10, scale: 2 }),
-  bb_lower: decimal("bb_lower", { precision: 10, scale: 2 }),
-  percent_b: decimal("percent_b", { precision: 5, scale: 4 }),
-  adx: decimal("adx", { precision: 5, scale: 2 }),
-  stoch_k: decimal("stoch_k", { precision: 5, scale: 2 }),
-  stoch_d: decimal("stoch_d", { precision: 5, scale: 2 }),
+  percentB: decimal("percent_b", { precision: 5, scale: 4 }),
   atr: decimal("atr", { precision: 10, scale: 4 }),
-  date: timestamp("date").notNull(),
+  priceChange: decimal("price_change", { precision: 8, scale: 4 }),
+  maTrend: decimal("ma_trend", { precision: 8, scale: 4 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
   symbolDateIdx: unique().on(table.symbol, table.date),
   symbolIdx: index("historical_tech_symbol_idx").on(table.symbol),
@@ -200,15 +197,19 @@ export const historicalMarketSentiment = pgTable("historical_market_sentiment", 
 
 export const historicalSectorData = pgTable("historical_sector_data", {
   id: serial("id").primaryKey(),
-  sectorName: text("sector_name").notNull(),
-  performance: decimal("performance", { precision: 5, scale: 2 }).notNull(),
-  volume: integer("volume"),
-  marketCap: decimal("market_cap", { precision: 15, scale: 0 }),
+  symbol: text("symbol").notNull(), // ETF ticker symbol (SPY, XLK, etc.)
   date: timestamp("date").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(), // Closing price
+  volume: integer("volume").notNull(),
+  changePercent: decimal("change_percent", { precision: 5, scale: 2 }).notNull(),
+  open: decimal("open", { precision: 10, scale: 2 }).notNull(),
+  high: decimal("high", { precision: 10, scale: 2 }).notNull(),
+  low: decimal("low", { precision: 10, scale: 2 }).notNull(),
+  close: decimal("close", { precision: 10, scale: 2 }).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
-  sectorDateIdx: unique().on(table.sectorName, table.date),
-  sectorIdx: index("historical_sector_name_idx").on(table.sectorName),
+  symbolDateIdx: unique().on(table.symbol, table.date),
+  symbolIdx: index("historical_sector_symbol_idx").on(table.symbol),
   dateIdx: index("historical_sector_date_idx").on(table.date),
 }));
 
