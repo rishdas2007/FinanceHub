@@ -219,64 +219,37 @@ export class SimplifiedSectorAnalysisService {
   }
 
   /**
-   * Calculate z-score: (current_price - rolling_mean_20) / rolling_std_20
-   * Enhanced with database lookup and proper statistical methods
+   * Calculate z-score based on current price movement relative to recent historical pattern
+   * This calculates how unusual today's price movement is compared to typical daily changes
    */
   private async calculateZScore(sector: SectorETF, sectorHistory: HistoricalData[]): Promise<number> {
-    try {
-      // First, try to get the composite Z-score from the zscore_technical_indicators table
-      console.log(`🔍 Looking up Z-score for ${sector.symbol} in database...`);
-      const latestZScore = await db
-        .select()
-        .from(zscoreTechnicalIndicators)
-        .where(eq(zscoreTechnicalIndicators.symbol, sector.symbol))
-        .orderBy(desc(zscoreTechnicalIndicators.date))
-        .limit(1);
-      
-      console.log(`🔍 Database query result for ${sector.symbol}:`, latestZScore.length, 'records found');
-      
-      if (latestZScore.length > 0 && latestZScore[0].compositeZScore !== null) {
-        const zScore = parseFloat(latestZScore[0].compositeZScore.toString());
-        console.log(`✅ Using database Z-score for ${sector.symbol}: ${zScore.toFixed(4)}`);
-        return zScore;
-      }
-      console.log(`⚠️ No Z-score found in database for ${sector.symbol}, calculating from price data`);
-    } catch (error) {
-      console.log(`⚠️ Error fetching Z-score for ${sector.symbol}:`, error.message);
-    }
-    // Validate input data - filter out invalid prices
-    const validPrices = sectorHistory
-      .filter(h => h.price && h.price > 0 && !isNaN(h.price) && h.price < 1000000)
-      .map(h => h.price);
-      
-    if (validPrices.length < 20) {
-      // Improved fallback using actual daily returns when available
-      const recentReturns = this.calculateDailyReturns(sectorHistory.slice(0, Math.min(10, sectorHistory.length)));
-      if (recentReturns.length > 1) {
-        const avgReturn = recentReturns.reduce((sum, r) => sum + r, 0) / recentReturns.length;
-        // Use sample standard deviation for better accuracy with small samples
-        const returnVolatility = Math.sqrt(
-          recentReturns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / 
-          Math.max(1, recentReturns.length - 1)
-        );
-        const currentReturn = (sector.changePercent || 0) / 100;
-        return returnVolatility > 0 ? this.capZScore((currentReturn - avgReturn) / returnVolatility) : 0;
-      }
-      // REMOVED: No more hardcoded fallback Z-scores - force null for live calculations
-      return 0; // Will be overridden by live Z-score calculations in ETF Metrics Service
+    console.log(`🔍 Calculating momentum z-score for ${sector.symbol} based on daily price movement...`);
+    
+    // For momentum analysis, we want z-score of daily price changes, not composite technical z-scores
+    // This tells us if today's price movement is statistically significant
+    // Calculate daily returns from historical data
+    const dailyReturns = this.calculateDailyReturns(sectorHistory);
+    const currentDayReturn = (sector.changePercent || 0) / 100; // Convert percentage to decimal
+    
+    if (dailyReturns.length < 10) {
+      console.log(`⚠️ Insufficient historical data for ${sector.symbol} (${dailyReturns.length} days), using simplified calculation`);
+      // Use a simple fallback that correctly reflects the sign of the price movement
+      return currentDayReturn > 0 ? Math.min(currentDayReturn * 10, 2) : Math.max(currentDayReturn * 10, -2);
     }
     
-    // Use last 20 days for rolling calculation
-    const last20Prices = validPrices.slice(0, 20);
-    const mean20 = last20Prices.reduce((sum, p) => sum + p, 0) / last20Prices.length;
+    // Calculate mean and standard deviation of daily returns
+    const meanDailyReturn = dailyReturns.reduce((sum, r) => sum + r, 0) / dailyReturns.length;
+    const variance = dailyReturns.reduce((sum, r) => sum + Math.pow(r - meanDailyReturn, 2), 0) / (dailyReturns.length - 1);
+    const stdDailyReturn = Math.sqrt(variance);
     
-    // Use sample standard deviation (N-1) for better accuracy with finite samples
-    const variance = last20Prices.reduce((sum, p) => sum + Math.pow(p - mean20, 2), 0) / (last20Prices.length - 1);
-    const std20 = Math.sqrt(variance);
+    if (stdDailyReturn === 0) {
+      console.log(`⚠️ Zero volatility for ${sector.symbol}, returning simple scaled return`);
+      return currentDayReturn > 0 ? Math.min(currentDayReturn * 5, 1) : Math.max(currentDayReturn * 5, -1);
+    }
     
-    if (std20 === 0) return 0; // REMOVED: No more hardcoded fallback Z-scores
-    
-    const zScore = (sector.price - mean20) / std20;
+    // Calculate z-score: how many standard deviations is today's return from the mean
+    const zScore = (currentDayReturn - meanDailyReturn) / stdDailyReturn;
+    console.log(`📊 ${sector.symbol}: Today's return ${(currentDayReturn * 100).toFixed(2)}%, Historical avg ${(meanDailyReturn * 100).toFixed(2)}%, Std ${(stdDailyReturn * 100).toFixed(2)}%, Z-score: ${zScore.toFixed(3)}`);
     
     // Cap extreme values to prevent outlier distortion
     return this.capZScore(zScore);
