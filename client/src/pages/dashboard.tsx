@@ -1,6 +1,6 @@
 
 
-import MomentumAnalysis from "@/components/momentum-analysis-disabled";
+
 import { SPYBaseline } from "@/components/SPYBaseline";
 import MacroeconomicIndicators from "@/components/MacroeconomicIndicators";
 import { AIEconomicAnalysis } from "@/components/AIEconomicAnalysis";
@@ -84,8 +84,8 @@ export default function Dashboard() {
         {/* Economic Analysis - 2x5 grid above Momentum Analysis */}
         <EconomicPulseCheck />
 
-        {/* Simplified Momentum Analysis with Verified Calculations */}
-        <MomentumAnalysis />
+
+
 
         {/* Macroeconomic Indicators Module - now includes AI Economic Analysis */}
         <MacroeconomicIndicators />
