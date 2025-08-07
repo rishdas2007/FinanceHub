@@ -18,7 +18,7 @@ export const CURATED_SERIES = [
   { id: 'CSCICP03USM665S', label: 'Consumer Confidence Index', type: 'Leading', category: 'Sentiment' },
   { id: 'FEDFUNDS', label: 'Federal Funds Rate', type: 'Leading', category: 'Monetary Policy' },
   { id: 'HOUST', label: 'Housing Starts', type: 'Leading', category: 'Growth' },
-  { id: 'PAYEMS', label: 'Nonfarm Payrolls', type: 'Lagging', category: 'Labor' },
+  { id: 'PAYEMS', label: 'Nonfarm Payrolls', type: 'Lagging', category: 'Labor', processAsChange: true },
   { id: 'UMCSENT', label: 'Michigan Consumer Sentiment', type: 'Leading', category: 'Sentiment' },
   { id: 'UNRATE', label: 'Unemployment Rate', type: 'Lagging', category: 'Labor' },
   
@@ -327,7 +327,10 @@ export class FredApiServiceIncremental {
     sessionId: string
   ): Promise<FredUpdateResult> {
     try {
-      const observations = await this.fetchLatestObservations(seriesId);
+      // For change-based processing, get more historical data to calculate changes
+      const observations = seriesConfig.processAsChange 
+        ? await this.fetchSeries(seriesId, { limit: 50, sort_order: 'desc' }).then(r => r.observations.filter(obs => obs.value !== '.' && obs.value !== null))
+        : await this.fetchLatestObservations(seriesId);
       
       if (observations.length === 0) {
         return {
@@ -346,9 +349,25 @@ export class FredApiServiceIncremental {
       // Process observations in chronological order (oldest first)
       const sortedObservations = observations.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-      for (const obs of sortedObservations) {
-        const numericValue = parseFloat(obs.value);
+      for (let i = 0; i < sortedObservations.length; i++) {
+        const obs = sortedObservations[i];
+        let numericValue = parseFloat(obs.value);
         if (isNaN(numericValue)) continue;
+
+        // For PAYEMS, calculate month-over-month change in thousands
+        if (seriesConfig.processAsChange && seriesId === 'PAYEMS') {
+          if (i === 0) {
+            // Skip first observation for change-based metrics (no prior value to compare)
+            continue;
+          }
+          const previousObs = sortedObservations[i - 1];
+          const previousValue = parseFloat(previousObs.value);
+          if (isNaN(previousValue)) continue;
+          
+          // Calculate change in thousands (PAYEMS is already in thousands)
+          numericValue = numericValue - previousValue;
+          logger.info(`📊 PAYEMS change calculated: ${previousValue}k → ${parseFloat(obs.value)}k = ${numericValue.toFixed(0)}k jobs change`);
+        }
 
         // Check if this observation already exists using correct column names
         const obsDate = new Date(obs.date);
@@ -374,7 +393,7 @@ export class FredApiServiceIncremental {
             value: numericValue,
             periodDate: new Date(obs.date),
             releaseDate: new Date(obs.realtime_start || obs.date),
-            unit: 'Percent' // Default unit, could be enhanced with FRED series metadata
+            unit: seriesConfig.processAsChange && seriesId === 'PAYEMS' ? 'Thousands' : 'Percent' // Use thousands for PAYEMS changes
           });
 
           newDataPoints++;
