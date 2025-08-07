@@ -109,12 +109,12 @@ const ETF_LIST = [
 ];
 
 const formatPercentage = (value: number | null | undefined): string => {
-  if (value === null || value === undefined) return 'N/A';
+  if (value === null || value === undefined || typeof value !== 'number' || isNaN(value)) return 'N/A';
   return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
 };
 
 const formatNumber = (value: number | null | undefined, decimals: number = 2): string => {
-  if (value === null || value === undefined) return 'N/A';
+  if (value === null || value === undefined || typeof value !== 'number' || isNaN(value)) return 'N/A';
   return value.toFixed(decimals);
 };
 
