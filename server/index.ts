@@ -41,6 +41,10 @@ import {
 import { EnvironmentValidator } from './utils/EnvironmentValidator';
 import { ServiceStartupOrchestrator, ServiceConfig } from './utils/ServiceStartupOrchestrator';
 
+// Performance optimization imports
+import { performanceOptimizer } from './utils/performance-optimizer';
+import { resourceManager } from './utils/resource-manager';
+
 // Validate environment at startup
 const environmentValidator = EnvironmentValidator.getInstance();
 const config = environmentValidator.validate();
@@ -133,6 +137,10 @@ app.use((req, res, next) => {
     
     // Enhanced Statistical Demo Routes (10-Year Data Showcase)
     app.use('/api/statistical', enhancedZScoreRoutes);
+    
+    // Performance monitoring routes
+    const { performanceMonitoringRoutes } = await import('./routes/performance-monitoring');
+    app.use('/api/performance', performanceMonitoringRoutes);
 
     // Register original routes (maintain backward compatibility)
     const server = await registerRoutes(app);
@@ -180,6 +188,11 @@ app.use((req, res, next) => {
       log(`🚀 FinanceHub Pro serving on port ${port}`);
       log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
       log(`🔗 Server URL: http://0.0.0.0:${port}`);
+      
+      // Initialize performance monitoring
+      performanceOptimizer.startMonitoring(30000); // Every 30 seconds
+      resourceManager.startMaintenanceScheduler();
+      log('🔍 Performance monitoring and resource management initialized');
       
       // Initialize services with proper dependency ordering (replaces race conditions)
       const serviceConfigs: ServiceConfig[] = [
