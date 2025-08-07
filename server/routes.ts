@@ -1948,6 +1948,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Technical Indicators endpoint - retrieves indicators for specific symbols
+  app.get('/api/technical-indicators/:symbol', async (req, res) => {
+    try {
+      const { symbol } = req.params;
+      console.log(`📊 Fetching technical indicators for ${symbol}...`);
+      
+      // Get the symbol data from momentum analysis (same source for consistency)
+      const momentumData = momentumAnalysisCache?.data;
+      if (!momentumData?.momentumStrategies) {
+        return res.status(404).json({
+          error: 'Technical indicators unavailable',
+          message: 'Momentum analysis data not ready'
+        });
+      }
+      
+      // Find the symbol in momentum strategies
+      const symbolData = momentumData.momentumStrategies.find((s: any) => 
+        s.ticker === symbol.toUpperCase() || s.symbol === symbol.toUpperCase()
+      );
+      
+      if (!symbolData) {
+        return res.status(404).json({
+          error: 'Symbol not found in technical analysis',
+          message: `${symbol} not available in current dataset`
+        });
+      }
+      
+      // Return technical indicators data
+      const technicalData = {
+        symbol: symbol.toUpperCase(),
+        rsi: symbolData.rsi || null,
+        macd: symbolData.macd || null,
+        zScore: symbolData.zScore || null,
+        oneDayChange: symbolData.oneDayChange || null,
+        fiveDayChange: symbolData.fiveDayChange || null,
+        sharpeRatio: symbolData.sharpeRatio || null,
+        signal: symbolData.signal || 'NEUTRAL',
+        momentum: symbolData.momentum || 'neutral',
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log(`✅ Technical indicators for ${symbol} retrieved successfully`);
+      res.json(technicalData);
+      
+    } catch (error) {
+      console.error(`❌ Error fetching technical indicators for ${req.params.symbol}:`, error);
+      res.status(500).json({
+        error: 'Technical indicators temporarily unavailable',
+        message: 'Please try again in a moment'
+      });
+    }
+  });
+
   // Recent Economic Readings using FRED data only (NO OPENAI)
   app.get("/api/recent-economic-openai", async (req, res) => {
     try {
