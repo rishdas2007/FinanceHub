@@ -273,12 +273,20 @@ export class FinancialDataService {
       const ema12 = this.parseIndicatorStrict(ema12Response, 'ema');
       const ema26 = this.parseIndicatorStrict(ema26Response, 'ema');
 
+      // Check if we have sufficient real data vs null values - if mostly null, don't store misleading partial data
+      const nullCount = [rsi, macdData.macd, macdData.macdSignal, bbandsData.upper, percentB, adx, stochData.k, vwap, atr, willr].filter(v => v === null).length;
+      
+      if (nullCount >= 7) { // If 7+ out of 10 key indicators are null, likely rate limited
+        console.log(`⚠️ Rate limit detected for ${symbol}: ${nullCount}/10 indicators null. Skipping storage to avoid corrupted data.`);
+        throw new Error(`Rate limit exceeded for ${symbol}. Technical indicators unavailable.`);
+      }
+
       const indicators = {
         symbol,
         rsi,
         macd: macdData.macd,
         macdSignal: macdData.macdSignal,
-        macdHistogram: macdData.macd - macdData.macdSignal, // Calculate MACD histogram
+        macdHistogram: macdData.macd && macdData.macdSignal ? macdData.macd - macdData.macdSignal : null,
         bb_upper: bbandsData.upper,
         bb_middle: bbandsData.middle,
         bb_lower: bbandsData.lower,
