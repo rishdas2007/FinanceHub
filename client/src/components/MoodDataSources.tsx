@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { TrendingUp, Activity, DollarSign, Loader2, RefreshCw } from 'lucide-react';
 
 interface DataSource {
-  type: 'momentum' | 'technical' | 'economic';
+  type: 'momentum' | 'economic';
   data: any;
   status: 'loading' | 'success' | 'error';
 }
@@ -23,33 +23,11 @@ export function MoodDataSources() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch technical data from same source as momentum analysis
-  const { data: technicalData, isLoading: technicalLoading, refetch: refetchTechnical } = useQuery({
-    queryKey: ['/api/technical-indicators/SPY'],
-    staleTime: 2 * 60 * 1000,
-  });
-
-  // Get RSI, 1-Day Move, and Z-Score from momentum data for consistency with table
-  const spyData = (momentumData as any)?.momentumStrategies?.find((s: any) => s.ticker === 'SPY');
-  const rsi = spyData?.rsi || null;
-  const spyOneDayMove = spyData?.oneDayChange || null;
-  const spyZScore = spyData?.zScore || null;
-
   const dataSources: DataSource[] = [
     {
       type: 'momentum',
       data: momentumData,
       status: momentumLoading ? 'loading' : (momentumData ? 'success' : 'error')
-    },
-    {
-      type: 'technical',
-      data: {
-        rsi: rsi, // Use same RSI as momentum table
-        spyOneDayMove: spyOneDayMove, // Replace VIX with SPY 1-Day Move
-        spyZScore: spyZScore, // Replace ADX with SPY Z-Score
-        trend: rsi ? (rsi > 70 ? 'bullish' : rsi < 30 ? 'bearish' : 'neutral') : 'neutral'
-      },
-      status: momentumLoading ? 'loading' : 'success'
     },
     {
       type: 'economic',
@@ -131,68 +109,7 @@ export function MoodDataSources() {
     );
   };
 
-  const renderTechnicalData = (data: any) => {
-    // Get SPY data for MA gap calculation and price
-    const spyMomentumData = (momentumData as any)?.momentumStrategies?.find((s: any) => s.ticker === 'SPY');
-    const extractMAGap = (signal: string) => {
-      const match = signal?.match(/\+(\d+\.?\d*)% above/);
-      return match ? `+${match[1]}%` : '+1.2%'; // fallback - will be updated from actual signal
-    };
 
-    return (
-      <div className="space-y-3">
-        {/* Keep SPY Price at top as requested */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400">SPY Price:</span>
-          <Badge variant="default" className="text-white font-bold">
-            ${spyMomentumData?.currentPrice || '628.04'}
-          </Badge>
-        </div>
-        
-        <div className="border-t border-gray-700 pt-3 space-y-2">
-          {/* Match left side ordering: Index Name, 1-Day Change, Z-Score, RSI, MA Gap */}
-          <div className="flex justify-between items-center">
-            <span className="text-gray-400">Index Name:</span>
-            <Badge variant="outline" className="text-white font-bold">
-              S&P 500 (SPY)
-            </Badge>
-          </div>
-          
-          <div className="flex justify-between items-center">
-            <span className="text-gray-400">1-Day Change:</span>
-            <Badge variant="outline" className={data.spyOneDayMove && data.spyOneDayMove > 0 ? 'text-green-400' : 'text-red-400'}>
-              {data.spyOneDayMove ? `${data.spyOneDayMove > 0 ? '+' : ''}${parseFloat(data.spyOneDayMove).toFixed(2)}%` : 'Loading...'}
-            </Badge>
-          </div>
-          
-          <div className="flex justify-between items-center">
-            <span className="text-gray-400">Z-Score:</span>
-            <Badge variant="outline" className="text-blue-400 font-bold">
-              {data.spyZScore ? data.spyZScore.toFixed(3) : 'Loading...'}
-            </Badge>
-          </div>
-          
-          <div className="flex justify-between items-center">
-            <span className="text-gray-400">RSI:</span>
-            <Badge variant="outline" className="text-white font-bold">
-              {data.rsi ? data.rsi.toFixed(1) : 'Loading...'}
-            </Badge>
-          </div>
-          
-          <div className="flex justify-between items-center">
-            <span className="text-gray-400">MA Gap:</span>
-            <Badge variant="outline" className="text-blue-400 font-bold">
-              {spyMomentumData ? extractMAGap(spyMomentumData.signal) : '+1.2%'}
-            </Badge>
-          </div>
-          
-          <div className="text-xs text-gray-400 mt-2">
-            * Z-Score measures how many standard deviations current move is from average. Values above ±1 are significant.
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   const renderEconomicData = (data: any[]) => {
     if (!data || data.length === 0) return <p className="text-gray-400">No economic data</p>;
@@ -218,15 +135,14 @@ export function MoodDataSources() {
     try {
       await Promise.all([
         refetchMomentum(),
-        refetchEconomic(), 
-        refetchTechnical()
+        refetchEconomic()
       ]);
     } catch (error) {
       console.error('AI Summary refresh failed:', error);
     }
   };
 
-  const isRefreshing = momentumLoading || economicLoading || technicalLoading;
+  const isRefreshing = momentumLoading || economicLoading;
 
   return (
     <Card className="bg-financial-card border-financial-border">
@@ -234,7 +150,7 @@ export function MoodDataSources() {
         <div className="flex items-center justify-between">
           <CardTitle className="text-white flex items-center space-x-2">
             <Activity className="h-5 w-5 text-blue-400" />
-            <span>Technical Analysis</span>
+            <span>Market Analysis</span>
           </CardTitle>
           <Button 
             onClick={handleAIRefresh}
@@ -250,10 +166,9 @@ export function MoodDataSources() {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {dataSources.filter(source => source.type !== 'economic').map((source, index) => {
+          {dataSources.map((source, index) => {
             const icons = {
               momentum: TrendingUp,
-              technical: Activity,
               economic: DollarSign
             };
             const Icon = icons[source.type];
@@ -277,7 +192,7 @@ export function MoodDataSources() {
                   {source.status === 'success' && (
                     <>
                       {source.type === 'momentum' && renderMomentumData(source.data)}
-                      {source.type === 'technical' && renderTechnicalData(source.data)}
+                      {source.type === 'economic' && renderEconomicData(source.data)}
                     </>
                   )}
                   {source.status === 'error' && (
