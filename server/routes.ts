@@ -1851,9 +1851,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Cache for momentum analysis (5-minute cache)
+  // Cache for momentum analysis (extended cache for performance)
   let momentumAnalysisCache: { data: any; timestamp: number } | null = null;
-  const MOMENTUM_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+  const MOMENTUM_CACHE_DURATION = 10 * 60 * 1000; // Extended to 10 minutes for performance
+
+  // Background refresh function for momentum analysis
+  async function refreshMomentumAnalysis() {
+    try {
+      console.log('🔄 Starting background momentum analysis refresh...');
+      
+      const [currentSectorData, historicalData] = await Promise.all([
+        (async () => {
+          try {
+            return await financialDataService.getSectorETFs();
+          } catch (error) {
+            console.warn('⚠️ Sector data fetch failed, using database fallback');
+            return await storage.getLatestSectorData() || [];
+          }
+        })(),
+        (async () => {
+          try {
+            const { db } = await import('./db');
+            const result = await db.execute(`
+              SELECT symbol, date, price 
+              FROM historical_sector_etf_data 
+              WHERE date >= NOW() - INTERVAL '6 months'
+              ORDER BY date DESC, symbol
+              LIMIT 1000
+            `);
+            return result.rows || [];
+          } catch (error) {
+            console.warn('Historical sector data unavailable:', error instanceof Error ? error.message : 'Unknown error');
+            return [];
+          }
+        })()
+      ]);
+
+      // Convert data and generate analysis
+      const convertedSectorData = Array.isArray(currentSectorData) ? currentSectorData.map((sector: any) => ({
+        symbol: sector.symbol,
+        name: sector.name,
+        price: typeof sector.price === 'string' ? parseFloat(sector.price) : sector.price,
+        changePercent: typeof sector.changePercent === 'string' ? parseFloat(sector.changePercent) : sector.changePercent,
+        fiveDayChange: sector.fiveDayChange ? (typeof sector.fiveDayChange === 'string' ? parseFloat(sector.fiveDayChange) : sector.fiveDayChange) : undefined,
+        oneMonthChange: sector.oneMonthChange ? (typeof sector.oneMonthChange === 'string' ? parseFloat(sector.oneMonthChange) : sector.oneMonthChange) : undefined,
+        volume: sector.volume || 0
+      })) : [];
+
+      const { simplifiedSectorAnalysisService } = await import('./services/simplified-sector-analysis');
+      const analysis = await simplifiedSectorAnalysisService.generateSimplifiedAnalysis(
+        convertedSectorData,
+        Array.isArray(historicalData) ? historicalData.map((row: any) => ({
+          symbol: String(row.symbol || ''),
+          date: String(row.date || new Date().toISOString()),
+          price: Number(row.price || 0)
+        })) : []
+      );
+      
+      // Update cache with fresh data
+      momentumAnalysisCache = {
+        data: analysis,
+        timestamp: Date.now()
+      };
+      
+      console.log(`✅ Background momentum analysis refresh completed (confidence: ${analysis.confidence}%)`);
+    } catch (error) {
+      console.error('❌ Background momentum analysis refresh failed:', error);
+    }
+  }
 
   // Comprehensive Sector Analysis Route - Advanced sector rotation and cyclical pattern analysis
   app.get('/api/momentum-analysis', async (req, res) => {
@@ -1861,11 +1926,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if we have valid cached data
       const now = Date.now();
       if (momentumAnalysisCache && (now - momentumAnalysisCache.timestamp < MOMENTUM_CACHE_DURATION)) {
-        console.log('📊 Returning cached momentum analysis (5-minute cache hit)');
+        console.log('⚡ Returning cached momentum analysis (10-minute cache hit - fast response)');
+        return res.json(momentumAnalysisCache.data);
+      }
+
+      // If we have stale cached data, serve it immediately while refreshing in background
+      if (momentumAnalysisCache && momentumAnalysisCache.data) {
+        console.log('📊 Serving stale data while refreshing momentum analysis in background...');
+        
+        // Start background refresh without blocking the response
+        setImmediate(async () => {
+          try {
+            console.log('🔄 Background momentum analysis refresh started...');
+            await refreshMomentumAnalysis();
+            console.log('✅ Background momentum analysis refresh completed');
+          } catch (error) {
+            console.error('❌ Background momentum analysis refresh failed:', error);
+          }
+        });
+        
         return res.json(momentumAnalysisCache.data);
       }
       
-      console.log('📊 Generating focused momentum analysis with verified calculations...');
+      console.log('📊 Generating fresh momentum analysis (no cache available)...');
       
       res.setHeader('Content-Type', 'application/json');
       
@@ -1927,7 +2010,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`✅ Simplified momentum analysis completed (confidence: ${analysis.confidence}%)`);
       
-      // Cache the result for 5 minutes
+      // Cache the result for 10 minutes
       momentumAnalysisCache = {
         data: analysis,
         timestamp: Date.now()
