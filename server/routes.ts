@@ -51,6 +51,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Optimized Backfill Execution endpoints
   app.use('/api/backfill', (await import('./routes/backfill-routes')).backfillRoutes);
   
+  // Batch API Processing endpoints (Phase 2 Optimization)
+  app.use('/api', (await import('./routes/batch-api')).default);
+  
 
   
   // Enhanced Performance Optimization endpoints

@@ -27,10 +27,16 @@ export class IntelligentCronScheduler {
 
     logger.info('📅 Initializing intelligent cron scheduler');
 
-    // Schedule momentum data updates (every 5-15 minutes based on market hours)
-    this.scheduleJob('momentum-updates', '*/5 * * * *', async () => {
-      if (this.shouldRunMomentumUpdate()) {
+    // OPTIMIZED: Schedule momentum data updates (market-aware intervals)
+    this.scheduleJob('momentum-updates', '*/8 * * * *', async () => {
+      const marketInfo = marketHoursDetector.getMarketStatus();
+      
+      if (marketInfo.isOpen || marketInfo.isPrePostHours) {
+        // More frequent during market hours
         await this.runJobSafely('momentum-updates', () => backgroundDataFetcher.fetchMomentumData());
+      } else if (this.shouldRunWeekendUpdate()) {
+        // Less frequent during weekends/nights
+        await this.runJobSafely('momentum-updates', () => backgroundDataFetcher.fetchMomentumDataLight());
       }
     });
 
@@ -48,9 +54,19 @@ export class IntelligentCronScheduler {
       }
     });
 
-    // Schedule comprehensive updates (every 2 hours)
-    this.scheduleJob('comprehensive-update', '0 */2 * * *', async () => {
-      await this.runJobSafely('comprehensive-update', () => backgroundDataFetcher.runCompleteDataUpdate());
+    // OPTIMIZED: Schedule comprehensive updates (market-aware timing)
+    this.scheduleJob('comprehensive-update', '0 */3 * * *', async () => {
+      const marketInfo = marketHoursDetector.getMarketStatus();
+      
+      // Skip comprehensive updates during peak market hours (10 AM - 2 PM EST)
+      const currentHour = new Date().getHours();
+      const isPeakHours = marketInfo.isOpen && currentHour >= 10 && currentHour <= 14;
+      
+      if (!isPeakHours) {
+        await this.runJobSafely('comprehensive-update', () => backgroundDataFetcher.runCompleteDataUpdate());
+      } else {
+        logger.info('⏭️ Skipping comprehensive update during peak market hours');
+      }
     });
 
     // Schedule cache cleanup (every 6 hours)
@@ -160,6 +176,15 @@ export class IntelligentCronScheduler {
     
     logger.debug(`🔍 AI summary check: ${shouldUpdate} (market: ${marketStatus.session})`);
     return shouldUpdate;
+  }
+
+  private shouldRunWeekendUpdate(): boolean {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
+    const currentHour = now.getHours();
+    
+    // Run light updates on weekends during reasonable hours
+    return (dayOfWeek === 0 || dayOfWeek === 6) && currentHour >= 8 && currentHour <= 20;
   }
 
   private async cleanupExpiredCache(): Promise<void> {

@@ -1,7 +1,7 @@
 # FinanceHub Pro
 
 ## Overview
-FinanceHub Pro is a comprehensive financial dashboard application designed for individual investors and financial professionals. It provides real-time market data, technical analysis, AI-powered market insights, and financial tracking. The platform emphasizes enterprise-grade data integrity and cost-effectiveness by leveraging authentic government and market data, minimizing reliance on expensive AI for core data processing. Its vision is to be a robust and reliable financial analysis tool.
+FinanceHub Pro is a comprehensive financial dashboard application for individual investors and financial professionals. It provides real-time market data, technical analysis, AI-powered market insights, and financial tracking. The platform emphasizes enterprise-grade data integrity and cost-effectiveness by leveraging authentic government and market data, minimizing reliance on expensive AI for core data processing. Its vision is to be a robust and reliable financial analysis tool.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -36,60 +36,23 @@ The application uses a monorepo architecture with `client/` (React frontend), `s
 - **Database-First Approach**: PostgreSQL is the primary data source to reduce API calls and ensure data authenticity.
 - **Gold Standard Data Pipeline**: Enterprise-grade data pipeline with quality validation, audit trails, feature engineering, and statistical analysis.
 - **Automated Data Release Scheduler**: Strategic scheduling system for economic data refreshes, ensuring 24-hour data cycles and staleness prevention.
-- **Comprehensive Historical Data Infrastructure**: Accumulates 24+ months of authentic historical data for various financial instruments and economic indicators.
+- **Comprehensive Historical Data Infrastructure**: Accumulates 10+ years of authentic historical data for various financial instruments and economic indicators.
 - **Cost Optimization**: Strategic caching, scheduled API calls, and minimal AI dependency for core data processing.
 - **Modular & Scalable Design**: Employs Dependency Injection (Inversify), Repository Pattern, and clear service interfaces.
-- **UI/UX Decisions**: Dark financial theme with color-coded indicators, responsive grid layouts, and professional presentation, emphasizing readability and consistency.
-- **Performance Optimization**: Aggressive caching, parallel data fetching, batch processing, and 2-second loading guarantees for dashboard components.
+- **UI/UX Decisions**: Dark financial theme with color-coded indicators, responsive grid layouts, and professional presentation, emphasizing readability and consistency. Includes advanced loading skeletons and real-time cache performance monitoring.
+- **Performance Optimization**: Aggressive caching, parallel data fetching, batch processing, database connection pooling (pg-pool), Redis distributed caching, streaming query service (pg-query-stream), composite database indexes, and 2-second loading guarantees for dashboard components.
 - **Enhanced User Education**: Comprehensive methodology explanations, economic rationale tooltips, and detailed documentation.
 - **Multi-Dimensional Economic Insight Classification**: Sophisticated economic analysis framework considering level and trend signals, mixed signal detection, and confidence scoring.
 - **Economic Pulse Score Architecture**: Revolutionary Economic Health Score redesign with a 3-layer validation-driven methodology, prioritizing simplicity and predictive accuracy.
 - **FRED Economic Indicators Integration**: Comprehensive backfill system for 14 core economic indicators with automatic FRED API integration, providing real-time economic data for dashboard analytics.
-- **Statistical Analysis Fixes**: Standardized sample variance, enhanced data sufficiency, improved extreme value handling, and standardized window sizes for Z-score implementations.
-- **Weighted System Methodology Fixes**: Corrected Bollinger %B direction, adjusted signal thresholds, improved Z-score to signal conversion, optimized ATR usage, and rebalanced weights for reliable trading signal generation.
-- **Moving Average Calculation Accuracy Fixes**: Fixed EMA seeding, improved MACD accuracy, removed dynamic period adjustments, and standardized data requirements.
-- **Data Sufficiency Solution**: Comprehensive Week 1-Month 2 solution addressing critical data gaps with intelligent historical data backfill service, real-time sufficiency warnings, and integrated confidence scoring for z-score reliability.
-- **10-Year Statistical Enhancement (August 6, 2025)**: Comprehensive statistical overhaul leveraging 10 years of historical data for institutional-grade accuracy. Updated window sizes (EQUITIES: 2520 days, ETF_TECHNICAL: 252 days), enhanced minimum observations (EQUITIES: 1260 minimum), and implemented statistical significance testing with confidence levels and power calculations. Created RollingZScoreOptimizer for efficient caching and VolatilityRegimeDetector with dynamic percentile-based thresholds. Improved from 22% uncertainty to 6% uncertainty with 95% confidence levels and 95% statistical power.
-- **Statistical Accuracy Optimization (August 6, 2025)**: Enhanced schema optimization for institutional-grade accuracy with default lookback period updated from 20 to 252 days, unused rollingStatistics table removed, optimized cache TTLs for 10-year dataset stability (daily: 2 hours, economic: 6 hours, statistical: 24 hours), enhanced data quality validation with 10-year dataset expectations, and improved batch processing with 20-request batches for 10-year dataset performance. Database migration successfully applied with lookback_period default updated to 252 days.
-- **Performance Infrastructure Overhaul (August 6, 2025)**: Comprehensive performance optimization implementing database connection pooling with pg-pool (20 max connections, 5 min, 60s query timeout), Redis distributed caching with volume-optimized TTLs (real-time: 30s, daily: 10min, economic: 1hr), streaming query service with pg-query-stream for large dataset exports, composite database indexes (idx_zscore_composite, idx_economic_current_metric, idx_technical_indicators_symbol_timestamp, idx_historical_sector_performance), and enhanced batch API endpoints for bulk z-score calculations. Performance optimization routes available at /api/performance/* with streaming endpoints for historical data, z-score calculations, and economic indicators.
-- **Data Sufficiency Validation Fix (August 6, 2025)**: Resolved false data sufficiency alerts by implementing optimized validation thresholds for 10-year datasets. Fixed asset class mapping in centralized z-score service where ETFs with 2,500+ records now use institutional EQUITIES validation standards instead of restrictive ETF_TECHNICAL thresholds. Implemented dynamic minimum observation requirements: optimized thresholds (252 minimum) for datasets with 10-year coverage (2,500+ records) vs. standard thresholds (1,260 minimum) for smaller datasets. All 12 ETF symbols now pass INSTITUTIONAL_GRADE_10_YEAR validation with 2,610 records each, eliminating false data sufficiency warnings.
-- **Z-Score Signal Optimization (August 6, 2025)**: Comprehensive optimization of trading signal system based on performance analysis. Addressed over-restrictive thresholds (11.2% actionable signals) by lowering BUY/SELL thresholds from ±1.0 to ±0.75, targeting 20% actionable signals. Rebalanced component weights to reduce redundancy: RSI (35%→25%), MACD (30%→35%), Bollinger (20%→15%), MA Trend (15%→20%), Price Momentum (10%→5%). Implemented volatility-adjusted dynamic thresholds using VolatilityRegimeDetector: low volatility (±0.6), normal volatility (±0.75), crisis volatility (±1.2). Enhanced signal generation with strong BUY/SELL detection at ±1.5 thresholds. Updated TechnicalIndicatorLegend.tsx and ETFMetricsTable.tsx to reflect new optimized methodology in user interface.
-- **Complete Deployment Package v5.0.0 (August 6, 2025)**: Created comprehensive deployment package with all latest optimizations. Package includes: fresh database backup (88,895 lines), optimized z-score calculations, enhanced UI components, comprehensive backtest analysis capabilities, complete codebase with all dependencies, automated installation scripts, and detailed deployment documentation. Package size: 4.7MB compressed with 386 files total.
+- **Statistical Analysis**: Standardized sample variance, enhanced data sufficiency, improved extreme value handling, standardized window sizes (EQUITIES: 2520 days, ETF_TECHNICAL: 252 days), minimum observations (EQUITIES: 1260 minimum), and statistical significance testing. Includes RollingZScoreOptimizer and VolatilityRegimeDetector.
+- **Weighted System Methodology**: Corrected Bollinger %B direction, adjusted signal thresholds, improved Z-score to signal conversion, optimized ATR usage, and rebalanced weights for reliable trading signal generation.
+- **Moving Average Calculation Accuracy**: Fixed EMA seeding, improved MACD accuracy, removed dynamic period adjustments, and standardized data requirements.
+- **Data Sufficiency Management**: Addresses critical data gaps with intelligent historical data backfill service using Twelve Data and FRED APIs, real-time sufficiency warnings, and integrated confidence scoring for z-score reliability. Includes optimized validation thresholds for 10-year datasets and dynamic minimum observation requirements.
+- **Z-Score Signal Optimization**: Comprehensive optimization of trading signal system based on performance analysis, including lowered BUY/SELL thresholds, rebalanced component weights, and volatility-adjusted dynamic thresholds.
 
 ### Database Design
 The schema includes key tables for: `users`, `stock_data`, `market_sentiment`, `technical_indicators`, `ai_analysis`, `economic_events`, `fredUpdateLog`, `economicIndicatorsCurrent`, `historical_sector_data`, `historical_technical_indicators`, `historical_market_sentiment`, `historical_economic_data`, `economic_data_audit`, `data_collection_audit`.
-
-### Data Sufficiency Management
-**Critical Issue Addressed**: Z-score calculations were unreliable due to insufficient historical data (20-60 days available vs 252 days required for equities).
-
-**Comprehensive Solution Implemented**:
-- **Historical Data Backfill Service**: Intelligent API-rate-limited service using Twelve Data API for systematic historical data collection
-- **Data Sufficiency Analysis**: Real-time assessment of data coverage with confidence scoring and reliability classifications
-- **Integrated UI Warnings**: Dashboard alerts and detailed reporting for data reliability issues
-- **Enhanced Z-Score Service**: Confidence-adjusted calculations with sufficiency-based signal dampening
-- **Strategic Backfill Management**: Prioritized data collection focusing on critical gaps while respecting API limits
-- **Optimized Dual-API Backfill Orchestrator**: Parallel execution system leveraging both Twelve Data (144/min) and FRED (120/min) APIs
-
-**Technical Implementation**:
-- `/api/data-sufficiency/*` endpoints for reports, warnings, and backfill management
-- `/api/backfill/*` endpoints for optimized dual-API parallel execution
-- Data quality validation with minimum observation requirements (252 days equity, 63 days ETF)
-- Reliability classifications: high (>90%), medium (60-90%), low (30-60%), unreliable (<30%)
-- Confidence scoring integrated into z-score calculations to prevent false signals
-- Dashboard integration with /data-sufficiency route for management interface
-- **Successfully Executed (August 6, 2025)**: Comprehensive 10-year historical dataset integration completed with 43,080 authentic records across 12 ETF symbols. Replaced API-limited 42-day data with comprehensive 10-year datasets (2015-2025) enabling reliable z-score calculations with 2,610 records per symbol average. ETF reliability optimization implemented with confidence scoring achieving HIGH RELIABILITY status for all 12 ETF symbols through enhanced data quality assessment.
-- **Production Deployment Fixes (August 6, 2025)**: Comprehensive deployment error handling implemented including: async IIFE try-catch wrapper, environment validation at startup, port configuration validation, service initialization error handling, production vs development mode behavior, detailed error logging with stack traces, and graceful degradation for optional services. Created comprehensive DEPLOYMENT.md guide with API key setup instructions and troubleshooting guidance.
-
-**Performance Metrics**:
-- Data Collection: 43,080 authentic records across 12 symbols (10-year span: August 5, 2015 - August 5, 2025)
-- Historical Sector Data: 31,320 records with OHLCV data for comprehensive market analysis
-- Technical Indicators: 6,000 records with RSI, MACD, ATR, and moving average calculations
-- Z-Score Indicators: 5,760 records with statistical normalization and trading signals
-- Data Quality: 100% valid records with comprehensive historical context
-- Reliability Achievement: 12/12 ETF symbols upgraded to MAXIMUM RELIABILITY (100% confidence)
-- API Integration: Real Twelve Data API with proper rate limiting confirmed operational
-- Z-Score Calculations: Enhanced with 10-year statistical foundation enabling robust 252+ day analysis windows
-- **Statistical Accuracy Enhancement**: Standard error reduced from 22% to 6% (73% improvement), confidence levels increased from 60% to 95% (58% improvement), false signal rate reduced from 45% to 15% (67% improvement), statistical power increased from 30% to 95% (217% improvement)
 
 ## External Dependencies
 
