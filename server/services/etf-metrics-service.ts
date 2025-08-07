@@ -796,15 +796,25 @@ class ETFMetricsService {
    * OPTIMIZED: Build Z-Score data object with minimal processing
    */
   private buildZScoreDataOptimized(zscore: any) {
+    if (!zscore) return null;
+    
+    // Helper function to safely convert string/number to number
+    const safeParseFloat = (value: any): number | null => {
+      if (value === null || value === undefined || value === '') return null;
+      const parsed = typeof value === 'string' ? parseFloat(value) : Number(value);
+      return isNaN(parsed) ? null : parsed;
+    };
+    
+    
     return {
-      rsiZScore: zscore?.rsiZScore || null,
-      macdZScore: zscore?.macdZScore || null,
-      bollingerZScore: zscore?.bollingerZScore || null,
-      atrZScore: zscore?.atrZScore || null,
-      priceMomentumZScore: zscore?.priceMomentumZScore || null,
-      maTrendZScore: zscore?.maTrendZScore || null,
-      compositeZScore: zscore?.compositeZScore || null,
-      signal: zscore?.signal || 'HOLD'
+      rsiZScore: safeParseFloat(zscore.rsiZScore),
+      macdZScore: safeParseFloat(zscore.macdZScore), 
+      bollingerZScore: safeParseFloat(zscore.bollingerZScore),
+      atrZScore: safeParseFloat(zscore.atrZScore),
+      priceMomentumZScore: safeParseFloat(zscore.priceMomentumZScore),
+      maTrendZScore: safeParseFloat(zscore.maTrendZScore),
+      compositeZScore: safeParseFloat(zscore.compositeZScore),
+      signal: zscore.signal || 'HOLD'
     };
   }
 
