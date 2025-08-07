@@ -369,7 +369,7 @@ export default function ETFMetricsTable() {
                         {etf.zScoreData?.signal || 'HOLD'}
                       </span>
                       <span className="text-xs text-gray-400 mt-1">
-                        Z: {etf.zScoreData?.compositeZScore ? etf.zScoreData.compositeZScore.toFixed(2) : 'N/A'}
+                        Z: {formatNumber(etf.zScoreData?.compositeZScore, 2)}
                       </span>
                     </div>
                   </td>
