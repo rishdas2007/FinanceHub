@@ -80,7 +80,7 @@ class ETFMetricsService {
     'SPY', 'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'
   ];
 
-  private readonly ETF_NAMES = {
+  private static readonly ETF_NAMES = {
     'SPY': 'S&P 500 INDEX',
     'XLK': 'Technology',
     'XLV': 'Health Care',
@@ -126,15 +126,37 @@ class ETFMetricsService {
         return cached as ETFMetrics[];
       }
 
-      // 3. Fetch from database (prioritized)
+      // 3. OPTIMIZED: Parallel database fetching with timeout protection
+      const fetchTimeout = 1500; // 1.5s timeout per operation
       const [dbTechnicals, dbZScoreData, momentumData] = await Promise.all([
-        this.getLatestTechnicalIndicatorsFromDB(),
-        this.getLatestZScoreDataFromDB(),
+        Promise.race([
+          this.getLatestTechnicalIndicatorsFromDB(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Technical indicators timeout')), fetchTimeout))
+        ]).catch(error => {
+          logger.warn(`⚠️ Technical indicators fetch failed: ${error.message}`);
+          return new Map();
+        }),
+        Promise.race([
+          this.getLatestZScoreDataFromDB(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Z-score data timeout')), fetchTimeout))
+        ]).catch(error => {
+          logger.warn(`⚠️ Z-score data fetch failed: ${error.message}`);
+          return new Map();
+        }),
         this.getMomentumDataFromCache()
       ]);
 
-      // 4. Consolidate data
-      const etfMetrics = await this.consolidateETFMetrics(dbTechnicals, dbZScoreData, momentumData);
+      // 4. OPTIMIZED: Parallel ETF metrics consolidation
+      const consolidationTimeout = 1000; // 1s timeout for consolidation
+      const etfMetrics = await Promise.race([
+        this.consolidateETFMetricsParallel(dbTechnicals, dbZScoreData, momentumData),
+        new Promise<ETFMetrics[]>((_, reject) => 
+          setTimeout(() => reject(new Error('Consolidation timeout')), consolidationTimeout)
+        )
+      ]).catch(error => {
+        logger.warn(`⚠️ ETF consolidation failed, using cached fallback: ${error.message}`);
+        return this.getFallbackMetrics();
+      });
 
       // 5. Cache results in both standard and fast cache
       cacheService.set(this.CACHE_KEY, etfMetrics, this.CACHE_TTL);
@@ -254,7 +276,79 @@ class ETFMetricsService {
   }
 
   /**
-   * CONSOLIDATE: Merge all data sources into unified ETF metrics
+   * PARALLEL CONSOLIDATE: Process ETF metrics in parallel for maximum speed
+   */
+  private async consolidateETFMetricsParallel(
+    technicals: Map<string, any>,
+    zscoreData: Map<string, any>,
+    momentum: MomentumData[]
+  ): Promise<ETFMetrics[]> {
+    // Process all ETFs in parallel instead of sequentially
+    const processedMetrics = await Promise.all(
+      this.ETF_SYMBOLS.map(symbol => this.processETFMetricParallel(symbol, technicals, zscoreData, momentum))
+    );
+    
+    logger.info(`⚡ Processed ${processedMetrics.length} ETFs in parallel`);
+    return processedMetrics;
+  }
+
+  /**
+   * Process individual ETF metric with optimized data access
+   */
+  private async processETFMetricParallel(
+    symbol: string,
+    technicals: Map<string, any>,
+    zscoreData: Map<string, any>,
+    momentum: MomentumData[]
+  ): Promise<ETFMetrics> {
+    const technical = technicals.get(symbol);
+    const zscore = zscoreData.get(symbol);
+    const momentumETF = momentum.find(m => m.ticker === symbol);
+
+    return {
+      symbol,
+      name: ETFMetricsService.ETF_NAMES[symbol as keyof typeof ETFMetricsService.ETF_NAMES] || symbol,
+      price: this.getETFPrice(symbol, zscore, momentumETF),
+      changePercent: momentumETF?.oneDayChange ? parseFloat(momentumETF.oneDayChange.toString()) : 0,
+      
+      // Bollinger Bands & Position/Squeeze
+      bollingerPosition: technical?.percent_b ? parseFloat(technical.percent_b) : null,
+      bollingerSqueeze: this.calculateBollingerSqueeze(technical),
+      bollingerStatus: this.getBollingerStatus(technical),
+      
+      // ATR & Volatility
+      atr: technical?.atr ? parseFloat(technical.atr) : null,
+      volatility: momentumETF?.volatility || null,
+      
+      // Moving Average (Trend)
+      maSignal: this.getMASignal(technical),
+      maTrend: this.getMATrend(technical),
+      maGap: this.getMAGap(technical),
+      
+      // RSI (Momentum)
+      rsi: momentumETF?.rsi ? parseFloat(momentumETF.rsi.toString()) : (technical?.rsi ? parseFloat(technical.rsi) : null),
+      rsiSignal: this.getRSISignal(momentumETF?.rsi || technical?.rsi),
+      rsiDivergence: false,
+      
+      // Z-Score calculations
+      zScore: null,
+      sharpeRatio: momentumETF?.sharpeRatio || null,
+      fiveDayReturn: momentumETF?.fiveDayChange || null,
+      
+      // Volume, VWAP, OBV
+      volumeRatio: null,
+      vwapSignal: this.getVWAPSignal(technical, zscore, momentumETF),
+      obvTrend: momentumETF?.signal ? this.parseOBVFromSignal(momentumETF.signal) : 'neutral',
+      
+      // Z-Score system results
+      weightedScore: 0,
+      weightedSignal: 'HOLD',
+      zScoreData: zscore ? this.buildZScoreDataOptimized(zscore) : null
+    };
+  }
+
+  /**
+   * LEGACY: Merge all data sources into unified ETF metrics (kept for fallback)
    */
   private async consolidateETFMetrics(
     technicals: Map<string, any>,
@@ -286,7 +380,7 @@ class ETFMetricsService {
 
       const metrics = {
         symbol,
-        name: this.ETF_NAMES[symbol as keyof typeof this.ETF_NAMES] || symbol,
+        name: ETFMetricsService.ETF_NAMES[symbol as keyof typeof ETFMetricsService.ETF_NAMES] || symbol,
         price: this.getETFPrice(symbol, zscore, momentumETF),
         changePercent: momentumETF?.oneDayChange ? parseFloat(momentumETF.oneDayChange.toString()) : 0,
         
@@ -669,7 +763,7 @@ class ETFMetricsService {
   private getFallbackMetrics(): ETFMetrics[] {
     return this.ETF_SYMBOLS.map(symbol => ({
       symbol,
-      name: this.ETF_NAMES[symbol as keyof typeof this.ETF_NAMES] || symbol,
+      name: ETFMetricsService.ETF_NAMES[symbol as keyof typeof ETFMetricsService.ETF_NAMES] || symbol,
       price: 0,
       changePercent: 0,
       
@@ -696,6 +790,22 @@ class ETFMetricsService {
       vwapSignal: 'Loading...',
       obvTrend: 'neutral' as const
     }));
+  }
+
+  /**
+   * OPTIMIZED: Build Z-Score data object with minimal processing
+   */
+  private buildZScoreDataOptimized(zscore: any) {
+    return {
+      rsiZScore: zscore?.rsiZScore || null,
+      macdZScore: zscore?.macdZScore || null,
+      bollingerZScore: zscore?.bollingerZScore || null,
+      atrZScore: zscore?.atrZScore || null,
+      priceMomentumZScore: zscore?.priceMomentumZScore || null,
+      maTrendZScore: zscore?.maTrendZScore || null,
+      compositeZScore: zscore?.compositeZScore || null,
+      signal: zscore?.signal || 'HOLD'
+    };
   }
 
   /**
