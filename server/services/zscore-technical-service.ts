@@ -1,7 +1,6 @@
 import { db } from '../db';
 import { 
   zscoreTechnicalIndicators, 
-  rollingStatistics, 
   technicalIndicators,
   historicalStockData,
   historicalSectorData 
@@ -133,7 +132,7 @@ class ZScoreTechnicalService {
       }
 
       // Get volatility regime assessment
-      const regimeInfo = await this.volatilityDetector.getVolatilityAdjustmentFactor(vixLevel);
+      const regimeInfo = await this.volatilityDetector.getVolatilityAdjustment(vixLevel);
       
       // Apply volatility-based threshold adjustments
       switch (regimeInfo.regime) {
@@ -235,22 +234,22 @@ class ZScoreTechnicalService {
     cutoffDate.setDate(cutoffDate.getDate() - lookbackDays);
     
     try {
-      // FIXED: Query historicalStockData where we actually store the price data
+      // FIXED: Query historicalSectorData where we actually store ETF price data
       const priceData = await db
         .select({
-          symbol: historicalStockData.symbol,
-          date: historicalStockData.date,
-          price: historicalStockData.price
+          symbol: historicalSectorData.symbol,
+          date: historicalSectorData.date,
+          price: historicalSectorData.price
         })
-        .from(historicalStockData)
+        .from(historicalSectorData)
         .where(
           and(
-            eq(historicalStockData.symbol, symbol),
-            gte(historicalStockData.date, cutoffDate),
+            eq(historicalSectorData.symbol, symbol),
+            gte(historicalSectorData.date, cutoffDate),
             sql`price IS NOT NULL AND price > 0`
           )
         )
-        .orderBy(historicalStockData.date);
+        .orderBy(historicalSectorData.date);
       
       logger.info(`📊 Found ${priceData.length} price records for ${symbol} momentum calculation`);
       
@@ -275,6 +274,12 @@ class ZScoreTechnicalService {
       return momentum;
     } catch (error) {
       logger.error(`Error calculating price momentum for ${symbol}:`, error);
+      logger.error(`❌ Momentum calculation failed for ${symbol}. Error details:`, {
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : 'No stack trace',
+        lookbackDays,
+        cutoffDate: cutoffDate.toISOString()
+      });
       return [];
     }
   }
