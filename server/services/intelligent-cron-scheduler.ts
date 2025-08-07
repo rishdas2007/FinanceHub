@@ -29,14 +29,14 @@ export class IntelligentCronScheduler {
 
     // OPTIMIZED: Schedule momentum data updates (market-aware intervals)
     this.scheduleJob('momentum-updates', '*/8 * * * *', async () => {
-      const marketInfo = marketHoursDetector.getMarketStatus();
+      const marketInfo = marketHoursDetector.getCurrentMarketStatus();
       
-      if (marketInfo.isOpen || marketInfo.isPrePostHours) {
-        // More frequent during market hours
+      if (marketInfo.isOpen || marketInfo.isPremarket || marketInfo.isAfterHours) {
+        // More frequent during market hours and extended trading
         await this.runJobSafely('momentum-updates', () => backgroundDataFetcher.fetchMomentumData());
       } else if (this.shouldRunWeekendUpdate()) {
         // Less frequent during weekends/nights
-        await this.runJobSafely('momentum-updates', () => backgroundDataFetcher.fetchMomentumDataLight());
+        await this.runJobSafely('momentum-updates', () => backgroundDataFetcher.fetchMomentumData());
       }
     });
 
@@ -56,7 +56,7 @@ export class IntelligentCronScheduler {
 
     // OPTIMIZED: Schedule comprehensive updates (market-aware timing)
     this.scheduleJob('comprehensive-update', '0 */3 * * *', async () => {
-      const marketInfo = marketHoursDetector.getMarketStatus();
+      const marketInfo = marketHoursDetector.getCurrentMarketStatus();
       
       // Skip comprehensive updates during peak market hours (10 AM - 2 PM EST)
       const currentHour = new Date().getHours();
@@ -200,7 +200,7 @@ export class IntelligentCronScheduler {
     logger.info('📊 Generating daily status report');
     
     const marketStatus = marketHoursDetector.getCurrentMarketStatus();
-    const cacheStats = smartCache.getStats();
+    const cacheStats = unifiedDashboardCache.getStats();
     
     const report = {
       date: new Date().toISOString().split('T')[0],
@@ -213,7 +213,7 @@ export class IntelligentCronScheduler {
     logger.info('📊 Daily Status Report', report);
     
     // Store report in cache for dashboard access
-    smartCache.set('daily-status-report', report, '25h');
+    // Note: Daily status reports are logged for monitoring
   }
 
   getJobStatuses(): JobStatus[] {
