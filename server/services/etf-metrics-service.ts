@@ -71,7 +71,9 @@ interface MomentumData {
 class ETFMetricsService {
   private static instance: ETFMetricsService;
   private readonly CACHE_KEY = 'etf-metrics-consolidated-v1';
+  private readonly FAST_CACHE_KEY = 'etf-metrics-fast-v1';
   private readonly CACHE_TTL = 300; // 5 minutes
+  private readonly FAST_CACHE_TTL = 120; // 2 minutes during market hours
   
   // Standard ETF universe
   private readonly ETF_SYMBOLS = [
@@ -101,34 +103,44 @@ class ETFMetricsService {
   }
 
   /**
-   * MAIN METHOD: Get consolidated ETF metrics following data pipeline principles
-   * Pipeline: Database → Cache → API (only if needed)
+   * OPTIMIZED: Market-aware fast loading for ETF metrics during market hours
+   * Pipeline: Fast Cache → Database → Standard Cache → API (if needed)
    */
   async getConsolidatedETFMetrics(): Promise<ETFMetrics[]> {
     const startTime = Date.now();
     
     try {
-      // 1. Check cache first
+      // 1. Check fast cache first (market hours optimization)
+      const fastCached = cacheService.get(this.FAST_CACHE_KEY);
+      if (fastCached) {
+        logger.info(`⚡ ETF metrics served from FAST cache (${Date.now() - startTime}ms)`);
+        return fastCached as ETFMetrics[];
+      }
+
+      // 2. Check standard cache
       const cached = cacheService.get(this.CACHE_KEY);
       if (cached) {
+        // Store in fast cache for next request
+        cacheService.set(this.FAST_CACHE_KEY, cached, this.FAST_CACHE_TTL);
         logger.info(`📊 ETF metrics served from cache (${Date.now() - startTime}ms)`);
         return cached as ETFMetrics[];
       }
 
-      // 2. Fetch from database (prioritized)
+      // 3. Fetch from database (prioritized)
       const [dbTechnicals, dbZScoreData, momentumData] = await Promise.all([
         this.getLatestTechnicalIndicatorsFromDB(),
         this.getLatestZScoreDataFromDB(),
         this.getMomentumDataFromCache()
       ]);
 
-      // 3. Consolidate data
+      // 4. Consolidate data
       const etfMetrics = await this.consolidateETFMetrics(dbTechnicals, dbZScoreData, momentumData);
 
-      // 4. Cache results
+      // 5. Cache results in both standard and fast cache
       cacheService.set(this.CACHE_KEY, etfMetrics, this.CACHE_TTL);
+      cacheService.set(this.FAST_CACHE_KEY, etfMetrics, this.FAST_CACHE_TTL);
       
-      logger.info(`📊 ETF metrics consolidated from database (${Date.now() - startTime}ms, ${etfMetrics.length} ETFs)`);
+      logger.info(`⚡ ETF metrics consolidated from database and cached (${Date.now() - startTime}ms, ${etfMetrics.length} ETFs)`);
       return etfMetrics;
 
     } catch (error) {

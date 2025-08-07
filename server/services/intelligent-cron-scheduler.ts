@@ -86,14 +86,48 @@ export class IntelligentCronScheduler {
       await this.runJobSafely('daily-status', () => this.generateDailyStatusReport());
     });
 
-    // Run initial data fetch
+    // OPTIMIZED: Schedule ETF metrics preloading (aggressive market-aware caching)
+    this.scheduleJob('etf-preloader', '*/1 * * * *', async () => {
+      const marketInfo = marketHoursDetector.getCurrentMarketStatus();
+      
+      if (marketInfo.isOpen) {
+        // Every 1.5 minutes during market hours (aggressive preloading)
+        await this.runJobSafely('etf-preloader', async () => {
+          const { etfPreloaderService } = await import('./etf-preloader');
+          await etfPreloaderService.forceRefresh();
+        });
+      } else if (marketInfo.isPremarket || marketInfo.isAfterHours) {
+        // Every 4 minutes during extended hours
+        if (marketHoursDetector.shouldUpdateNow(new Date(Date.now() - 4 * 60 * 1000), 'momentum')) {
+          await this.runJobSafely('etf-preloader', async () => {
+            const { etfPreloaderService } = await import('./etf-preloader');
+            await etfPreloaderService.forceRefresh();
+          });
+        }
+      } else {
+        // Every 10 minutes when market is closed
+        if (marketHoursDetector.shouldUpdateNow(new Date(Date.now() - 10 * 60 * 1000), 'momentum')) {
+          await this.runJobSafely('etf-preloader', async () => {
+            const { etfPreloaderService } = await import('./etf-preloader');
+            await etfPreloaderService.forceRefresh();
+          });
+        }
+      }
+    });
+
+    // Run initial data fetch and ETF preloader
     setTimeout(async () => {
       logger.info('🚀 Running initial background data fetch');
       await backgroundDataFetcher.runCompleteDataUpdate();
+      
+      // Start ETF preloader
+      logger.info('⚡ Starting ETF preloader service');
+      const { etfPreloaderService } = await import('./etf-preloader');
+      await etfPreloaderService.startPreloading();
     }, 5000);
 
     this.isInitialized = true;
-    logger.info('✅ Intelligent cron scheduler initialized with 6 jobs');
+    logger.info('✅ Intelligent cron scheduler initialized with 7 jobs (including ETF preloader)');
   }
 
   private scheduleJob(name: string, cronExpression: string, jobFunction: () => Promise<void>): void {

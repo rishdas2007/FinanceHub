@@ -183,9 +183,21 @@ export default function ETFMetricsTable() {
     source: string;
   }>({
     queryKey: ['/api/etf-metrics'],
-    refetchInterval: 300000, // 5 minutes - respects database-first caching
-    staleTime: 240000, // 4 minutes
-    retry: 2,
+    refetchInterval: () => {
+      // Market-aware refresh intervals
+      const now = new Date();
+      const estHour = now.getHours(); // Rough EST approximation
+      const isMarketHours = estHour >= 9 && estHour <= 16; // 9:30 AM - 4:00 PM EST
+      const isExtendedHours = (estHour >= 4 && estHour < 9) || (estHour > 16 && estHour <= 20);
+      
+      if (isMarketHours) return 120000; // 2 minutes during market hours
+      if (isExtendedHours) return 300000; // 5 minutes during extended hours
+      return 900000; // 15 minutes when market is closed
+    },
+    staleTime: 60000, // 1 minute - aggressive freshness during market hours
+    retry: 3,
+    refetchOnWindowFocus: true, // Refetch when user returns to window
+    refetchOnMount: true, // Always fetch fresh data on mount
   });
 
   const etfMetrics = useMemo(() => {

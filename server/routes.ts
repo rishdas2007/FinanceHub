@@ -130,20 +130,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const fastDashboardRoutes = (await import('./routes/fast-dashboard-routes')).default;
   app.use('/api', fastDashboardRoutes);
   
-  // ETF metrics with Z-score system
+  // OPTIMIZED: Fast ETF Metrics API with market-aware caching
   app.get('/api/etf-metrics', async (req, res) => {
+    const startTime = Date.now();
     try {
-      console.log('[00:' + new Date().toISOString().slice(14, 19) + '] INFO: 📊 ETF metrics request - using database-first pipeline');
+      console.log('⚡ Fast Dashboard Route: GET /api/etf-metrics (Market-Aware)');
       const { etfMetricsService } = await import('./services/etf-metrics-service');
       
       const metrics = await etfMetricsService.getConsolidatedETFMetrics();
+      
+      const responseTime = Date.now() - startTime;
+      console.log(`⚡ ETF Metrics response time: ${responseTime}ms`);
       
       res.json({
         success: true,
         metrics,
         count: metrics.length,
         timestamp: new Date().toISOString(),
-        source: 'database-first-pipeline'
+        source: 'fast-market-aware-pipeline',
+        responseTime: responseTime
       });
     } catch (error) {
       console.error('❌ ETF metrics error:', error);
