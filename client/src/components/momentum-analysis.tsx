@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, TrendingUp, TrendingDown, ArrowRight, ChevronUp, ChevronDown } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, ArrowRight, ChevronUp, ChevronDown, AlertTriangle } from 'lucide-react';
 import { TechnicalIndicatorLegend } from './TechnicalIndicatorLegend';
 import { Scatter, ScatterChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList, ReferenceLine } from 'recharts';
 
@@ -60,62 +60,30 @@ type SortField = 'sector' | 'ticker' | 'momentum' | 'oneDayChange' | 'fiveDayCha
 type SortDirection = 'asc' | 'desc';
 
 const MomentumAnalysis = () => {
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [sortField, setSortField] = useState<SortField>('sharpeRatio');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-
-  const { data: analysis, isLoading, error, refetch } = useQuery<MomentumAnalysis>({
-    queryKey: ['/api/momentum-analysis', refreshKey],
-    queryFn: () => fetch('/api/momentum-analysis').then(res => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      return res.json();
-    }),
-    refetchInterval: 0,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache for cost optimization  
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
-  });
-
-  const handleRefresh = () => {
-    setRefreshKey(prev => prev + 1);
-    refetch();
-  };
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('desc');
-    }
-  };
-
-  const getSortIcon = (field: SortField) => {
-    if (sortField !== field) return null;
-    return sortDirection === 'asc' ? 
-      <ChevronUp className="w-3 h-3 inline ml-1" /> : 
-      <ChevronDown className="w-3 h-3 inline ml-1" />;
-  };
-
-  const sortStrategies = (strategies: MomentumStrategy[]) => {
-    return [...strategies].sort((a, b) => {
-      // Always put SPY first
-      if (a.ticker === 'SPY') return -1;
-      if (b.ticker === 'SPY') return 1;
-      
-      let aValue: any = a[sortField];
-      let bValue: any = b[sortField];
-      
-      // Handle string comparisons
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection === 'asc' 
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
-      }
-      
-      // Handle number comparisons
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-      }
+  // Momentum analysis disabled to conserve API quota
+  return (
+    <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-yellow-500/20 p-6">
+      <div className="flex items-center gap-3 mb-4">
+        <AlertTriangle className="h-6 w-6 text-yellow-400" />
+        <h3 className="text-xl font-semibold text-yellow-400">Momentum Analysis Temporarily Disabled</h3>
+      </div>
+      <div className="space-y-3">
+        <p className="text-gray-300">
+          The momentum strategies table has been temporarily removed to preserve API quota for core functionality.
+        </p>
+        <p className="text-gray-400 text-sm">
+          This table was consuming excessive API calls for 1-day, 5-day, and 1-month percentage changes, 
+          which was causing rate limit issues and potentially corrupted data.
+        </p>
+        <div className="p-3 bg-blue-900/20 border border-blue-500/20 rounded-lg">
+          <p className="text-blue-300 text-sm">
+            <strong>Core features still available:</strong> ETF metrics, technical indicators, economic health score, 
+            and sector analysis continue to work with authentic data.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
       
       return 0;
     });

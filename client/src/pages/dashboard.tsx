@@ -1,6 +1,6 @@
 
 
-import MomentumAnalysis from "@/components/momentum-analysis";
+import MomentumAnalysis from "@/components/momentum-analysis-disabled";
 import { SPYBaseline } from "@/components/SPYBaseline";
 import MacroeconomicIndicators from "@/components/MacroeconomicIndicators";
 import { AIEconomicAnalysis } from "@/components/AIEconomicAnalysis";
