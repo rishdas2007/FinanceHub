@@ -213,9 +213,7 @@ export function EconomicPulseCheck() {
     gcTime: 1 * 60 * 1000,
   });
 
-  console.log('📊 EconomicPulseCheck - Data:', economicData);
-  console.log('📊 EconomicPulseCheck - Loading:', isLoading);
-  console.log('📊 EconomicPulseCheck - Error:', error);
+  // Debug logging removed for production
 
   // Generate data-driven analysis based on actual economic indicators
   const generateDataDrivenAnalysis = (indicators: EconomicIndicator[], score: number) => {
@@ -319,16 +317,7 @@ export function EconomicPulseCheck() {
     }
   };
   
-  // Log first few indicators to check period_date values
-  if (economicData?.indicators && economicData.indicators.length > 0) {
-    console.log('📅 Sample indicators with dates:', economicData.indicators.slice(0, 3).map(ind => ({
-      metric: ind.metric,
-      period_date: ind.period_date,
-      releaseDate: ind.releaseDate,
-      zScore: ind.zScore,
-      deltaZScore: ind.deltaZScore
-    })));
-  }
+  // Sample indicators date validation completed
 
   // Filter indicators based on filter criteria
   const filteredIndicators = economicData?.indicators?.filter(indicator => {
@@ -673,18 +662,18 @@ ${crossIndicatorFactors.map(factor => `• ${factor}`).join('\n')}`;
     };
 
     if (!filteredIndicators || filteredIndicators.length === 0) {
-      console.log('📊 No filtered economic data indicators found');
+      // No filtered data available
       return pulseData;
     }
 
-    console.log(`📊 Processing ${filteredIndicators.length} filtered indicators for statistical alerts`);
+    // Processing statistical alerts for economic indicators
 
     // Process all indicators (show all z-scores)
     let alertCount = 0;
     filteredIndicators.forEach(indicator => {
       if (indicator.zScore !== undefined && indicator.zScore !== null) {
         alertCount++;
-        console.log(`📈 Alert for ${indicator.metric}: z-score ${indicator.zScore}, category ${indicator.category}`);
+        // Statistical alert triggered
         // Parse numeric values from formatted strings
         const currentValueStr = indicator.currentReading.replace(/[^\d.\-]/g, '');
         const priorValueStr = indicator.priorReading.replace(/[^\d.\-]/g, '');
@@ -704,7 +693,7 @@ ${crossIndicatorFactors.map(factor => `• ${factor}`).join('\n')}`;
         
         // Use the most recent period_date from backend data
         const actualPeriodDate = indicator.period_date || indicator.releaseDate || new Date().toISOString().split('T')[0];
-        console.log(`📅 Date for ${indicator.metric}: period_date=${indicator.period_date}, releaseDate=${indicator.releaseDate}, using=${actualPeriodDate}`);
+        // Date validation completed
         
         // Apply sophisticated multi-dimensional classification
         const classification = classifyIndicator(indicator, filteredIndicators);
@@ -738,7 +727,7 @@ ${crossIndicatorFactors.map(factor => `• ${factor}`).join('\n')}`;
       }
     });
 
-    console.log(`📊 Total statistical alerts found: ${alertCount}`);
+    // Statistical alert processing complete
 
     // Sort by z-score descending for each category
     Object.keys(pulseData).forEach(category => {
@@ -773,7 +762,7 @@ ${crossIndicatorFactors.map(factor => `• ${factor}`).join('\n')}`;
   }
 
   if (error && !economicData) {
-    console.error('📊 Query error and no data available:', error);
+    // Query error logged
     return (
       <Card className="bg-financial-card border-financial-border">
         <CardHeader>

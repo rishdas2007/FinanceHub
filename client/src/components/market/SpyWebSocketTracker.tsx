@@ -61,7 +61,7 @@ export function SpyWebSocketTracker() {
       wsRef.current = new WebSocket(wsUrl);
 
       wsRef.current.onopen = () => {
-        console.log('📡 WebSocket connected, subscribing to SPY');
+        // WebSocket connected for SPY
         setIsConnected(true);
         setConnectionStatus('connected');
         
@@ -79,15 +79,13 @@ export function SpyWebSocketTracker() {
       wsRef.current.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('📡 WebSocket message:', data);
+          // Processing WebSocket message
           
           // Handle subscription confirmation
           if (data.event === 'subscribe-status') {
-            console.log('📡 Subscription status:', data.status);
+            // Subscription status received
             if (data.status === 'error') {
-              console.error('📡 Subscription failed for SPY:', data.fails);
-              console.log('📡 SPY WebSocket subscription failed - likely due to plan limitations or market hours');
-              console.log('📡 Falling back to cached data from background jobs');
+              // Subscription failed, using cached data fallback
               setConnectionStatus('error');
               setIsConnected(false);
               
@@ -96,7 +94,7 @@ export function SpyWebSocketTracker() {
                 wsRef.current.close();
               }
             } else if (data.status === 'ok') {
-              console.log('📡 SPY subscription successful!');
+              // SPY subscription successful
               setConnectionStatus('connected');
               setIsConnected(true);
             }
@@ -118,12 +116,12 @@ export function SpyWebSocketTracker() {
             });
           }
         } catch (error) {
-          console.error('Error parsing WebSocket data:', error);
+          // WebSocket data parsing error
         }
       };
 
       wsRef.current.onclose = (event) => {
-        console.log('📡 WebSocket disconnected:', event.code, event.reason);
+        // WebSocket disconnected
         setIsConnected(false);
         setConnectionStatus('disconnected');
         
@@ -134,19 +132,19 @@ export function SpyWebSocketTracker() {
             connectWebSocket();
           }, 30000); // Wait 30 seconds before reconnecting
         } else {
-          console.log('📡 WebSocket connection terminated (likely plan limitations or market closed)');
+          // Connection terminated, using fallback data
           setConnectionStatus('error');
         }
       };
 
       wsRef.current.onerror = (error) => {
-        console.error('📡 WebSocket error:', error);
+        // WebSocket error occurred
         setConnectionStatus('error');
         setIsConnected(false);
       };
 
     } catch (error) {
-      console.error('Failed to create WebSocket:', error);
+      // Failed to create WebSocket connection
       setConnectionStatus('error');
     }
   };
