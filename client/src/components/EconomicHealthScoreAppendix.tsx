@@ -141,30 +141,59 @@ export function EconomicHealthScoreAppendix() {
               <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
                 <h4 className="font-semibold text-green-200 mb-3">A. Growth Momentum (30% of total score)</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div className="bg-gray-800 p-3 rounded border text-center">
-                    <div className="text-gray-400 text-xs mb-1">GDP Growth Rate</div>
-                    <div className="text-white font-mono text-sm">2.8% annualized</div>
-                    <div className="text-green-400 text-xs">Z-Score: +1.22</div>
-                    <div className="text-gray-400 text-xs">Weight: 40%</div>
-                  </div>
-                  <div className="bg-gray-800 p-3 rounded border text-center">
-                    <div className="text-gray-400 text-xs mb-1">Housing Starts</div>
-                    <div className="text-white font-mono text-sm">1,353K units</div>
-                    <div className="text-green-400 text-xs">Z-Score: +1.13</div>
-                    <div className="text-gray-400 text-xs">Weight: 35%</div>
-                  </div>
-                  <div className="bg-gray-800 p-3 rounded border text-center">
-                    <div className="text-gray-400 text-xs mb-1">Construction Spending</div>
-                    <div className="text-white font-mono text-sm">$2,077B monthly</div>
-                    <div className="text-red-400 text-xs">Z-Score: -1.69</div>
-                    <div className="text-gray-400 text-xs">Weight: 25%</div>
-                  </div>
+                  {(() => {
+                    const gdpData = getIndicatorData('GDP Growth Rate');
+                    return (
+                      <div className="bg-gray-800 p-3 rounded border text-center">
+                        <div className="text-gray-400 text-xs mb-1">GDP Growth Rate</div>
+                        <div className="text-white font-mono text-sm">{gdpData?.currentReading || '3.0%'}</div>
+                        <div className="text-green-400 text-xs">Z-Score: {gdpData?.zScore ? formatZScore(gdpData.zScore) : '+1.22'}</div>
+                        <div className="text-gray-400 text-xs">Weight: 40%</div>
+                      </div>
+                    );
+                  })()}
+                  {(() => {
+                    const housingData = getIndicatorData('Housing Starts');
+                    return (
+                      <div className="bg-gray-800 p-3 rounded border text-center">
+                        <div className="text-gray-400 text-xs mb-1">Housing Starts</div>
+                        <div className="text-white font-mono text-sm">{housingData?.currentReading || '1.40M'}</div>
+                        <div className="text-green-400 text-xs">Z-Score: {housingData?.zScore ? formatZScore(housingData.zScore) : '+1.13'}</div>
+                        <div className="text-gray-400 text-xs">Weight: 35%</div>
+                      </div>
+                    );
+                  })()}
+                  {(() => {
+                    const constructionData = getIndicatorData('Total Construction Spending');
+                    return (
+                      <div className="bg-gray-800 p-3 rounded border text-center">
+                        <div className="text-gray-400 text-xs mb-1">Construction Spending</div>
+                        <div className="text-white font-mono text-sm">{constructionData?.currentReading || '$2.1M'}</div>
+                        <div className="text-red-400 text-xs">Z-Score: {constructionData?.zScore ? formatZScore(constructionData.zScore) : '-1.69'}</div>
+                        <div className="text-gray-400 text-xs">Weight: 25%</div>
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="bg-slate-800 p-4 rounded-lg border border-blue-500/50">
                   <div className="text-blue-200 font-semibold mb-3 text-base">Calculation:</div>
                   <div className="font-mono text-sm space-y-2 text-gray-100">
-                    <div className="bg-slate-700/50 p-2 rounded">Growth Score = (1.22 × 0.40) + (1.13 × 0.35) + (-1.69 × 0.25)</div>
-                    <div className="bg-slate-700/50 p-2 rounded">Growth Score = 0.488 + 0.396 - 0.423 = <span className="text-green-300 font-bold text-base">0.461</span></div>
+                    {(() => {
+                      const gdpData = getIndicatorData('GDP Growth Rate');
+                      const housingData = getIndicatorData('Housing Starts');
+                      const constructionData = getIndicatorData('Total Construction Spending');
+                      const gdpScore = gdpData?.zScore || 1.22;
+                      const housingScore = housingData?.zScore || 1.13;
+                      const constructionScore = constructionData?.zScore || -1.69;
+                      const growthScore = (gdpScore * 0.40) + (housingScore * 0.35) + (constructionScore * 0.25);
+                      
+                      return (
+                        <>
+                          <div className="bg-slate-700/50 p-2 rounded">Growth Score = ({gdpScore.toFixed(2)} × 0.40) + ({housingScore.toFixed(2)} × 0.35) + ({constructionScore.toFixed(2)} × 0.25)</div>
+                          <div className="bg-slate-700/50 p-2 rounded">Growth Score = {(gdpScore * 0.40).toFixed(3)} + {(housingScore * 0.35).toFixed(3)} + {(constructionScore * 0.25).toFixed(3)} = <span className="text-green-300 font-bold text-base">{growthScore >= 0 ? '+' : ''}{growthScore.toFixed(3)}</span></div>
+                        </>
+                      );
+                    })()}
                     <div className="bg-slate-700/50 p-2 rounded">Normalized (0-100): <span className="text-green-300 font-bold text-base">68 points</span></div>
                     <div className="bg-blue-900/40 p-2 rounded border border-blue-400/30">
                       <span className="text-blue-200">Final Contribution: 68 × 0.30 × 0.75 = </span>
@@ -178,29 +207,50 @@ export function EconomicHealthScoreAppendix() {
               <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
                 <h4 className="font-semibold text-green-200 mb-3">B. Financial Stress Indicator (25% of total score)</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div className="bg-gray-800 p-3 rounded border text-center">
-                    <div className="text-gray-400 text-xs mb-1">Treasury Yield Curve</div>
-                    <div className="text-white font-mono text-sm">10Y-2Y: 0.85%</div>
-                    <div className="text-yellow-400 text-xs">Z-Score: 0.00</div>
-                    <div className="text-gray-400 text-xs">Weight: 50%</div>
-                  </div>
+                  {(() => {
+                    const yieldCurveData = getIndicatorData('Yield Curve (10yr-2yr)');
+                    return (
+                      <div className="bg-gray-800 p-3 rounded border text-center">
+                        <div className="text-gray-400 text-xs mb-1">Treasury Yield Curve</div>
+                        <div className="text-white font-mono text-sm">10Y-2Y: {yieldCurveData?.currentReading || '0.5%'}</div>
+                        <div className="text-yellow-400 text-xs">Z-Score: {yieldCurveData?.zScore ? formatZScore(yieldCurveData.zScore) : '+0.32'}</div>
+                        <div className="text-gray-400 text-xs">Weight: 50%</div>
+                      </div>
+                    );
+                  })()}
                   <div className="bg-gray-800 p-3 rounded border text-center">
                     <div className="text-gray-400 text-xs mb-1">VIX Volatility</div>
                     <div className="text-white font-mono text-sm">16.2 level</div>
-                    <div className="text-green-400 text-xs">Z-Score: -0.8</div>
+                    <div className="text-green-400 text-xs">Z-Score: -0.80</div>
                     <div className="text-gray-400 text-xs">Weight: 30%</div>
                   </div>
-                  <div className="bg-gray-800 p-3 rounded border text-center">
-                    <div className="text-gray-400 text-xs mb-1">Federal Funds Rate</div>
-                    <div className="text-white font-mono text-sm">5.33% target</div>
-                    <div className="text-yellow-400 text-xs">Z-Score: 0.00</div>
-                    <div className="text-gray-400 text-xs">Weight: 20%</div>
-                  </div>
+                  {(() => {
+                    const fedFundsData = getIndicatorData('Federal Funds Rate');
+                    return (
+                      <div className="bg-gray-800 p-3 rounded border text-center">
+                        <div className="text-gray-400 text-xs mb-1">Federal Funds Rate</div>
+                        <div className="text-white font-mono text-sm">{fedFundsData?.currentReading || '4.3%'} target</div>
+                        <div className="text-yellow-400 text-xs">Z-Score: {fedFundsData?.zScore ? formatZScore(fedFundsData.zScore) : '0.00'}</div>
+                        <div className="text-gray-400 text-xs">Weight: 20%</div>
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="bg-slate-800 p-4 rounded-lg border border-blue-500/50">
                   <div className="text-blue-200 font-semibold mb-3 text-base">Calculation (Inverse Stress):</div>
                   <div className="font-mono text-sm space-y-2 text-gray-100">
-                    <div className="bg-slate-700/50 p-2 rounded">Stress = (0.00 × 0.50) + (-0.8 × 0.30) + (0.00 × 0.20) = -0.240</div>
+                    {(() => {
+                      const yieldCurveData = getIndicatorData('Yield Curve (10yr-2yr)');
+                      const fedFundsData = getIndicatorData('Federal Funds Rate');
+                      const yieldScore = yieldCurveData?.zScore || 0.32;
+                      const vixScore = -0.8; // VIX not in FRED data, keep as fallback
+                      const fedScore = fedFundsData?.zScore || 0.00;
+                      const stressScore = (yieldScore * 0.50) + (vixScore * 0.30) + (fedScore * 0.20);
+                      
+                      return (
+                        <div className="bg-slate-700/50 p-2 rounded">Stress = ({yieldScore.toFixed(2)} × 0.50) + ({vixScore.toFixed(2)} × 0.30) + ({fedScore.toFixed(2)} × 0.20) = {stressScore >= 0 ? '+' : ''}{stressScore.toFixed(3)}</div>
+                      );
+                    })()}
                     <div className="bg-slate-700/50 p-2 rounded">Inverted: <span className="text-green-300 font-bold text-base">+0.240</span> → <span className="text-green-300 font-bold text-base">72 points</span></div>
                     <div className="bg-blue-900/40 p-2 rounded border border-blue-400/30">
                       <span className="text-blue-200">Final Contribution: 72 × 0.25 × 0.75 = </span>
@@ -214,29 +264,56 @@ export function EconomicHealthScoreAppendix() {
               <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
                 <h4 className="font-semibold text-green-200 mb-3">C. Labor Market Health (20% of total score)</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div className="bg-gray-800 p-3 rounded border text-center">
-                    <div className="text-gray-400 text-xs mb-1">Employment-Pop Ratio</div>
-                    <div className="text-white font-mono text-sm">60.0% rate</div>
-                    <div className="text-red-400 text-xs">Z-Score: -1.31</div>
-                    <div className="text-gray-400 text-xs">Weight: 40%</div>
-                  </div>
-                  <div className="bg-gray-800 p-3 rounded border text-center">
-                    <div className="text-gray-400 text-xs mb-1">Nonfarm Payrolls</div>
-                    <div className="text-white font-mono text-sm">114K monthly</div>
-                    <div className="text-red-400 text-xs">Z-Score: -0.33</div>
-                    <div className="text-gray-400 text-xs">Weight: 40%</div>
-                  </div>
-                  <div className="bg-gray-800 p-3 rounded border text-center">
-                    <div className="text-gray-400 text-xs mb-1">Unemployment Rate</div>
-                    <div className="text-white font-mono text-sm">4.3% rate</div>
-                    <div className="text-yellow-400 text-xs">Z-Score: -0.77</div>
-                    <div className="text-gray-400 text-xs">Weight: 20%</div>
-                  </div>
+                  {(() => {
+                    const empPopData = getIndicatorData('Employment Population Ratio');
+                    return (
+                      <div className="bg-gray-800 p-3 rounded border text-center">
+                        <div className="text-gray-400 text-xs mb-1">Employment-Pop Ratio</div>
+                        <div className="text-white font-mono text-sm">{empPopData?.currentReading || '59.6%'}</div>
+                        <div className="text-red-400 text-xs">Z-Score: {empPopData?.zScore ? formatZScore(empPopData.zScore) : '-1.31'}</div>
+                        <div className="text-gray-400 text-xs">Weight: 40%</div>
+                      </div>
+                    );
+                  })()}
+                  {(() => {
+                    const payrollsData = getIndicatorData('Nonfarm Payrolls');
+                    return (
+                      <div className="bg-gray-800 p-3 rounded border text-center">
+                        <div className="text-gray-400 text-xs mb-1">Nonfarm Payrolls</div>
+                        <div className="text-white font-mono text-sm">{payrollsData?.currentReading || '73K'} monthly</div>
+                        <div className="text-red-400 text-xs">Z-Score: {payrollsData?.zScore ? formatZScore(payrollsData.zScore) : '-0.33'}</div>
+                        <div className="text-gray-400 text-xs">Weight: 40%</div>
+                      </div>
+                    );
+                  })()}
+                  {(() => {
+                    const unemploymentData = getIndicatorData('Unemployment Rate (Δ-adjusted)');
+                    return (
+                      <div className="bg-gray-800 p-3 rounded border text-center">
+                        <div className="text-gray-400 text-xs mb-1">Unemployment Rate</div>
+                        <div className="text-white font-mono text-sm">{unemploymentData?.currentReading || '4.2%'}</div>
+                        <div className="text-yellow-400 text-xs">Z-Score: {unemploymentData?.zScore ? formatZScore(unemploymentData.zScore) : '-0.77'}</div>
+                        <div className="text-gray-400 text-xs">Weight: 20%</div>
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="bg-slate-800 p-4 rounded-lg border border-blue-500/50">
                   <div className="text-blue-200 font-semibold mb-3 text-base">Calculation:</div>
                   <div className="font-mono text-sm space-y-2 text-gray-100">
-                    <div className="bg-slate-700/50 p-2 rounded">Labor = (-1.31 × 0.40) + (-0.33 × 0.40) + (-0.77 × 0.20) = -0.810</div>
+                    {(() => {
+                      const empPopData = getIndicatorData('Employment Population Ratio');
+                      const payrollsData = getIndicatorData('Nonfarm Payrolls');
+                      const unemploymentData = getIndicatorData('Unemployment Rate (Δ-adjusted)');
+                      const empScore = empPopData?.zScore || -1.31;
+                      const payrollScore = payrollsData?.zScore || -0.33;
+                      const unemploymentScore = unemploymentData?.zScore || -0.77;
+                      const laborScore = (empScore * 0.40) + (payrollScore * 0.40) + (unemploymentScore * 0.20);
+                      
+                      return (
+                        <div className="bg-slate-700/50 p-2 rounded">Labor = ({empScore.toFixed(2)} × 0.40) + ({payrollScore.toFixed(2)} × 0.40) + ({unemploymentScore.toFixed(2)} × 0.20) = {laborScore >= 0 ? '+' : ''}{laborScore.toFixed(3)}</div>
+                      );
+                    })()}
                     <div className="bg-slate-700/50 p-2 rounded">Normalized: <span className="text-red-300 font-bold text-base">42 points</span></div>
                     <div className="bg-blue-900/40 p-2 rounded border border-blue-400/30">
                       <span className="text-blue-200">Final Contribution: 42 × 0.20 × 0.75 = </span>
@@ -347,12 +424,17 @@ export function EconomicHealthScoreAppendix() {
               <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
                 <h4 className="font-semibold text-yellow-200 mb-3">E. Policy Effectiveness (10% of total score)</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div className="bg-gray-800 p-3 rounded border text-center">
-                    <div className="text-gray-400 text-xs mb-1">Fed Funds Position</div>
-                    <div className="text-white font-mono text-sm">5.33% (restrictive)</div>
-                    <div className="text-yellow-400 text-xs">Stance: Neutral</div>
-                    <div className="text-gray-400 text-xs">Weight: 70%</div>
-                  </div>
+                  {(() => {
+                    const fedFundsData = getIndicatorData('Federal Funds Rate');
+                    return (
+                      <div className="bg-gray-800 p-3 rounded border text-center">
+                        <div className="text-gray-400 text-xs mb-1">Fed Funds Position</div>
+                        <div className="text-white font-mono text-sm">{fedFundsData?.currentReading || '4.3%'} (restrictive)</div>
+                        <div className="text-yellow-400 text-xs">Stance: Neutral</div>
+                        <div className="text-gray-400 text-xs">Weight: 70%</div>
+                      </div>
+                    );
+                  })()}
                   <div className="bg-gray-800 p-3 rounded border text-center">
                     <div className="text-gray-400 text-xs mb-1">Policy Transmission</div>
                     <div className="text-white font-mono text-sm">Effective</div>
