@@ -28,15 +28,22 @@ export class IntelligentCronScheduler {
     logger.info('📅 Initializing intelligent cron scheduler');
 
     // OPTIMIZED: Schedule momentum data updates (market-aware intervals)
-    this.scheduleJob('momentum-updates', '*/8 * * * *', async () => {
+    this.scheduleJob('momentum-updates', '*/2 * * * *', async () => {
       const marketInfo = marketHoursDetector.getCurrentMarketStatus();
       
-      if (marketInfo.isOpen || marketInfo.isPremarket || marketInfo.isAfterHours) {
-        // More frequent during market hours and extended trading
+      if (marketInfo.isOpen) {
+        // Every 2 minutes during market hours
         await this.runJobSafely('momentum-updates', () => backgroundDataFetcher.fetchMomentumData());
+      } else if (marketInfo.isPremarket || marketInfo.isAfterHours) {
+        // Every 15 minutes during extended trading
+        if (marketHoursDetector.shouldUpdateNow(new Date(Date.now() - 15 * 60 * 1000), 'momentum')) {
+          await this.runJobSafely('momentum-updates', () => backgroundDataFetcher.fetchMomentumData());
+        }
       } else if (this.shouldRunWeekendUpdate()) {
-        // Less frequent during weekends/nights
-        await this.runJobSafely('momentum-updates', () => backgroundDataFetcher.fetchMomentumData());
+        // Every hour during market closed
+        if (marketHoursDetector.shouldUpdateNow(new Date(Date.now() - 60 * 60 * 1000), 'momentum')) {
+          await this.runJobSafely('momentum-updates', () => backgroundDataFetcher.fetchMomentumData());
+        }
       }
     });
 

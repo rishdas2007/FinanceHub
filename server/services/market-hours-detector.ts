@@ -148,7 +148,7 @@ export class MarketHoursDetector {
     if (status.isOpen) {
       // Market hours - frequent updates
       return {
-        momentum: 5,     // Every 5 minutes
+        momentum: 2,     // Every 2 minutes
         economic: 30,    // Every 30 minutes
         technical: 10,   // Every 10 minutes
         aiSummary: 30    // Every 30 minutes
