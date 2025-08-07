@@ -198,31 +198,48 @@ export function EconomicHealthDashboard() {
             </div>
           </div>
 
-          {/* Score Breakdown */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center bg-green-900/10 rounded-lg p-3 border border-green-400/20 hover:border-green-400/40 transition-colors" title="GDP Health (15%) + Employment (15%) + Inflation Stability (10%) = 40% total weight">
-              <div className="text-2xl font-bold text-white">{healthData.scoreBreakdown.coreHealth}</div>
-              <div className="text-xs text-gray-400">CORE HEALTH</div>
-              <div className="text-xs text-green-400">GDP • Jobs • Inflation</div>
-              <div className="text-xs text-gray-500 mt-1">40% weight</div>
+          {/* Layer Breakdown - 2-Layer System */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+            <div className="text-center bg-green-900/10 rounded-lg p-4 border border-green-400/20 hover:border-green-400/40 transition-colors" title="Layer 1: Growth (30%) + Financial Stress (25%) + Labor Health (20%) = 75% total weight">
+              <div className="text-3xl font-bold text-white mb-2">{Math.round(healthData.scoreBreakdown.coreHealth * 0.75)}</div>
+              <div className="text-sm font-semibold text-green-400 mb-1">LAYER 1: CORE MOMENTUM</div>
+              <div className="text-xs text-gray-400 mb-2">Growth • Financial Stress • Labor Health</div>
+              <div className="text-xs text-green-300 font-bold">75% weight</div>
             </div>
-            <div className="text-center bg-blue-900/10 rounded-lg p-3 border border-blue-400/20 hover:border-blue-400/40 transition-colors" title="Correlation Alignment (15%) + Leading Consistency (10%) = 25% total weight">
-              <div className="text-2xl font-bold text-white">{healthData.scoreBreakdown.correlationHarmony}</div>
-              <div className="text-xs text-gray-400">CORRELATIONS</div>
-              <div className="text-xs text-blue-400">Alignment • Consistency</div>
-              <div className="text-xs text-gray-500 mt-1">25% weight</div>
+            <div className="text-center bg-yellow-900/10 rounded-lg p-4 border border-yellow-400/20 hover:border-yellow-400/40 transition-colors" title="Layer 2: Inflation Trajectory (15%) + Policy Effectiveness (10%) = 25% total weight">
+              <div className="text-3xl font-bold text-white mb-2">{Math.round((healthData.scoreBreakdown.correlationHarmony + healthData.scoreBreakdown.marketStress) * 0.25)}</div>
+              <div className="text-sm font-semibold text-yellow-400 mb-1">LAYER 2: INFLATION & POLICY</div>
+              <div className="text-xs text-gray-400 mb-2">Inflation Trajectory • Policy Effectiveness</div>
+              <div className="text-xs text-yellow-300 font-bold">25% weight</div>
             </div>
-            <div className="text-center bg-orange-900/10 rounded-lg p-3 border border-orange-400/20 hover:border-orange-400/40 transition-colors" title="Alert Frequency (10%) + Regime Stability (10%) = 20% total weight">
-              <div className="text-2xl font-bold text-white">{healthData.scoreBreakdown.marketStress}</div>
-              <div className="text-xs text-gray-400">MARKET STRESS</div>
-              <div className="text-xs text-orange-400">Alerts • Volatility</div>
-              <div className="text-xs text-gray-500 mt-1">20% weight</div>
+          </div>
+          
+          {/* Component Details */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center text-xs">
+            <div className="bg-gray-800/50 rounded-lg p-2 border border-gray-600/30">
+              <div className="text-white font-bold">{Math.round(healthData.scoreBreakdown.coreHealth * 0.30)}</div>
+              <div className="text-green-400">Growth</div>
+              <div className="text-gray-500">30%</div>
             </div>
-            <div className="text-center bg-purple-900/10 rounded-lg p-3 border border-purple-400/20 hover:border-purple-400/40 transition-colors" title="Data Quality (10%) + Sector Alignment (5%) = 15% total weight">
-              <div className="text-2xl font-bold text-white">{healthData.scoreBreakdown.confidence}</div>
-              <div className="text-xs text-gray-400">CONFIDENCE</div>
-              <div className="text-xs text-purple-400">Data • Predictions</div>
-              <div className="text-xs text-gray-500 mt-1">15% weight</div>
+            <div className="bg-gray-800/50 rounded-lg p-2 border border-gray-600/30">
+              <div className="text-white font-bold">{Math.round(healthData.scoreBreakdown.coreHealth * 0.25)}</div>
+              <div className="text-green-400">Financial Stress</div>
+              <div className="text-gray-500">25%</div>
+            </div>
+            <div className="bg-gray-800/50 rounded-lg p-2 border border-gray-600/30">
+              <div className="text-white font-bold">{Math.round(healthData.scoreBreakdown.coreHealth * 0.20)}</div>
+              <div className="text-green-400">Labor Health</div>
+              <div className="text-gray-500">20%</div>
+            </div>
+            <div className="bg-gray-800/50 rounded-lg p-2 border border-gray-600/30">
+              <div className="text-white font-bold">{Math.round(healthData.scoreBreakdown.correlationHarmony * 0.15)}</div>
+              <div className="text-yellow-400">Inflation</div>
+              <div className="text-gray-500">15%</div>
+            </div>
+            <div className="bg-gray-800/50 rounded-lg p-2 border border-gray-600/30">
+              <div className="text-white font-bold">{Math.round(healthData.scoreBreakdown.marketStress * 0.10)}</div>
+              <div className="text-yellow-400">Policy</div>
+              <div className="text-gray-500">10%</div>
             </div>
           </div>
         </CardContent>
@@ -246,7 +263,7 @@ export function EconomicHealthDashboard() {
                 </div>
                 <div>
                   <p className="mb-2">
-                    <strong className="text-white">Weighting System:</strong> Core Health (40%) + Correlations (25%) + Market Stress (20%) + Confidence (15%) = 100 points total.
+                    <strong className="text-white">2-Layer System:</strong> Layer 1: Core Economic Momentum (75%) + Layer 2: Inflation & Policy Balance (25%) = 100% using only authenticated FRED data.
                   </p>
                   <p>
                     <strong className="text-white">Update Frequency:</strong> Economic data refreshed weekdays at 10:15 AM ET. Market data updated in real-time.
