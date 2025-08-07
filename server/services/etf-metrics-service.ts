@@ -322,10 +322,10 @@ class ETFMetricsService {
       // Override Z-score with live calculation from Z-score Technical Service
       if (weightedResult.zScoreData?.compositeZScore !== undefined) {
         metrics.zScore = weightedResult.zScoreData.compositeZScore;
-        // CRITICAL FIX: Add z-score data to main metrics object for API response
-        metrics.compositeZScore = weightedResult.zScoreData.compositeZScore;
-        metrics.zscoreSignal = weightedResult.zScoreData.signal;
-        metrics.zscoreStrength = Math.abs(weightedResult.zScoreData.compositeZScore);
+        // CRITICAL FIX: Add z-score data to main metrics object for API response  
+        (metrics as any).compositeZScore = weightedResult.zScoreData.compositeZScore;
+        (metrics as any).zscoreSignal = weightedResult.zScoreData.signal;
+        (metrics as any).zscoreStrength = Math.abs(weightedResult.zScoreData.compositeZScore);
         console.log(`✅ Live Z-score assigned for ${metrics.symbol}: ${weightedResult.zScoreData.compositeZScore}`);
       } else {
         console.log(`⚠️ No Z-score data available for ${metrics.symbol}`);
@@ -394,9 +394,14 @@ class ETFMetricsService {
       return null;
     }
     
-    const gap = parseFloat((sma20 - sma50).toFixed(2));
-    logger.info(`✅ MA Gap calculated for ${technical?.symbol}: ${gap} (SMA20: ${sma20}, SMA50: ${sma50})`);
-    return gap;
+    // Calculate percentage difference: ((sma20 - sma50) / sma50) * 100
+    const gap = parseFloat((((sma20 - sma50) / sma50) * 100).toFixed(2));
+    
+    // Cap values at reasonable ranges (±50%)
+    const cappedGap = Math.max(-50, Math.min(50, gap));
+    
+    logger.info(`✅ MA Gap calculated for ${technical?.symbol}: ${cappedGap}% (SMA20: ${sma20}, SMA50: ${sma50})`);
+    return cappedGap;
   }
 
   private getRSISignal(rsi: string | number | null): string {

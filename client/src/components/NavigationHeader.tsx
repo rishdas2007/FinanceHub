@@ -26,20 +26,6 @@ const navigationItems: NavigationItem[] = [
     label: "Dashboard",
     icon: <Home className="h-4 w-4" />,
     description: "Main analytics dashboard"
-  },
-  {
-    path: "/data-sufficiency",
-    label: "Data Sufficiency",
-    icon: <Database className="h-4 w-4" />,
-    description: "Historical data coverage analysis",
-    badge: "Critical",
-    badgeVariant: "destructive"
-  },
-  {
-    path: "/data-quality",
-    label: "Data Quality",
-    icon: <Activity className="h-4 w-4" />,
-    description: "Data validation and monitoring"
   }
 ];
 

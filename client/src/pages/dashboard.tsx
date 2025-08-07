@@ -8,7 +8,14 @@ import { StatisticalAlertSystem } from "@/components/StatisticalAlertSystem";
 import { EconomicPulseCheck } from "@/components/EconomicPulseCheck";
 import ETFMetricsTable from "@/components/ETFMetricsTable";
 
-import { EconomicHealthScoreAppendix } from "@/components/EconomicHealthScoreAppendix";
+import { lazy, Suspense } from "react";
+
+// Lazy load non-critical components for performance
+const EconomicHealthScoreAppendix = lazy(() => 
+  import("@/components/EconomicHealthScoreAppendix").then(module => ({
+    default: module.EconomicHealthScoreAppendix
+  }))
+);
 
 import { MoodDataSources } from "@/components/MoodDataSources";
 import { AAIISentiment } from "@/components/aaii-sentiment";
@@ -17,7 +24,7 @@ import { GlobalRefreshButton } from "@/components/global-refresh-button";
 
 
 
-import { TrendingUp, MessageSquare } from "lucide-react";
+import { TrendingUp, MessageSquare, Activity } from "lucide-react";
 import { useApiTracker } from "@/hooks/useApiTracker";
 
 export default function Dashboard() {
@@ -49,21 +56,6 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <a 
-              href="/data-sufficiency" 
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-              data-testid="data-sufficiency-link"
-            >
-              <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-              Data Sufficiency
-            </a>
-            <a 
-              href="/data-quality" 
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            >
-              Data Quality Pipeline
-            </a>
-
             <GlobalRefreshButton />
             <div className="bg-financial-card rounded-lg px-3 py-2 text-sm">
               <div className="flex items-center space-x-2">
@@ -100,7 +92,22 @@ export default function Dashboard() {
         <MacroeconomicIndicators />
 
         {/* Economic Health Score Components - Appendix */}
-        <EconomicHealthScoreAppendix />
+        <Suspense fallback={
+          <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Activity className="h-5 w-5 text-blue-400 animate-pulse" />
+              <h3 className="text-lg font-semibold text-white">Economic Health Analysis</h3>
+              <span className="text-sm text-blue-400">Loading...</span>
+            </div>
+            <div className="space-y-3">
+              {[1,2,3].map(i => (
+                <div key={i} className="h-8 bg-gray-800 rounded animate-pulse" />
+              ))}
+            </div>
+          </div>
+        }>
+          <EconomicHealthScoreAppendix />
+        </Suspense>
 
       </div>
 

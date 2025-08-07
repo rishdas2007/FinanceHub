@@ -213,14 +213,27 @@ export default function ETFMetricsTable() {
   }
 
   if (error || !etfMetricsResponse?.success) {
+    console.error('ETF Metrics API Error:', error);
     return (
       <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-red-500 p-6" data-testid="etf-metrics-error">
         <div className="flex items-center gap-2 mb-4">
           <BarChart3 className="h-5 w-5 text-red-400" />
           <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
-          <span className="text-sm text-red-400">Database Error</span>
+          <span className="text-sm text-red-400">Connection Issue</span>
         </div>
-        <p className="text-gray-300">Unable to load ETF metrics from database. Please refresh the page.</p>
+        <div className="text-gray-300 space-y-2">
+          <p>Unable to load ETF metrics from database.</p>
+          <p className="text-sm text-gray-400">
+            {error ? `Error: ${(error as Error).message}` : 'Database connection failed.'}
+          </p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-white text-sm"
+            data-testid="refresh-button"
+          >
+            Refresh Page
+          </button>
+        </div>
       </div>
     );
   }

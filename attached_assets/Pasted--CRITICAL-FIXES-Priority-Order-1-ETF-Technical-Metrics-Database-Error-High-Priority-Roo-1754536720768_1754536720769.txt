@@ -1,0 +1,86 @@
+🚨 CRITICAL FIXES - Priority Order
+
+  1. ETF Technical Metrics Database Error (High Priority)
+
+  Root Cause: ETF metrics API endpoint failing
+  Fix Instructions:
+  - Check server/services/etf-metrics-service.ts for database connection errors
+  - Verify the /api/etf-metrics route in server/routes.ts is working
+  - Add error handling/fallback data in ETFMetricsTable.tsx
+  - Test the endpoint manually: GET /api/etf-metrics
+
+  2. Page Loading Performance (High Priority)
+
+  Root Cause: Too many components loading simultaneously on dashboard
+  Fix Instructions:
+  - Lazy load heavy components: Move EconomicHealthScoreAppendix to load only when scrolled into view
+  - Batch API calls: Combine multiple API requests in dashboard into single calls
+  - Add loading skeletons: Replace blank loading states with skeleton components
+  - Reduce initial bundle: Split code using React.lazy() for non-critical components
+  - Optimize query intervals: Some useQuery calls may be polling too frequently
+
+  3. MA Trend Gap Value Bug (Medium Priority)
+
+  Root Cause: getMAGap() in etf-metrics-service.ts returning raw price differences instead of percentages
+  Fix Instructions:
+  - Line 397: Change calculation from sma20 - sma50 to ((sma20 - sma50) / sma50) * 100
+  - Add validation: Cap values at reasonable ranges (±50%)
+  - Update display: Show values as percentages in UI
+
+  4. Technical Analysis Z-Score Not Loading (Medium Priority)
+
+  Root Cause: Missing/inconsistent data in zscore_technical_indicators table
+  Fix Instructions:
+  - Check data pipeline: Verify z-score calculations are running and storing data
+  - API endpoint: Test /api/zscore-technical endpoint for data
+  - Fallback logic: Add fallback calculations if z-score data is missing
+  - Error boundaries: Add try/catch around z-score displays
+
+  5. Economic Data Inconsistency (Medium Priority)
+
+  Root Cause: Different components pulling from different data sources
+  Fix Instructions:
+  - Standardize data source: Make EconomicPulseCheck, MacroeconomicIndicators, and EconomicHealthScoreAppendix use same API
+  - Centralize economic data: Create single service for all economic data
+  - Cache consistency: Ensure all components use same cached data
+  - Update intervals: Synchronize data refresh intervals
+
+  6. Remove Data Sufficiency/Quality Pipeline (Low Priority)
+
+  Root Cause: Unused features cluttering UI
+  Fix Instructions:
+  - Remove navigation links: Delete lines 53-65 in dashboard.tsx (Data Sufficiency & Data Quality buttons)
+  - Delete pages: Remove DataSufficiencyPage.tsx and DataQualityDashboard.tsx
+  - Clean routes: Remove data-sufficiency and data-quality routes from server
+  - Delete services: Remove unused data-quality and data-sufficiency services
+
+  🎯 Implementation Order
+
+  Phase 1 (Fix immediately):
+
+  1. Fix ETF metrics database error
+  2. Fix MA Gap calculation bug
+  3. Remove data sufficiency/quality UI elements
+
+  Phase 2 (Optimize performance):
+
+  1. Add lazy loading to heavy components
+  2. Implement loading skeletons
+  3. Batch API calls
+
+  Phase 3 (Data consistency):
+
+  1. Fix Technical Analysis z-score loading
+  2. Standardize economic data sources
+  3. Add proper error boundaries
+
+  📊 Expected Results After Fixes:
+
+  - Page load time: Reduce from >10s to ~3s
+  - MA Gap values: Show reasonable percentages (±10%)
+  - ETF metrics: Display properly without database errors
+  - Technical analysis: Show z-scores consistently
+  - Economic data: Consistent values across all sections
+  - Cleaner UI: Remove unused data pipeline elements
+
+  Start with Phase 1 fixes - they're the quickest wins that will resolve the most visible issues immediately.
