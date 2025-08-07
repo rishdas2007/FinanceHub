@@ -88,14 +88,14 @@ export function EconomicHealthScoreAppendix() {
         <h2 className="text-lg font-semibold text-gray-400 mb-2">Appendix</h2>
         <h3 className="text-xl font-semibold text-white flex items-center gap-2">
           <Calculator className="h-5 w-5 text-blue-400" />
-          Economic Pulse Score - 3-Layer Methodology Components
+          Economic Pulse Score - 2-Layer Methodology Components
         </h3>
         <p className="text-sm text-gray-400 mt-2">
-          Detailed calculation breakdown with actual data points for the revolutionary 3-layer validation-driven methodology. Real Z-scores, authentic readings, and step-by-step formulas showing exactly how each layer contributes to the final Economic Pulse Score.
+          Detailed calculation breakdown using only reliable FRED data sources. The 2-layer system removes unreliable Consumer Confidence data, focusing on authentic economic indicators with consistent availability and high statistical confidence.
         </p>
       </div>
 
-      {/* 3-Layer Methodology Calculation Breakdown */}
+      {/* 2-Layer Methodology Calculation Breakdown */}
       {statisticalData && (
         <div className="space-y-6">
           {/* Layer 1: Core Economic Momentum (60%) */}
@@ -103,13 +103,13 @@ export function EconomicHealthScoreAppendix() {
             <CardHeader>
               <CardTitle className="text-lg font-bold text-green-300 flex items-center gap-2">
                 <Target className="h-5 w-5" />
-                Layer 1: Core Economic Momentum (60% weight)
+                Layer 1: Core Economic Momentum (75% weight)
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* A. Growth Momentum (25%) */}
+              {/* A. Growth Momentum (30% - increased from 25%) */}
               <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                <h4 className="font-semibold text-green-200 mb-3">A. Growth Momentum (25% of total score)</h4>
+                <h4 className="font-semibold text-green-200 mb-3">A. Growth Momentum (30% of total score)</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div className="bg-gray-800 p-3 rounded border text-center">
                     <div className="text-gray-400 text-xs mb-1">GDP Growth Rate</div>
@@ -137,16 +137,16 @@ export function EconomicHealthScoreAppendix() {
                     <div className="bg-slate-700/50 p-2 rounded">Growth Score = 0.488 + 0.396 - 0.423 = <span className="text-green-300 font-bold text-base">0.461</span></div>
                     <div className="bg-slate-700/50 p-2 rounded">Normalized (0-100): <span className="text-green-300 font-bold text-base">68 points</span></div>
                     <div className="bg-blue-900/40 p-2 rounded border border-blue-400/30">
-                      <span className="text-blue-200">Final Contribution: 68 × 0.25 × 0.60 = </span>
-                      <span className="font-bold text-lg text-blue-300">10.2 points</span>
+                      <span className="text-blue-200">Final Contribution: 68 × 0.30 × 0.75 = </span>
+                      <span className="font-bold text-lg text-blue-300">15.3 points</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* B. Financial Stress (20%) */}
+              {/* B. Financial Stress (25% - increased from 20%) */}
               <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                <h4 className="font-semibold text-green-200 mb-3">B. Financial Stress Indicator (20% of total score)</h4>
+                <h4 className="font-semibold text-green-200 mb-3">B. Financial Stress Indicator (25% of total score)</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div className="bg-gray-800 p-3 rounded border text-center">
                     <div className="text-gray-400 text-xs mb-1">Treasury Yield Curve</div>
@@ -173,16 +173,16 @@ export function EconomicHealthScoreAppendix() {
                     <div className="bg-slate-700/50 p-2 rounded">Stress = (0.00 × 0.50) + (-0.8 × 0.30) + (0.00 × 0.20) = -0.240</div>
                     <div className="bg-slate-700/50 p-2 rounded">Inverted: <span className="text-green-300 font-bold text-base">+0.240</span> → <span className="text-green-300 font-bold text-base">72 points</span></div>
                     <div className="bg-blue-900/40 p-2 rounded border border-blue-400/30">
-                      <span className="text-blue-200">Final Contribution: 72 × 0.20 × 0.60 = </span>
-                      <span className="font-bold text-lg text-blue-300">8.6 points</span>
+                      <span className="text-blue-200">Final Contribution: 72 × 0.25 × 0.75 = </span>
+                      <span className="font-bold text-lg text-blue-300">13.5 points</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* C. Labor Health (15%) */}
+              {/* C. Labor Health (20% - increased from 15%) */}
               <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                <h4 className="font-semibold text-green-200 mb-3">C. Labor Market Health (15% of total score)</h4>
+                <h4 className="font-semibold text-green-200 mb-3">C. Labor Market Health (20% of total score)</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div className="bg-gray-800 p-3 rounded border text-center">
                     <div className="text-gray-400 text-xs mb-1">Employment-Pop Ratio</div>
@@ -209,8 +209,8 @@ export function EconomicHealthScoreAppendix() {
                     <div className="bg-slate-700/50 p-2 rounded">Labor = (-1.31 × 0.40) + (-0.33 × 0.40) + (-0.77 × 0.20) = -0.810</div>
                     <div className="bg-slate-700/50 p-2 rounded">Normalized: <span className="text-red-300 font-bold text-base">42 points</span></div>
                     <div className="bg-blue-900/40 p-2 rounded border border-blue-400/30">
-                      <span className="text-blue-200">Final Contribution: 42 × 0.15 × 0.60 = </span>
-                      <span className="font-bold text-lg text-blue-300">3.8 points</span>
+                      <span className="text-blue-200">Final Contribution: 42 × 0.20 × 0.75 = </span>
+                      <span className="font-bold text-lg text-blue-300">6.3 points</span>
                     </div>
                   </div>
                 </div>
@@ -218,7 +218,7 @@ export function EconomicHealthScoreAppendix() {
 
               <div className="bg-green-900/20 p-3 rounded border border-green-600/50">
                 <div className="text-green-300 font-bold text-center">
-                  Layer 1 Total: 10.2 + 8.6 + 3.8 = <span className="text-lg">22.6 points</span> (of 60 possible)
+                  Layer 1 Total: 15.3 + 13.5 + 6.3 = <span className="text-lg">35.1 points</span> (of 75 possible)
                 </div>
               </div>
             </CardContent>
@@ -307,47 +307,35 @@ export function EconomicHealthScoreAppendix() {
             </CardContent>
           </Card>
 
-          {/* Layer 3: Forward-Looking Confidence (15%) */}
-          <Card className="bg-gray-900/50 border-blue-500/30">
+          {/* Layer 3: REMOVED - Forward-Looking Confidence */}
+          <Card className="bg-gray-900/50 border-red-500/30">
             <CardHeader>
-              <CardTitle className="text-lg font-bold text-blue-300 flex items-center gap-2">
+              <CardTitle className="text-lg font-bold text-red-300 flex items-center gap-2">
                 <Target className="h-5 w-5" />
-                Layer 3: Forward-Looking Confidence (15% weight)
+                Layer 3: REMOVED - Forward-Looking Confidence (0% weight)
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* F. Economic Expectations (15%) */}
-              <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                <h4 className="font-semibold text-blue-200 mb-3">F. Economic Expectations (15% of total score)</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div className="bg-gray-800 p-3 rounded border text-center">
-                    <div className="text-gray-400 text-xs mb-1">Consumer Sentiment</div>
-                    <div className="text-white font-mono text-sm">66.4 index</div>
-                    <div className="text-yellow-400 text-xs">Historical Average</div>
-                    <div className="text-gray-400 text-xs">Weight: 60%</div>
-                  </div>
-                  <div className="bg-gray-800 p-3 rounded border text-center">
-                    <div className="text-gray-400 text-xs mb-1">Market Expectations</div>
-                    <div className="text-white font-mono text-sm">Forward P/E: 18.5x</div>
-                    <div className="text-green-400 text-xs">Moderate Optimism</div>
-                    <div className="text-gray-400 text-xs">Weight: 40%</div>
-                  </div>
+              <div className="bg-red-900/20 p-4 rounded-lg border border-red-600/50">
+                <div className="text-red-200 mb-3">
+                  <strong>Data Reliability Issue:</strong> Consumer Confidence and Business Survey data are not consistently available through FRED API.
                 </div>
-                <div className="bg-slate-800 p-4 rounded-lg border border-blue-500/50">
-                  <div className="text-blue-200 font-semibold mb-3 text-base">Calculation:</div>
-                  <div className="font-mono text-sm space-y-2 text-gray-100">
-                    <div className="bg-slate-700/50 p-2 rounded">Expectations = (60 × 0.60) + (72 × 0.40) = <span className="text-blue-300 font-bold text-base">64.8 points</span></div>
-                    <div className="bg-blue-900/40 p-2 rounded border border-blue-400/30">
-                      <span className="text-blue-200">Final Contribution: 64.8 × 0.15 = </span>
-                      <span className="font-bold text-lg text-blue-300">9.7 points</span>
-                    </div>
+                <div className="text-gray-300 text-sm space-y-2">
+                  <p>• Consumer Confidence Index: Inconsistent releases and data gaps</p>
+                  <p>• Business Confidence Surveys (ISM, NFIB): Not available via public APIs</p>
+                  <p>• Market-based Expectations: Requires expensive financial data services</p>
+                  <p>• Leading Economic Index (LEI): Conference Board proprietary data</p>
+                </div>
+                <div className="bg-green-900/20 p-3 rounded border border-green-600/50 mt-4">
+                  <div className="text-green-300 font-semibold text-center">
+                    15% weight redistributed to reliable FRED data sources in Layers 1 & 2
                   </div>
                 </div>
               </div>
 
-              <div className="bg-blue-900/20 p-3 rounded border border-blue-600/50">
-                <div className="text-blue-300 font-bold text-center">
-                  Layer 3 Total: <span className="text-lg">9.7 points</span> (of 15 possible)
+              <div className="bg-red-900/20 p-3 rounded border border-red-600/50">
+                <div className="text-red-300 font-bold text-center">
+                  Layer 3 Total: <span className="text-lg">0.0 points</span> (REMOVED for reliability)
                 </div>
               </div>
             </CardContent>
@@ -365,24 +353,24 @@ export function EconomicHealthScoreAppendix() {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="text-center p-4 bg-gray-900/50 rounded border">
-                    <div className="text-green-300 font-bold">Layer 1 (60%)</div>
-                    <div className="text-green-400 text-2xl font-bold">22.6</div>
+                    <div className="text-green-300 font-bold">Layer 1 (75%)</div>
+                    <div className="text-green-400 text-2xl font-bold">35.1</div>
                   </div>
                   <div className="text-center p-4 bg-gray-900/50 rounded border">
                     <div className="text-yellow-300 font-bold">Layer 2 (25%)</div>
                     <div className="text-yellow-400 text-2xl font-bold">17.3</div>
                   </div>
-                  <div className="text-center p-4 bg-gray-900/50 rounded border">
-                    <div className="text-blue-300 font-bold">Layer 3 (15%)</div>
-                    <div className="text-blue-400 text-2xl font-bold">9.7</div>
+                  <div className="text-center p-4 bg-gray-900/50 rounded border border-red-600">
+                    <div className="text-red-300 font-bold">Layer 3 (0%)</div>
+                    <div className="text-red-400 text-2xl font-bold line-through">REMOVED</div>
                   </div>
                 </div>
                 <div className="text-center p-4 bg-purple-900/30 rounded-lg border border-purple-600">
-                  <div className="text-purple-300 mb-2">Total Economic Pulse Score:</div>
+                  <div className="text-purple-300 mb-2">Total Economic Pulse Score (2-Layer System):</div>
                   <div className="text-4xl font-bold text-purple-200 font-mono">
-                    22.6 + 17.3 + 9.7 = <span className="text-purple-400">49.6</span>
+                    35.1 + 17.3 + 0.0 = <span className="text-purple-400">52.4</span>
                   </div>
-                  <div className="text-purple-300 mt-2">Rating: <span className="text-orange-400 font-bold">WEAK</span> (40-54 range)</div>
+                  <div className="text-purple-300 mt-2">Rating: <span className="text-orange-400 font-bold">NEUTRAL</span> (50-59 range)</div>
                 </div>
               </div>
             </CardContent>

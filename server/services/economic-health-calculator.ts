@@ -38,11 +38,11 @@ export interface ComponentScores {
   economicExpectations: number;
 }
 
-// Layer breakdown for transparency
+// Layer breakdown for transparency (2-layer system using only reliable data)
 export interface LayerBreakdown {
-  coreEconomicMomentum: number; // 60% weight
-  inflationPolicyBalance: number; // 25% weight  
-  forwardLookingConfidence: number; // 15% weight
+  coreEconomicMomentum: number; // 75% weight (increased from 60%)
+  inflationPolicyBalance: number; // 25% weight (unchanged)
+  forwardLookingConfidence: number; // 0% weight (removed - was 15%)
 }
 
 export interface EconomicHealthScore {
@@ -58,19 +58,19 @@ export class EconomicHealthCalculator {
   private cache = cacheService;
   private insightClassifier = new EconomicInsightClassifier();
 
-  // Base weights for the 3-layer Economic Pulse Score
+  // Revised weights for the 2-layer Economic Pulse Score (using only reliable data sources)
   private readonly BASE_WEIGHTS: WeightStructure = {
-    // Layer 1: Core Economic Momentum (60%)
-    growthMomentum: 0.25,
-    financialStress: 0.20,
-    laborHealth: 0.15,
+    // Layer 1: Core Economic Momentum (75% - increased from 60%)
+    growthMomentum: 0.30,        // Increased from 0.25 (FRED: HOUST, TTLCON, GDP)
+    financialStress: 0.25,       // Increased from 0.20 (VIX, Fed Funds, Treasury) 
+    laborHealth: 0.20,           // Increased from 0.15 (FRED: EMRATIO, PAYEMS, UNRATE)
     
-    // Layer 2: Inflation & Policy Balance (25%)
-    inflationTrajectory: 0.15,
-    policyEffectiveness: 0.10,
+    // Layer 2: Inflation & Policy Balance (25% - unchanged)
+    inflationTrajectory: 0.15,   // Unchanged (FRED: CPILFESL, PCEPILFE, PPILFE)
+    policyEffectiveness: 0.10,   // Unchanged (FRED: FEDFUNDS, M2SL)
     
-    // Layer 3: Forward-Looking Confidence (15%)
-    economicExpectations: 0.15
+    // Layer 3: REMOVED - Forward-Looking Confidence (0% - was 15%)
+    economicExpectations: 0.00   // Removed - unreliable Consumer Confidence data
   };
 
   async calculateEconomicHealthScore(): Promise<EconomicHealthScore> {
@@ -224,20 +224,22 @@ export class EconomicHealthCalculator {
   }
 
   /**
-   * Calculate layer breakdowns for transparency
+   * Calculate layer breakdowns for transparency (2-layer system using reliable data)
    */
   private calculateLayerBreakdown(components: ComponentScores, weights: WeightStructure): LayerBreakdown {
+    // Layer 1: Core Economic Momentum (75% total weight)
     const coreEconomicMomentum = 
-      components.growthMomentum * (weights.growthMomentum / 0.6) +
-      components.financialStress * (weights.financialStress / 0.6) +
-      components.laborHealth * (weights.laborHealth / 0.6);
+      components.growthMomentum * (weights.growthMomentum / 0.75) +
+      components.financialStress * (weights.financialStress / 0.75) +
+      components.laborHealth * (weights.laborHealth / 0.75);
 
+    // Layer 2: Inflation & Policy Balance (25% total weight) 
     const inflationPolicyBalance = 
       components.inflationTrajectory * (weights.inflationTrajectory / 0.25) +
       components.policyEffectiveness * (weights.policyEffectiveness / 0.25);
 
-    const forwardLookingConfidence = 
-      components.economicExpectations * (weights.economicExpectations / 0.15);
+    // Layer 3: REMOVED - Forward-Looking Confidence (0% weight)
+    const forwardLookingConfidence = 0; // No longer using unreliable Consumer Confidence data
 
     return {
       coreEconomicMomentum: Math.round(coreEconomicMomentum),
@@ -501,38 +503,14 @@ export class EconomicHealthCalculator {
   // LAYER 3: FORWARD-LOOKING CONFIDENCE (15%)
 
   /**
-   * F. Economic Expectations (15%): Survey data + market expectations
+   * F. Economic Expectations (REMOVED): Was 15% weight, now 0%
+   * Consumer Confidence data is unreliable and not consistently available via FRED API
    */
   private async calculateEconomicExpectations(): Promise<number> {
-    try {
-      const result = await db.execute(sql`
-        SELECT metric, value,
-               CAST(COALESCE(NULLIF(z_score, ''), '0') AS DECIMAL) as z_score
-        FROM economicIndicatorsCurrent 
-        WHERE metric IN ('Michigan Consumer Sentiment', 'Consumer Confidence Index')
-        ORDER BY period_date DESC
-      `);
-
-      let score = 50;
-      
-      for (const row of result.rows) {
-        const metric = (row as any).metric;
-        const value = parseFloat((row as any).value) || 0;
-
-        if (metric === 'Michigan Consumer Sentiment') {
-          // Historical range analysis
-          if (value > 90) score += 20; // Optimistic
-          else if (value > 75) score += 10; // Above average
-          else if (value < 60) score -= 15; // Pessimistic
-          break;
-        }
-      }
-
-      return Math.max(0, Math.min(100, score));
-    } catch (error) {
-      logger.warn('Failed to calculate economic expectations:', error);
-      return 50;
-    }
+    // No longer calculate economic expectations due to unreliable data sources
+    // Consumer Confidence Index and Business Survey data are not consistently available
+    logger.info('📊 Economic Expectations calculation skipped - using reliable FRED data only');
+    return 0; // Return 0 as this component is removed from scoring
   }
 
   // SUPPORTING METHODS FOR NEW METHODOLOGY
