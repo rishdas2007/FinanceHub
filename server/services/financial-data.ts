@@ -219,40 +219,23 @@ export class FinancialDataService {
         throw new Error('Invalid response from Twelve Data API');
       }
       
+      // Validate that we have real data, not API fallbacks
+      if (!data.close || !data.change || !data.percent_change) {
+        throw new Error(`Incomplete data received for ${symbol}`);
+      }
+      
       return {
         symbol: data.symbol,
-        price: parseFloat(data.close || '624.22'),
-        change: parseFloat(data.change || '2.08'),
-        changePercent: parseFloat(data.percent_change || '0.33'),
-        volume: parseInt(data.volume || '45123000'),
-        previousClose: parseFloat(data.previous_close || '622.14'),
+        price: parseFloat(data.close),
+        change: parseFloat(data.change),
+        changePercent: parseFloat(data.percent_change),
+        volume: parseInt(data.volume || '0'),
+        previousClose: parseFloat(data.previous_close || (parseFloat(data.close) - parseFloat(data.change)).toString()),
       };
     } catch (error) {
       console.error(`Error fetching stock quote for ${symbol}:`, error);
-      // Use real market data as fallback with 5-day and 1-month performance (July 17, 2025)
-      const realFallbacks: { [key: string]: any } = {
-        'SPY': { symbol: 'SPY', name: 'S&P 500 INDEX', price: 624.22, changePercent: 0.33, fiveDayChange: 1.95, oneMonthChange: 3.24, volume: 45123000 },
-        'XLK': { symbol: 'XLK', name: 'Technology', price: 258.71, changePercent: 0.31, fiveDayChange: 2.84, oneMonthChange: 4.16, volume: 8432000 },
-        'XLV': { symbol: 'XLV', name: 'Health Care', price: 134.25, changePercent: 1.24, fiveDayChange: 0.92, oneMonthChange: 2.35, volume: 6234000 },
-        'XLF': { symbol: 'XLF', name: 'Financials', price: 52.01, changePercent: 0.70, fiveDayChange: 2.14, oneMonthChange: 5.82, volume: 12456000 },
-        'XLY': { symbol: 'XLY', name: 'Consumer Discretionary', price: 219.47, changePercent: 0.18, fiveDayChange: 1.67, oneMonthChange: 4.51, volume: 4532000 },
-        'XLI': { symbol: 'XLI', name: 'Industrials', price: 150.41, changePercent: 0.35, fiveDayChange: 1.28, oneMonthChange: 3.73, volume: 5234000 },
-        'XLC': { symbol: 'XLC', name: 'Communication Services', price: 106.31, changePercent: 0.30, fiveDayChange: 2.45, oneMonthChange: 6.15, volume: 7834000 },
-        'XLP': { symbol: 'XLP', name: 'Consumer Staples', price: 80.35, changePercent: 0.35, fiveDayChange: 0.67, oneMonthChange: 1.89, volume: 3234000 },
-        'XLE': { symbol: 'XLE', name: 'Energy', price: 86.13, changePercent: -0.86, fiveDayChange: -2.15, oneMonthChange: -1.34, volume: 15234000 },
-        'XLU': { symbol: 'XLU', name: 'Utilities', price: 82.03, changePercent: 0.05, fiveDayChange: 0.34, oneMonthChange: 2.17, volume: 8934000 },
-        'XLB': { symbol: 'XLB', name: 'Materials', price: 89.38, changePercent: 0.27, fiveDayChange: 1.46, oneMonthChange: 3.95, volume: 4234000 },
-        'XLRE': { symbol: 'XLRE', name: 'Real Estate', price: 41.76, changePercent: 1.09, fiveDayChange: 0.75, oneMonthChange: 2.48, volume: 6534000 },
-      };
-      
-      return realFallbacks[symbol] || {
-        symbol,
-        price: 100,
-        change: 0,
-        changePercent: 0,
-        volume: 1000000,
-        previousClose: 100,
-      };
+      // Return null instead of misleading fallback data - let calling services handle missing data appropriately
+      throw new Error(`Unable to fetch authentic quote data for ${symbol}. API unavailable.`);
     }
   }
 
@@ -276,19 +259,19 @@ export class FinancialDataService {
         this.fetchIndicator('ema', symbol, { time_period: 26 })
       ]);
 
-      // Parse all indicator responses
-      const rsi = this.parseIndicator(rsiResponse, 'rsi', 68.16); // SPY current RSI fallback
-      const macdData = this.parseMACD(macdResponse);
-      const bbandsData = this.parseBBands(bbandsResponse);
-      const percentB = this.parseIndicator(percentBResponse, 'percent_b', 0.65);
-      const adx = this.parseIndicator(adxResponse, 'adx', 25.3);
-      const stochData = this.parseStoch(stochResponse);
-      const vwap = this.parseIndicator(vwapResponse, 'vwap', 626.87);
-      const atr = this.parseIndicator(atrResponse, 'atr', 12.45);
-      const willr = this.parseIndicator(willrResponse, 'willr', -28.5);
-      const sma50 = this.parseIndicator(sma50Response, 'sma', 620.50); // SPY 50-day SMA fallback
-      const ema12 = this.parseIndicator(ema12Response, 'ema', 624.30); // SPY 12-day EMA fallback
-      const ema26 = this.parseIndicator(ema26Response, 'ema', 618.75); // SPY 26-day EMA fallback
+      // Parse all indicator responses - return null for missing data instead of fallbacks
+      const rsi = this.parseIndicatorStrict(rsiResponse, 'rsi');
+      const macdData = this.parseMACDStrict(macdResponse);
+      const bbandsData = this.parseBBandsStrict(bbandsResponse);
+      const percentB = this.parseIndicatorStrict(percentBResponse, 'percent_b');
+      const adx = this.parseIndicatorStrict(adxResponse, 'adx');
+      const stochData = this.parseStochStrict(stochResponse);
+      const vwap = this.parseIndicatorStrict(vwapResponse, 'vwap');
+      const atr = this.parseIndicatorStrict(atrResponse, 'atr');
+      const willr = this.parseIndicatorStrict(willrResponse, 'willr');
+      const sma50 = this.parseIndicatorStrict(sma50Response, 'sma');
+      const ema12 = this.parseIndicatorStrict(ema12Response, 'ema');
+      const ema26 = this.parseIndicatorStrict(ema26Response, 'ema');
 
       const indicators = {
         symbol,
@@ -340,42 +323,43 @@ export class FinancialDataService {
     }
   }
 
-  private parseIndicator(data: any, field: string, fallback: number): number {
+  // Strict parsing methods that return null instead of fallback values
+  private parseIndicatorStrict(data: any, field: string): number | null {
     if (data.values && data.values.length > 0 && data.values[0][field]) {
       return parseFloat(data.values[0][field]);
     }
-    return fallback;
+    return null;
   }
 
-  private parseMACD(data: any) {
-    if (data.values && data.values.length > 0) {
+  private parseMACDStrict(data: any) {
+    if (data.values && data.values.length > 0 && data.values[0].macd && data.values[0].macd_signal) {
       return {
-        macd: parseFloat(data.values[0].macd || '8.256'),
-        macdSignal: parseFloat(data.values[0].macd_signal || '8.722')
+        macd: parseFloat(data.values[0].macd),
+        macdSignal: parseFloat(data.values[0].macd_signal)
       };
     }
-    return { macd: 8.256, macdSignal: 8.722 };
+    return { macd: null, macdSignal: null };
   }
 
-  private parseBBands(data: any) {
-    if (data.values && data.values.length > 0) {
+  private parseBBandsStrict(data: any) {
+    if (data.values && data.values.length > 0 && data.values[0].upper_band && data.values[0].middle_band && data.values[0].lower_band) {
       return {
-        upper: parseFloat(data.values[0].upper_band || '640.25'),
-        middle: parseFloat(data.values[0].middle_band || '628.15'),
-        lower: parseFloat(data.values[0].lower_band || '616.05')
+        upper: parseFloat(data.values[0].upper_band),
+        middle: parseFloat(data.values[0].middle_band),
+        lower: parseFloat(data.values[0].lower_band)
       };
     }
-    return { upper: 640.25, middle: 628.15, lower: 616.05 };
+    return { upper: null, middle: null, lower: null };
   }
 
-  private parseStoch(data: any) {
-    if (data.values && data.values.length > 0) {
+  private parseStochStrict(data: any) {
+    if (data.values && data.values.length > 0 && data.values[0].slow_k && data.values[0].slow_d) {
       return {
-        k: parseFloat(data.values[0].slow_k || '65.4'),
-        d: parseFloat(data.values[0].slow_d || '68.2')
+        k: parseFloat(data.values[0].slow_k),
+        d: parseFloat(data.values[0].slow_d)
       };
     }
-    return { k: 65.4, d: 68.2 };
+    return { k: null, d: null };
   }
 
   private async storeTechnicalIndicators(indicators: any) {
@@ -409,37 +393,10 @@ export class FinancialDataService {
     }
   }
 
-  private getFallbackTechnicalIndicators(symbol: string) {
-    // Enhanced fallback with realistic values based on symbol type
-    const fallbacks: { [key: string]: any } = {
-      'SPY': { rsi: 68.16, macd: 8.256, macdSignal: 8.722, bb_upper: 640.25, bb_middle: 628.15, bb_lower: 616.05, percent_b: 0.65, adx: 25.3, stoch_k: 65.4, stoch_d: 68.2, vwap: 626.87, atr: 12.45, willr: -28.5, sma_50: 612.25, ema_12: 624.30, ema_26: 618.75 },
-      'QQQ': { rsi: 71.92, macd: 12.34, macdSignal: 11.89, bb_upper: 485.67, bb_middle: 470.23, bb_lower: 454.79, percent_b: 0.72, adx: 28.7, stoch_k: 78.3, stoch_d: 75.6, vwap: 468.34, atr: 18.92, willr: -22.1, sma_50: 465.30, ema_12: 472.15, ema_26: 468.90 },
-      'IWM': { rsi: 62.04, macd: 3.87, macdSignal: 4.12, bb_upper: 225.45, bb_middle: 218.67, bb_lower: 211.89, percent_b: 0.45, adx: 22.1, stoch_k: 58.7, stoch_d: 61.2, vwap: 217.92, atr: 8.76, willr: -35.8, sma_50: 215.80, ema_12: 219.25, ema_26: 217.45 }
-    };
-    
-    const base = fallbacks[symbol] || fallbacks['SPY'];
-    
-    return {
-      symbol,
-      rsi: base.rsi,
-      macd: base.macd,
-      macdSignal: base.macdSignal,
-      macdHistogram: base.macd - base.macdSignal,
-      bb_upper: base.bb_upper,
-      bb_middle: base.bb_middle,
-      bb_lower: base.bb_lower,
-      percent_b: base.percent_b,
-      adx: base.adx,
-      stoch_k: base.stoch_k,
-      stoch_d: base.stoch_d,
-      vwap: base.vwap,
-      atr: base.atr,
-      willr: base.willr,
-      sma_20: base.bb_middle,
-      sma_50: base.sma_50,
-      ema_12: base.ema_12,
-      ema_26: base.ema_26,
-    };
+  // This method is now deprecated - we throw errors instead of returning fallback data
+  // Users should be informed when real data is unavailable rather than shown fake values
+  private throwDataUnavailableError(symbol: string): never {
+    throw new Error(`Technical indicators unavailable for ${symbol}. Real-time data source is currently inaccessible. Please check API connectivity.`);
   }
 
   async getSectorETFs() {

@@ -279,70 +279,98 @@ export class MomentumAnalysisService {
   }
 
   /**
-   * Get verified annual returns from accuracy check document (trailing 12 months)
+   * Calculate actual annual returns from historical price data instead of using hardcoded values
    */
-  private getVerifiedAnnualReturn(symbol: string): number {
-    // VERIFIED VALUES FROM ACCURACY CHECK DOCUMENT (Actual trailing 12-month returns)
-    const verifiedReturns: Record<string, number> = {
-      'XLC': 25.2,  // Actual vs Screenshot: 25.2% vs 3.4%
-      'XLB': 2.2,   // Actual vs Screenshot: 2.2% vs 1.3%
-      'XLY': 19.7,  // Actual vs Screenshot: 19.7% vs 1.2%
-      'SPY': 14.8,  // Actual vs Screenshot: 14.8% vs 0.5%
-      'XLRE': 4.3,  // Actual vs Screenshot: 4.3% vs 1.0%
-      'XLU': 18.9,  // Actual vs Screenshot: 18.9% vs 0.8%
-      'XLK': 19.0,  // Actual vs Screenshot: 19.0% vs 0.3%
-      'XLP': 4.4,   // Actual vs Screenshot: 4.4% vs -0.0%
-      'XLF': 21.9,  // Actual vs Screenshot: 21.9% vs -0.7%
-      'XLV': -11.5, // Actual vs Screenshot: -11.5% vs -1.4%
-      'XLI': 19.9,  // Actual vs Screenshot: 19.9% vs -1.3%
-      'XLE': -4.4   // Actual vs Screenshot: -4.4% vs -2.6%
-    };
-    
-    return verifiedReturns[symbol] || 0;
+  private async calculateActualAnnualReturn(symbol: string, currentPrice: number): Promise<number> {
+    try {
+      // Query database for 1-year historical data to calculate actual returns
+      const { db } = await import('../db');
+      const { historicalStockData } = await import('@shared/schema');
+      const { desc, eq, gte } = await import('drizzle-orm');
+      
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      
+      const historicalData = await db.select()
+        .from(historicalStockData)
+        .where(eq(historicalStockData.symbol, symbol))
+        .orderBy(desc(historicalStockData.date))
+        .limit(252); // Approximate trading days in a year
+      
+      if (historicalData.length < 200) {
+        console.log(`⚠️ Insufficient historical data for ${symbol} annual return calculation`);
+        return null; // Return null instead of fallback
+      }
+      
+      const oldestPrice = parseFloat(historicalData[historicalData.length - 1].close);
+      const actualReturn = ((currentPrice - oldestPrice) / oldestPrice) * 100;
+      
+      console.log(`📊 Calculated actual ${symbol} annual return: ${actualReturn.toFixed(2)}%`);
+      return actualReturn;
+      
+    } catch (error) {
+      console.error(`Error calculating annual return for ${symbol}:`, error);
+      return null; // Return null for missing data
+    }
   }
 
   /**
-   * Get verified volatility from accuracy check document (trailing 12 months)
+   * Calculate actual volatility from historical price data instead of using hardcoded values
    */
-  private getVerifiedVolatility(symbol: string): number {
-    const verifiedVolatility: Record<string, number> = {
-      'XLC': 19.6,
-      'XLB': 19.8,
-      'XLY': 25.9,
-      'SPY': 20.5,
-      'XLRE': 17.9,
-      'XLU': 17.1,
-      'XLK': 29.9,
-      'XLP': 13.4,
-      'XLF': 20.5,
-      'XLV': 16.1,
-      'XLI': 19.7,
-      'XLE': 25.6
-    };
-    
-    return verifiedVolatility[symbol] || 15;
+  private async calculateActualVolatility(symbol: string): Promise<number> {
+    try {
+      const { db } = await import('../db');
+      const { historicalStockData } = await import('@shared/schema');
+      const { desc, eq } = await import('drizzle-orm');
+      
+      const historicalData = await db.select()
+        .from(historicalStockData)
+        .where(eq(historicalStockData.symbol, symbol))
+        .orderBy(desc(historicalStockData.date))
+        .limit(252); // One year of trading days
+      
+      if (historicalData.length < 30) {
+        console.log(`⚠️ Insufficient data for ${symbol} volatility calculation`);
+        return null;
+      }
+      
+      // Calculate daily returns
+      const dailyReturns: number[] = [];
+      for (let i = 1; i < historicalData.length; i++) {
+        const currentPrice = parseFloat(historicalData[i - 1].close);
+        const previousPrice = parseFloat(historicalData[i].close);
+        const dailyReturn = (currentPrice - previousPrice) / previousPrice;
+        dailyReturns.push(dailyReturn);
+      }
+      
+      // Calculate annualized volatility (standard deviation * sqrt(252))
+      const mean = dailyReturns.reduce((sum, ret) => sum + ret, 0) / dailyReturns.length;
+      const variance = dailyReturns.reduce((sum, ret) => sum + Math.pow(ret - mean, 2), 0) / (dailyReturns.length - 1);
+      const volatility = Math.sqrt(variance) * Math.sqrt(252) * 100; // Annualized percentage
+      
+      console.log(`📊 Calculated actual ${symbol} volatility: ${volatility.toFixed(2)}%`);
+      return volatility;
+      
+    } catch (error) {
+      console.error(`Error calculating volatility for ${symbol}:`, error);
+      return null;
+    }
   }
 
   /**
-   * Get verified Sharpe ratios from accuracy check document (trailing 12 months)
+   * Calculate actual Sharpe ratio from historical data (return - risk-free rate) / volatility
+   * Using 10-year Treasury as risk-free rate (~4.2% currently)
    */
-  private getVerifiedSharpeRatio(symbol: string): number {
-    const verifiedSharpe: Record<string, number> = {
-      'XLC': 1.29,
-      'XLB': 0.11,
-      'XLY': 0.76,
-      'SPY': 0.72,
-      'XLRE': 0.24,
-      'XLU': 1.11,
-      'XLK': 0.64,
-      'XLP': 0.33,
-      'XLF': 1.07,
-      'XLV': -0.71,
-      'XLI': 1.01,
-      'XLE': -0.17
-    };
+  private async calculateActualSharpeRatio(annualReturn: number | null, volatility: number | null): Promise<number> {
+    if (annualReturn === null || volatility === null || volatility === 0) {
+      return null; // Cannot calculate without valid data
+    }
     
-    return verifiedSharpe[symbol] || 0;
+    const riskFreeRate = 4.2; // Current 10-year Treasury rate - could be made dynamic
+    const excessReturn = annualReturn - riskFreeRate;
+    const sharpeRatio = excessReturn / volatility;
+    
+    return sharpeRatio;
   }
 
   /**
