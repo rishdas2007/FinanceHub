@@ -17,7 +17,7 @@ const EconomicHealthScoreAppendix = lazy(() =>
   }))
 );
 
-import { MoodDataSources } from "@/components/MoodDataSources";
+
 import { AAIISentiment } from "@/components/aaii-sentiment";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
 
@@ -73,8 +73,7 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
 
-        {/* Technical Analysis - moved to top */}
-        <MoodDataSources />
+
 
         {/* Breakout Analysis - Real-time squeeze and breakout monitoring */}
         <ETFMetricsTable />
