@@ -30,26 +30,8 @@ router.get('/fast-dashboard', async (req, res) => {
   }
 });
 
-// Individual fast component endpoints
-router.get('/fast-momentum', async (req, res) => {
-  try {
-    const data = await fastDashboardService.getFastMomentumAnalysis();
-    const freshness = fastDashboardService.calculateDataFreshness(data.timestamp);
-    
-    res.json({
-      success: true,
-      ...data,
-      freshness
-    });
-    
-  } catch (error) {
-    logger.error('❌ Fast momentum error:', error);
-    res.status(500).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
+// Momentum analysis endpoint removed to conserve API quota
+// The momentum table was consuming excessive API calls for 1-day, 5-day, and 1-month changes
 
 router.get('/fast-economic', async (req, res) => {
   try {

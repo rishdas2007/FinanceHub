@@ -254,27 +254,17 @@ export function SectorAnalysis() {
             </div>
           </div>
 
-          {/* Momentum Strategies Section */}
+          {/* Momentum Strategies Section - Removed to conserve API quota */}
           <div className="space-y-3">
-            <div className="space-y-3">
-              <h4 className="text-white font-medium">Momentum Strategies</h4>
-              {analysis.momentumStrategies.map((momentum) => (
-                <div key={momentum.sector} className="p-3 bg-financial-dark rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      <TrendingUp className={`h-4 w-4 ${momentumColors[momentum.momentum]}`} />
-                      <span className="text-white">{sectorNames[momentum.sector] || momentum.sector}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="outline" className={momentumColors[momentum.momentum]}>
-                        {momentum.momentum}
-                      </Badge>
-                      <span className="text-white text-sm">{momentum.strength.toFixed(1)}%</span>
-                    </div>
-                  </div>
-                  <div className="text-xs text-gray-400">{momentum.signal}</div>
-                </div>
-              ))}
+            <div className="p-4 bg-financial-dark rounded-lg border border-yellow-500/20">
+              <div className="flex items-center space-x-2 mb-2">
+                <AlertTriangle className="h-4 w-4 text-yellow-400" />
+                <h4 className="text-yellow-400 font-medium">Momentum Analysis Temporarily Disabled</h4>
+              </div>
+              <p className="text-gray-400 text-sm">
+                Momentum strategies table removed to preserve API quota for core functionality. 
+                This prevents rate limit issues while maintaining data authenticity.
+              </p>
             </div>
           </div>
 

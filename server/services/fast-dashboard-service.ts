@@ -35,8 +35,8 @@ export class FastDashboardService {
     
     try {
       // Load all dashboard components in parallel using Promise.all
-      const [momentum, economic, technical, sentiment] = await Promise.all([
-        this.getFastMomentumAnalysis(),
+      // Momentum analysis removed to conserve API quota
+      const [economic, technical, sentiment] = await Promise.all([
         this.getFastEconomicReadings(),
         this.getFastTechnicalData(),
         this.getFastSentimentData()
@@ -46,7 +46,7 @@ export class FastDashboardService {
       logger.info(`🚀 Parallel dashboard load completed in ${totalLoadTime}ms`);
       
       return {
-        momentum,
+        momentum: this.createFallbackData('momentum-analysis'),
         economic,
         technical,
         sentiment,
@@ -270,11 +270,9 @@ export class FastDashboardService {
         };
       }
 
-      // Generate minimal summary from cached data
-      const [momentum, economic] = await Promise.all([
-        this.getFastMomentumAnalysis(),
-        this.getFastEconomicReadings()
-      ]);
+      // Generate minimal summary from cached data (momentum analysis removed to conserve API quota)
+      const economic = await this.getFastEconomicReadings();
+      const momentum = this.createFallbackData('momentum-analysis');
 
       const quickSummary = this.generateQuickSummary(momentum.data, economic.data);
       const loadTime = Date.now() - startTime;
