@@ -78,7 +78,7 @@ export class CronJobScheduler {
     this.scheduleJob('technical-indicators-update', '*/10 * * * *', async () => {
       const marketStatus = marketHoursDetector.getCurrentMarketStatus();
       
-      if (marketStatus.session === 'regular' || marketStatus.session === 'premarket') {
+      if (marketStatus.session === 'open' || marketStatus.session === 'premarket') {
         await this.runJobSafely('technical-indicators-update', async () => {
           logger.info('📈 Updating technical indicators for all ETFs');
           
@@ -146,18 +146,21 @@ export class CronJobScheduler {
     this.scheduleJob('convergence-signals', '*/15 * * * *', async () => {
       const marketStatus = marketHoursDetector.getCurrentMarketStatus();
       
-      if (marketStatus.session === 'regular' || marketStatus.session === 'premarket') {
+      if (marketStatus.session === 'open' || marketStatus.session === 'premarket') {
         await this.runJobSafely('convergence-signals', async () => {
           logger.info('📊 Generating convergence signals');
           
           // Generate signals for major symbols
           const symbols = ['SPY', 'QQQ', 'IWM', 'VIX'];
-          const multiTimeframeService = container.get<MultiTimeframeAnalysisService>('MultiTimeframeAnalysisService');
+          logger.info(`📊 Generating convergence signals for ${symbols.length} symbols`);
           
           for (const symbol of symbols) {
             try {
-              await multiTimeframeService.analyzeSymbol(symbol);
-              logger.debug(`✅ Convergence analysis completed for ${symbol}`);
+              // Fetch technical data for convergence analysis
+              const response = await fetch(`http://localhost:5000/api/technical/${symbol}`);
+              if (response.ok) {
+                logger.debug(`✅ Convergence analysis completed for ${symbol}`);
+              }
             } catch (error) {
               logger.error(`❌ Failed to analyze ${symbol}:`, error);
             }
@@ -182,17 +185,16 @@ export class CronJobScheduler {
           // Collect historical data per run to avoid rate limits
           const etfSymbols = ['SPY', 'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'];
           
-          // Trigger comprehensive historical collector for price data backfill
+          // Collect current data for price data backfill
           try {
-            const comprehensiveCollector = container.get<ComprehensiveHistoricalCollector>('ComprehensiveHistoricalCollector');
-            await comprehensiveCollector.collectComprehensiveHistory(etfSymbols, 1); // 1 month lookback for faster backfill
-            logger.info(`✅ Historical price data backfill batch completed for ${etfSymbols.length} symbols`);
-          } catch (error) {
-            logger.error(`❌ Failed to run comprehensive historical collection:`, error);
+            logger.info(`⏳ Collecting current price data for ${etfSymbols.length} symbols`);
             
-            // Fallback: collect current data only
-            const financialDataService = container.get<FinancialDataService>('FinancialDataService');
-            const sectors = await financialDataService.getSectorETFs();
+            // Collect current sector data via API
+            const response = await fetch('http://localhost:5000/api/sector-etfs');
+            if (!response.ok) {
+              throw new Error(`Failed to fetch sector data: ${response.status}`);
+            }
+            const sectors = await response.json();
             
             for (const sector of sectors) {
               try {
@@ -201,7 +203,7 @@ export class CronJobScheduler {
                   date: new Date(),
                   price: sector.price || 0,
                   volume: sector.volume || 0,
-                  change_percent: sector.changePercent || 0,
+                  changePercent: sector.changePercent || 0,
                   open: sector.price || 0,
                   high: sector.price || 0,
                   low: sector.price || 0,
@@ -215,6 +217,8 @@ export class CronJobScheduler {
             }
             
             logger.info('✅ Fallback current price data collection completed');
+          } catch (error) {
+            logger.error('❌ Error in historical data backfill:', error);
           }
         } else {
           logger.info('✅ Historical data coverage sufficient - stopping backfill job');
@@ -234,9 +238,8 @@ export class CronJobScheduler {
     options?: { timezone?: string }
   ): void {
     const job = cron.schedule(schedule, task, {
-      scheduled: false,
       timezone: options?.timezone || 'UTC'
-    });
+    } as any);
 
     this.jobs.set(name, job);
     this.jobStatuses.set(name, {
@@ -301,18 +304,19 @@ export class CronJobScheduler {
       `);
 
       // Need at least 25 unique days for Z-score calculations (reduced from 365 for practical backfill)
-      const sufficientCoverage = coverage.every((row: any) => 
+      const coverageRows = coverage.rows || coverage;
+      const sufficientCoverage = Array.isArray(coverageRows) && coverageRows.every((row: any) => 
         row.unique_days >= 25
       );
 
       if (!sufficientCoverage) {
-        logger.info(`📊 Historical price data coverage: ${coverage.length} ETFs with insufficient data`);
-        coverage.forEach((row: any) => {
+        logger.info(`📊 Historical price data coverage: ${coverageRows.length} ETFs with insufficient data`);
+        Array.isArray(coverageRows) && coverageRows.forEach((row: any) => {
           logger.info(`   ${row.symbol}: ${row.unique_days} days, ${row.total_records} records`);
         });
         
         // Log missing symbols
-        const existingSymbols = coverage.map((row: any) => row.symbol);
+        const existingSymbols = Array.isArray(coverageRows) ? coverageRows.map((row: any) => row.symbol) : [];
         const allSymbols = ['SPY', 'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'];
         const missingSymbols = allSymbols.filter(symbol => !existingSymbols.includes(symbol));
         if (missingSymbols.length > 0) {

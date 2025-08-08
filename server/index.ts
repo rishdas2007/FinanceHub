@@ -271,8 +271,16 @@ app.use((req, res, next) => {
           timeout: 5000,
           initializer: async () => {
             try {
-              fredSchedulerIncremental.start();
-              log('✅ FRED incremental scheduler started');
+              // Delay FRED scheduler startup to avoid resource contention
+              setTimeout(() => {
+                try {
+                  fredSchedulerIncremental.start();
+                  log('✅ FRED incremental scheduler started (delayed startup)');
+                } catch (error) {
+                  log('⚠️ FRED incremental scheduler delayed start failed:', String(error));
+                }
+              }, 30000); // 30 second delay
+              log('⏸️ FRED incremental scheduler startup delayed by 30s');
             } catch (error) {
               log('⚠️ FRED incremental scheduler failed to start:', String(error));
             }

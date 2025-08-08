@@ -1,40 +1,18 @@
 import { 
-  users, 
   stockData, 
   marketSentiment, 
-  technicalIndicators, 
-  aiAnalysis, 
-  economicEvents,
-  marketBreadth,
-  vixData,
-  sectorData,
-  type User, 
-  type InsertUser,
+  technicalIndicators,
   type StockData,
   type InsertStockData,
   type MarketSentiment,
   type InsertMarketSentiment,
   type TechnicalIndicators,
-  type InsertTechnicalIndicators,
-  type AiAnalysis,
-  type InsertAiAnalysis,
-  type EconomicEvent,
-  type InsertEconomicEvent,
-  type MarketBreadth,
-  type InsertMarketBreadth,
-  type VixData,
-  type InsertVixData,
-  type SectorData,
-  type InsertSectorData
+  type InsertTechnicalIndicators
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, gte, and } from "drizzle-orm";
 
 export interface IStorage {
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  
   // Stock data operations
   getLatestStockData(symbol: string): Promise<StockData | undefined>;
   createStockData(data: InsertStockData): Promise<StockData>;
@@ -48,167 +26,134 @@ export interface IStorage {
   getLatestTechnicalIndicators(symbol: string): Promise<TechnicalIndicators | undefined>;
   createTechnicalIndicators(indicators: InsertTechnicalIndicators): Promise<TechnicalIndicators>;
   
-  // AI Analysis
-  getLatestAiAnalysis(): Promise<AiAnalysis | undefined>;
-  createAiAnalysis(analysis: InsertAiAnalysis): Promise<AiAnalysis>;
-  
-  // Economic events
-  getUpcomingEconomicEvents(): Promise<EconomicEvent[]>;
-  getAllEconomicEvents(): Promise<EconomicEvent[]>;
-  createEconomicEvent(event: InsertEconomicEvent): Promise<EconomicEvent>;
-  
-  // Market breadth operations
-  getLatestMarketBreadth(): Promise<MarketBreadth | undefined>;
-  createMarketBreadth(breadth: InsertMarketBreadth): Promise<MarketBreadth>;
-  
-  // VIX data operations
-  getLatestVixData(): Promise<VixData | undefined>;
-  createVixData(vix: InsertVixData): Promise<VixData>;
-  
-  // Sector data operations
-  getLatestSectorData(): Promise<SectorData[]>;
-  getAllSectorData(): Promise<SectorData[]>;
-  createSectorData(sector: InsertSectorData): Promise<SectorData>;
+  // Cleanup operations
+  cleanupOldMarketSentiment(): Promise<void>;
+  cleanupOldStockData(): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private stockData: Map<string, StockData[]>;
-  private marketSentiment: MarketSentiment[];
-  private technicalIndicators: Map<string, TechnicalIndicators[]>;
-  private aiAnalysis: AiAnalysis[];
-  private economicEvents: EconomicEvent[];
-  private marketBreadth: MarketBreadth[];
-  private vixData: VixData[];
-  private sectorData: SectorData[];
+  private stockDataMap: Map<string, StockData[]>;
+  private marketSentimentList: MarketSentiment[];
+  private technicalIndicatorsMap: Map<string, TechnicalIndicators[]>;
   private currentId: number;
 
   constructor() {
-    this.users = new Map();
-    this.stockData = new Map();
-    this.marketSentiment = [];
-    this.technicalIndicators = new Map();
-    this.aiAnalysis = [];
-    this.economicEvents = [];
-    this.marketBreadth = [];
-    this.vixData = [];
-    this.sectorData = [];
+    this.stockDataMap = new Map();
+    this.marketSentimentList = [];
+    this.technicalIndicatorsMap = new Map();
     this.currentId = 1;
   }
 
-  async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
-  }
-
   async getLatestStockData(symbol: string): Promise<StockData | undefined> {
-    const data = this.stockData.get(symbol);
+    const data = this.stockDataMap.get(symbol);
     return data ? data[data.length - 1] : undefined;
   }
 
   async createStockData(data: InsertStockData): Promise<StockData> {
     const id = this.currentId++;
     const stockDataEntry: StockData = {
-      ...data,
       id,
+      symbol: data.symbol,
+      price: data.price,
+      change: data.change,
+      percentChange: data.percentChange,
+      volume: data.volume,
+      marketCap: data.marketCap || null,
       timestamp: new Date(),
     };
     
-    if (!this.stockData.has(data.symbol)) {
-      this.stockData.set(data.symbol, []);
+    if (!this.stockDataMap.has(data.symbol)) {
+      this.stockDataMap.set(data.symbol, []);
     }
     
-    this.stockData.get(data.symbol)!.push(stockDataEntry);
+    this.stockDataMap.get(data.symbol)!.push(stockDataEntry);
     
-    // Keep only last 100 entries per symbol
-    const symbolData = this.stockData.get(data.symbol)!;
-    if (symbolData.length > 100) {
+    // Keep only last 50 entries per symbol
+    const symbolData = this.stockDataMap.get(data.symbol)!;
+    if (symbolData.length > 50) {
       symbolData.shift();
     }
     
     return stockDataEntry;
   }
 
-  async getStockHistory(symbol: string, limit: number = 30): Promise<StockData[]> {
-    const data = this.stockData.get(symbol) || [];
+  async getStockHistory(symbol: string, limit: number = 20): Promise<StockData[]> {
+    const data = this.stockDataMap.get(symbol);
+    if (!data) return [];
+    
     return data.slice(-limit);
   }
 
   async getLatestMarketSentiment(): Promise<MarketSentiment | undefined> {
-    return this.marketSentiment[this.marketSentiment.length - 1];
+    return this.marketSentimentList.length > 0 ? this.marketSentimentList[this.marketSentimentList.length - 1] : undefined;
   }
 
   async createMarketSentiment(sentiment: InsertMarketSentiment): Promise<MarketSentiment> {
     const id = this.currentId++;
     const sentimentEntry: MarketSentiment = {
-      ...sentiment,
-      dataSource: sentiment.dataSource || 'aaii_survey',
-      vixChange: sentiment.vixChange ?? null,
-      putCallChange: sentiment.putCallChange ?? null,
-      aaiiBullishChange: sentiment.aaiiBullishChange ?? null,
-      aaiiBearishChange: sentiment.aaiiBearishChange ?? null,
       id,
+      vix: sentiment.vix,
+      vixChange: sentiment.vixChange || null,
+      putCallRatio: sentiment.putCallRatio,
+      putCallChange: sentiment.putCallChange || null,
+      aaiiBullish: sentiment.aaiiBullish,
+      aaiiBullishChange: sentiment.aaiiBullishChange || null,
+      aaiiBearish: sentiment.aaiiBearish,
+      aaiiBearishChange: sentiment.aaiiBearishChange || null,
+      aaiiNeutral: sentiment.aaiiNeutral,
+      dataSource: sentiment.dataSource || 'aaii_survey',
       timestamp: new Date(),
     };
     
-    this.marketSentiment.push(sentimentEntry);
+    this.marketSentimentList.push(sentimentEntry);
     
-    // Keep only last 50 entries
-    if (this.marketSentiment.length > 50) {
-      this.marketSentiment.shift();
+    // Keep only last 20 entries
+    if (this.marketSentimentList.length > 20) {
+      this.marketSentimentList.shift();
     }
     
     return sentimentEntry;
   }
 
   async getLatestTechnicalIndicators(symbol: string): Promise<TechnicalIndicators | undefined> {
-    const indicators = this.technicalIndicators.get(symbol);
+    const indicators = this.technicalIndicatorsMap.get(symbol);
     return indicators ? indicators[indicators.length - 1] : undefined;
   }
 
   async createTechnicalIndicators(indicators: InsertTechnicalIndicators): Promise<TechnicalIndicators> {
     const id = this.currentId++;
     const indicatorsEntry: TechnicalIndicators = {
-      symbol: indicators.symbol,
-      rsi: indicators.rsi ?? null,
-      macd: indicators.macd ?? null,
-      macdSignal: indicators.macdSignal ?? null,
-      bb_upper: indicators.bb_upper ?? null,
-      bb_middle: indicators.bb_middle ?? null,
-      bb_lower: indicators.bb_lower ?? null,
-      percent_b: indicators.percent_b ?? null,
-      adx: indicators.adx ?? null,
-      stoch_k: indicators.stoch_k ?? null,
-      stoch_d: indicators.stoch_d ?? null,
-      vwap: indicators.vwap ?? null,
-      atr: indicators.atr ?? null,
-      willr: indicators.willr ?? null,
-      sma_20: indicators.sma_20 ?? null,
-      sma_50: indicators.sma_50 ?? null,
       id,
+      symbol: indicators.symbol,
+      rsi: indicators.rsi || null,
+      macd: indicators.macd || null,
+      macdSignal: indicators.macdSignal || null,
+      macdHistogram: indicators.macdHistogram || null,
+      bb_upper: indicators.bb_upper || null,
+      bb_middle: indicators.bb_middle || null,
+      bb_lower: indicators.bb_lower || null,
+      percent_b: indicators.percent_b || null,
+      adx: indicators.adx || null,
+      stoch_k: indicators.stoch_k || null,
+      stoch_d: indicators.stoch_d || null,
+      sma_20: indicators.sma_20 || null,
+      sma_50: indicators.sma_50 || null,
+      ema_12: indicators.ema_12 || null,
+      ema_26: indicators.ema_26 || null,
+      vwap: indicators.vwap || null,
+      atr: indicators.atr || null,
+      willr: indicators.willr || null,
       timestamp: new Date(),
     };
     
-    if (!this.technicalIndicators.has(indicators.symbol)) {
-      this.technicalIndicators.set(indicators.symbol, []);
+    if (!this.technicalIndicatorsMap.has(indicators.symbol)) {
+      this.technicalIndicatorsMap.set(indicators.symbol, []);
     }
     
-    this.technicalIndicators.get(indicators.symbol)!.push(indicatorsEntry);
+    this.technicalIndicatorsMap.get(indicators.symbol)!.push(indicatorsEntry);
     
     // Keep only last 50 entries per symbol
-    const symbolIndicators = this.technicalIndicators.get(indicators.symbol)!;
+    const symbolIndicators = this.technicalIndicatorsMap.get(indicators.symbol)!;
     if (symbolIndicators.length > 50) {
       symbolIndicators.shift();
     }
@@ -216,111 +161,18 @@ export class MemStorage implements IStorage {
     return indicatorsEntry;
   }
 
-  async getLatestAiAnalysis(): Promise<AiAnalysis | undefined> {
-    return this.aiAnalysis[this.aiAnalysis.length - 1];
+  async cleanupOldMarketSentiment(): Promise<void> {
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    this.marketSentimentList = this.marketSentimentList.filter(sentiment => 
+      sentiment.timestamp > oneDayAgo
+    );
   }
 
-  async createAiAnalysis(analysis: InsertAiAnalysis): Promise<AiAnalysis> {
-    const id = this.currentId++;
-    const analysisEntry: AiAnalysis = {
-      ...analysis,
-      id,
-      timestamp: new Date(),
-    };
-    
-    this.aiAnalysis.push(analysisEntry);
-    
-    // Keep only last 20 entries
-    if (this.aiAnalysis.length > 20) {
-      this.aiAnalysis.shift();
+  async cleanupOldStockData(): Promise<void> {
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    for (const [symbol, data] of this.stockDataMap.entries()) {
+      this.stockDataMap.set(symbol, data.filter(stock => stock.timestamp > oneDayAgo));
     }
-    
-    return analysisEntry;
-  }
-
-  async getUpcomingEconomicEvents(): Promise<EconomicEvent[]> {
-    const now = new Date();
-    return this.economicEvents
-      .filter(event => event.eventDate > now)
-      .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime())
-      .slice(0, 10);
-  }
-
-  async getAllEconomicEvents(): Promise<EconomicEvent[]> {
-    return this.economicEvents.slice().sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  }
-
-  async createEconomicEvent(event: InsertEconomicEvent): Promise<EconomicEvent> {
-    const id = this.currentId++;
-    const eventEntry: EconomicEvent = {
-      title: event.title,
-      description: event.description,
-      importance: event.importance,
-      eventDate: event.eventDate,
-      actual: event.actual ?? null,
-      forecast: event.forecast ?? null,
-      previous: event.previous ?? null,
-      id,
-      timestamp: new Date(),
-    };
-    
-    this.economicEvents.push(eventEntry);
-    return eventEntry;
-  }
-
-  async getLatestMarketBreadth(): Promise<MarketBreadth | undefined> {
-    return this.marketBreadth.length > 0 ? this.marketBreadth[this.marketBreadth.length - 1] : undefined;
-  }
-
-  async createMarketBreadth(breadth: InsertMarketBreadth): Promise<MarketBreadth> {
-    const newBreadth: MarketBreadth = {
-      ...breadth,
-      mcclellanOscillator: breadth.mcclellanOscillator ?? null,
-      id: this.currentId++,
-      timestamp: new Date(),
-    };
-    this.marketBreadth.push(newBreadth);
-    return newBreadth;
-  }
-
-  async getLatestVixData(): Promise<VixData | undefined> {
-    return this.vixData.length > 0 ? this.vixData[this.vixData.length - 1] : undefined;
-  }
-
-  async createVixData(vix: InsertVixData): Promise<VixData> {
-    const newVix = {
-      ...vix,
-      id: this.currentId++,
-      timestamp: new Date(),
-    };
-    this.vixData.push(newVix);
-    return newVix;
-  }
-
-  async getLatestSectorData(): Promise<SectorData[]> {
-    // Return most recent sector data, or empty array if none
-    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
-    return this.sectorData.filter(sector => sector.timestamp > twoMinutesAgo);
-  }
-
-  async getAllSectorData(): Promise<SectorData[]> {
-    return this.sectorData.slice().sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  }
-
-  async createSectorData(sector: InsertSectorData): Promise<SectorData> {
-    const newSector: SectorData = {
-      ...sector,
-      fiveDayChange: sector.fiveDayChange ?? null,
-      oneMonthChange: sector.oneMonthChange ?? null,
-      id: this.currentId++,
-      timestamp: new Date(),
-    };
-    
-    // Remove old data for the same symbol
-    this.sectorData = this.sectorData.filter(s => s.symbol !== sector.symbol);
-    this.sectorData.push(newSector);
-    
-    return newSector;
   }
 }
 
