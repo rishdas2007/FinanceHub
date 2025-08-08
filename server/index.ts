@@ -169,11 +169,11 @@ app.use((req, res, next) => {
     // Other ports are firewalled. Default to 5000 if not specified.
     // this serves both the API and the client.
     // It is the only port that is not firewalled.
-    const port = parseInt(process.env.PORT || '5000', 10);
+    const port = parseInt(process.env.PORT || '5001', 10);
     
     // Validate port configuration
     if (isNaN(port) || port < 1 || port > 65535) {
-      const errorMsg = `❌ Invalid port configuration: ${process.env.PORT}. Using default port 5000.`;
+      const errorMsg = `❌ Invalid port configuration: ${process.env.PORT}. Using default port 5001.`;
       log(errorMsg);
       if (process.env.NODE_ENV === 'production') {
         throw new Error(errorMsg);
