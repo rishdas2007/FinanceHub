@@ -63,8 +63,7 @@ export class CronJobScheduler {
       await this.runJobSafely('economic-data-update', async () => {
         logger.info('📊 Updating economic data cache (daily 8am ET refresh)');
         // Force refresh economic readings and cache for entire day
-        const { API_URLS } = await import('../config/api-config');
-        const response = await fetch(`${API_URLS.ECONOMIC_OPENAI}?force=true`);
+        const response = await fetch('http://localhost:5000/api/recent-economic-openai?force=true');
         if (response.ok) {
           const economicData = await response.json();
           logger.info(`📊 Daily economic data cached: ${economicData.length} readings - valid until tomorrow 8am ET`);
@@ -87,8 +86,7 @@ export class CronJobScheduler {
           const etfSymbols = ['SPY', 'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'];
           for (const symbol of etfSymbols) {
             try {
-              const { getApiUrl } = await import('../config/api-config');
-              const response = await fetch(getApiUrl(`/api/technical/${symbol}`));
+              const response = await fetch(`http://localhost:5000/api/technical/${symbol}`);
               if (response.ok) {
                 logger.debug(`✅ Technical indicators updated for ${symbol}`);
               } else {
