@@ -108,10 +108,16 @@ export const zscoreTechnicalIndicators = pgTable("zscore_technical_indicators", 
   priceMomentumZScore: decimal("price_momentum_zscore", { precision: 8, scale: 4 }),
   maTrendZScore: decimal("ma_trend_zscore", { precision: 8, scale: 4 }),
   
-  // Composite Z-Score and signals
+  // Multi-Horizon Composite Z-Scores (leveraging 10-year dataset)
   compositeZScore: decimal("composite_zscore", { precision: 8, scale: 4 }),
+  shortTermZScore: decimal("short_term_zscore", { precision: 8, scale: 4 }), // 63 days (3 months)
+  mediumTermZScore: decimal("medium_term_zscore", { precision: 8, scale: 4 }), // 252 days (1 year)
+  longTermZScore: decimal("long_term_zscore", { precision: 8, scale: 4 }), // 756 days (3 years)
+  ultraLongZScore: decimal("ultra_long_zscore", { precision: 8, scale: 4 }), // 1260 days (5 years)
+  
   signal: text("signal").notNull(), // BUY, SELL, HOLD
   signalStrength: decimal("signal_strength", { precision: 3, scale: 2 }),
+  regimeAware: boolean("regime_aware").notNull().default(false), // Indicates multi-horizon analysis
   
   // Statistical metadata - Updated for 10-year dataset analysis
   lookbackPeriod: integer("lookback_period").notNull().default(252), // 1-year default for enhanced accuracy

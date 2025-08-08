@@ -57,7 +57,7 @@ interface ETFMetrics {
   weightedScore: number | null;
   weightedSignal: string | null;
   
-  // Z-Score data from new system
+  // Multi-Horizon Z-Score data from enhanced system
   zScoreData: {
     rsiZScore: number | null;
     macdZScore: number | null;
@@ -66,7 +66,12 @@ interface ETFMetrics {
     priceMomentumZScore: number | null;
     maTrendZScore: number | null;
     compositeZScore: number | null;
+    shortTermZScore: number | null;    // 63-day horizon
+    mediumTermZScore: number | null;   // 252-day horizon  
+    longTermZScore: number | null;     // 756-day horizon
+    ultraLongZScore: number | null;    // 1260-day horizon
     signal: string | null;
+    regimeAware: boolean | null;       // Indicates multi-horizon analysis
   } | null;
   
   // Bollinger Bands & Position/Squeeze
@@ -303,6 +308,13 @@ export default function ETFMetricsTable() {
                   <span>Signal</span>
                 </div>
               </th>
+              <th className="text-center p-3 font-medium text-blue-300 min-w-[140px] bg-blue-900/20">
+                <div className="flex items-center justify-center gap-1">
+                  <Activity className="h-4 w-4" />
+                  <span>Multi-Horizon Z-Score</span>
+                </div>
+                <div className="text-xs text-gray-400 mt-1">ST/MT/LT/UL</div>
+              </th>
               <th className="text-center p-3 font-medium text-gray-300 min-w-[120px]">
                 <div className="flex items-center justify-center gap-1">
                   <Activity className="h-4 w-4" />
@@ -371,6 +383,56 @@ export default function ETFMetricsTable() {
                       <span className="text-xs text-gray-400 mt-1">
                         Z: {formatNumber(etf.zScoreData?.compositeZScore, 2)}
                       </span>
+                      {etf.zScoreData?.regimeAware && (
+                        <span className="text-xs bg-blue-900/50 text-blue-300 px-1 rounded mt-1">
+                          Multi-Horizon
+                        </span>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* Multi-Horizon Z-Score Analysis (New Feature) */}
+                  <td className="p-3 text-center bg-blue-900/20">
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs text-blue-300 font-semibold mb-1">Multi-Horizon Analysis</span>
+                      {etf.zScoreData?.regimeAware ? (
+                        <div className="grid grid-cols-2 gap-1 text-xs">
+                          <div className="text-left">
+                            <span className="text-gray-400">ST:</span> 
+                            <span className={`ml-1 ${
+                              (etf.zScoreData.shortTermZScore || 0) > 0 ? 'text-green-300' : 'text-red-300'
+                            }`}>
+                              {formatNumber(etf.zScoreData.shortTermZScore, 2)}
+                            </span>
+                          </div>
+                          <div className="text-left">
+                            <span className="text-gray-400">MT:</span> 
+                            <span className={`ml-1 ${
+                              (etf.zScoreData.mediumTermZScore || 0) > 0 ? 'text-green-300' : 'text-red-300'
+                            }`}>
+                              {formatNumber(etf.zScoreData.mediumTermZScore, 2)}
+                            </span>
+                          </div>
+                          <div className="text-left">
+                            <span className="text-gray-400">LT:</span> 
+                            <span className={`ml-1 ${
+                              (etf.zScoreData.longTermZScore || 0) > 0 ? 'text-green-300' : 'text-red-300'
+                            }`}>
+                              {formatNumber(etf.zScoreData.longTermZScore, 2)}
+                            </span>
+                          </div>
+                          <div className="text-left">
+                            <span className="text-gray-400">UL:</span> 
+                            <span className={`ml-1 ${
+                              (etf.zScoreData.ultraLongZScore || 0) > 0 ? 'text-green-300' : 'text-red-300'
+                            }`}>
+                              {formatNumber(etf.zScoreData.ultraLongZScore, 2)}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400">Legacy Analysis</span>
+                      )}
                     </div>
                   </td>
 

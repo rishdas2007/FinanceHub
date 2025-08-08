@@ -21,7 +21,7 @@ export interface ZScoreIndicators {
   priceChange: number | null;
   maTrend: number | null;
   
-  // Z-Score normalized indicators
+  // Multi-horizon Z-Score normalized indicators (leveraging 10-year dataset)
   rsiZScore: number | null;
   macdZScore: number | null;
   bollingerZScore: number | null;
@@ -29,10 +29,16 @@ export interface ZScoreIndicators {
   priceMomentumZScore: number | null;
   maTrendZScore: number | null;
   
-  // Composite signal
+  // Multi-horizon composite signals
   compositeZScore: number | null;
+  shortTermZScore: number | null;   // 63 days (3 months)
+  mediumTermZScore: number | null;  // 252 days (1 year)
+  longTermZScore: number | null;    // 756 days (3 years)
+  ultraLongZScore: number | null;   // 1260 days (5 years)
+  
   signal: 'BUY' | 'SELL' | 'HOLD';
   signalStrength: number | null;
+  regimeAware: boolean;
 }
 
 export interface ZScoreWeights {
@@ -57,12 +63,26 @@ class ZScoreTechnicalService {
     atr: 0.00            // Used as volatility modifier only
   };
   
-  // Optimized signal thresholds (Based on 11.2% → 20% actionable target)
-  private readonly BUY_THRESHOLD = 0.75;   // Optimized from 1.0 (40% more signals)
-  private readonly SELL_THRESHOLD = -0.75; // Optimized from -1.0 (better balance)
-  private readonly STRONG_BUY_THRESHOLD = 1.5;   // Optimized from 1.96
-  private readonly STRONG_SELL_THRESHOLD = -1.5; // Optimized from -1.96
-  private readonly ZSCORE_WINDOW = 63; // 3-month daily data (asset-class appropriate for ETFs)
+  // Multi-horizon analysis windows (leveraging 10-year dataset - 2,610 days available)
+  private readonly ZSCORE_WINDOWS = {
+    shortTerm: 63,     // 3 months (current)
+    mediumTerm: 252,   // 1 year (improved stability)
+    longTerm: 756,     // 3 years (regime-aware)
+    ultraLong: 1260,   // 5 years (ultra-stable)
+    maximum: 2520      // 10 years (full dataset)
+  };
+  
+  // Regime-aware signal thresholds
+  private readonly THRESHOLDS = {
+    // Short-term (higher sensitivity for trading signals)
+    shortTerm: { buy: 0.75, sell: -0.75, strongBuy: 1.5, strongSell: -1.5 },
+    // Medium-term (balanced stability and responsiveness)
+    mediumTerm: { buy: 1.0, sell: -1.0, strongBuy: 1.96, strongSell: -1.96 },
+    // Long-term (conservative, high confidence)
+    longTerm: { buy: 1.5, sell: -1.5, strongBuy: 2.58, strongSell: -2.58 },
+    // Ultra-long (institutional-grade signals)
+    ultraLong: { buy: 2.0, sell: -2.0, strongBuy: 3.0, strongSell: -3.0 }
+  };
   
   // Volatility regime detector for dynamic thresholds
   private readonly volatilityDetector = VolatilityRegimeDetector.getInstance();
@@ -75,7 +95,7 @@ class ZScoreTechnicalService {
   }
 
   /**
-   * Calculate Z-Score: (Current Value - Mean) / Standard Deviation
+   * Calculate Multi-Horizon Z-Score: (Current Value - Mean) / Standard Deviation
    * Returns null for invalid calculations to maintain statistical integrity
    */
   private calculateZScore(currentValue: number, mean: number, stdDev: number): number | null {
@@ -83,6 +103,44 @@ class ZScoreTechnicalService {
       return null; // Return null instead of 0 for invalid calculations
     }
     return (currentValue - mean) / stdDev;
+  }
+
+  /**
+   * Calculate multi-horizon z-scores for improved statistical stability
+   * Leverages 10-year dataset for institutional-grade analysis
+   */
+  private async calculateMultiHorizonZScores(
+    values: Array<{ date: Date; value: number }>,
+    currentValue: number
+  ): Promise<{
+    shortTerm: number | null;
+    mediumTerm: number | null; 
+    longTerm: number | null;
+    ultraLong: number | null;
+  }> {
+    const results = {
+      shortTerm: null as number | null,
+      mediumTerm: null as number | null,
+      longTerm: null as number | null,
+      ultraLong: null as number | null
+    };
+
+    // Calculate for each horizon if sufficient data available
+    for (const [horizon, window] of Object.entries(this.ZSCORE_WINDOWS)) {
+      if (horizon === 'maximum') continue; // Skip maximum, it's for reference
+      
+      if (values.length >= window) {
+        const recentValues = values.slice(-window).map(v => v.value);
+        const mean = recentValues.reduce((sum, val) => sum + val, 0) / window;
+        const variance = recentValues.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / Math.max(1, window - 1);
+        const stdDev = Math.sqrt(variance);
+        
+        const zScore = this.calculateZScore(currentValue, mean, stdDev);
+        results[horizon as keyof typeof results] = zScore;
+      }
+    }
+
+    return results;
   }
 
   /**
@@ -121,13 +179,13 @@ class ZScoreTechnicalService {
     strongSellThreshold: number;
   }> {
     try {
-      // Default to current static thresholds if no VIX available
+      // Default to medium-term thresholds if no VIX available
       if (!vixLevel) {
         return {
-          buyThreshold: this.BUY_THRESHOLD,
-          sellThreshold: this.SELL_THRESHOLD,
-          strongBuyThreshold: this.STRONG_BUY_THRESHOLD,
-          strongSellThreshold: this.STRONG_SELL_THRESHOLD
+          buyThreshold: this.THRESHOLDS.mediumTerm.buy,
+          sellThreshold: this.THRESHOLDS.mediumTerm.sell,
+          strongBuyThreshold: this.THRESHOLDS.mediumTerm.strongBuy,
+          strongSellThreshold: this.THRESHOLDS.mediumTerm.strongSell
         };
       }
 
@@ -150,21 +208,21 @@ class ZScoreTechnicalService {
             strongBuyThreshold: 2.0,
             strongSellThreshold: -2.0
           };
-        default:         // Normal/high volatility: Use optimized defaults
+        default:         // Normal/high volatility: Use medium-term thresholds
           return {
-            buyThreshold: this.BUY_THRESHOLD,
-            sellThreshold: this.SELL_THRESHOLD,
-            strongBuyThreshold: this.STRONG_BUY_THRESHOLD,
-            strongSellThreshold: this.STRONG_SELL_THRESHOLD
+            buyThreshold: this.THRESHOLDS.mediumTerm.buy,
+            sellThreshold: this.THRESHOLDS.mediumTerm.sell,
+            strongBuyThreshold: this.THRESHOLDS.mediumTerm.strongBuy,
+            strongSellThreshold: this.THRESHOLDS.mediumTerm.strongSell
           };
       }
     } catch (error) {
       logger.warn('Error getting volatility-adjusted thresholds, using defaults:', error);
       return {
-        buyThreshold: this.BUY_THRESHOLD,
-        sellThreshold: this.SELL_THRESHOLD,
-        strongBuyThreshold: this.STRONG_BUY_THRESHOLD,
-        strongSellThreshold: this.STRONG_SELL_THRESHOLD
+        buyThreshold: this.THRESHOLDS.mediumTerm.buy,
+        sellThreshold: this.THRESHOLDS.mediumTerm.sell,
+        strongBuyThreshold: this.THRESHOLDS.mediumTerm.strongBuy,
+        strongSellThreshold: this.THRESHOLDS.mediumTerm.strongSell
       };
     }
   }
@@ -201,9 +259,10 @@ class ZScoreTechnicalService {
   }
 
   /**
-   * Fetch historical technical indicators for Z-score calculation
+   * Fetch historical technical indicators for multi-horizon Z-score calculation
+   * Uses maximum available data from 10-year dataset for institutional-grade analysis
    */
-  private async getHistoricalTechnicalData(symbol: string, lookbackDays: number = 60): Promise<any[]> {
+  private async getHistoricalTechnicalData(symbol: string, lookbackDays: number = 2520): Promise<any[]> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - lookbackDays);
     
@@ -219,6 +278,7 @@ class ZScoreTechnicalService {
         )
         .orderBy(technicalIndicators.timestamp);
       
+      logger.info(`📊 Retrieved ${historicalData.length} technical records for ${symbol} (max ${lookbackDays} days)`);
       return historicalData;
     } catch (error) {
       logger.error(`Error fetching historical technical data for ${symbol}:`, error);
@@ -227,14 +287,15 @@ class ZScoreTechnicalService {
   }
 
   /**
-   * Calculate price momentum (daily returns)
+   * Calculate price momentum using full 10-year historical dataset
+   * Leverages excellent historical sector data for institutional-grade momentum analysis
    */
-  private async calculatePriceMomentum(symbol: string, lookbackDays: number = 60): Promise<Array<{ date: Date; priceChange: number }>> {
+  private async calculatePriceMomentum(symbol: string, lookbackDays: number = 2520): Promise<Array<{ date: Date; priceChange: number }>> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - lookbackDays);
     
     try {
-      // FIXED: Query historicalSectorData where we actually store ETF price data
+      // Use full historical sector data (excellent 10-year dataset)
       const priceData = await db
         .select({
           symbol: historicalSectorData.symbol,
@@ -251,12 +312,11 @@ class ZScoreTechnicalService {
         )
         .orderBy(historicalSectorData.date);
       
-      logger.info(`📊 Found ${priceData.length} price records for ${symbol} momentum calculation`);
+      logger.info(`📊 Retrieved ${priceData.length} price records for ${symbol} from 10-year dataset`);
       
       const momentum: Array<{ date: Date; priceChange: number }> = [];
       
       for (let i = 1; i < priceData.length; i++) {
-        // Use price field from historicalSectorData
         const currentPrice = parseFloat(priceData[i].price?.toString() || '0');
         const previousPrice = parseFloat(priceData[i - 1].price?.toString() || '0');
         
@@ -270,33 +330,30 @@ class ZScoreTechnicalService {
         }
       }
       
-      logger.info(`✅ Calculated ${momentum.length} price momentum points for ${symbol}`);
+      logger.info(`✅ Calculated ${momentum.length} momentum points from 10-year dataset for ${symbol}`);
       return momentum;
     } catch (error) {
       logger.error(`Error calculating price momentum for ${symbol}:`, error);
-      logger.error(`❌ Momentum calculation failed for ${symbol}. Error details:`, {
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        errorStack: error instanceof Error ? error.stack : 'No stack trace',
-        lookbackDays,
-        cutoffDate: cutoffDate.toISOString()
-      });
       return [];
     }
   }
 
   /**
-   * Process Z-Score calculations for a single ETF
+   * Process Multi-Horizon Z-Score calculations for a single ETF
+   * Leverages 10-year dataset for institutional-grade statistical analysis
    */
   public async processETFZScores(symbol: string): Promise<ZScoreIndicators | null> {
     try {
-      logger.info(`🔄 Processing Z-Score calculations for ${symbol}`);
+      logger.info(`🔄 Processing Multi-Horizon Z-Score calculations for ${symbol} using 10-year dataset`);
       
-      // Fetch historical technical indicators
+      // Fetch maximum historical technical indicators (up to 10 years)
       const historicalTech = await this.getHistoricalTechnicalData(symbol);
-      if (historicalTech.length < this.ZSCORE_WINDOW) {
-        logger.error(`Insufficient data for ${symbol}: ${historicalTech.length} records, minimum ${this.ZSCORE_WINDOW} required`);
-        return null; // Reject processing to prevent unreliable z-score calculations
+      if (historicalTech.length < this.ZSCORE_WINDOWS.shortTerm) {
+        logger.error(`Insufficient data for ${symbol}: ${historicalTech.length} records, minimum ${this.ZSCORE_WINDOWS.shortTerm} required`);
+        return null;
       }
+      
+      logger.info(`📊 Using ${historicalTech.length} technical records for ${symbol} multi-horizon analysis`);
 
       // Fetch price momentum data
       const priceMomentum = await this.calculatePriceMomentum(symbol);
@@ -332,31 +389,18 @@ class ZScoreTechnicalService {
           value: parseFloat(h.sma_20?.toString() || '0') - parseFloat(h.sma_50?.toString() || '0')
         }));
 
-      // DEBUG: Log data availability for troubleshooting
-      if (symbol === 'SPY' || maTrendValues.length < 5) {
-        logger.info(`🔍 MA Trend Data Check for ${symbol}:`, {
-          totalHistoricalRecords: historicalTech.length,
-          validMATrendRecords: maTrendValues.length,
-          requiredWindow: this.ZSCORE_WINDOW,
-          hasSufficientData: maTrendValues.length >= this.ZSCORE_WINDOW,
-          sampleData: maTrendValues.slice(-3).map(v => ({
-            date: v.date.toISOString().split('T')[0],
-            value: v.value
-          }))
-        });
-      }
+      // Log data availability for multi-horizon analysis
+      logger.info(`🔍 Multi-Horizon Data Check for ${symbol}:`, {
+        totalHistoricalRecords: historicalTech.length,
+        validMATrendRecords: maTrendValues.length,
+        shortTermWindow: this.ZSCORE_WINDOWS.shortTerm,
+        mediumTermWindow: this.ZSCORE_WINDOWS.mediumTerm,
+        longTermWindow: this.ZSCORE_WINDOWS.longTerm,
+        ultraLongWindow: this.ZSCORE_WINDOWS.ultraLong,
+        maxAvailable: Math.min(historicalTech.length, 2610) // 10-year dataset limit
+      });
 
       const priceChangeValues = priceMomentum.map(p => ({ date: p.date, value: p.priceChange }));
-
-      // Calculate rolling statistics for each indicator
-      const [rsiStats, macdStats, bollingerStats, atrStats, maTrendStats, priceStats] = await Promise.all([
-        this.calculateRollingStats(symbol, 'rsi', rsiValues),
-        this.calculateRollingStats(symbol, 'macd', macdValues),
-        this.calculateRollingStats(symbol, 'bollinger', percentBValues),
-        this.calculateRollingStats(symbol, 'atr', atrValues),
-        this.calculateRollingStats(symbol, 'ma_trend', maTrendValues),
-        this.calculateRollingStats(symbol, 'price_momentum', priceChangeValues)
-      ]);
 
       // Get current values
       const currentRsi = parseFloat(latest.rsi?.toString() || '0');
@@ -366,34 +410,23 @@ class ZScoreTechnicalService {
       const currentMaTrend = parseFloat(latest.sma_20?.toString() || '0') - parseFloat(latest.sma_50?.toString() || '0');
       const currentPriceChange = priceMomentum[priceMomentum.length - 1]?.priceChange || 0;
 
-      // Calculate Z-scores
-      const latestRsiStats = rsiStats[rsiStats.length - 1];
-      const latestMacdStats = macdStats[macdStats.length - 1];
-      const latestBollingerStats = bollingerStats[bollingerStats.length - 1];
-      const latestAtrStats = atrStats[atrStats.length - 1];
-      const latestMaTrendStats = maTrendStats[maTrendStats.length - 1];
-      const latestPriceStats = priceStats[priceStats.length - 1];
+      // Calculate multi-horizon z-scores for each indicator using 10-year dataset
+      const [rsiMultiHorizon, macdMultiHorizon, bollingerMultiHorizon, atrMultiHorizon, maTrendMultiHorizon, priceMultiHorizon] = await Promise.all([
+        this.calculateMultiHorizonZScores(rsiValues, currentRsi),
+        this.calculateMultiHorizonZScores(macdValues, currentMacd),
+        this.calculateMultiHorizonZScores(percentBValues, currentPercentB),
+        this.calculateMultiHorizonZScores(atrValues, currentAtr),
+        this.calculateMultiHorizonZScores(maTrendValues, currentMaTrend),
+        this.calculateMultiHorizonZScores(priceChangeValues, currentPriceChange)
+      ]);
 
-      const rsiZScore = latestRsiStats ? this.calculateZScore(currentRsi, latestRsiStats.mean, latestRsiStats.stdDev) : null;
-      const macdZScore = latestMacdStats ? this.calculateZScore(currentMacd, latestMacdStats.mean, latestMacdStats.stdDev) : null;
-      const bollingerZScore = latestBollingerStats ? this.calculateZScore(currentPercentB, latestBollingerStats.mean, latestBollingerStats.stdDev) : null;
-      const atrZScore = latestAtrStats ? this.calculateZScore(currentAtr, latestAtrStats.mean, latestAtrStats.stdDev) : null;
-      const maTrendZScore = latestMaTrendStats ? this.calculateZScore(currentMaTrend, latestMaTrendStats.mean, latestMaTrendStats.stdDev) : null;
-      
-      // Debug MA Trend calculation with immediate console output
-      console.log(`🔍 MA TREND DEBUG FOR ${symbol}:`);
-      console.log(`  Current SMA20: ${parseFloat(latest.sma_20?.toString() || '0')}`);
-      console.log(`  Current SMA50: ${parseFloat(latest.sma_50?.toString() || '0')}`);
-      console.log(`  Current MA Trend: ${currentMaTrend}`);
-      console.log(`  MA Trend Data Points: ${maTrendValues.length}`);
-      console.log(`  Has MA Trend Stats: ${latestMaTrendStats ? 'YES' : 'NO'}`);
-      if (latestMaTrendStats) {
-        console.log(`  MA Trend Mean: ${latestMaTrendStats.mean}`);
-        console.log(`  MA Trend StdDev: ${latestMaTrendStats.stdDev}`);
-      }
-      console.log(`  MA Trend Z-Score: ${maTrendZScore}`);
-      console.log(`  Sample Values:`, maTrendValues.slice(-3).map(v => v.value));
-      const priceMomentumZScore = latestPriceStats ? this.calculateZScore(currentPriceChange, latestPriceStats.mean, latestPriceStats.stdDev) : null;
+      // Use medium-term (1-year) z-scores as primary indicators for better stability
+      const rsiZScore = rsiMultiHorizon.mediumTerm || rsiMultiHorizon.shortTerm;
+      const macdZScore = macdMultiHorizon.mediumTerm || macdMultiHorizon.shortTerm;
+      const bollingerZScore = bollingerMultiHorizon.mediumTerm || bollingerMultiHorizon.shortTerm;
+      const atrZScore = atrMultiHorizon.mediumTerm || atrMultiHorizon.shortTerm;
+      const maTrendZScore = maTrendMultiHorizon.mediumTerm || maTrendMultiHorizon.shortTerm;
+      const priceMomentumZScore = priceMultiHorizon.mediumTerm || priceMultiHorizon.shortTerm;
 
       // Calculate composite Z-score with weights and directional corrections
       const rawCompositeZScore = (
@@ -409,15 +442,46 @@ class ZScoreTechnicalService {
       // Apply ATR as volatility signal strength modifier instead of directional component
       const compositeZScore = this.applyAtrModifier(rawCompositeZScore, atrZScore);
 
-      // Get volatility-adjusted thresholds (async, will fallback to static if VIX unavailable)
-      const thresholds = await this.getVolatilityAdjustedThresholds();
+      // Calculate multi-horizon composite scores
+      const shortTermComposite = (
+        (rsiMultiHorizon.shortTerm !== null ? this.weights.rsi * this.zscoreToSignal(rsiMultiHorizon.shortTerm) : 0) +
+        (macdMultiHorizon.shortTerm !== null ? this.weights.macd * this.zscoreToSignal(macdMultiHorizon.shortTerm) : 0) +
+        (bollingerMultiHorizon.shortTerm !== null ? this.weights.bollinger * this.zscoreToSignal(-bollingerMultiHorizon.shortTerm) : 0) +
+        (maTrendMultiHorizon.shortTerm !== null ? this.weights.maTrend * this.zscoreToSignal(maTrendMultiHorizon.shortTerm) : 0) +
+        (priceMultiHorizon.shortTerm !== null ? this.weights.priceMomentum * this.zscoreToSignal(priceMultiHorizon.shortTerm) : 0)
+      );
 
-      // Generate optimized signal with dynamic thresholds
+      const mediumTermComposite = (
+        (rsiMultiHorizon.mediumTerm !== null ? this.weights.rsi * this.zscoreToSignal(rsiMultiHorizon.mediumTerm) : 0) +
+        (macdMultiHorizon.mediumTerm !== null ? this.weights.macd * this.zscoreToSignal(macdMultiHorizon.mediumTerm) : 0) +
+        (bollingerMultiHorizon.mediumTerm !== null ? this.weights.bollinger * this.zscoreToSignal(-bollingerMultiHorizon.mediumTerm) : 0) +
+        (maTrendMultiHorizon.mediumTerm !== null ? this.weights.maTrend * this.zscoreToSignal(maTrendMultiHorizon.mediumTerm) : 0) +
+        (priceMultiHorizon.mediumTerm !== null ? this.weights.priceMomentum * this.zscoreToSignal(priceMultiHorizon.mediumTerm) : 0)
+      );
+
+      const longTermComposite = (
+        (rsiMultiHorizon.longTerm !== null ? this.weights.rsi * this.zscoreToSignal(rsiMultiHorizon.longTerm) : 0) +
+        (macdMultiHorizon.longTerm !== null ? this.weights.macd * this.zscoreToSignal(macdMultiHorizon.longTerm) : 0) +
+        (bollingerMultiHorizon.longTerm !== null ? this.weights.bollinger * this.zscoreToSignal(-bollingerMultiHorizon.longTerm) : 0) +
+        (maTrendMultiHorizon.longTerm !== null ? this.weights.maTrend * this.zscoreToSignal(maTrendMultiHorizon.longTerm) : 0) +
+        (priceMultiHorizon.longTerm !== null ? this.weights.priceMomentum * this.zscoreToSignal(priceMultiHorizon.longTerm) : 0)
+      );
+
+      const ultraLongComposite = (
+        (rsiMultiHorizon.ultraLong !== null ? this.weights.rsi * this.zscoreToSignal(rsiMultiHorizon.ultraLong) : 0) +
+        (macdMultiHorizon.ultraLong !== null ? this.weights.macd * this.zscoreToSignal(macdMultiHorizon.ultraLong) : 0) +
+        (bollingerMultiHorizon.ultraLong !== null ? this.weights.bollinger * this.zscoreToSignal(-bollingerMultiHorizon.ultraLong) : 0) +
+        (maTrendMultiHorizon.ultraLong !== null ? this.weights.maTrend * this.zscoreToSignal(maTrendMultiHorizon.ultraLong) : 0) +
+        (priceMultiHorizon.ultraLong !== null ? this.weights.priceMomentum * this.zscoreToSignal(priceMultiHorizon.ultraLong) : 0)
+      );
+
+      // Use medium-term thresholds for primary signal generation (balanced stability/responsiveness)
+      const thresholds = this.THRESHOLDS.mediumTerm;
       let signal: 'BUY' | 'SELL' | 'HOLD' = 'HOLD';
-      if (compositeZScore >= thresholds.strongBuyThreshold) signal = 'BUY';      // Strong BUY
-      else if (compositeZScore >= thresholds.buyThreshold) signal = 'BUY';       // Regular BUY
-      else if (compositeZScore <= thresholds.strongSellThreshold) signal = 'SELL'; // Strong SELL
-      else if (compositeZScore <= thresholds.sellThreshold) signal = 'SELL';      // Regular SELL
+      if (compositeZScore >= thresholds.strongBuy) signal = 'BUY';
+      else if (compositeZScore >= thresholds.buy) signal = 'BUY';
+      else if (compositeZScore <= thresholds.strongSell) signal = 'SELL';
+      else if (compositeZScore <= thresholds.sell) signal = 'SELL';
 
       const result: ZScoreIndicators = {
         symbol,
@@ -431,7 +495,7 @@ class ZScoreTechnicalService {
         priceChange: currentPriceChange,
         maTrend: currentMaTrend,
         
-        // Z-Score normalized indicators
+        // Z-Score normalized indicators (using medium-term for stability)
         rsiZScore,
         macdZScore,
         bollingerZScore,
@@ -439,10 +503,16 @@ class ZScoreTechnicalService {
         priceMomentumZScore,
         maTrendZScore,
         
-        // Composite signal
+        // Multi-horizon composite signals (institutional-grade analysis)
         compositeZScore,
+        shortTermZScore: shortTermComposite,
+        mediumTermZScore: mediumTermComposite,
+        longTermZScore: longTermComposite,
+        ultraLongZScore: ultraLongComposite,
+        
         signal,
-        signalStrength: Math.abs(compositeZScore)
+        signalStrength: Math.abs(compositeZScore),
+        regimeAware: true // Indicates this uses multi-horizon regime-aware analysis
       };
 
       // Store in database
@@ -458,7 +528,7 @@ class ZScoreTechnicalService {
   }
 
   /**
-   * Store Z-score data in database
+   * Store Multi-Horizon Z-score data in database
    */
   private async storeZScoreData(data: ZScoreIndicators): Promise<void> {
     try {
@@ -482,17 +552,28 @@ class ZScoreTechnicalService {
         priceMomentumZScore: data.priceMomentumZScore?.toString(),
         maTrendZScore: data.maTrendZScore?.toString(),
         
-        // Composite signal
+        // Multi-horizon composite signals (institutional-grade)
         compositeZScore: data.compositeZScore?.toString(),
+        shortTermZScore: data.shortTermZScore?.toString(),
+        mediumTermZScore: data.mediumTermZScore?.toString(),
+        longTermZScore: data.longTermZScore?.toString(),
+        ultraLongZScore: data.ultraLongZScore?.toString(),
+        
         signal: data.signal,
-        signalStrength: data.signalStrength?.toString()
+        signalStrength: data.signalStrength?.toString(),
+        regimeAware: data.regimeAware
       })
       .onConflictDoUpdate({
         target: [zscoreTechnicalIndicators.symbol, zscoreTechnicalIndicators.date],
         set: {
           compositeZScore: data.compositeZScore?.toString(),
+          shortTermZScore: data.shortTermZScore?.toString(),
+          mediumTermZScore: data.mediumTermZScore?.toString(),
+          longTermZScore: data.longTermZScore?.toString(),
+          ultraLongZScore: data.ultraLongZScore?.toString(),
           signal: data.signal,
           signalStrength: data.signalStrength?.toString(),
+          regimeAware: data.regimeAware,
           updatedAt: new Date()
         }
       });
@@ -557,10 +638,16 @@ class ZScoreTechnicalService {
         priceMomentumZScore: data.priceMomentumZScore ? parseFloat(data.priceMomentumZScore.toString()) : null,
         maTrendZScore: data.maTrendZScore ? parseFloat(data.maTrendZScore.toString()) : null,
         
-        // Composite signal
+        // Multi-horizon composite signals (institutional-grade analysis)
         compositeZScore: data.compositeZScore ? parseFloat(data.compositeZScore.toString()) : null,
+        shortTermZScore: data.shortTermZScore ? parseFloat(data.shortTermZScore.toString()) : null,
+        mediumTermZScore: data.mediumTermZScore ? parseFloat(data.mediumTermZScore.toString()) : null,
+        longTermZScore: data.longTermZScore ? parseFloat(data.longTermZScore.toString()) : null,
+        ultraLongZScore: data.ultraLongZScore ? parseFloat(data.ultraLongZScore.toString()) : null,
+        
         signal: data.signal as 'BUY' | 'SELL' | 'HOLD',
-        signalStrength: data.signalStrength ? parseFloat(data.signalStrength.toString()) : null
+        signalStrength: data.signalStrength ? parseFloat(data.signalStrength.toString()) : null,
+        regimeAware: data.regimeAware || false
       };
       
     } catch (error) {

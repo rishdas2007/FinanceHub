@@ -15,7 +15,7 @@ export interface ETFMetrics {
   weightedScore: number | null;
   weightedSignal: string | null;
   
-  // Z-Score indicators
+  // Multi-Horizon Z-Score indicators (institutional-grade analysis)
   zScoreData: {
     rsiZScore: number | null;
     macdZScore: number | null;
@@ -24,7 +24,12 @@ export interface ETFMetrics {
     priceMomentumZScore: number | null;
     maTrendZScore: number | null;
     compositeZScore: number | null;
+    shortTermZScore: number | null;    // 63-day horizon
+    mediumTermZScore: number | null;   // 252-day horizon
+    longTermZScore: number | null;     // 756-day horizon
+    ultraLongZScore: number | null;    // 1260-day horizon
     signal: string | null;
+    regimeAware: boolean | null;       // Indicates multi-horizon analysis
   } | null;
   
   // Bollinger Bands & Position/Squeeze
@@ -149,7 +154,7 @@ class ETFMetricsService {
       // 4. OPTIMIZED: Parallel ETF metrics consolidation
       const consolidationTimeout = 1000; // 1s timeout for consolidation
       const etfMetrics = await Promise.race([
-        this.consolidateETFMetricsParallel(dbTechnicals, dbZScoreData, momentumData),
+        this.consolidateETFMetricsParallel(dbTechnicals as Map<string, any>, dbZScoreData as Map<string, any>, momentumData),
         new Promise<ETFMetrics[]>((_, reject) => 
           setTimeout(() => reject(new Error('Consolidation timeout')), consolidationTimeout)
         )
@@ -612,7 +617,12 @@ class ETFMetricsService {
           priceMomentumZScore: zScoreData.priceMomentumZScore,
           maTrendZScore: zScoreData.maTrendZScore,
           compositeZScore: zScoreData.compositeZScore,
-          signal: zScoreData.signal
+          shortTermZScore: zScoreData.shortTermZScore,
+          mediumTermZScore: zScoreData.mediumTermZScore,
+          longTermZScore: zScoreData.longTermZScore,
+          ultraLongZScore: zScoreData.ultraLongZScore,
+          signal: zScoreData.signal,
+          regimeAware: zScoreData.regimeAware
         }
       };
     }
@@ -814,7 +824,12 @@ class ETFMetricsService {
       priceMomentumZScore: safeParseFloat(zscore.priceMomentumZScore),
       maTrendZScore: safeParseFloat(zscore.maTrendZScore),
       compositeZScore: safeParseFloat(zscore.compositeZScore),
-      signal: zscore.signal || 'HOLD'
+      shortTermZScore: safeParseFloat(zscore.shortTermZScore),
+      mediumTermZScore: safeParseFloat(zscore.mediumTermZScore),
+      longTermZScore: safeParseFloat(zscore.longTermZScore),
+      ultraLongZScore: safeParseFloat(zscore.ultraLongZScore),
+      signal: zscore.signal || 'HOLD',
+      regimeAware: zscore.regimeAware || false
     };
   }
 
