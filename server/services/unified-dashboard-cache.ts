@@ -179,7 +179,8 @@ export class UnifiedDashboardCache {
 
   private async fetchMomentumData(): Promise<any> {
     try {
-      const response = await fetch('http://localhost:5000/api/momentum-analysis');
+      const { API_URLS } = await import('../config/api-config');
+      const response = await fetch(API_URLS.MOMENTUM_ANALYSIS);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return await response.json();
     } catch (error) {
@@ -191,7 +192,8 @@ export class UnifiedDashboardCache {
   private async fetchTechnicalData(): Promise<UnifiedDashboardData['technicalData']> {
     try {
       // Fetch VIX from stocks API
-      const vixResponse = await fetch('http://localhost:5000/api/stocks/VIX');
+      const { API_URLS } = await import('../config/api-config');
+      const vixResponse = await fetch(API_URLS.VIX_STOCKS);
       let vix = 16.2; // fallback
       if (vixResponse.ok) {
         const vixData = await vixResponse.json();
@@ -199,7 +201,7 @@ export class UnifiedDashboardCache {
       }
 
       // Fetch ADX from technical indicators
-      const techResponse = await fetch('http://localhost:5000/api/technical/SPY');
+      const techResponse = await fetch(API_URLS.TECHNICAL_SPY);
       let adx = 31.27; // fallback
       if (techResponse.ok) {
         const techData = await techResponse.json();

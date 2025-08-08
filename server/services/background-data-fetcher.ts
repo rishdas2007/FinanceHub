@@ -33,7 +33,8 @@ export class BackgroundDataFetcher {
         logger.info(`📈 Fetching momentum data (attempt ${retryCount + 1})`);
         
         const fetch = (await import('node-fetch')).default;
-        const response = await fetch('http://localhost:5000/api/momentum-analysis', {
+        const { API_URLS } = await import('../config/api-config');
+        const response = await fetch(API_URLS.MOMENTUM_ANALYSIS, {
           timeout: 10000
         } as any);
 

@@ -133,7 +133,8 @@ class FinancialMoodService {
       } else {
         log.info('⏳ No cached momentum data found, waiting for momentum analysis to complete first...');
         // Wait longer for momentum data since it's the primary dependency
-        const momentumResponse = await fetch('http://localhost:5000/api/momentum-analysis', {
+        const { API_URLS } = await import('../config/api-config');
+        const momentumResponse = await fetch(API_URLS.MOMENTUM_ANALYSIS, {
           timeout: 5000  // Increased timeout to wait for momentum data
         } as any);
         
@@ -223,7 +224,8 @@ class FinancialMoodService {
       }
       
       // Fetch fresh economic data from existing API
-      const economicResponse = await fetch('http://localhost:5000/api/recent-economic-openai', {
+      const { API_URLS } = await import('../config/api-config');
+      const economicResponse = await fetch(API_URLS.ECONOMIC_OPENAI, {
         timeout: 3000
       } as any);
       
@@ -244,7 +246,8 @@ class FinancialMoodService {
   private async getRealTechnicalData(): Promise<any> {
     try {
       // Fetch RSI from momentum analysis for consistency
-      const momentumResponse = await fetch('http://localhost:5000/api/momentum-analysis', {
+      const { API_URLS } = await import('../config/api-config');
+      const momentumResponse = await fetch(API_URLS.MOMENTUM_ANALYSIS, {
         timeout: 2000
       } as any);
       

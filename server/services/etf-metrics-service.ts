@@ -251,7 +251,8 @@ class ETFMetricsService {
     try {
       // First, try to get fresh momentum data by making an API call to the momentum endpoint
       try {
-        const response = await fetch('http://localhost:5000/api/momentum-analysis');
+        const { API_URLS } = await import('../config/api-config');
+        const response = await fetch(API_URLS.MOMENTUM_ANALYSIS);
         if (response.ok) {
           const data = await response.json();
           if ((data as any).momentumStrategies && Array.isArray((data as any).momentumStrategies)) {
