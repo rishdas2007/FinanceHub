@@ -539,6 +539,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(getApiStats());
   });
 
+  // Test endpoint to debug 30-day trend calculation
+  app.get('/api/test-30day-trend/:symbol', async (req, res) => {
+    try {
+      const { symbol } = req.params;
+      const { etfTrendCalculator } = await import('./services/etf-trend-calculator');
+      
+      console.log(`🔍 Testing 30-day trend calculation for ${symbol}`);
+      
+      // Get detailed analysis
+      const analysis = await etfTrendCalculator.getTrendAnalysis(symbol);
+      const trend = await etfTrendCalculator.calculate30DayTrend(symbol);
+      
+      res.json({
+        success: true,
+        symbol,
+        trend: trend,
+        analysis: analysis,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('30-day trend test error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to calculate trend',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // Historical Economic Indicators Routes removed (FRED eliminated)
   app.post("/api/historical-economic-indicators/update", async (req, res) => {
     res.json({
