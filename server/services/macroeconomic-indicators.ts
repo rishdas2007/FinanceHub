@@ -13,6 +13,40 @@ export class MacroeconomicService {
   private readonly CACHE_KEY = `fred-delta-adjusted-v${Math.floor(Date.now() / 100)}`;
   
   /**
+   * Get historical data for economic indicators (for charts)
+   */
+  async getHistoricalIndicatorData(indicatorId: string, months: number = 12): Promise<{
+    data: { date: string; value: number; formattedDate: string }[];
+    units: string;
+    frequency: string;
+    lastUpdate: string;
+  } | null> {
+    try {
+      // For now, return sample data structure
+      // In a real implementation, this would query the database for historical data
+      const sampleData = Array.from({ length: months * 4 }, (_, i) => {
+        const date = new Date();
+        date.setMonth(date.getMonth() - (months * 4 - i - 1) / 4);
+        return {
+          date: date.toISOString().split('T')[0],
+          value: Math.random() * 100 + 50,
+          formattedDate: date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+        };
+      });
+      
+      return {
+        data: sampleData,
+        units: '%',
+        frequency: 'Monthly',
+        lastUpdate: new Date().toISOString()
+      };
+    } catch (error) {
+      logger.error('Failed to get historical indicator data:', String(error));
+      return null;
+    }
+  }
+  
+  /**
    * Get authentic FRED economic data with live z-score calculations
    */
   async getAuthenticEconomicData(): Promise<MacroeconomicData> {

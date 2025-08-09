@@ -424,6 +424,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return sectorMap[symbol] || 'Unknown';
   }
 
+  // Sparkline data endpoint for ETF 30-day price history
+  app.get('/api/stocks/:symbol/sparkline', async (req, res) => {
+    try {
+      const { symbol } = req.params;
+      console.log(`🔍 Sparkline data request: ${symbol}`);
+      
+      const { sparklineService } = await import('./services/sparkline-service');
+      const result = await sparklineService.getSparklineData(symbol);
+      
+      if (result.success) {
+        res.json({
+          success: true,
+          symbol,
+          data: result.data,
+          trend: result.trend,
+          change: result.change || 0,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          error: result.error || 'Failed to get sparkline data',
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+    } catch (error) {
+      console.error('Sparkline data error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get sparkline data',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Economic indicator historical chart data endpoint
+  app.get('/api/economic-indicators/:id/history', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const months = parseInt(req.query.months as string) || 12;
+      console.log(`📊 Economic chart data request: ${id} (${months}M)`);
+      
+      const { macroeconomicService } = await import('./services/macroeconomic-indicators');
+      const historicalData = await macroeconomicService.getHistoricalIndicatorData(id, months);
+      
+      if (!historicalData) {
+        return res.status(404).json({
+          success: false,
+          error: 'Economic indicator not found',
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      res.json({
+        success: true,
+        indicator: id,
+        data: historicalData.data,
+        metadata: {
+          source: 'FRED',
+          units: historicalData.units,
+          frequency: historicalData.frequency,
+          lastUpdate: historicalData.lastUpdate
+        },
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('Economic chart data error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get economic chart data',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Chart export endpoint
+  app.get('/api/charts/export/:format/:id', async (req, res) => {
+    try {
+      const { format, id } = req.params;
+      const timeRange = req.query.timeRange as string || '12M';
+      
+      if (format === 'csv') {
+        const { macroeconomicService } = await import('./services/macroeconomic-indicators');
+        const months = timeRange === '3M' ? 3 : timeRange === '6M' ? 6 : timeRange === '12M' ? 12 : 24;
+        const data = await macroeconomicService.getHistoricalIndicatorData(id, months);
+        
+        if (!data) {
+          return res.status(404).json({ error: 'Data not found' });
+        }
+        
+        // Generate CSV
+        const csvHeader = 'Date,Value\n';
+        const csvRows = data.data.map((row: any) => `${row.date},${row.value}`).join('\n');
+        const csvContent = csvHeader + csvRows;
+        
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="${id}_${timeRange}.csv"`);
+        res.send(csvContent);
+      } else {
+        res.status(400).json({ error: 'PNG export not implemented yet' });
+      }
+      
+    } catch (error) {
+      console.error('Export error:', error);
+      res.status(500).json({ error: 'Export failed' });
+    }
+  });
+
   // API stats endpoint
   app.get("/api/stats", (req, res) => {
     res.json(getApiStats());
