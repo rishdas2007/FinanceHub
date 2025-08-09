@@ -1,0 +1,877 @@
+metric_name,series_id,type,category,unit,frequency,value,period_date
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,100.633,2015-09-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,100.1563,2015-10-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,99.4366,2015-11-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,98.9471,2015-12-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,99.4391,2016-01-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,98.9232,2016-02-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,98.1635,2016-03-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,98.4775,2016-04-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,98.2549,2016-05-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,98.7315,2016-06-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,98.8452,2016-07-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,98.7427,2016-08-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,98.6552,2016-09-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,98.7237,2016-10-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,98.3443,2016-11-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,99.0406,2016-12-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,98.8158,2017-01-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,98.4356,2017-02-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,99.0492,2017-03-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,100.0416,2017-04-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,100.128,2017-05-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,100.337,2017-06-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,100.0865,2017-07-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,99.6323,2017-08-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,99.7482,2017-09-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,100.9893,2017-10-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,101.2493,2017-11-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,101.4871,2017-12-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,101.4852,2018-01-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,101.7319,2018-02-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.1943,2018-03-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.3551,2018-04-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.381,2018-05-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.2256,2018-06-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.3561,2018-07-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,104.0585,2018-08-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,104.1038,2018-09-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.9297,2018-10-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,104.0126,2018-11-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,104.0451,2018-12-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.3598,2019-01-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.8251,2019-02-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.8361,2019-03-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.2748,2019-04-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.4176,2019-05-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.5425,2019-06-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.0057,2019-07-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.7814,2019-08-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.4601,2019-09-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,101.5878,2019-10-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.1494,2019-11-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,101.9421,2019-12-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,101.3372,2020-01-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,101.6718,2020-02-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,97.606,2020-03-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,84.6812,2020-04-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,86.0108,2020-05-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,91.6745,2020-06-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,95.0037,2020-07-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,95.9294,2020-08-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,95.8914,2020-09-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,96.5256,2020-10-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,96.9529,2020-11-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,98.2039,2020-12-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,98.8135,2021-01-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,95.5072,2021-02-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,98.1929,2021-03-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,98.3317,2021-04-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,99.1867,2021-05-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,99.6483,2021-06-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,100.0668,2021-07-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,100.0412,2021-08-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,98.9955,2021-09-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,100.3542,2021-10-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,101.2684,2021-11-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,101.1948,2021-12-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,101.2146,2022-01-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,101.8458,2022-02-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.6732,2022-03-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.9024,2022-04-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.9659,2022-05-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.8224,2022-06-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.0505,2022-07-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.1703,2022-08-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.5326,2022-09-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.4442,2022-10-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.1058,2022-11-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,101.8266,2022-12-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.7476,2023-01-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.8003,2023-02-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.8143,2023-03-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.2241,2023-04-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.9809,2023-05-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.3809,2023-06-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.0722,2023-07-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.0951,2023-08-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.3081,2023-09-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.5781,2023-10-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.8868,2023-11-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.6309,2023-12-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,101.483,2024-01-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.7267,2024-02-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.5186,2024-03-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.3568,2024-04-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.9797,2024-05-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.2534,2024-06-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.5192,2024-07-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.0196,2024-08-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.5954,2024-09-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.2138,2024-10-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,101.9503,2024-11-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.0447,2024-12-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,102.8805,2025-01-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.9397,2025-02-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.6682,2025-03-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.6912,2025-04-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,103.6602,2025-05-01
+Industrial Production Index,INDPRO,coincident,Growth,Index 2017=100,Monthly,104.0071,2025-06-01
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,279000.0,2015-08-15
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,274000.0,2015-08-22
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,279000.0,2015-08-29
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,273000.0,2015-09-05
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,264000.0,2015-09-12
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,269000.0,2015-09-19
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,272000.0,2015-09-26
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,267000.0,2015-10-03
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,265000.0,2015-10-10
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,264000.0,2015-10-17
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,264000.0,2015-10-24
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,275000.0,2015-10-31
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,276000.0,2015-11-07
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,272000.0,2015-11-14
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,261000.0,2015-11-21
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,265000.0,2015-11-28
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,280000.0,2015-12-05
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,268000.0,2015-12-12
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,260000.0,2015-12-19
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,276000.0,2015-12-26
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,273000.0,2016-01-02
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,284000.0,2016-01-09
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,290000.0,2016-01-16
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,269000.0,2016-01-23
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,282000.0,2016-01-30
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,266000.0,2016-02-06
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,262000.0,2016-02-13
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,270000.0,2016-02-20
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,269000.0,2016-02-27
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,255000.0,2016-03-05
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,263000.0,2016-03-12
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,264000.0,2016-03-19
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,271000.0,2016-03-26
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,273000.0,2016-04-02
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,263000.0,2016-04-09
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,257000.0,2016-04-16
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,259000.0,2016-04-23
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,278000.0,2016-04-30
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,289000.0,2016-05-07
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,279000.0,2016-05-14
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,267000.0,2016-05-21
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,263000.0,2016-05-28
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,265000.0,2016-06-04
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,273000.0,2016-06-11
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,261000.0,2016-06-18
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,262000.0,2016-06-25
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,255000.0,2016-07-02
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,252000.0,2016-07-09
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,260000.0,2016-07-16
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,264000.0,2016-07-23
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,266000.0,2016-07-30
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,265000.0,2016-08-06
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,264000.0,2016-08-13
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,264000.0,2016-08-20
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,261000.0,2016-08-27
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,257000.0,2016-09-03
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,252000.0,2016-09-10
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,250000.0,2016-09-17
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,247000.0,2016-09-24
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,245000.0,2016-10-01
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,250000.0,2016-10-08
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,263000.0,2016-10-15
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,256000.0,2016-10-22
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,265000.0,2016-10-29
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,250000.0,2016-11-05
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,232000.0,2016-11-12
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,246000.0,2016-11-19
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,255000.0,2016-11-26
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,248000.0,2016-12-03
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,252000.0,2016-12-10
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,260000.0,2016-12-17
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,257000.0,2016-12-24
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,244000.0,2016-12-31
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,245000.0,2017-01-07
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,240000.0,2017-01-14
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,250000.0,2017-01-21
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,241000.0,2017-01-28
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,230000.0,2017-02-04
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,233000.0,2017-02-11
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,237000.0,2017-02-18
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,221000.0,2017-02-25
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,236000.0,2017-03-04
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,228000.0,2017-03-11
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,235000.0,2017-03-18
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,236000.0,2017-03-25
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,216000.0,2017-04-01
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,222000.0,2017-04-08
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,231000.0,2017-04-15
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,238000.0,2017-04-22
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,232000.0,2017-04-29
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,233000.0,2017-05-06
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,234000.0,2017-05-13
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,236000.0,2017-05-20
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,253000.0,2017-05-27
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,251000.0,2017-06-03
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,245000.0,2017-06-10
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,249000.0,2017-06-17
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,247000.0,2017-06-24
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,256000.0,2017-07-01
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,259000.0,2017-07-08
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,245000.0,2017-07-15
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,249000.0,2017-07-22
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,245000.0,2017-07-29
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,254000.0,2017-08-05
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,245000.0,2017-08-12
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,245000.0,2017-08-19
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,247000.0,2017-08-26
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,297000.0,2017-09-02
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,280000.0,2017-09-09
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,261000.0,2017-09-16
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,264000.0,2017-09-23
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,260000.0,2017-09-30
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,252000.0,2017-10-07
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,235000.0,2017-10-14
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,241000.0,2017-10-21
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,241000.0,2017-10-28
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,248000.0,2017-11-04
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,254000.0,2017-11-11
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,246000.0,2017-11-18
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,243000.0,2017-11-25
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,241000.0,2017-12-02
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,229000.0,2017-12-09
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,244000.0,2017-12-16
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,251000.0,2017-12-23
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,248000.0,2017-12-30
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,252000.0,2018-01-06
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,230000.0,2018-01-13
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,231000.0,2018-01-20
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,228000.0,2018-01-27
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,224000.0,2018-02-03
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,225000.0,2018-02-10
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,219000.0,2018-02-17
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,216000.0,2018-02-24
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,228000.0,2018-03-03
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,223000.0,2018-03-10
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,225000.0,2018-03-17
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,221000.0,2018-03-24
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,232000.0,2018-03-31
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,234000.0,2018-04-07
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,236000.0,2018-04-14
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,207000.0,2018-04-21
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,209000.0,2018-04-28
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,211000.0,2018-05-05
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,222000.0,2018-05-12
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,230000.0,2018-05-19
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,222000.0,2018-05-26
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,223000.0,2018-06-02
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,222000.0,2018-06-09
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,218000.0,2018-06-16
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,222000.0,2018-06-23
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,228000.0,2018-06-30
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,216000.0,2018-07-07
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,205000.0,2018-07-14
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,210000.0,2018-07-21
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,207000.0,2018-07-28
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,210000.0,2018-08-04
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,206000.0,2018-08-11
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,207000.0,2018-08-18
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,211000.0,2018-08-25
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,201000.0,2018-09-01
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,204000.0,2018-09-08
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,206000.0,2018-09-15
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,205000.0,2018-09-22
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,210000.0,2018-09-29
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,211000.0,2018-10-06
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,208000.0,2018-10-13
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,217000.0,2018-10-20
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,216000.0,2018-10-27
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,218000.0,2018-11-03
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,221000.0,2018-11-10
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,225000.0,2018-11-17
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,237000.0,2018-11-24
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,232000.0,2018-12-01
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,208000.0,2018-12-08
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,217000.0,2018-12-15
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,228000.0,2018-12-22
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,238000.0,2018-12-29
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,225000.0,2019-01-05
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,218000.0,2019-01-12
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,214000.0,2019-01-19
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,234000.0,2019-01-26
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,232000.0,2019-02-02
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,226000.0,2019-02-09
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,211000.0,2019-02-16
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,221000.0,2019-02-23
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,216000.0,2019-03-02
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,218000.0,2019-03-09
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,212000.0,2019-03-16
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,210000.0,2019-03-23
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,203000.0,2019-03-30
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,196000.0,2019-04-06
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,197000.0,2019-04-13
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,222000.0,2019-04-20
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,224000.0,2019-04-27
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,225000.0,2019-05-04
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,212000.0,2019-05-11
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,215000.0,2019-05-18
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,222000.0,2019-05-25
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,223000.0,2019-06-01
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,226000.0,2019-06-08
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,217000.0,2019-06-15
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,234000.0,2019-06-22
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,226000.0,2019-06-29
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,215000.0,2019-07-06
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,211000.0,2019-07-13
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,202000.0,2019-07-20
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,206000.0,2019-07-27
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,208000.0,2019-08-03
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,212000.0,2019-08-10
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,207000.0,2019-08-17
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,213000.0,2019-08-24
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,215000.0,2019-08-31
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,207000.0,2019-09-07
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,205000.0,2019-09-14
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,211000.0,2019-09-21
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,215000.0,2019-09-28
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,209000.0,2019-10-05
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,215000.0,2019-10-12
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,210000.0,2019-10-19
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,215000.0,2019-10-26
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,214000.0,2019-11-02
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,227000.0,2019-11-09
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,229000.0,2019-11-16
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,221000.0,2019-11-23
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,231000.0,2019-11-30
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,247000.0,2019-12-07
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,236000.0,2019-12-14
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,230000.0,2019-12-21
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,231000.0,2019-12-28
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,224000.0,2020-01-04
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,207000.0,2020-01-11
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,221000.0,2020-01-18
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,210000.0,2020-01-25
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,207000.0,2020-02-01
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,202000.0,2020-02-08
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,209000.0,2020-02-15
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,218000.0,2020-02-22
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,215000.0,2020-02-29
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,208000.0,2020-03-07
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,273000.0,2020-03-14
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,2914000.0,2020-03-21
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,5946000.0,2020-03-28
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,6137000.0,2020-04-04
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,4869000.0,2020-04-11
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,4201000.0,2020-04-18
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,3446000.0,2020-04-25
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,2796000.0,2020-05-02
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,2335000.0,2020-05-09
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,2176000.0,2020-05-16
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,1921000.0,2020-05-23
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,1639000.0,2020-05-30
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,1575000.0,2020-06-06
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,1473000.0,2020-06-13
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,1467000.0,2020-06-20
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,1446000.0,2020-06-27
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,1413000.0,2020-07-04
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,1468000.0,2020-07-11
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,1393000.0,2020-07-18
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,1260000.0,2020-07-25
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,1044000.0,2020-08-01
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,884000.0,2020-08-08
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,927000.0,2020-08-15
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,876000.0,2020-08-22
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,881000.0,2020-08-29
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,892000.0,2020-09-05
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,861000.0,2020-09-12
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,859000.0,2020-09-19
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,795000.0,2020-09-26
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,785000.0,2020-10-03
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,839000.0,2020-10-10
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,804000.0,2020-10-17
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,776000.0,2020-10-24
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,773000.0,2020-10-31
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,737000.0,2020-11-07
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,738000.0,2020-11-14
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,793000.0,2020-11-21
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,737000.0,2020-11-28
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,873000.0,2020-12-05
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,886000.0,2020-12-12
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,815000.0,2020-12-19
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,773000.0,2020-12-26
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,803000.0,2021-01-02
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,890000.0,2021-01-09
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,844000.0,2021-01-16
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,799000.0,2021-01-23
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,803000.0,2021-01-30
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,812000.0,2021-02-06
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,802000.0,2021-02-13
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,702000.0,2021-02-20
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,704000.0,2021-02-27
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,693000.0,2021-03-06
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,699000.0,2021-03-13
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,627000.0,2021-03-20
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,658000.0,2021-03-27
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,645000.0,2021-04-03
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,571000.0,2021-04-10
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,566000.0,2021-04-17
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,574000.0,2021-04-24
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,517000.0,2021-05-01
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,494000.0,2021-05-08
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,467000.0,2021-05-15
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,441000.0,2021-05-22
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,427000.0,2021-05-29
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,420000.0,2021-06-05
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,428000.0,2021-06-12
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,422000.0,2021-06-19
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,369000.0,2021-06-26
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,371000.0,2021-07-03
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,332000.0,2021-07-10
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,387000.0,2021-07-17
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,380000.0,2021-07-24
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,380000.0,2021-07-31
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,361000.0,2021-08-07
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,368000.0,2021-08-14
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,358000.0,2021-08-21
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,353000.0,2021-08-28
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,337000.0,2021-09-04
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,344000.0,2021-09-11
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,367000.0,2021-09-18
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,374000.0,2021-09-25
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,314000.0,2021-10-02
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,290000.0,2021-10-09
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,290000.0,2021-10-16
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,268000.0,2021-10-23
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,262000.0,2021-10-30
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,251000.0,2021-11-06
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,250000.0,2021-11-13
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,223000.0,2021-11-20
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,222000.0,2021-11-27
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,207000.0,2021-12-04
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,227000.0,2021-12-11
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,215000.0,2021-12-18
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,216000.0,2021-12-25
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,227000.0,2022-01-01
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,247000.0,2022-01-08
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,245000.0,2022-01-15
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,238000.0,2022-01-22
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,231000.0,2022-01-29
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,210000.0,2022-02-05
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,234000.0,2022-02-12
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,225000.0,2022-02-19
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,209000.0,2022-02-26
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,222000.0,2022-03-05
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,217000.0,2022-03-12
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,207000.0,2022-03-19
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,214000.0,2022-03-26
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,215000.0,2022-04-02
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,213000.0,2022-04-09
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,209000.0,2022-04-16
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,210000.0,2022-04-23
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,219000.0,2022-04-30
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,204000.0,2022-05-07
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,225000.0,2022-05-14
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,211000.0,2022-05-21
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,200000.0,2022-05-28
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,214000.0,2022-06-04
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,213000.0,2022-06-11
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,215000.0,2022-06-18
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,212000.0,2022-06-25
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,215000.0,2022-07-02
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,212000.0,2022-07-09
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,216000.0,2022-07-16
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,220000.0,2022-07-23
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,228000.0,2022-07-30
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,221000.0,2022-08-06
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,220000.0,2022-08-13
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,215000.0,2022-08-20
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,210000.0,2022-08-27
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,204000.0,2022-09-03
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,197000.0,2022-09-10
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,201000.0,2022-09-17
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,189000.0,2022-09-24
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,204000.0,2022-10-01
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,206000.0,2022-10-08
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,199000.0,2022-10-15
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,201000.0,2022-10-22
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,202000.0,2022-10-29
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,204000.0,2022-11-05
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,210000.0,2022-11-12
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,220000.0,2022-11-19
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,209000.0,2022-11-26
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,209000.0,2022-12-03
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,210000.0,2022-12-10
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,213000.0,2022-12-17
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,204000.0,2022-12-24
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,204000.0,2022-12-31
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,208000.0,2023-01-07
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,203000.0,2023-01-14
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,203000.0,2023-01-21
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,200000.0,2023-01-28
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,215000.0,2023-02-04
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,219000.0,2023-02-11
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,217000.0,2023-02-18
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,209000.0,2023-02-25
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,229000.0,2023-03-04
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,222000.0,2023-03-11
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,230000.0,2023-03-18
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,234000.0,2023-03-25
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,217000.0,2023-04-01
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,219000.0,2023-04-08
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,223000.0,2023-04-15
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,210000.0,2023-04-22
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,214000.0,2023-04-29
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,223000.0,2023-05-06
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,225000.0,2023-05-13
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,227000.0,2023-05-20
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,230000.0,2023-05-27
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,253000.0,2023-06-03
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,258000.0,2023-06-10
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,260000.0,2023-06-17
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,236000.0,2023-06-24
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,248000.0,2023-07-01
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,229000.0,2023-07-08
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,228000.0,2023-07-15
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,231000.0,2023-07-22
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,238000.0,2023-07-29
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,258000.0,2023-08-05
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,248000.0,2023-08-12
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,240000.0,2023-08-19
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,234000.0,2023-08-26
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,227000.0,2023-09-02
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,227000.0,2023-09-09
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,210000.0,2023-09-16
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,215000.0,2023-09-23
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,216000.0,2023-09-30
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,210000.0,2023-10-07
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,200000.0,2023-10-14
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,214000.0,2023-10-21
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,217000.0,2023-10-28
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,216000.0,2023-11-04
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,229000.0,2023-11-11
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,213000.0,2023-11-18
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,214000.0,2023-11-25
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,216000.0,2023-12-02
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,204000.0,2023-12-09
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,209000.0,2023-12-16
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,210000.0,2023-12-23
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,198000.0,2023-12-30
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,199000.0,2024-01-06
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,193000.0,2024-01-13
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,223000.0,2024-01-20
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,225000.0,2024-01-27
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,214000.0,2024-02-03
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,212000.0,2024-02-10
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,203000.0,2024-02-17
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,214000.0,2024-02-24
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,212000.0,2024-03-02
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,213000.0,2024-03-09
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,213000.0,2024-03-16
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,214000.0,2024-03-23
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,223000.0,2024-03-30
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,212000.0,2024-04-06
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,211000.0,2024-04-13
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,209000.0,2024-04-20
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,209000.0,2024-04-27
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,229000.0,2024-05-04
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,222000.0,2024-05-11
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,216000.0,2024-05-18
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,221000.0,2024-05-25
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,229000.0,2024-06-01
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,241000.0,2024-06-08
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,237000.0,2024-06-15
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,233000.0,2024-06-22
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,238000.0,2024-06-29
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,222000.0,2024-07-06
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,240000.0,2024-07-13
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,236000.0,2024-07-20
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,248000.0,2024-07-27
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,234000.0,2024-08-03
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,228000.0,2024-08-10
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,232000.0,2024-08-17
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,232000.0,2024-08-24
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,228000.0,2024-08-31
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,230000.0,2024-09-07
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,222000.0,2024-09-14
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,221000.0,2024-09-21
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,227000.0,2024-09-28
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,259000.0,2024-10-05
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,240000.0,2024-10-12
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,228000.0,2024-10-19
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,218000.0,2024-10-26
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,221000.0,2024-11-02
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,219000.0,2024-11-09
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,216000.0,2024-11-16
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,216000.0,2024-11-23
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,225000.0,2024-11-30
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,239000.0,2024-12-07
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,222000.0,2024-12-14
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,219000.0,2024-12-21
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,209000.0,2024-12-28
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,205000.0,2025-01-04
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,217000.0,2025-01-11
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,222000.0,2025-01-18
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,210000.0,2025-01-25
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,222000.0,2025-02-01
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,215000.0,2025-02-08
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,224000.0,2025-02-15
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,243000.0,2025-02-22
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,224000.0,2025-03-01
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,223000.0,2025-03-08
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,225000.0,2025-03-15
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,225000.0,2025-03-22
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,219000.0,2025-03-29
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,224000.0,2025-04-05
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,216000.0,2025-04-12
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,223000.0,2025-04-19
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,241000.0,2025-04-26
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,229000.0,2025-05-03
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,228000.0,2025-05-10
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,226000.0,2025-05-17
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,239000.0,2025-05-24
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,248000.0,2025-05-31
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,250000.0,2025-06-07
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,246000.0,2025-06-14
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,237000.0,2025-06-21
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,232000.0,2025-06-28
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,228000.0,2025-07-05
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,221000.0,2025-07-12
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,217000.0,2025-07-19
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,219000.0,2025-07-26
+Initial Jobless Claims,ICSA,leading,Labor,Thousands of Persons,Weekly,226000.0,2025-08-02
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,217744.0,2015-09-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,226517.0,2015-10-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,224319.0,2015-11-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,217570.0,2015-12-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,228982.0,2016-01-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,216792.0,2016-02-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,218388.0,2016-03-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,229837.0,2016-04-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,223117.0,2016-05-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,206910.0,2016-06-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,216155.0,2016-07-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,217584.0,2016-08-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,217396.0,2016-09-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,233461.0,2016-10-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,216353.0,2016-11-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,219525.0,2016-12-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,219277.0,2017-01-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,221514.0,2017-02-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,222944.0,2017-03-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,224150.0,2017-04-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,222292.0,2017-05-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,236980.0,2017-06-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,217739.0,2017-07-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,221312.0,2017-08-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,228782.0,2017-09-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,228333.0,2017-10-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,230235.0,2017-11-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,241711.0,2017-12-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,228219.0,2018-01-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,236950.0,2018-02-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,244343.0,2018-03-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,243872.0,2018-04-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,243168.0,2018-05-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,243778.0,2018-06-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,235786.0,2018-07-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,245657.0,2018-08-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,247957.0,2018-09-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,238903.0,2018-10-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,235930.0,2018-11-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,243401.0,2018-12-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,236180.0,2019-01-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,231710.0,2019-02-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,240465.0,2019-03-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,232744.0,2019-04-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,224565.0,2019-05-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,224890.0,2019-06-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,228956.0,2019-07-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,230355.0,2019-08-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,226791.0,2019-09-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,226218.0,2019-10-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,218719.0,2019-11-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,222265.0,2019-12-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,233656.0,2020-01-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,240355.0,2020-02-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,204710.0,2020-03-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,165166.0,2020-04-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,184417.0,2020-05-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,202777.0,2020-06-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,223750.0,2020-07-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,226872.0,2020-08-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,230481.0,2020-09-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,236338.0,2020-10-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,237115.0,2020-11-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,241814.0,2020-12-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,249937.0,2021-01-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,251426.0,2021-02-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,253805.0,2021-03-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,252613.0,2021-04-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,253009.0,2021-05-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,258284.0,2021-06-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,259416.0,2021-07-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,264287.0,2021-08-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,259192.0,2021-09-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,263534.0,2021-10-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,268650.0,2021-11-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,277487.0,2021-12-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,280925.0,2022-01-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,277036.0,2022-02-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,277554.0,2022-03-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,279157.0,2022-04-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,278740.0,2022-05-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,284763.0,2022-06-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,284460.0,2022-07-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,282368.0,2022-08-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,282430.0,2022-09-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,287071.0,2022-10-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,279095.0,2022-11-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,293358.0,2022-12-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,288874.0,2023-01-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,280693.0,2023-02-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,289270.0,2023-03-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,290168.0,2023-04-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,289707.0,2023-05-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,303971.0,2023-06-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,293278.0,2023-07-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,289128.0,2023-08-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,298229.0,2023-09-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,285976.0,2023-10-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,298570.0,2023-11-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,304324.0,2023-12-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,280614.0,2024-01-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,282623.0,2024-02-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,287423.0,2024-03-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,286972.0,2024-04-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,286829.0,2024-05-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,281128.0,2024-06-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,293234.0,2024-07-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,289926.0,2024-08-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,292469.0,2024-09-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,293266.0,2024-10-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,288340.0,2024-11-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,290559.0,2024-12-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,291195.0,2025-01-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,293985.0,2025-02-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,316215.0,2025-03-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,295229.0,2025-04-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,344069.0,2025-05-01
+Manufacturers New Orders: Durable Goods,DGORDER,leading,Growth,Millions of Dollars,Monthly,311818.0,2025-06-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,142275.0,2015-09-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,142579.0,2015-10-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,142808.0,2015-11-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,143077.0,2015-12-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,143210.0,2016-01-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,143407.0,2016-02-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,143662.0,2016-03-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,143855.0,2016-04-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,143900.0,2016-05-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,144146.0,2016-06-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,144520.0,2016-07-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,144662.0,2016-08-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,144967.0,2016-09-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,145066.0,2016-10-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,145183.0,2016-11-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,145408.0,2016-12-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,145628.0,2017-01-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,145848.0,2017-02-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,145969.0,2017-03-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,146174.0,2017-04-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,146380.0,2017-05-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,146583.0,2017-06-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,146772.0,2017-07-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,146919.0,2017-08-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,147007.0,2017-09-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,147150.0,2017-10-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,147373.0,2017-11-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,147523.0,2017-12-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,147660.0,2018-01-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,148054.0,2018-02-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,148280.0,2018-03-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,148422.0,2018-04-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,148740.0,2018-05-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,148959.0,2018-06-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,149020.0,2018-07-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,149279.0,2018-08-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,149358.0,2018-09-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,149526.0,2018-10-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,149617.0,2018-11-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,149809.0,2018-12-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,150059.0,2019-01-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,150065.0,2019-02-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,150295.0,2019-03-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,150593.0,2019-04-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,150621.0,2019-05-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,150839.0,2019-06-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,150936.0,2019-07-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,151171.0,2019-08-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,151365.0,2019-09-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,151460.0,2019-10-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,151668.0,2019-11-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,151795.0,2019-12-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,152031.0,2020-01-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,152292.0,2020-02-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,150895.0,2020-03-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,130424.0,2020-04-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,133040.0,2020-05-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,137671.0,2020-06-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,139255.0,2020-07-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,140819.0,2020-08-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,141770.0,2020-09-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,142461.0,2020-10-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,142731.0,2020-11-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,142548.0,2020-12-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,142913.0,2021-01-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,143422.0,2021-02-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,144246.0,2021-03-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,144611.0,2021-04-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,145032.0,2021-05-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,145828.0,2021-06-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,146759.0,2021-07-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,147246.0,2021-08-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,147712.0,2021-09-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,148569.0,2021-10-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,149206.0,2021-11-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,149781.0,2021-12-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,150006.0,2022-01-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,150875.0,2022-02-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,151346.0,2022-03-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,151651.0,2022-04-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,151892.0,2022-05-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,152353.0,2022-06-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,153049.0,2022-07-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,153286.0,2022-08-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,153513.0,2022-09-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,153913.0,2022-10-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,154210.0,2022-11-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,154336.0,2022-12-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,154780.0,2023-01-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,155086.0,2023-02-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,155171.0,2023-03-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,155387.0,2023-04-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,155614.0,2023-05-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,155871.0,2023-06-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,156019.0,2023-07-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,156176.0,2023-08-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,156334.0,2023-09-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,156520.0,2023-10-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,156661.0,2023-11-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,156930.0,2023-12-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,157049.0,2024-01-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,157271.0,2024-02-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,157517.0,2024-03-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,157635.0,2024-04-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,157828.0,2024-05-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,157915.0,2024-06-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,158003.0,2024-07-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,158074.0,2024-08-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,158314.0,2024-09-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,158358.0,2024-10-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,158619.0,2024-11-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,158942.0,2024-12-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,159053.0,2025-01-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,159155.0,2025-02-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,159275.0,2025-03-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,159433.0,2025-04-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,159452.0,2025-05-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,159466.0,2025-06-01
+Total Nonfarm Payrolls,PAYEMS,coincident,Labor,Thousands of Persons,Monthly,159539.0,2025-07-01
