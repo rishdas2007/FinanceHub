@@ -51,15 +51,27 @@ export class HistoricalEconomicService {
           END as simple_z_score
         FROM historical_economic_data h1
         JOIN historical_economic_data h2 ON h1.series_id = h2.series_id
-        WHERE h1.series_id IN ('ICSA', 'CCSA', 'PAYEMS', 'CES0500000003', 'GDPC1', 'JCXFE', 'PCE', 'PPIFIS', 'INDPRO', 'TOTALSL', 'CFNAI', 'MORTGAGE30US', 'GASREGCOVW')
+        WHERE h1.series_id IN (
+          -- Priority 1: Core Economic Indicators  
+          'ICSA', 'CCSA', 'PAYEMS', 'CES0500000003', 'GDPC1', 'JCXFE', 'UNRATE', 'FEDFUNDS',
+          -- Priority 2: Inflation & Price Indicators
+          'PCEPI', 'CPILFESL', 'CPIAUCSL', 'PCE', 'PPIFIS',
+          -- Priority 3: Housing & Interest Rate Indicators  
+          'T10Y2Y', 'DGS10', 'HOUST', 'MORTGAGE30US',
+          -- Priority 4: Manufacturing & Confidence
+          'INDPRO', 'UMCSENT', 'NAPM',
+          -- Priority 5: Additional Key Indicators
+          'TOTALSL', 'CFNAI', 'GASREGCOVW', 'PERMIT', 'U6RATE'
+        )
           AND h1.period_date = (SELECT MAX(period_date) FROM historical_economic_data WHERE series_id = h1.series_id)
           AND h2.period_date = (SELECT MAX(period_date) FROM historical_economic_data 
                                 WHERE series_id = h1.series_id AND period_date < h1.period_date)
         ORDER BY 
           CASE 
-            WHEN h1.series_id IN ('ICSA', 'CCSA', 'PAYEMS', 'CES0500000003', 'GDPC1', 'JCXFE') THEN 1
-            WHEN h1.series_id IN ('PCE', 'PPIFIS', 'INDPRO') THEN 2
-            ELSE 3
+            WHEN h1.series_id IN ('PAYEMS', 'ICSA', 'CCSA', 'UNRATE', 'GDPC1', 'FEDFUNDS') THEN 1
+            WHEN h1.series_id IN ('PCEPI', 'CPILFESL', 'CPIAUCSL', 'T10Y2Y', 'DGS10') THEN 2
+            WHEN h1.series_id IN ('HOUST', 'UMCSENT', 'INDPRO', 'NAPM') THEN 3
+            ELSE 4
           END,
           h1.series_id
       `;
@@ -143,6 +155,18 @@ export class HistoricalEconomicService {
       'Real Gross Domestic Product': 'GDP Growth Rate',
       'Core Personal Consumption Expenditures': 'Core PCE Inflation',
       'Personal Consumption Expenditures': 'Personal Consumption',
+      'GDP Growth Rate': 'GDP Growth Rate',
+      'CPI Year-over-Year': 'CPI Inflation',
+      'Core CPI Year-over-Year': 'Core CPI Inflation', 
+      'PCE Price Index YoY': 'PCE Price Index',
+      'Manufacturing PMI': 'Manufacturing PMI',
+      'Unemployment Rate': 'Unemployment Rate',
+      'Federal Funds Rate': 'Federal Funds Rate',
+      '10-Year Treasury Yield': '10-Year Treasury',
+      'Yield Curve (10yr-2yr)': 'Yield Curve',
+      'Housing Starts': 'Housing Starts',
+      'Michigan Consumer Sentiment': 'Consumer Sentiment',
+      'Building Permits': 'Building Permits',
       'Producer Price Index: Final Demand': 'PPI Final Demand',
       '30-Year Fixed Rate Mortgage Average': '30-Year Mortgage Rate',
       'US Regular All Formulations Gas Price': 'Gasoline Prices',
