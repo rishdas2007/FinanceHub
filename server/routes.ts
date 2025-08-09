@@ -295,53 +295,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Top movers endpoint for UI/UX improvements
+  // Top movers endpoint for UI/UX improvements - using REAL data sources
   app.get("/api/top-movers", async (req, res) => {
     try {
-      // Create mock data for now to get the UI working
-      const etfSymbols = ['SPY', 'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'];
-      const sectors = ['S&P 500', 'Technology', 'Healthcare', 'Financial', 'Consumer Disc', 'Industrial', 'Communication', 'Consumer Staples', 'Energy', 'Utilities', 'Materials', 'Real Estate'];
+      // Get ETF data from sectors endpoint (same as ETF Technical Metrics uses)
+      const sectorsResponse = await fetch(`${req.protocol}://${req.get('host')}/api/sectors`);
+      const sectorsData = await sectorsResponse.json();
       
-      // Generate realistic ETF data based on typical market movements
-      const etfMovers = etfSymbols.map((symbol, index) => {
-        const baseChange = (Math.random() - 0.5) * 6; // -3% to +3% range
-        const price = 50 + Math.random() * 200; // $50-$250 range
-        return {
-          symbol,
-          sector: sectors[index],
-          price: parseFloat(price.toFixed(2)),
-          changePercent: parseFloat(baseChange.toFixed(2)),
-          change: parseFloat((price * baseChange / 100).toFixed(2)),
-          volume: Math.floor(Math.random() * 10000000) + 1000000 // 1M-11M volume
-        };
-      });
+      // Get economic data from macroeconomic-indicators endpoint (same as Economic Indicators uses)
+      const economicResponse = await fetch(`${req.protocol}://${req.get('host')}/api/macroeconomic-indicators`);
+      const economicData = await economicResponse.json();
       
-      // Sort the array
-      etfMovers.sort((a, b) => b.changePercent - a.changePercent);
+      // Process ETF data for movers
+      const etfMovers = sectorsData.map((etf: any) => ({
+        symbol: etf.symbol,
+        sector: etf.sector || getSectorName(etf.symbol),
+        price: parseFloat(etf.price || 0),
+        changePercent: parseFloat(etf.changePercent || 0),
+        change: parseFloat(etf.change || 0),
+        volume: etf.volume || 0,
+        momentum: etf.momentum || { signal: 'NEUTRAL', strength: 0 }
+      })).sort((a: any, b: any) => b.changePercent - a.changePercent);
       
       // Get top gainers and losers
-      const gainers = etfMovers.filter(etf => etf.changePercent > 0).slice(0, 5);
-      const losers = etfMovers.filter(etf => etf.changePercent < 0).slice(0, 5);
+      const gainers = etfMovers.filter((etf: any) => etf.changePercent > 0).slice(0, 5);
+      const losers = etfMovers.filter((etf: any) => etf.changePercent < 0).slice(0, 5);
       
-      // Create mock economic indicators for display
-      const economicMovers = [
-        { metric: 'Federal Funds Rate', current: 5.25, previous: 5.00, change: 0.25, changePercent: 5.0, significance: 'high' },
-        { metric: 'CPI Inflation Rate', current: 3.2, previous: 3.1, change: 0.1, changePercent: 3.2, significance: 'high' },
-        { metric: 'Unemployment Rate', current: 3.7, previous: 3.8, change: -0.1, changePercent: -2.6, significance: 'medium' },
-        { metric: 'GDP Growth Rate', current: 2.1, previous: 2.0, change: 0.1, changePercent: 5.0, significance: 'medium' },
-        { metric: '10-Year Treasury', current: 4.45, previous: 4.32, change: 0.13, changePercent: 3.0, significance: 'medium' },
-        { metric: 'Consumer Confidence', current: 105.8, previous: 108.2, change: -2.4, changePercent: -2.2, significance: 'low' }
-      ].sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent));
+      // Process economic indicators for significant movers
+      const economicMovers = economicData.indicators
+        .filter((indicator: any) => indicator.zScore !== undefined && Math.abs(indicator.zScore) > 0.3)
+        .sort((a: any, b: any) => Math.abs(b.zScore || 0) - Math.abs(a.zScore || 0))
+        .slice(0, 8)
+        .map((indicator: any) => {
+          // Calculate percentage change from variance vs prior
+          const varianceStr = indicator.varianceVsPrior || "0";
+          const currentStr = indicator.currentReading || "0";
+          const priorStr = indicator.priorReading || "0";
+          
+          // Extract numeric values from formatted strings
+          const current = parseFloat(currentStr.replace(/[^-\d.]/g, '')) || 0;
+          const prior = parseFloat(priorStr.replace(/[^-\d.]/g, '')) || 0;
+          const variance = parseFloat(varianceStr.replace(/[^-\d.]/g, '')) || 0;
+          
+          const changePercent = prior !== 0 ? (variance / prior) * 100 : 0;
+          
+          return {
+            metric: indicator.metric,
+            current: current,
+            previous: prior,
+            change: variance,
+            changePercent: parseFloat(changePercent.toFixed(2)),
+            significance: Math.abs(indicator.zScore) > 2 ? 'high' : 
+                        Math.abs(indicator.zScore) > 1 ? 'medium' : 'low',
+            zScore: indicator.zScore
+          };
+        });
 
-      // Calculate momentum statistics
-      const bullishCount = etfMovers.filter(etf => etf.changePercent > 0).length;
-      const bearishCount = etfMovers.filter(etf => etf.changePercent < 0).length;
+      // Calculate momentum statistics from real ETF data
+      const bullishCount = etfMovers.filter((etf: any) => etf.changePercent > 0).length;
+      const bearishCount = etfMovers.filter((etf: any) => etf.changePercent < 0).length;
       const total = etfMovers.length;
       
       const trending = etfMovers
-        .filter(etf => Math.abs(etf.changePercent) > 1.5)
+        .filter((etf: any) => Math.abs(etf.changePercent) > 1.5)
         .slice(0, 3)
-        .map(etf => etf.symbol);
+        .map((etf: any) => etf.symbol);
 
       res.json({
         success: true,
@@ -366,6 +384,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Helper function for sector names
+  function getSectorName(symbol: string): string {
+    const sectorMap: { [key: string]: string } = {
+      'SPY': 'S&P 500',
+      'XLK': 'Technology',
+      'XLV': 'Healthcare',
+      'XLF': 'Financial',
+      'XLY': 'Consumer Discretionary',
+      'XLI': 'Industrial',
+      'XLC': 'Communication',
+      'XLP': 'Consumer Staples',
+      'XLE': 'Energy',
+      'XLU': 'Utilities',
+      'XLB': 'Materials',
+      'XLRE': 'Real Estate'
+    };
+    return sectorMap[symbol] || 'Unknown';
+  }
 
   // API stats endpoint
   app.get("/api/stats", (req, res) => {
