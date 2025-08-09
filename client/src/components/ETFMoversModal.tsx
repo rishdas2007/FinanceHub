@@ -115,6 +115,8 @@ export function ETFMoversModal({ isOpen, onClose, etf }: ETFMoversModalProps) {
           <YAxis 
             stroke="#9CA3AF"
             fontSize={12}
+            scale="log"
+            domain={['dataMin * 0.99', 'dataMax * 1.01']}
             tickFormatter={(value) => `$${value.toFixed(2)}`}
           />
           <Tooltip

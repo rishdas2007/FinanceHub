@@ -84,12 +84,19 @@ export class SparklineService {
       if (changePercent > 1) trend = 'up';
       else if (changePercent < -1) trend = 'down';
 
-      // Normalize data for harmonized scaling (0-100 scale)
+      // Enhanced scaling to preserve price variation - use actual prices with smart scaling
       const minPrice = Math.min(...prices);
       const maxPrice = Math.max(...prices);
-      const normalizedData = prices.map(price => 
-        ((price - minPrice) / (maxPrice - minPrice)) * 100
-      );
+      const range = maxPrice - minPrice;
+      
+      // Use actual prices but apply dynamic range amplification for better visualization
+      const mean = prices.reduce((a, b) => a + b, 0) / prices.length;
+      const normalizedData = prices.map(price => {
+        if (range === 0) return price; // Keep actual price if no variation
+        // Apply percentage deviation amplification for better visual variation
+        const deviation = ((price - mean) / mean) * 100;
+        return mean + (deviation * 3); // Amplify variations by 3x
+      });
 
       return {
         rawData: prices,

@@ -44,7 +44,7 @@ export function Sparkline({
             type="monotone"
             dataKey="value"
             stroke={strokeColor}
-            strokeWidth={1.5}
+            strokeWidth={2}
             dot={false}
             activeDot={showTooltip ? { r: 2, fill: strokeColor } : false}
           />
