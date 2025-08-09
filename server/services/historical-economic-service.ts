@@ -43,8 +43,24 @@ export class HistoricalEconomicService {
           h2.value as prior_value,
           h2.period_date as prior_period,
           h1.value - h2.value as variance_vs_prior,
-          -- Simple z-score based on percentage change
+          -- Normalized z-score with unit harmonization
           CASE 
+            -- Housing indicators: normalize to thousands
+            WHEN h1.series_id IN ('HOUST', 'PERMIT') AND h2.value > 0 THEN
+              CASE 
+                WHEN h2.value < 10 THEN ((h1.value - (h2.value * 1000)) / (h2.value * 1000)) * 100
+                ELSE ((h1.value - h2.value) / h2.value) * 100
+              END
+            -- Employment indicators: normalize large scale differences  
+            WHEN h1.series_id = 'PAYEMS' AND h2.value > 0 THEN
+              CASE 
+                WHEN h2.value < 1000 THEN ((h1.value - (h2.value * 1000)) / (h2.value * 1000)) * 100
+                ELSE ((h1.value - h2.value) / h2.value) * 100
+              END
+            -- Interest rates and percentages: direct percentage calculation
+            WHEN h1.series_id IN ('FEDFUNDS', 'DGS10', 'T10Y2Y', 'MORTGAGE30US') AND h2.value > 0 THEN
+              ((h1.value - h2.value) / h2.value) * 100
+            -- Default calculation for other indicators
             WHEN h2.value > 0 THEN
               ((h1.value - h2.value) / h2.value) * 100 
             ELSE 0
@@ -82,14 +98,14 @@ export class HistoricalEconomicService {
       const indicatorsWithFNAI: EconomicIndicatorData[] = [];
       
       for (const row of result.rows) {
-        const seriesId = row.series_id;
-        const frequency = row.frequency || 'Monthly';
+        const rowSeriesId = String(row.series_id);
+        const frequency = String(row.frequency) || 'monthly';
         
         // Get historical data for FNAI calculation
         const historicalQuery = sql`
           SELECT value, period_date
           FROM historical_economic_data
-          WHERE series_id = ${seriesId}
+          WHERE series_id = ${rowSeriesId}
           ORDER BY period_date DESC
           LIMIT 60
         `;
@@ -103,20 +119,31 @@ export class HistoricalEconomicService {
         // Calculate FNAI
         const fnaiResult = fnaiCalculator.calculateFNAI(historicalData, frequency.toLowerCase());
         
+        // Clean data extraction
+        const currentValue = parseFloat(String(row.current_value)) || 0;
+        const priorValue = row.prior_value ? parseFloat(String(row.prior_value)) : undefined;
+        const rawVariance = row.variance_vs_prior ? parseFloat(String(row.variance_vs_prior)) : undefined;
+        const calculatedZScore = row.simple_z_score ? parseFloat(String(row.simple_z_score)) : undefined;
+        
+        // Cap extreme Z-scores at reasonable levels (max ±25)
+        const cappedZScore = calculatedZScore ? 
+          Math.min(Math.abs(calculatedZScore), 25) * Math.sign(calculatedZScore) : 
+          undefined;
+
         const indicator: EconomicIndicatorData = {
-          seriesId: String(row.series_id),
+          seriesId: rowSeriesId,
           metric: this.getIndicatorDisplayName(String(row.indicator)),
-          type: this.getIndicatorType(String(row.series_id)),
+          type: this.getIndicatorType(rowSeriesId),
           category: this.formatCategory(String(row.category)),
           period_date: String(row.current_period),
           releaseDate: String(row.release_date),
-          currentReading: parseFloat(String(row.current_value)) || 0,
-          priorReading: row.prior_value ? parseFloat(String(row.prior_value)) : undefined,
-          varianceVsPrior: row.variance_vs_prior ? parseFloat(String(row.variance_vs_prior)) : undefined,
-          zScore: row.simple_z_score ? parseFloat(String(row.simple_z_score)) : undefined,
+          currentReading: currentValue,
+          priorReading: priorValue,
+          varianceVsPrior: rawVariance,
+          zScore: cappedZScore,
           fnai: fnaiResult.fnai,
           fnaiInterpretation: fnaiResult.interpretation,
-          frequency: String(row.frequency) || 'Monthly',
+          frequency: frequency,
           unit: String(row.unit) || 'Unknown'
         };
         

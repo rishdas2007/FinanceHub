@@ -148,8 +148,8 @@ export class MacroeconomicService {
         };
 
         // Enhanced variance formatting with proper sign and magnitude
-        const formatVariance = (value: number | null, unit: string, metric: string): string => {
-          if (value === null || value === undefined || isNaN(value)) {
+        const formatVariance = (value: number | null | undefined, unit: string, metricName?: string): string => {
+          if (value === null || value === undefined || isNaN(Number(value))) {
             return 'N/A';
           }
           
@@ -159,7 +159,7 @@ export class MacroeconomicService {
           
           const sign = numVariance > 0 ? '+' : '';
           const absVariance = Math.abs(numVariance);
-          const metricLower = metric.toLowerCase();
+          const metricLower = (metricName || '').toLowerCase();
           
           // Format variance based on metric type, matching current reading format
           if (metricLower.includes('jobless claims')) {
