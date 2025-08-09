@@ -22,21 +22,49 @@ export class MacroeconomicService {
     lastUpdate: string;
   } | null> {
     try {
-      // For now, return sample data structure
-      // In a real implementation, this would query the database for historical data
-      const sampleData = Array.from({ length: months * 4 }, (_, i) => {
-        const date = new Date();
-        date.setMonth(date.getMonth() - (months * 4 - i - 1) / 4);
+      // Query real historical data from economic_indicators_historical table
+      const result = await db.execute(sql`
+        SELECT date, value, metric
+        FROM economic_indicators_historical 
+        WHERE LOWER(REPLACE(REPLACE(metric, ' ', '_'), '-', '_')) LIKE '%' || ${indicatorId.toLowerCase().replace(/[^a-z0-9]/g, '_')} || '%'
+        OR LOWER(REPLACE(REPLACE(metric, ' ', '_'), '-', '_')) = ${indicatorId.toLowerCase()}
+        ORDER BY date DESC
+        LIMIT ${months * 12}
+      `);
+
+      if (!result.rows || result.rows.length === 0) {
+        logger.warn(`No historical data found for indicator: ${indicatorId}`);
+        return null;
+      }
+
+      // Process the real data
+      const historicalData = result.rows.map((row: any) => {
+        const date = new Date(row.date);
         return {
-          date: date.toISOString().split('T')[0],
-          value: Math.random() * 100 + 50,
+          date: row.date,
+          value: parseFloat(row.value),
           formattedDate: date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
         };
-      });
+      }).reverse(); // Reverse to get chronological order
+
+      // Determine units based on metric type
+      const metricName = String(result.rows[0]?.metric || '');
+      let units = '';
+      if (metricName.toLowerCase().includes('rate') || metricName.toLowerCase().includes('cpi')) {
+        units = '%';
+      } else if (metricName.toLowerCase().includes('index')) {
+        units = 'Index';
+      } else if (metricName.toLowerCase().includes('claims') || metricName.toLowerCase().includes('payroll')) {
+        units = 'Thousands';
+      } else {
+        units = 'Units';
+      }
+
+      logger.info(`Retrieved ${historicalData.length} historical data points for ${indicatorId}`);
       
       return {
-        data: sampleData,
-        units: '%',
+        data: historicalData,
+        units,
         frequency: 'Monthly',
         lastUpdate: new Date().toISOString()
       };

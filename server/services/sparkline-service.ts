@@ -11,44 +11,28 @@ export interface SparklineData {
 
 export class SparklineService {
   /**
-   * Get 30-day sparkline data for an ETF
+   * Get 30-day sparkline data for an ETF with harmonized scaling
    */
-  async getSparklineData(symbol: string): Promise<{ success: boolean; data?: number[]; trend?: 'up' | 'down' | 'flat'; change?: number; error?: string }> {
+  async getSparklineData(symbol: string): Promise<{ success: boolean; data?: number[]; trend?: 'up' | 'down' | 'flat'; change?: number; normalizedData?: number[]; error?: string }> {
     try {
-      // Query for recent price data (30 days)
-      const result = await db.execute(sql`
-        SELECT price, date
-        FROM stock_data 
-        WHERE symbol = ${symbol} 
-        AND date >= DATE('now', '-30 days')
-        ORDER BY date ASC
-        LIMIT 30
-      `);
-
-      if (!result.rows || result.rows.length === 0) {
-        // Generate sample sparkline data for demonstration
-        const sampleData = this.generateSampleSparklineData(symbol);
+      // First try to get real historical data
+      const realData = await this.getRealHistoricalData(symbol);
+      if (realData) {
         return {
           success: true,
-          ...sampleData
+          data: realData.rawData,
+          normalizedData: realData.normalizedData,
+          trend: realData.trend,
+          change: realData.change
         };
       }
 
-      // Process real data
-      const prices = result.rows.map((row: any) => parseFloat(row.price || 0));
-      const firstPrice = prices[0];
-      const lastPrice = prices[prices.length - 1];
-      const changePercent = ((lastPrice - firstPrice) / firstPrice) * 100;
-
-      let trend: 'up' | 'down' | 'flat' = 'flat';
-      if (changePercent > 1) trend = 'up';
-      else if (changePercent < -1) trend = 'down';
-
+      // Fallback to sample data if no real data available
+      logger.warn(`No real data available for ${symbol}, using sample data`);
+      const sampleData = this.generateSampleSparklineData(symbol);
       return {
         success: true,
-        data: prices,
-        trend,
-        change: changePercent
+        ...sampleData
       };
     } catch (error) {
       logger.error(`Failed to get sparkline data for ${symbol}:`, String(error));
@@ -59,6 +43,64 @@ export class SparklineService {
         success: true,
         ...sampleData
       };
+    }
+  }
+
+  /**
+   * Get real historical price data from database
+   */
+  private async getRealHistoricalData(symbol: string): Promise<{
+    rawData: number[];
+    normalizedData: number[];
+    trend: 'up' | 'down' | 'flat';
+    change: number;
+  } | null> {
+    try {
+      // Query historical sector data for the ETF
+      const result = await db.execute(sql`
+        SELECT price, date
+        FROM historical_sector_data 
+        WHERE symbol = ${symbol} 
+        AND date >= datetime('now', '-30 days')
+        ORDER BY date ASC
+        LIMIT 30
+      `);
+
+      if (!result.rows || result.rows.length < 10) {
+        return null; // Not enough data points
+      }
+
+      const prices = result.rows.map((row: any) => parseFloat(row.price || 0)).filter(p => p > 0);
+      
+      if (prices.length < 10) {
+        return null;
+      }
+
+      // Calculate trend and change
+      const firstPrice = prices[0];
+      const lastPrice = prices[prices.length - 1];
+      const changePercent = ((lastPrice - firstPrice) / firstPrice) * 100;
+
+      let trend: 'up' | 'down' | 'flat' = 'flat';
+      if (changePercent > 1) trend = 'up';
+      else if (changePercent < -1) trend = 'down';
+
+      // Normalize data for harmonized scaling (0-100 scale)
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+      const normalizedData = prices.map(price => 
+        ((price - minPrice) / (maxPrice - minPrice)) * 100
+      );
+
+      return {
+        rawData: prices,
+        normalizedData,
+        trend,
+        change: changePercent
+      };
+    } catch (error) {
+      logger.error(`Failed to get real historical data for ${symbol}:`, String(error));
+      return null;
     }
   }
 

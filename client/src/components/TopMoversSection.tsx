@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Activity, Zap, Target } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity, Zap, Target, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EconomicMoversModal } from "./EconomicMoversModal";
+import { ETFMoversModal } from "./ETFMoversModal";
 
 interface ETFData {
   symbol: string;
@@ -40,6 +43,9 @@ interface TopMoversData {
 }
 
 export function TopMoversSection() {
+  const [selectedEconomicIndicator, setSelectedEconomicIndicator] = useState<any>(null);
+  const [selectedETF, setSelectedETF] = useState<any>(null);
+
   const { data: moversData, isLoading } = useQuery<TopMoversData>({
     queryKey: ['/api/top-movers'],
     refetchInterval: 60000, // Refresh every minute
@@ -190,7 +196,20 @@ export function TopMoversSection() {
                 Top Gainers
               </h4>
               {etfMovers.gainers.filter(etf => etf.symbol !== 'SPY').slice(0, 3).map((etf) => (
-                <div key={etf.symbol} className="p-3 bg-gray-800/50 rounded">
+                <div 
+                  key={etf.symbol} 
+                  className="p-3 bg-gray-800/50 rounded cursor-pointer hover:bg-gray-800/70 transition-colors"
+                  onClick={() => setSelectedETF({
+                    symbol: etf.symbol,
+                    name: etf.sector,
+                    price: etf.price,
+                    changePercent: etf.changePercent,
+                    signal: etf.momentum?.signal || 'NEUTRAL',
+                    strength: String(etf.momentum?.strength || 0),
+                    zScore: etf.momentum?.zScore || 0
+                  })}
+                  data-testid={`etf-mover-${etf.symbol}`}
+                >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-3">
                       <span className="font-mono text-white font-medium">{etf.symbol}</span>
@@ -247,7 +266,20 @@ export function TopMoversSection() {
                 Top Decliners
               </h4>
               {etfMovers.losers.slice(0, 3).map((etf) => (
-                <div key={etf.symbol} className="p-3 bg-gray-800/50 rounded">
+                <div 
+                  key={etf.symbol} 
+                  className="p-3 bg-gray-800/50 rounded cursor-pointer hover:bg-gray-800/70 transition-colors"
+                  onClick={() => setSelectedETF({
+                    symbol: etf.symbol,
+                    name: etf.sector,
+                    price: etf.price,
+                    changePercent: etf.changePercent,
+                    signal: etf.momentum?.signal || 'NEUTRAL',
+                    strength: String(etf.momentum?.strength || 0),
+                    zScore: etf.momentum?.zScore || 0
+                  })}
+                  data-testid={`etf-mover-${etf.symbol}`}
+                >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-3">
                       <span className="font-mono text-white font-medium">{etf.symbol}</span>
@@ -312,7 +344,21 @@ export function TopMoversSection() {
           </CardHeader>
           <CardContent className="space-y-3">
             {economicMovers.slice(0, 6).map((indicator, index) => (
-              <div key={index} className="p-3 bg-gray-800/50 rounded">
+              <div 
+                key={index} 
+                className="p-3 bg-gray-800/50 rounded cursor-pointer hover:bg-gray-800/70 transition-colors"
+                onClick={() => setSelectedEconomicIndicator({
+                  metric: indicator.metric,
+                  current: indicator.current,
+                  zScore: indicator.zScore || 0,
+                  deltaZScore: indicator.deltaZScore || 0,
+                  previous: indicator.previous,
+                  change: indicator.change,
+                  category: 'Economic',
+                  type: indicator.type || 'Indicator'
+                })}
+                data-testid={`economic-indicator-${index}`}
+              >
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-sm font-medium text-white truncate">
                     {indicator.metric}
@@ -379,6 +425,23 @@ export function TopMoversSection() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modals */}
+      {selectedETF && (
+        <ETFMoversModal
+          isOpen={!!selectedETF}
+          onClose={() => setSelectedETF(null)}
+          etf={selectedETF}
+        />
+      )}
+
+      {selectedEconomicIndicator && (
+        <EconomicMoversModal
+          isOpen={!!selectedEconomicIndicator}
+          onClose={() => setSelectedEconomicIndicator(null)}
+          indicator={selectedEconomicIndicator}
+        />
+      )}
     </div>
   );
 }

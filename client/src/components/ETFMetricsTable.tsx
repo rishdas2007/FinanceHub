@@ -124,7 +124,7 @@ const formatNumber = (value: number | null | undefined, decimals: number = 2): s
   return value.toFixed(decimals);
 };
 
-// Sparkline container component
+// Sparkline container component with harmonized scaling
 function SparklineContainer({ symbol }: { symbol: string }) {
   const { data: sparklineData, isLoading } = useQuery({
     queryKey: ['sparkline', symbol],
@@ -148,10 +148,13 @@ function SparklineContainer({ symbol }: { symbol: string }) {
     );
   }
 
+  // Use normalized data if available, otherwise use raw data
+  const chartData = sparklineData.normalizedData || sparklineData.data;
+
   return (
     <div className="flex flex-col items-center">
       <Sparkline 
-        data={sparklineData.data}
+        data={chartData}
         trend={sparklineData.trend}
         height={32}
         width="80px"
