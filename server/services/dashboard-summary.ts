@@ -2,7 +2,9 @@ import OpenAI from "openai";
 import { logger } from "../middleware/logging";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
 
 interface DashboardSummaryData {
   executiveSummary: string;
@@ -100,6 +102,19 @@ export class DashboardSummaryService {
   }
 
   private async generateAISummary(dashboardData: any): Promise<DashboardSummaryData> {
+    if (!openai) {
+      logger.warn('OpenAI not available - returning fallback dashboard summary');
+      return {
+        executiveSummary: "Market analysis requires OpenAI API key configuration",
+        keyInsights: ["OpenAI API key needed for AI-powered insights"],
+        marketOutlook: "AI-powered market outlook unavailable",
+        riskFactors: ["Configure OpenAI API key for risk analysis"],
+        actionItems: ["Set up OpenAI integration for enhanced analytics"],
+        confidence: 50,
+        timestamp: new Date().toISOString()
+      };
+    }
+    
     const prompt = this.buildAnalysisPrompt(dashboardData);
     
     const response = await openai.chat.completions.create({

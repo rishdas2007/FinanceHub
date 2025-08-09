@@ -1,9 +1,11 @@
 import axios from 'axios';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    })
+  : null;
 
 interface FREDObservation {
   date: string;

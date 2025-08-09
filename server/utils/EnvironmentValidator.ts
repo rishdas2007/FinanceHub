@@ -6,7 +6,7 @@ const environmentSchema = z.object({
   // Required API Keys
   FRED_API_KEY: z.string().min(1, 'FRED_API_KEY is required'),
   TWELVE_DATA_API_KEY: z.string().min(1, 'TWELVE_DATA_API_KEY is required'),
-  OPENAI_API_KEY: z.string().min(1, 'OPENAI_API_KEY is required'),
+  OPENAI_API_KEY: z.string().optional(),
   
   // Database
   DATABASE_URL: z.string().url('DATABASE_URL must be a valid URL'),

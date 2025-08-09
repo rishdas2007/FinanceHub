@@ -196,38 +196,40 @@ app.use((req, res, next) => {
       
       // Initialize services with proper dependency ordering (replaces race conditions)
       const serviceConfigs: ServiceConfig[] = [
-        {
-          name: 'real-time-market-service',
-          timeout: 10000,
-          initializer: async () => {
-            try {
-              const { getRealTimeMarketService } = await import('./services/real-time-market-service');
-              const marketService = getRealTimeMarketService();
-              marketService.initialize();
-              log('✅ Real-time market service initialized');
-            } catch (error) {
-              log('⚠️ Real-time market service failed to initialize:', String(error));
-              log('📊 Continuing without real-time market data');
-            }
-          }
-        },
-        {
-          name: 'unified-refresh-scheduler',
-          dependencies: ['real-time-market-service'],
-          timeout: 5000,
-          initializer: async () => {
-            try {
-              const { unifiedDataRefreshScheduler } = await import('./services/unified-data-refresh-scheduler');
-              unifiedDataRefreshScheduler.start();
-              log('✅ Unified refresh scheduler started');
-            } catch (error) {
-              log('⚠️ Unified refresh scheduler failed to start:', String(error));
-            }
-          }
-        },
+        // Real-time market service temporarily disabled for optimal z-score performance
+        // {
+        //   name: 'real-time-market-service',
+        //   timeout: 10000,
+        //   initializer: async () => {
+        //     try {
+        //       const { getRealTimeMarketService } = await import('./services/real-time-market-service');
+        //       const marketService = getRealTimeMarketService();
+        //       marketService.initialize();
+        //       log('✅ Real-time market service initialized');
+        //     } catch (error) {
+        //       log('⚠️ Real-time market service failed to initialize:', String(error));
+        //       log('📊 Continuing without real-time market data');
+        //     }
+        //   }
+        // },
+        // Unified refresh scheduler temporarily disabled for optimal z-score performance
+        // {
+        //   name: 'unified-refresh-scheduler',
+        //   dependencies: ['real-time-market-service'],
+        //   timeout: 5000,
+        //   initializer: async () => {
+        //     try {
+        //       const { unifiedDataRefreshScheduler } = await import('./services/unified-data-refresh-scheduler');
+        //       unifiedDataRefreshScheduler.start();
+        //       log('✅ Unified refresh scheduler started');
+        //     } catch (error) {
+        //       log('⚠️ Unified refresh scheduler failed to start:', String(error));
+        //     }
+        //   }
+        // },
         {
           name: 'intelligent-cron-scheduler',
-          dependencies: ['unified-refresh-scheduler'],
+          dependencies: [],
           timeout: 8000,
           initializer: async () => {
             try {
@@ -240,7 +242,7 @@ app.use((req, res, next) => {
         },
         {
           name: 'data-staleness-prevention',
-          dependencies: ['unified-refresh-scheduler'],
+          dependencies: [],
           timeout: 3000,
           initializer: async () => {
             try {
@@ -265,61 +267,63 @@ app.use((req, res, next) => {
             }
           }
         },
-        {
-          name: 'fred-incremental-scheduler',
-          dependencies: ['data-scheduler'],
-          timeout: 5000,
-          initializer: async () => {
-            try {
-              // Delay FRED scheduler startup to avoid resource contention
-              setTimeout(() => {
-                try {
-                  fredSchedulerIncremental.start();
-                  log('✅ FRED incremental scheduler started (delayed startup)');
-                } catch (error) {
-                  log('⚠️ FRED incremental scheduler delayed start failed:', String(error));
-                }
-              }, 30000); // 30 second delay
-              log('⏸️ FRED incremental scheduler startup delayed by 30s');
-            } catch (error) {
-              log('⚠️ FRED incremental scheduler failed to start:', String(error));
-            }
-          }
-        },
-        {
-          name: 'economic-data-scheduler',
-          dependencies: ['fred-incremental-scheduler'],
-          timeout: 5000,
-          initializer: async () => {
-            try {
-              const { economicDataScheduler } = await import('./services/economic-data-scheduler');
-              economicDataScheduler.initialize();
-              log('🕐 Economic data release scheduler initialized for 10:15am weekday updates');
-            } catch (error) {
-              log('⚠️ Economic data scheduler failed to initialize:', String(error));
-            }
-          }
-        },
+        // FRED scheduler disabled - not needed for z-score calculations
+        // {
+        //   name: 'fred-incremental-scheduler',
+        //   dependencies: ['data-scheduler'],
+        //   timeout: 5000,
+        //   initializer: async () => {
+        //     try {
+        //       fredSchedulerIncremental.start();
+        //       log('✅ FRED incremental scheduler started');
+        //     } catch (error) {
+        //       log('⚠️ FRED incremental scheduler failed to start:', String(error));
+        //     }
+        //   }
+        // },
+        // Economic data scheduler disabled - not needed for z-score calculations  
+        // {
+        //   name: 'economic-data-scheduler',
+        //   dependencies: ['fred-incremental-scheduler'],
+        //   timeout: 5000,
+        //   initializer: async () => {
+        //     try {
+        //       const { economicDataScheduler } = await import('./services/economic-data-scheduler');
+        //       economicDataScheduler.initialize();
+        //       log('🕐 Economic data release scheduler initialized for 10:15am weekday updates');
+        //     } catch (error) {
+        //       log('⚠️ Economic data scheduler failed to initialize:', String(error));
+        //     }
+        //   }
+        // },
         {
           name: 'historical-data-system',
-          dependencies: ['economic-data-scheduler'],
-          timeout: 8000,
+          dependencies: ['data-scheduler'],
+          timeout: 30000, // Increased timeout for heavy operations
           initializer: async () => {
-            // Load comprehensive historical data collector (if exists)
-            try {
-              const { comprehensiveHistoricalCollector } = await import('./services/comprehensive-historical-collector.js');
-              log('🎯 Historical data collector loaded');
-            } catch (error) {
-              log('📊 Historical data collector not available (optional)');
-            }
-            
-            // Load historical data intelligence (if exists)
-            try {
-              const { historicalDataIntelligence } = await import('./services/historical-data-intelligence.js');
-              log('🧠 Historical data intelligence loaded');
-            } catch (error) {
-              log('📊 Historical data intelligence not available (optional)');
-            }
+            // Add delay to prevent startup overload (per analysis recommendation)
+            setTimeout(async () => {
+              try {
+                // Load comprehensive historical data collector (if exists)
+                try {
+                  const { comprehensiveHistoricalCollector } = await import('./services/comprehensive-historical-collector.js');
+                  log('🎯 Historical data collector loaded (delayed startup)');
+                } catch (error) {
+                  log('📊 Historical data collector not available (optional)');
+                }
+                
+                // Load historical data intelligence (if exists)
+                try {
+                  const { historicalDataIntelligence } = await import('./services/historical-data-intelligence.js');
+                  log('🧠 Historical data intelligence loaded (delayed startup)');
+                } catch (error) {
+                  log('📊 Historical data intelligence not available (optional)');
+                }
+              } catch (error) {
+                log('⚠️ Historical data system delayed startup failed:', String(error));
+              }
+            }, 10000); // 10-second delay to prevent startup CPU overload
+            log('⏸️ Historical data system startup delayed by 10s for performance');
           }
         }
       ];
@@ -328,17 +332,21 @@ app.use((req, res, next) => {
       
       // Start all services with proper dependency management
       setTimeout(async () => {
+        // Skip OpenAI-dependent services if API key is not available
+        if (!config.OPENAI_API_KEY) {
+          log('⚠️ OpenAI API key not available - disabling AI-dependent features');
+        }
         try {
           await orchestrator.startAll();
           
           log('📊 ✅ SERVICE ORCHESTRATION COMPLETE');
-          log('🎯 Active Features:');
+          log('🎯 Active Features (Optimized for Z-Score Analytics):');
           log('   • Unified data refresh scheduler');
           log('   • Intelligent cron scheduling');
           log('   • Data staleness prevention');
           log('   • Daily email scheduling (8:00 AM EST)');
-          log('   • FRED incremental updates (4-hour intervals)');
           log('   • Historical data intelligence system');
+          log('   ⚡ FRED services disabled for performance optimization');
           log('');
           log('🌐 Available Endpoints:');
           log('   • GET  /health/system-status - System health monitoring');

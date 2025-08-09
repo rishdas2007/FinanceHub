@@ -42,9 +42,13 @@ export class AISummaryService {
   private readonly ECONOMIC_CACHE_TTL = 5 * 60 * 1000; // 5 minutes for economic data
 
   constructor() {
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
+    if (!process.env.OPENAI_API_KEY) {
+      this.openai = null as any;
+    } else {
+      this.openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+    }
   }
 
   clearCache(): void {

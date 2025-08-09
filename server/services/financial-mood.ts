@@ -23,9 +23,13 @@ class FinancialMoodService {
   private openai: OpenAI;
 
   constructor() {
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
+    if (!process.env.OPENAI_API_KEY) {
+      this.openai = null as any;
+    } else {
+      this.openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+    }
   }
 
   async generateFinancialMood(): Promise<MoodData> {

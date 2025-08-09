@@ -1,0 +1,127 @@
+Analysis of Your Startup Operations
+
+  Based on my investigation of your FinanceHub app, here are the 7 major 
+  startup operations causing the CPU overload and what they do:
+
+  Heavy Startup Operations (causing 219% CPU)
+
+  1. Real-Time Market Service
+
+  - Purpose: Fetches live stock/ETF prices via WebSocket connections
+  - CPU Impact: High - maintains persistent connections to Twelve Data API
+  - Z-Score Relevance: ⚠️ Not essential - z-scores use historical data, not
+   real-time prices
+
+  2. FRED Incremental Scheduler
+
+  - Purpose: Downloads economic data from Federal Reserve (GDP,
+  unemployment, inflation, etc.)
+  - CPU Impact: Very High - makes ~150 API calls, processes 4,000+ records
+  - Z-Score Relevance: ❌ Not needed - your z-scores focus on technical
+  indicators, not economic data
+
+  3. Intelligent Cron Scheduler
+
+  - Purpose: Schedules momentum updates every 2 minutes during market hours
+  - CPU Impact: High - triggers multiple background data fetchers
+  - Z-Score Relevance: ✅ Essential - momentum analysis feeds into z-score
+  calculations
+
+  4. Data Staleness Prevention
+
+  - Purpose: Monitors data freshness and triggers refreshes
+  - CPU Impact: Medium - constant monitoring loops
+  - Z-Score Relevance: ⚠️ Partially needed - ensures z-score input data is
+  current
+
+  5. Economic Data Scheduler
+
+  - Purpose: Fetches economic event calendars and indicators at 10:15 AM
+  daily
+  - CPU Impact: High - processes hundreds of economic events
+  - Z-Score Relevance: ❌ Not needed - z-scores are purely technical
+
+  6. Background Data Fetcher
+
+  - Purpose: Pre-loads momentum analysis and AI summaries into cache
+  - CPU Impact: High - processes sector ETF data and calculates momentum
+  metrics
+  - Z-Score Relevance: ✅ Critical - provides the ETF data that z-scores
+  analyze
+
+  7. Historical Data Integration
+
+  - Purpose: Processes your 9+ years of historical ETF data for z-score
+  calculations
+  - CPU Impact: Extreme - calculates z-scores across 2,500+ data points per
+   ETF
+  - Z-Score Relevance: ✅ Essential - this IS your z-score engine
+
+  What's Actually Needed for Z-Score Dashboard
+
+  ✅ Essential Operations (Keep These):
+
+  - Background Data Fetcher - provides current ETF data
+  - Historical Data Integration - calculates z-scores from 9-year dataset
+  - Intelligent Cron Scheduler - updates momentum metrics (z-score inputs)
+
+  ❌ Non-Essential Operations (Can Disable):
+
+  - FRED Incremental Scheduler - economic data not used in z-scores
+  - Economic Data Scheduler - economic events not needed for technical
+  z-scores
+  - Real-Time Market Service - z-scores use daily closes, not real-time
+  prices
+
+  ⚠️ Partially Needed (Can Optimize):
+
+  - Data Staleness Prevention - reduce monitoring frequency
+
+⏺ Update Todos
+  ⎿  ☒ Analyze startup operations and their purposes                   
+     ☒ Identify which operations are essential for z-score calculations
+     ☐ Recommend optimization strategies for heavy operations
+
+⏺ Optimization Strategies
+
+  Immediate Fix (Reduce CPU by ~60%):
+
+  // In server/index.ts, comment out or conditionally disable:
+  {
+    name: 'fred-incremental-scheduler',  // ❌ Disable - not needed for 
+  z-scores
+    // dependencies: ['data-scheduler'],
+    // timeout: 5000,
+    // initializer: async () => { ... }
+  },
+  {
+    name: 'economic-data-scheduler',     // ❌ Disable - not needed for 
+  z-scores  
+    // dependencies: ['fred-incremental-scheduler'],
+    // timeout: 5000,
+    // initializer: async () => { ... }
+  }
+
+  Medium-term Optimization (Stagger Heavy Operations):
+
+  // Delay historical data processing until after server starts
+  {
+    name: 'historical-data-integration',
+    dependencies: ['data-scheduler'],
+    timeout: 30000, // Increase timeout
+    initializer: async () => {
+      // Add delay to prevent startup overload
+      setTimeout(async () => {
+        await historicalDataIntegration.processZScores();
+      }, 10000); // Process z-scores 10 seconds after startup
+    }
+  }
+
+  Long-term Solution (Lazy Loading):
+
+  - Calculate z-scores on-demand when /api/zscore-technical is first called
+  - Cache results for subsequent requests
+  - Process one ETF at a time instead of all 12 simultaneously
+
+  Would you like me to help you implement any of these optimizations to get
+   your z-score calculations working without the CPU overload?

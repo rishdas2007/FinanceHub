@@ -20,9 +20,13 @@ class OpenAIEconomicIndicatorsService {
   private readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
   constructor() {
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
+    if (!process.env.OPENAI_API_KEY) {
+      this.openai = null as any;
+    } else {
+      this.openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+    }
   }
 
   async generateEconomicIndicators(): Promise<EconomicIndicatorData[]> {
