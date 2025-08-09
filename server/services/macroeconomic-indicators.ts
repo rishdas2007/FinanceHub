@@ -45,31 +45,29 @@ export class MacroeconomicService {
   }
 
   /**
-   * Get economic data from the database with LIVE z-score calculations
+   * Get economic data from the database with comprehensive historical data
    */
   private async getDataFromDatabase(): Promise<MacroeconomicData | null> {
     try {
-      // Import live z-score calculator
-      const { liveZScoreCalculator } = await import('./live-zscore-calculator');
+      // Use our comprehensive historical economic service
+      const { historicalEconomicService } = await import('./historical-economic-service');
       
-      // Calculate live z-scores (never cached)
-      const liveZScoreData = await liveZScoreCalculator.calculateLiveZScores();
+      // Get comprehensive indicators with 10-year historical data
+      const indicators = await historicalEconomicService.getComprehensiveIndicators();
       
-      if (!liveZScoreData || liveZScoreData.length === 0) {
-        logger.debug('No live z-score data calculated');
+      if (!indicators || indicators.length === 0) {
+        logger.debug('No historical economic indicators found');
         return null;
       }
       
-      logger.info(`📊 Calculated ${liveZScoreData.length} live z-scores from database`);
+      logger.info(`📊 Retrieved ${indicators.length} indicators from comprehensive historical dataset`);
 
-      const indicators = liveZScoreData.map((zData) => {
-        const currentReading = zData.currentValue;
-        const priorReading = zData.priorValue;
+      const formattedIndicators = indicators.map((indicator) => {
+        const currentReading = indicator.currentReading;
+        const priorReading = indicator.priorReading;
         
-        // Calculate simple vs Prior variance: currentReading - priorReading
-        const actualVariance = currentReading !== null && priorReading !== null 
-          ? currentReading - priorReading 
-          : null;
+        // Use calculated variance from historical service
+        const actualVariance = indicator.varianceVsPrior;
 
         // Enhanced unit-based formatting function with metric-specific handling
         const formatNumber = (value: number | null | undefined, unit: string, metric: string): string => {
@@ -149,47 +147,83 @@ export class MacroeconomicService {
           }
         };
 
-        // Enhanced variance formatting for vs Prior calculation with metric context
+        // Enhanced variance formatting with proper sign and magnitude
         const formatVariance = (value: number | null, unit: string, metric: string): string => {
-          if (value === null || value === undefined) return 'N/A';
-          if (Math.abs(value) < 0.01) return '0.0';
-          const formatted = formatNumber(Math.abs(value), unit, metric);
-          return value < 0 ? `(${formatted})` : formatted;
+          if (value === null || value === undefined || isNaN(value)) {
+            return 'N/A';
+          }
+          
+          const numVariance = parseFloat(String(value));
+          if (isNaN(numVariance)) return 'N/A';
+          if (numVariance === 0) return '0';
+          
+          const sign = numVariance > 0 ? '+' : '';
+          const absVariance = Math.abs(numVariance);
+          const metricLower = metric.toLowerCase();
+          
+          // Format variance based on metric type, matching current reading format
+          if (metricLower.includes('jobless claims')) {
+            if (absVariance >= 1000000) {
+              return sign + (absVariance / 1000000).toFixed(1) + 'M';
+            } else if (absVariance >= 1000) {
+              return sign + (absVariance / 1000).toFixed(0) + 'K';
+            } else {
+              return sign + absVariance.toFixed(0);
+            }
+          }
+          
+          if (metricLower.includes('payroll') || metricLower.includes('nonfarm')) {
+            return sign + (absVariance / 1000).toFixed(0) + 'K';
+          }
+          
+          if (metricLower.includes('earnings')) {
+            return sign + '$' + absVariance.toFixed(2);
+          }
+          
+          if (metricLower.includes('gdp')) {
+            return sign + '$' + (absVariance).toFixed(0) + 'B';
+          }
+          
+          if (metricLower.includes('cpi') || metricLower.includes('pce') || metricLower.includes('ppi') || metricLower.includes('inflation')) {
+            return sign + absVariance.toFixed(2) + '%';
+          }
+          
+          // Default variance formatting
+          if (absVariance >= 1000000) {
+            return sign + (absVariance / 1000000).toFixed(1) + 'M';
+          } else if (absVariance >= 1000) {
+            return sign + (absVariance / 1000).toFixed(0) + 'K';
+          } else if (absVariance >= 1) {
+            return sign + absVariance.toFixed(1);
+          } else {
+            return sign + absVariance.toFixed(3);
+          }
         };
-
-        // Determine label suffix for delta-adjusted metrics
-        const getDirectionalityLabel = (directionality: number): string => {
-          if (directionality === -1) return ' (Δ-adjusted)';
-          if (directionality === 1) return '';
-          return ' (neutral)';
-        };
-
-        const metricLabel = zData.metric + getDirectionalityLabel(zData.directionality);
 
         return {
-          metric: metricLabel,
-          type: zData.type,
-          category: zData.category,
-          releaseDate: zData.periodDate,
-          period_date: zData.periodDate, // Add period_date field for table display
-          currentReading: formatNumber(currentReading, zData.unit, zData.metric),
-          priorReading: formatNumber(priorReading, zData.unit, zData.metric),
-          varianceVsPrior: formatVariance(actualVariance, zData.unit, zData.metric), // Simple current - prior calculation
-          zScore: zData.deltaAdjustedZScore, // Use delta-adjusted z-score instead of raw z-score
-          deltaZScore: zData.deltaZScore, // Period-to-period change z-score
-          frequency: zData.frequency, // Indicator frequency (daily, weekly, monthly, quarterly)
-          unit: zData.unit
+          metric: indicator.metric,
+          type: indicator.type,
+          category: indicator.category,
+          releaseDate: indicator.releaseDate,
+          period_date: indicator.period_date,
+          currentReading: formatNumber(currentReading, indicator.unit, indicator.metric),
+          priorReading: formatNumber(priorReading, indicator.unit, indicator.metric),
+          varianceVsPrior: formatVariance(actualVariance, indicator.unit, indicator.metric),
+          zScore: indicator.zScore,
+          deltaZScore: indicator.deltaZScore,
+          frequency: indicator.frequency,
+          unit: indicator.unit
         };
       });
 
       const data: MacroeconomicData = {
-        indicators,
-        aiSummary: `Live z-score analysis computed for ${indicators.length} comprehensive economic indicators using 12-month historical statistics. Includes GDP Growth Rate and all indicators with sufficient historical data baseline.`,
+        indicators: formattedIndicators,
+        aiSummary: `Comprehensive economic indicators with authentic 10-year historical data. Retrieved ${formattedIndicators.length} indicators with prior readings and z-score analysis.`,
         lastUpdated: new Date().toISOString(),
-        source: 'Live Database Calculation (12-month rolling statistics)'
+        source: 'Historical Economic Dataset (10-year authentic data)'
       };
 
-      logger.info(`✅ Live z-score database data ready: ${indicators.length} indicators`);
+      logger.info(`✅ Historical database data ready: ${formattedIndicators.length} indicators`);
       return data;
 
     } catch (error) {
