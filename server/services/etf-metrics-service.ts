@@ -335,8 +335,13 @@ class ETFMetricsService {
       rsiSignal: this.getRSISignal(momentumETF?.rsi || technical?.rsi),
       rsiDivergence: false,
       
+      // Technical Signal Analysis - from momentum data  
+      signal: momentumETF?.momentum === 'bullish' ? 'BULLISH' : 
+              momentumETF?.momentum === 'bearish' ? 'BEARISH' : 'NEUTRAL',
+      strength: momentumETF?.strength ? Math.round(momentumETF.strength * 10) : null,
+      
       // Z-Score calculations
-      zScore: null,
+      zScore: momentumETF?.zScore || null,
       sharpeRatio: momentumETF?.sharpeRatio || null,
       fiveDayReturn: momentumETF?.fiveDayChange || null,
       
@@ -418,11 +423,24 @@ class ETFMetricsService {
         vwapSignal: this.getVWAPSignal(technical, zscore, momentumETF),
         obvTrend: momentumETF?.signal ? this.parseOBVFromSignal(momentumETF.signal) : 'neutral',
         
+        // Technical Signal Analysis - Enhanced integration with momentum data
+        signal: null, // Will be populated from momentum data
+        strength: null, // Will be populated from momentum data
+        
         // Initialize properties for Z-score system
         weightedScore: 0,
         weightedSignal: 'HOLD',
         zScoreData: null
       };
+
+      // Map momentum data to main metrics object
+      if (momentumETF) {
+        (metrics as any).signal = momentumETF.momentum === 'bullish' ? 'BULLISH' : 
+                                   momentumETF.momentum === 'bearish' ? 'BEARISH' : 'NEUTRAL';
+        (metrics as any).strength = momentumETF.strength ? Math.round(momentumETF.strength * 10) : null;
+        (metrics as any).zScore = momentumETF.zScore || null;
+        console.log(`✅ Momentum signals mapped for ${symbol}: ${(metrics as any).signal}, strength: ${(metrics as any).strength}, zScore: ${(metrics as any).zScore}`);
+      }
 
       // Calculate weighted scoring system with LIVE Z-score integration
       const weightedResult = await this.calculateWeightedTechnicalScore(metrics, momentumETF);
