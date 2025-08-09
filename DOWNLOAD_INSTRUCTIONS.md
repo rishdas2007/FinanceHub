@@ -6,7 +6,8 @@ Your comprehensive FinanceHub Pro deployment package is ready:
 
 ### Package Details
 - **File**: `FinanceHub_Complete_Package_v6.0.0_20250809_194813.tar.gz`
-- **Size**: 2.7MB
+- **Size**: 2.7MB (newest package with enhanced data)
+- **Alternative**: `FinanceHub_Complete_Package_v6.0.0_20250809_002510.tar.gz` (2.8MB)
 - **Files**: 353 files
 - **Includes**: Complete codebase, database, dependencies, and documentation
 
