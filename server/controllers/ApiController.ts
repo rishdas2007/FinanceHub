@@ -150,7 +150,7 @@ export class ApiController {
       .orderBy(desc(historicalStockData.date))
       .limit(Number(limit));
 
-      // Transform to match expected StockData interface
+      // CRITICAL FIX: Use historical dates as timestamps - NOT current time
       const stockData = results.map((row, index) => ({
         id: row.id,
         symbol: row.symbol,
@@ -163,7 +163,7 @@ export class ApiController {
           '0.00',
         volume: row.volume,
         marketCap: null,
-        timestamp: new Date(row.timestamp)
+        timestamp: row.timestamp  // This should be the historical date from database
       }));
       
       metricsCollector.endTimer(timerId, 'stock_history_fetch', { 

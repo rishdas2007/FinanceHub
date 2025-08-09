@@ -5,6 +5,9 @@ import { storage } from "./storage";
 import { financialDataService } from "./services/financial-data";
 import { getMarketHoursInfo } from '@shared/utils/marketHours';
 import { CACHE_DURATIONS } from '@shared/constants';
+import { db } from "./db";
+import { historicalStockData } from "@shared/schema";
+import { eq, desc } from "drizzle-orm";
 
 import { apiLogger, getApiStats } from "./middleware/apiLogger";
 import path from 'path';
@@ -712,34 +715,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { symbol } = req.params;
       const limit = parseInt(req.query.limit as string) || 30;
       
-      // First check if we have recent historical data in storage
-      let history = await storage.getStockHistory(symbol.toUpperCase(), limit);
+      console.log(`📈 Fetching historical data for ${symbol} from database...`);
       
-      // If we don't have enough data or data is old, fetch from API
-      if (!history || history.length < Math.min(limit, 5)) {
-        console.log(`Fetching fresh historical data for ${symbol}...`);
-        const freshData = await financialDataService.getHistoricalData(symbol.toUpperCase(), limit);
-        
-        // Store the fresh data
-        for (const item of freshData) {
-          await storage.createStockData({
-            symbol: item.symbol,
-            price: item.price.toString(),
-            change: item.change.toString(),
-            changePercent: item.changePercent.toString(),
-            volume: item.volume,
-            // timestamp: item.timestamp, // Remove this line as it's not in the schema
-          });
-        }
-        
-        // Get the updated history from storage
-        history = await storage.getStockHistory(symbol.toUpperCase(), limit);
-      }
-      
-      res.json(history || []);
+      // Use historical stock data table with proper date mapping
+      const results = await db
+        .select({
+          id: historicalStockData.id,
+          symbol: historicalStockData.symbol,
+          price: historicalStockData.close,
+          volume: historicalStockData.volume,
+          date: historicalStockData.date,
+          open: historicalStockData.open,
+          high: historicalStockData.high,
+          low: historicalStockData.low,
+        })
+        .from(historicalStockData)
+        .where(eq(historicalStockData.symbol, symbol.toUpperCase()))
+        .orderBy(desc(historicalStockData.date))
+        .limit(limit);
+
+      // Transform to match expected StockData interface with historical timestamps
+      const stockData = results.map((row, index) => ({
+        id: row.id,
+        symbol: row.symbol,
+        price: parseFloat(row.price).toFixed(2),
+        change: index < results.length - 1 ? 
+          (parseFloat(row.price) - parseFloat(results[index + 1].price)).toFixed(2) : 
+          '0.00',
+        changePercent: index < results.length - 1 ? 
+          (((parseFloat(row.price) - parseFloat(results[index + 1].price)) / parseFloat(results[index + 1].price)) * 100).toFixed(2) :
+          '0.00',
+        volume: row.volume,
+        marketCap: null,
+        timestamp: row.date  // CRITICAL FIX: Use historical date, not current time
+      }));
+
+      console.log(`✅ Historical data returned for ${symbol}: ${stockData.length} records`);
+      res.json(stockData);
     } catch (error) {
-      console.error('Error fetching stock history:', error);
-      res.status(500).json({ message: 'Failed to fetch stock history' });
+      console.error('Error fetching stock history from database:', error);
+      res.status(500).json({ message: 'Failed to fetch stock history from database' });
     }
   });
 
