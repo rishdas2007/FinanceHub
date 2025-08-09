@@ -330,6 +330,15 @@ const MacroeconomicIndicators: React.FC = () => {
     }
   };
 
+  // Get FNAI color function
+  const getFNAIColor = (fnai: number): string => {
+    if (fnai > 1.0) return 'text-green-400';
+    if (fnai > 0.5) return 'text-green-300';
+    if (fnai > -0.5) return 'text-yellow-400';
+    if (fnai > -1.0) return 'text-orange-400';
+    return 'text-red-400';
+  };
+
   // Enhanced filter and sort indicators with new filtering options
   const filteredAndSortedIndicators = (() => {
     let filtered = macroData?.indicators.filter(indicator => {
@@ -437,9 +446,9 @@ const MacroeconomicIndicators: React.FC = () => {
             aValue = a.zScore || 0;
             bValue = b.zScore || 0;
             break;
-          case 'deltazscore':
-            aValue = a.deltaZScore || 0;
-            bValue = b.deltaZScore || 0;
+          case 'fnai':
+            aValue = a.fnai || 0;
+            bValue = b.fnai || 0;
             break;
           case 'prior':
             aValue = typeof a.priorReading === 'number' ? a.priorReading : parseFloat(String(a.priorReading)) || 0;
@@ -728,11 +737,11 @@ const MacroeconomicIndicators: React.FC = () => {
                   </th>
                   <th className="text-right py-3 px-2">
                     <button 
-                      onClick={() => handleSort('deltazscore')}
+                      onClick={() => handleSort('fnai')}
                       className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-end group w-full"
                     >
-                      Δ Z-Score
-                      {getSortIcon('deltazscore')}
+                      FNAI
+                      {getSortIcon('fnai')}
                     </button>
                   </th>
                   <th className="text-right py-3 px-2">
@@ -788,7 +797,14 @@ const MacroeconomicIndicators: React.FC = () => {
                       {MacroFormatUtils.formatZScore(indicator.zScore ?? null)}
                     </td>
                     <td className="text-right py-3 px-2">
-                      {MacroFormatUtils.formatZScore(indicator.deltaZScore ?? null)}
+                      <div className="flex flex-col items-end">
+                        <span className={`font-medium ${getFNAIColor(indicator.fnai ?? 0)}`}>
+                          {indicator.fnai !== null && indicator.fnai !== undefined ? indicator.fnai.toFixed(2) : 'N/A'}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {indicator.fnaiInterpretation || ''}
+                        </span>
+                      </div>
                     </td>
                     <td className="text-right py-3 px-2 text-gray-300 font-medium">
                       {MacroFormatUtils.formatIndicatorValue(indicator.priorReading, indicator.metric)}
@@ -809,13 +825,14 @@ const MacroeconomicIndicators: React.FC = () => {
         </CardContent>
       </Card>
       
-      {/* Delta-Adjusted Z-Score Definition Footnote */}
+      {/* FNAI Definition Footnote */}
       <div className="mt-4 p-4 bg-gray-900 border border-gray-700 rounded-lg">
         <p className="text-sm text-gray-400">
-          <strong className="text-white">Delta-Adjusted Z-Score Definition:</strong> Measures how many standard deviations the current value is from its 12-month historical average, with economic directionality applied. 
-          <strong className="text-blue-400"> Positive z-scores = Economic Strength, Negative z-scores = Economic Weakness.</strong> 
-          Indicators marked "(Δ-adjusted)" have been inverted for consistent interpretation (e.g., lower unemployment rates show positive z-scores). 
-          Values above ±2.0 indicate statistically significant economic conditions.
+          <strong className="text-white">Frequency-Normalized Acceleration Index (FNAI):</strong> Compares recent trend velocity (last 3 observations) against historical 12-month average velocity, normalized by historical volatility. 
+          <strong className="text-green-400"> FNAI &gt; 1.0 = Strong acceleration, </strong>
+          <strong className="text-yellow-400"> -0.5 to 0.5 = Stable trend, </strong>
+          <strong className="text-red-400"> FNAI &lt; -1.0 = Strong deceleration. </strong>
+          Works consistently across daily, weekly, monthly, and quarterly economic data frequencies for better trend analysis.
         </p>
       </div>
 

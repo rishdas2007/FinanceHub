@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { sql } from 'drizzle-orm';
 import { logger } from '../../shared/utils/logger';
+import { fnaiCalculator, FNAIData } from './fnai-calculator';
 
 export interface EconomicIndicatorData {
   seriesId: string;
@@ -13,7 +14,8 @@ export interface EconomicIndicatorData {
   priorReading?: number;
   varianceVsPrior?: number;
   zScore?: number;
-  deltaZScore?: number;
+  fnai?: number;
+  fnaiInterpretation?: string;
   frequency: string;
   unit: string;
 }
@@ -64,23 +66,52 @@ export class HistoricalEconomicService {
 
       const result = await db.execute(query);
       
-      const indicators: EconomicIndicatorData[] = result.rows.map((row: any) => {
-        return {
-          seriesId: row.series_id,
-          metric: this.getIndicatorDisplayName(row.indicator),
-          type: this.getIndicatorType(row.series_id),
-          category: this.formatCategory(row.category),
-          period_date: row.current_period,
-          releaseDate: row.release_date,
-          currentReading: parseFloat(row.current_value) || 0,
-          priorReading: parseFloat(row.prior_value) || null,
-          varianceVsPrior: parseFloat(row.variance_vs_prior) || null,
-          zScore: parseFloat(row.simple_z_score) || null,
-          deltaZScore: null, // Will be calculated later if needed
-          frequency: row.frequency || 'Monthly',
-          unit: row.unit || 'Unknown'
+      // Calculate FNAI for each indicator
+      const indicatorsWithFNAI: EconomicIndicatorData[] = [];
+      
+      for (const row of result.rows) {
+        const seriesId = row.series_id;
+        const frequency = row.frequency || 'Monthly';
+        
+        // Get historical data for FNAI calculation
+        const historicalQuery = sql`
+          SELECT value, period_date
+          FROM historical_economic_data
+          WHERE series_id = ${seriesId}
+          ORDER BY period_date DESC
+          LIMIT 60
+        `;
+        
+        const historicalResult = await db.execute(historicalQuery);
+        const historicalData: FNAIData[] = historicalResult.rows.map((r: any) => ({
+          value: parseFloat(String(r.value)),
+          period_date: String(r.period_date)
+        }));
+        
+        // Calculate FNAI
+        const fnaiResult = fnaiCalculator.calculateFNAI(historicalData, frequency);
+        
+        const indicator: EconomicIndicatorData = {
+          seriesId: String(row.series_id),
+          metric: this.getIndicatorDisplayName(String(row.indicator)),
+          type: this.getIndicatorType(String(row.series_id)),
+          category: this.formatCategory(String(row.category)),
+          period_date: String(row.current_period),
+          releaseDate: String(row.release_date),
+          currentReading: parseFloat(String(row.current_value)) || 0,
+          priorReading: row.prior_value ? parseFloat(String(row.prior_value)) : undefined,
+          varianceVsPrior: row.variance_vs_prior ? parseFloat(String(row.variance_vs_prior)) : undefined,
+          zScore: row.simple_z_score ? parseFloat(String(row.simple_z_score)) : undefined,
+          fnai: fnaiResult.fnai,
+          fnaiInterpretation: fnaiResult.interpretation,
+          frequency: String(row.frequency) || 'Monthly',
+          unit: String(row.unit) || 'Unknown'
         };
-      });
+        
+        indicatorsWithFNAI.push(indicator);
+      }
+
+      const indicators = indicatorsWithFNAI;
 
       logger.info(`✅ Retrieved ${indicators.length} comprehensive economic indicators`);
       
