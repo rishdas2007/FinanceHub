@@ -59,7 +59,7 @@ export class MemStorage implements IStorage {
       percentChange: data.percentChange,
       volume: data.volume,
       marketCap: data.marketCap || null,
-      timestamp: new Date(),
+      timestamp: data.timestamp || new Date(), // Use provided timestamp or current time as fallback
     };
     
     if (!this.stockDataMap.has(data.symbol)) {

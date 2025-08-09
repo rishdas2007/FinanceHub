@@ -124,6 +124,7 @@ export class ApiController {
     const timerId = metricsCollector.startTimer('stock_history_fetch');
     
     try {
+      console.log(`Fetching fresh historical data for ${symbol}...`);
       logger.info('Fetching stock history', { 
         symbol,
         page,
@@ -149,6 +150,15 @@ export class ApiController {
       .where(eq(historicalStockData.symbol, symbol.toUpperCase()))
       .orderBy(desc(historicalStockData.date))
       .limit(Number(limit));
+
+      // DEBUG: Log sample data to verify timestamps
+      if (results.length > 0) {
+        console.log(`📊 Sample historical data for ${symbol}:`, {
+          count: results.length,
+          first: { date: results[0].timestamp, price: results[0].price },
+          last: { date: results[results.length - 1].timestamp, price: results[results.length - 1].price }
+        });
+      }
 
       // CRITICAL FIX: Use historical dates as timestamps - NOT current time
       const stockData = results.map((row, index) => ({
