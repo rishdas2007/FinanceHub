@@ -173,32 +173,67 @@ export function TopMoversSection() {
           </CardHeader>
           <CardContent className="space-y-3">
             {economicMovers.slice(0, 6).map((indicator, index) => (
-              <div key={index} className="flex items-center justify-between p-2 bg-gray-800/50 rounded">
-                <div className="flex-1">
+              <div key={index} className="p-3 bg-gray-800/50 rounded">
+                <div className="flex items-center justify-between mb-2">
                   <div className="text-sm font-medium text-white truncate">
                     {indicator.metric}
                   </div>
-                  <div className="text-xs text-gray-400">
-                    {indicator.current.toFixed(indicator.current < 10 ? 2 : 0)}
-                    {indicator.metric.includes('%') ? '%' : ''}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className={cn(
-                    "text-sm font-medium",
-                    indicator.changePercent >= 0 ? "text-gain-green" : "text-loss-red"
-                  )}>
-                    {indicator.changePercent >= 0 ? '+' : ''}{indicator.changePercent.toFixed(1)}%
-                  </div>
                   {indicator.significance && (
                     <div className={cn(
-                      "text-xs font-medium",
-                      indicator.significance === 'high' ? "text-red-400" : 
-                      indicator.significance === 'medium' ? "text-yellow-400" : "text-gray-400"
+                      "text-xs px-2 py-1 rounded font-medium",
+                      indicator.significance === 'high' ? "bg-red-900/50 text-red-300" : 
+                      indicator.significance === 'medium' ? "bg-yellow-900/50 text-yellow-300" : 
+                      "bg-blue-900/50 text-blue-300"
                     )}>
                       {indicator.significance.toUpperCase()}
                     </div>
                   )}
+                </div>
+                
+                <div className="grid grid-cols-4 gap-2 text-xs">
+                  <div>
+                    <div className="text-gray-400 mb-1">Current</div>
+                    <div className="text-white font-mono">
+                      {typeof indicator.current === 'number' 
+                        ? indicator.current.toFixed(indicator.current < 10 ? 1 : 0)
+                        : indicator.current
+                      }
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-400 mb-1">Z-Score</div>
+                    <div className={cn(
+                      "font-mono font-bold",
+                      Math.abs(indicator.zScore) > 2 ? "text-red-400" :
+                      Math.abs(indicator.zScore) > 1 ? "text-yellow-400" :
+                      "text-blue-400"
+                    )}>
+                      {indicator.zScore > 0 ? '+' : ''}{indicator.zScore.toFixed(2)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-400 mb-1">Δ Z-Score</div>
+                    <div className={cn(
+                      "font-mono text-xs",
+                      indicator.deltaZScore && Math.abs(indicator.deltaZScore) > 1 ? "text-orange-400 font-bold" :
+                      indicator.deltaZScore && Math.abs(indicator.deltaZScore) > 0.5 ? "text-yellow-400" :
+                      "text-gray-400"
+                    )}>
+                      {indicator.deltaZScore !== undefined 
+                        ? `${indicator.deltaZScore > 0 ? '+' : ''}${indicator.deltaZScore.toFixed(2)}`
+                        : 'N/A'
+                      }
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-400 mb-1">Previous</div>
+                    <div className="text-gray-300 font-mono">
+                      {typeof indicator.previous === 'number' 
+                        ? indicator.previous.toFixed(indicator.previous < 10 ? 1 : 0)
+                        : indicator.previous
+                      }
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
