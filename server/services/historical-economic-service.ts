@@ -89,7 +89,7 @@ export class HistoricalEconomicService {
         }));
         
         // Calculate FNAI
-        const fnaiResult = fnaiCalculator.calculateFNAI(historicalData, frequency);
+        const fnaiResult = fnaiCalculator.calculateFNAI(historicalData, frequency.toLowerCase());
         
         const indicator: EconomicIndicatorData = {
           seriesId: String(row.series_id),
