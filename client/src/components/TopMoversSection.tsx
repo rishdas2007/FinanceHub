@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Activity, Zap } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity, Zap, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ETFData {
@@ -108,25 +108,132 @@ export function TopMoversSection() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            {/* SPY Benchmark */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-blue-400 flex items-center">
+                <Target className="h-4 w-4 mr-1" />
+                Market Benchmark
+              </h4>
+              {(() => {
+                // Find SPY in all ETFs (gainers + losers)
+                const allEtfs = [...etfMovers.gainers, ...etfMovers.losers];
+                const spy = allEtfs.find(etf => etf.symbol === 'SPY');
+                
+                if (spy) {
+                  return (
+                    <div key={spy.symbol} className="p-3 bg-blue-900/20 border border-blue-700/50 rounded">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <span className="font-mono text-blue-300 font-bold">{spy.symbol}</span>
+                          <span className="text-xs text-gray-400">{spy.sector}</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-medium text-white">${spy.price.toFixed(2)}</div>
+                          <div className={cn(
+                            "text-xs font-medium",
+                            spy.changePercent >= 0 ? "text-gain-green" : "text-loss-red"
+                          )}>
+                            {spy.changePercent >= 0 ? '+' : ''}{spy.changePercent.toFixed(2)}%
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-3 mt-2 text-xs">
+                        <div>
+                          <span className="text-gray-400">Signal: </span>
+                          <span className={cn(
+                            "font-medium",
+                            spy.momentum?.signal === 'BULLISH' ? "text-gain-green" :
+                            spy.momentum?.signal === 'BEARISH' ? "text-loss-red" :
+                            "text-gray-400"
+                          )}>
+                            {spy.momentum?.signal || 'NEUTRAL'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Strength: </span>
+                          <span className="text-blue-300 font-mono">
+                            {spy.momentum?.strength || 0}/10
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Z-Score: </span>
+                          <span className={cn(
+                            "font-mono",
+                            Math.abs(spy.momentum?.zScore || 0) > 2 ? "text-red-400" :
+                            Math.abs(spy.momentum?.zScore || 0) > 1 ? "text-yellow-400" :
+                            "text-blue-400"
+                          )}>
+                            {spy.momentum?.zScore ? (spy.momentum.zScore > 0 ? '+' : '') + spy.momentum.zScore.toFixed(2) : 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div className="p-3 bg-blue-900/20 border border-blue-700/50 rounded">
+                      <div className="flex items-center space-x-3">
+                        <span className="font-mono text-blue-300 font-bold">SPY</span>
+                        <span className="text-xs text-gray-400">S&P 500 INDEX</span>
+                        <span className="text-xs text-yellow-400">Loading...</span>
+                      </div>
+                    </div>
+                  );
+                }
+              })()}
+            </div>
+
             {/* Top Gainers */}
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-gain-green flex items-center">
                 <TrendingUp className="h-4 w-4 mr-1" />
                 Top Gainers
               </h4>
-              {etfMovers.gainers.slice(0, 3).map((etf) => (
-                <div key={etf.symbol} className="flex items-center justify-between p-2 bg-gray-800/50 rounded">
-                  <div className="flex items-center space-x-3">
-                    <span className="font-mono text-white font-medium">{etf.symbol}</span>
-                    <span className="text-xs text-gray-400">{etf.sector}</span>
+              {etfMovers.gainers.filter(etf => etf.symbol !== 'SPY').slice(0, 3).map((etf) => (
+                <div key={etf.symbol} className="p-3 bg-gray-800/50 rounded">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-3">
+                      <span className="font-mono text-white font-medium">{etf.symbol}</span>
+                      <span className="text-xs text-gray-400">{etf.sector}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-white">${etf.price.toFixed(2)}</div>
+                      <div className={cn(
+                        "text-xs font-medium",
+                        etf.changePercent >= 0 ? "text-gain-green" : "text-loss-red"
+                      )}>
+                        {etf.changePercent >= 0 ? '+' : ''}{etf.changePercent.toFixed(2)}%
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium text-white">${etf.price.toFixed(2)}</div>
-                    <div className={cn(
-                      "text-xs font-medium",
-                      etf.changePercent >= 0 ? "text-gain-green" : "text-loss-red"
-                    )}>
-                      {etf.changePercent >= 0 ? '+' : ''}{etf.changePercent.toFixed(2)}%
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <span className="text-gray-400">Signal: </span>
+                      <span className={cn(
+                        "font-medium",
+                        etf.momentum?.signal === 'BULLISH' ? "text-gain-green" :
+                        etf.momentum?.signal === 'BEARISH' ? "text-loss-red" :
+                        "text-gray-400"
+                      )}>
+                        {etf.momentum?.signal || 'NEUTRAL'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Strength: </span>
+                      <span className="text-blue-300 font-mono">
+                        {etf.momentum?.strength || 0}/10
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Z-Score: </span>
+                      <span className={cn(
+                        "font-mono",
+                        Math.abs(etf.momentum?.zScore || 0) > 2 ? "text-red-400" :
+                        Math.abs(etf.momentum?.zScore || 0) > 1 ? "text-yellow-400" :
+                        "text-blue-400"
+                      )}>
+                        {etf.momentum?.zScore ? (etf.momentum.zScore > 0 ? '+' : '') + etf.momentum.zScore.toFixed(2) : 'N/A'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -140,18 +247,50 @@ export function TopMoversSection() {
                 Top Decliners
               </h4>
               {etfMovers.losers.slice(0, 3).map((etf) => (
-                <div key={etf.symbol} className="flex items-center justify-between p-2 bg-gray-800/50 rounded">
-                  <div className="flex items-center space-x-3">
-                    <span className="font-mono text-white font-medium">{etf.symbol}</span>
-                    <span className="text-xs text-gray-400">{etf.sector}</span>
+                <div key={etf.symbol} className="p-3 bg-gray-800/50 rounded">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-3">
+                      <span className="font-mono text-white font-medium">{etf.symbol}</span>
+                      <span className="text-xs text-gray-400">{etf.sector}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-white">${etf.price.toFixed(2)}</div>
+                      <div className={cn(
+                        "text-xs font-medium",
+                        etf.changePercent >= 0 ? "text-gain-green" : "text-loss-red"
+                      )}>
+                        {etf.changePercent >= 0 ? '+' : ''}{etf.changePercent.toFixed(2)}%
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium text-white">${etf.price.toFixed(2)}</div>
-                    <div className={cn(
-                      "text-xs font-medium",
-                      etf.changePercent >= 0 ? "text-gain-green" : "text-loss-red"
-                    )}>
-                      {etf.changePercent >= 0 ? '+' : ''}{etf.changePercent.toFixed(2)}%
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <span className="text-gray-400">Signal: </span>
+                      <span className={cn(
+                        "font-medium",
+                        etf.momentum?.signal === 'BULLISH' ? "text-gain-green" :
+                        etf.momentum?.signal === 'BEARISH' ? "text-loss-red" :
+                        "text-gray-400"
+                      )}>
+                        {etf.momentum?.signal || 'NEUTRAL'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Strength: </span>
+                      <span className="text-blue-300 font-mono">
+                        {etf.momentum?.strength || 0}/10
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Z-Score: </span>
+                      <span className={cn(
+                        "font-mono",
+                        Math.abs(etf.momentum?.zScore || 0) > 2 ? "text-red-400" :
+                        Math.abs(etf.momentum?.zScore || 0) > 1 ? "text-yellow-400" :
+                        "text-blue-400"
+                      )}>
+                        {etf.momentum?.zScore ? (etf.momentum.zScore > 0 ? '+' : '') + etf.momentum.zScore.toFixed(2) : 'N/A'}
+                      </span>
                     </div>
                   </div>
                 </div>

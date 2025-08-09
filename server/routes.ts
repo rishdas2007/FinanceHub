@@ -295,7 +295,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Top movers endpoint for UI/UX improvements - using REAL data sources
+  // Top movers endpoint for UI/UX improvements - using REAL data sources with momentum integration
   app.get("/api/top-movers", async (req, res) => {
     try {
       // Get ETF data from sectors endpoint (same as ETF Technical Metrics uses)
@@ -306,16 +306,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const economicResponse = await fetch(`${req.protocol}://${req.get('host')}/api/macroeconomic-indicators`);
       const economicData = await economicResponse.json();
       
-      // Process ETF data for movers
-      const etfMovers = sectorsData.map((etf: any) => ({
-        symbol: etf.symbol,
-        sector: etf.sector || getSectorName(etf.symbol),
-        price: parseFloat(etf.price || 0),
-        changePercent: parseFloat(etf.changePercent || 0),
-        change: parseFloat(etf.change || 0),
-        volume: etf.volume || 0,
-        momentum: etf.momentum || { signal: 'NEUTRAL', strength: 0 }
-      })).sort((a: any, b: any) => b.changePercent - a.changePercent);
+      // Get momentum data from momentum-analysis endpoint for technical signals
+      const momentumResponse = await fetch(`${req.protocol}://${req.get('host')}/api/momentum-analysis`);
+      const momentumData = await momentumResponse.json();
+      
+      // Create momentum lookup map
+      const momentumMap = new Map();
+      if (momentumData.momentumStrategies) {
+        momentumData.momentumStrategies.forEach((strategy: any) => {
+          momentumMap.set(strategy.ticker, {
+            signal: strategy.momentum.toUpperCase(),
+            strength: Math.round(strategy.strength * 10), // Convert to 0-10 scale
+            zScore: strategy.zScore,
+            description: strategy.signal
+          });
+        });
+      }
+      
+      // Process ETF data for movers with momentum integration
+      const etfMovers = sectorsData.map((etf: any) => {
+        const momentumInfo = momentumMap.get(etf.symbol) || { signal: 'NEUTRAL', strength: 0, zScore: 0 };
+        return {
+          symbol: etf.symbol,
+          sector: etf.sector || getSectorName(etf.symbol),
+          price: parseFloat(etf.price || 0),
+          changePercent: parseFloat(etf.changePercent || 0),
+          change: parseFloat(etf.change || 0),
+          volume: etf.volume || 0,
+          momentum: momentumInfo
+        };
+      }).sort((a: any, b: any) => b.changePercent - a.changePercent);
       
       // Get top gainers and losers
       const gainers = etfMovers.filter((etf: any) => etf.changePercent > 0).slice(0, 5);
