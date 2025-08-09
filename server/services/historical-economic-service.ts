@@ -2,6 +2,7 @@ import { db } from '../db';
 import { sql } from 'drizzle-orm';
 import { logger } from '../../shared/utils/logger';
 import { fnaiCalculator, FNAIData } from './fnai-calculator';
+import { deltaZScoreCalculator } from './delta-zscore-calculator';
 
 export interface EconomicIndicatorData {
   seriesId: string;
@@ -14,6 +15,7 @@ export interface EconomicIndicatorData {
   priorReading?: number;
   varianceVsPrior?: number;
   zScore?: number;
+  deltaZScore?: number;
   fnai?: number;
   fnaiInterpretation?: string;
   frequency: string;
@@ -94,8 +96,15 @@ export class HistoricalEconomicService {
 
       const result = await db.execute(query);
       
-      // Calculate FNAI for each indicator
-      const indicatorsWithFNAI: EconomicIndicatorData[] = [];
+      // Get all series IDs for bulk delta Z-score calculation
+      const seriesIds = result.rows.map(row => String(row.series_id));
+      logger.info(`🔄 Calculating delta Z-scores for ${seriesIds.length} indicators`);
+      
+      // Calculate delta Z-scores for all indicators in parallel
+      const deltaZScoreMap = await deltaZScoreCalculator.calculateBulkDeltaZScores(seriesIds);
+      
+      // Calculate FNAI and combine with delta Z-scores
+      const indicatorsWithEnhancedAnalysis: EconomicIndicatorData[] = [];
       
       for (const row of result.rows) {
         const rowSeriesId = String(row.series_id);
@@ -119,6 +128,9 @@ export class HistoricalEconomicService {
         // Calculate FNAI
         const fnaiResult = fnaiCalculator.calculateFNAI(historicalData, frequency.toLowerCase());
         
+        // Get delta Z-score data
+        const deltaData = deltaZScoreMap.get(rowSeriesId);
+        
         // Clean data extraction
         const currentValue = parseFloat(String(row.current_value)) || 0;
         const priorValue = row.prior_value ? parseFloat(String(row.prior_value)) : undefined;
@@ -141,16 +153,17 @@ export class HistoricalEconomicService {
           priorReading: priorValue,
           varianceVsPrior: rawVariance,
           zScore: cappedZScore,
+          deltaZScore: deltaData?.deltaZScore,
           fnai: fnaiResult.fnai,
           fnaiInterpretation: fnaiResult.interpretation,
           frequency: frequency,
           unit: String(row.unit) || 'Unknown'
         };
         
-        indicatorsWithFNAI.push(indicator);
+        indicatorsWithEnhancedAnalysis.push(indicator);
       }
 
-      const indicators = indicatorsWithFNAI;
+      const indicators = indicatorsWithEnhancedAnalysis;
 
       logger.info(`✅ Retrieved ${indicators.length} comprehensive economic indicators`);
       

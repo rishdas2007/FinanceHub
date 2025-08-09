@@ -1,6 +1,6 @@
-import { logger } from '../config/logger';
+import { logger } from '../../shared/utils/logger';
 import { sql } from 'drizzle-orm';
-import { db } from '../config/database';
+import { db } from '../db';
 
 export interface DeltaZScoreData {
   seriesId: string;
@@ -32,13 +32,12 @@ export class DeltaZScoreCalculator {
       const historicalQuery = sql`
         SELECT 
           value,
-          period_date,
-          LAG(value, 1) OVER (ORDER BY period_date) as prev_value
+          period_date
         FROM historical_economic_data
         WHERE series_id = ${seriesId}
           AND value IS NOT NULL
         ORDER BY period_date DESC
-        LIMIT ${windowSize + 1}
+        LIMIT ${sql.raw(windowSize.toString())}
       `;
       
       const result = await db.execute(historicalQuery);
@@ -50,7 +49,7 @@ export class DeltaZScoreCalculator {
       
       // Calculate period-over-period changes (deltas)
       const deltas: number[] = [];
-      const values = result.rows.map(r => parseFloat(String(r.value))).reverse(); // chronological order
+      const values = result.rows.map((r: any) => parseFloat(String(r.value))).reverse(); // chronological order
       
       for (let i = 1; i < values.length; i++) {
         if (values[i-1] !== 0) {

@@ -210,6 +210,7 @@ export class MacroeconomicService {
           priorReading: formatNumber(priorReading, indicator.unit, indicator.metric),
           varianceVsPrior: formatVariance(actualVariance, indicator.unit, indicator.metric),
           zScore: indicator.zScore,
+          deltaZScore: indicator.deltaZScore,
           fnai: indicator.fnai,
           fnaiInterpretation: indicator.fnaiInterpretation,
           frequency: indicator.frequency,
