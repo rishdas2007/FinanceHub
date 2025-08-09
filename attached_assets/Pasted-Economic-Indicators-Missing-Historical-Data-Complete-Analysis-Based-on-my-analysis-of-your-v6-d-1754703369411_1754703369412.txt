@@ -1,0 +1,182 @@
+Economic Indicators Missing Historical Data - Complete Analysis
+
+  Based on my analysis of your v6 database, here's why you're missing
+  historical data for "Continuing Jobless Claims (Δ-adjusted)", "Initial
+  Jobless Claims (Δ-adjusted)", and other indicators:
+
+  Root Cause: Data Processing vs Raw Data Collection
+
+  The Issue: You have raw data for these indicators but lack
+  processed/calculated versions. Your current data contains:
+
+  - ✅ Continuing Jobless Claims (CCSA): 24 raw data points
+  - ✅ Initial Jobless Claims (ICSA): 24 raw data points
+  - ❌ "(Δ-adjusted)" versions: Missing - these are calculated fields
+
+  Complete List of Indicators Missing Historical Data
+
+  Category 1: Missing Delta-Adjusted Calculations (Have Raw Data)
+
+  1. Continuing Jobless Claims (Δ-adjusted) - [Has 24 raw CCSA records]
+  2. Initial Jobless Claims (Δ-adjusted) - [Has 24 raw ICSA records]
+  3. Nonfarm Payrolls (Δ-adjusted) - [Has 50 raw PAYEMS records]
+  4. CPI All Items (Δ-adjusted) - [Has 19 raw CPIAUCSL records]
+  5. Core CPI (Δ-adjusted) - [Has 18 raw CPILFESL records]
+  6. GDP Growth Rate (Δ-adjusted) - [Has 16 raw A191RL1Q225SBEA records]
+  7. Retail Sales (Δ-adjusted) - [Has 19 raw RSAFS records]
+  8. Housing Starts (Δ-adjusted) - [Has 30 raw HOUST records]
+
+  Category 2: Completely Missing Indicators (Limited/No Data)
+
+  9. Industrial Production YoY - [Only 1 record]
+  10. Durable Goods Orders MoM - [Only 1 record]
+  11. PPI Final Demand - [Only 3 records]
+  12. Personal Consumption Expenditures - [Only 3 records]
+  13. Manufacturing Hours - [Only 3 records]
+  14. Manufacturing Employment - [Only 3 records]
+  15. JOLTS Quits - [Only 3 records]
+  16. Inventories to Sales Ratio - [Only 3 records]
+  17. Gasoline Prices - [Only 3 records]
+  18. Employment to Population Ratio - [Only 3 records]
+  19. Durable Goods Orders - [Only 3 records]
+  20. 30-Year Mortgage Rate - [Only 3 records]
+  21. US Dollar Index - [Only 3 records]
+
+  Category 3: Adequate Data But Could Use More History
+
+  22. S&P Global Manufacturing PMI - [12 records - could use more]
+  23. Manufacturing PMI - [12 records - could use more]
+  24. Leading Economic Index - [12 records - could use more]
+  25. Building Permits - [13 records - could use more]
+
+  Why This Is Happening
+
+  1. FRED Scheduler Disabled (Major Cause)
+
+  In your v6 optimization, you disabled the FRED incremental scheduler:
+
+  // FRED scheduler disabled - not needed for z-score calculations
+  // {
+  //   name: 'fred-incremental-scheduler',
+  //   dependencies: ['data-scheduler'],
+  //   timeout: 5000,
+  //   initializer: async () => {
+  //     try {
+  //       fredSchedulerIncremental.start();
+
+  Result: No new economic data collection since v6 deployment.
+
+  2. Missing Delta Calculation Logic
+
+  Your system collects raw values but doesn't calculate the delta-adjusted
+  versions:
+
+  // Missing: Delta calculation processing
+  const calculateDeltas = (rawData: EconomicDataPoint[]) => {
+    return rawData.map((point, index) => ({
+      ...point,
+      monthlyChange: index > 0 ? ((point.value - rawData[index-1].value) /
+  rawData[index-1].value) * 100 : null,
+      annualChange: index >= 12 ? ((point.value - rawData[index-12].value)
+  / rawData[index-12].value) * 100 : null
+    }));
+  };
+
+  3. API Rate Limiting & Incomplete Backfills
+
+  Some indicators have only 1-3 records because:
+  - FRED API rate limits interrupted historical backfills
+  - Service failures during initial data collection
+  - Incomplete series definitions in FRED
+
+  Recommendations to Fix Missing Data
+
+  Immediate Fix (Week 1): Re-enable Economic Data Collection
+
+  1. Re-enable FRED Scheduler (but optimize it):
+  {
+    name: 'fred-incremental-scheduler-optimized',
+    dependencies: ['data-scheduler'],
+    timeout: 5000,
+    initializer: async () => {
+      // Run only once per day, not continuously
+      const fredScheduler = new OptimizedFredScheduler({
+        runFrequency: 'daily',
+        maxConcurrentCalls: 2,  // Reduced from default
+        priorityIndicators: ['CCSA', 'ICSA', 'PAYEMS'] // Focus on what you
+   need
+      });
+      await fredScheduler.start();
+    }
+  }
+
+  Medium-term Fix (Week 2): Add Delta Calculations
+
+  2. Implement Delta Processing Service:
+  class EconomicDeltaCalculator {
+    async processDeltas(seriesId: string): Promise<void> {
+      const rawData = await this.getRawHistoricalData(seriesId);
+      const processedData = rawData.map((point, index) => ({
+        ...point,
+        metric_name: `${point.metric_name} (Δ-adjusted)`,
+        monthly_change: this.calculateMonthlyChange(rawData, index),
+        annual_change: this.calculateAnnualChange(rawData, index),
+        z_score_12m: this.calculateZScore(rawData, index, 12)
+      }));
+
+      await this.saveProcessedData(processedData);
+    }
+  }
+
+  Long-term Solution (Month 2): Complete Historical Backfill
+
+  3. Systematic Historical Data Collection:
+  const MISSING_DATA_PRIORITY = [
+    // High priority - needed for trading decisions
+    { series: 'CCSA', priority: 1, targetRecords: 60 },
+    { series: 'ICSA', priority: 1, targetRecords: 60 },
+    { series: 'PAYEMS', priority: 1, targetRecords: 120 },
+
+    // Medium priority - useful for analysis
+    { series: 'MORTGAGE30US', priority: 2, targetRecords: 36 },
+    { series: 'DEXUSEU', priority: 2, targetRecords: 36 },
+
+    // Low priority - nice to have
+    { series: 'GASREGCOVW', priority: 3, targetRecords: 24 }
+  ];
+
+  Quick Action Plan
+
+  Step 1: Immediate Data Recovery (This Week)
+
+  # Run historical backfill for critical missing indicators
+  node server/scripts/fred-indicators-backfill.ts --series CCSA,ICSA
+  --years 5
+
+  Step 2: Re-enable Optimized Data Collection
+
+  - Uncomment FRED scheduler in v6
+  - Add rate limiting and error handling
+  - Focus on indicators you actually use for z-scores
+
+  Step 3: Add Delta Processing
+
+  - Implement monthly/annual change calculations
+  - Process existing raw data retroactively
+  - Set up automated delta calculations for new data
+
+  Impact on Your Z-Score System
+
+  Good News: The missing delta-adjusted data doesn't affect your z-score 
+  calculations since you disabled economic data processing in v6. Your
+  z-scores focus on technical indicators from ETF data, which you have
+  excellent coverage for (9+ years).
+
+  If you want economic z-scores later: You'll need the delta-adjusted
+  versions for meaningful economic statistical analysis, as raw levels
+  (like "1,974,000 continuing claims") aren't as useful as changes
+  ("jobless claims increased 5.2% month-over-month").
+
+  The missing data is primarily an economic analysis limitation, not a
+  trading signal problem given your current z-score focus on technical
+  indicators.
