@@ -2201,8 +2201,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Enhanced Z-Score API with advanced optimizations
   app.use('/api/enhanced-zscore', (await import('./routes/enhanced-zscore-api')).default);
 
-  // Economic Data Recovery API
-  app.use('/api/economic-recovery', (await import('./routes/economic-data-recovery')).default);
-
   return httpServer;
 }

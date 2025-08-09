@@ -12,8 +12,7 @@ interface EconomicIndicator {
   priorReading: string;
   varianceVsPrior: string;
   zScore?: number;
-  fnai?: number;
-  fnaiInterpretation?: string;
+  deltaZScore?: number;
   frequency?: string;
   period_date?: string;
   releaseDate?: string;
@@ -47,8 +46,7 @@ interface PulseMetric {
   currentValue: number;
   priorValue: number | null;
   zScore: number;
-  fnai?: number;
-  fnaiInterpretation?: string;
+  deltaZScore?: number;
   frequency?: string;
   formattedValue: string;
   formattedPriorValue: string;
@@ -194,7 +192,7 @@ export function EconomicPulseCheck() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [dateRangeFilter, setDateRangeFilter] = useState('all');
   const [zScoreFilter, setZScoreFilter] = useState('all');
-  const [fnaiFilter, setFnaiFilter] = useState('significant');
+  const [deltaZScoreFilter, setDeltaZScoreFilter] = useState('significant');
 
   const {
     data: economicData,
@@ -361,20 +359,20 @@ export function EconomicPulseCheck() {
 
     // Delta Z-Score filter
     let matchesDeltaZScore = true;
-    if (fnaiFilter !== 'all' && indicator.fnai !== undefined) {
-      const fnai = indicator.fnai;
-      switch (fnaiFilter) {
+    if (deltaZScoreFilter !== 'all' && indicator.deltaZScore !== undefined) {
+      const deltaZScore = indicator.deltaZScore;
+      switch (deltaZScoreFilter) {
         case 'extreme':
-          matchesDeltaZScore = Math.abs(fnai) > 2;
+          matchesDeltaZScore = Math.abs(deltaZScore) > 2;
           break;
         case 'significant':
-          matchesDeltaZScore = Math.abs(fnai) > 1;
+          matchesDeltaZScore = Math.abs(deltaZScore) > 1;
           break;
         case 'positive':
-          matchesDeltaZScore = fnai > 0;
+          matchesDeltaZScore = deltaZScore > 0;
           break;
         case 'negative':
-          matchesDeltaZScore = fnai < 0;
+          matchesDeltaZScore = deltaZScore < 0;
           break;
       }
     }
@@ -405,7 +403,7 @@ export function EconomicPulseCheck() {
   // Client-side Economic Insight Classifier
   const classifyIndicator = (indicator: any, allIndicators: any[] = []): EconomicInsightClassification => {
     const zScore = indicator.zScore || 0;
-    const fnai = indicator.fnai || 0;
+    const deltaZScore = indicator.deltaZScore || 0;
     const metricName = indicator.metric.toLowerCase();
 
     // Get economic directionality
@@ -421,26 +419,26 @@ export function EconomicPulseCheck() {
     const levelSignal = Math.abs(zScore) < 0.5 ? 'neutral' : 
                        (isInverse ? (zScore > 0 ? 'positive' : 'negative') : (zScore > 0 ? 'positive' : 'negative'));
     
-    const trendSignal = Math.abs(fnai) < 0.5 ? 'neutral' : 
-                       (isInverse ? (fnai > 0 ? 'negative' : 'positive') : (fnai > 0 ? 'positive' : 'negative'));
+    const trendSignal = Math.abs(deltaZScore) < 0.5 ? 'neutral' : 
+                       (isInverse ? (deltaZScore > 0 ? 'negative' : 'positive') : (deltaZScore > 0 ? 'positive' : 'negative'));
 
     // Determine overall signal with sophisticated logic for inflation
     let overallSignal: 'positive' | 'negative' | 'mixed' | 'neutral' = 'neutral';
     
     if (metricName.includes('inflation') || metricName.includes('cpi') || metricName.includes('pce') || metricName.includes('ppi')) {
       // Rapidly rising inflation (even if low level) = negative
-      if (fnai > 1.5 && zScore > -1) {
+      if (deltaZScore > 1.5 && zScore > -1) {
         overallSignal = 'negative';
       }
       // Low and stable/falling inflation = positive
-      else if (zScore > 0.5 && fnai <= 0.5) {
+      else if (zScore > 0.5 && deltaZScore <= 0.5) {
         overallSignal = 'positive';
       }
       // Mixed signals
       else if ((levelSignal === 'positive' && trendSignal === 'negative') ||
                (levelSignal === 'negative' && trendSignal === 'positive')) {
         // Trend takes precedence if significant
-        if (Math.abs(fnai) > Math.abs(zScore) && Math.abs(fnai) > 1.0) {
+        if (Math.abs(deltaZScore) > Math.abs(zScore) && Math.abs(deltaZScore) > 1.0) {
           overallSignal = trendSignal === 'positive' ? 'positive' : 'negative';
         } else {
           overallSignal = 'mixed';
@@ -454,9 +452,9 @@ export function EconomicPulseCheck() {
     else {
       if (levelSignal === trendSignal) {
         overallSignal = levelSignal as any;
-      } else if (Math.abs(fnai) > Math.abs(zScore) * 1.5 && Math.abs(fnai) > 1) {
+      } else if (Math.abs(deltaZScore) > Math.abs(zScore) * 1.5 && Math.abs(deltaZScore) > 1) {
         overallSignal = trendSignal as any;
-      } else if (Math.abs(zScore) > Math.abs(fnai) * 1.5 && Math.abs(zScore) > 1) {
+      } else if (Math.abs(zScore) > Math.abs(deltaZScore) * 1.5 && Math.abs(zScore) > 1) {
         overallSignal = levelSignal as any;
       } else {
         overallSignal = 'mixed';
@@ -464,14 +462,14 @@ export function EconomicPulseCheck() {
     }
 
     // Calculate confidence
-    const maxScore = Math.max(Math.abs(zScore), Math.abs(fnai));
+    const maxScore = Math.max(Math.abs(zScore), Math.abs(deltaZScore));
     const confidence: 'high' | 'medium' | 'low' = maxScore > 2 ? 'high' : maxScore > 1 ? 'medium' : 'low';
 
     // Enhanced reasoning with sophisticated economic context
     const levelDesc = Math.abs(zScore) > 2 ? (zScore > 0 ? 'well above historical average' : 'well below historical average') :
                      Math.abs(zScore) > 1 ? (zScore > 0 ? 'modestly above average' : 'modestly below average') : 'near historical average';
-    const trendDesc = Math.abs(fnai) > 2 ? (fnai > 0 ? 'trending upward rapidly' : 'trending downward rapidly') :
-                     Math.abs(fnai) > 1 ? (fnai > 0 ? 'trending upward' : 'trending downward') : 'stable trend';
+    const trendDesc = Math.abs(deltaZScore) > 2 ? (deltaZScore > 0 ? 'trending upward rapidly' : 'trending downward rapidly') :
+                     Math.abs(deltaZScore) > 1 ? (deltaZScore > 0 ? 'trending upward' : 'trending downward') : 'stable trend';
     
     let reasoning = '';
     
@@ -505,7 +503,7 @@ export function EconomicPulseCheck() {
         if (employmentIndicators.some(ind => (ind.zScore || 0) < -1)) {
           crossIndicatorFactors.push("Employment indicators weakening");
         }
-        if (inflationIndicators.some(ind => (ind.fnai || 0) > 1.5)) {
+        if (inflationIndicators.some(ind => (ind.deltaZScore || 0) > 1.5)) {
           crossIndicatorFactors.push("Inflation accelerating beyond targets");
         }
         if (monetaryIndicators.some(ind => (ind.zScore || 0) > 1.5)) {
@@ -513,7 +511,7 @@ export function EconomicPulseCheck() {
         }
         
         // Add leading indicator concerns (generic for any mixed signal)
-        if (Math.abs(fnai) > Math.abs(zScore)) {
+        if (Math.abs(deltaZScore) > Math.abs(zScore)) {
           crossIndicatorFactors.push("Recent momentum diverging from trend");
         }
         
@@ -525,7 +523,7 @@ export function EconomicPulseCheck() {
         
         reasoning = `GDP at ${indicator.currentReading || indicator.formattedValue || '3.0%'}:
 • Level Signal: ${levelDesc} (${zScore >= 0 ? '+' : ''}${zScore.toFixed(2)}σ)  
-• Trend Signal: ${trendDesc} (${fnai >= 0 ? '+' : ''}${fnai.toFixed(2)})
+• Trend Signal: ${trendDesc} (${deltaZScore >= 0 ? '+' : ''}${deltaZScore.toFixed(2)}σ)
 
 Result: "Mixed" classification because:
 ${crossIndicatorFactors.map(factor => `• ${factor}`).join('\n')}`;
@@ -705,8 +703,7 @@ ${crossIndicatorFactors.map(factor => `• ${factor}`).join('\n')}`;
           currentValue: currentValue,
           priorValue: priorValue,
           zScore: indicator.zScore,
-          fnai: indicator.fnai,
-          fnaiInterpretation: indicator.fnaiInterpretation,
+          deltaZScore: indicator.deltaZScore,
           frequency: indicator.frequency,
           formattedValue: indicator.currentReading,
           formattedPriorValue: indicator.priorReading,
@@ -1050,17 +1047,17 @@ ${crossIndicatorFactors.map(factor => `• ${factor}`).join('\n')}`;
             </div>
             
             <div className="flex items-center space-x-2">
-              <span className="text-gray-400 text-sm">FNAI Filter:</span>
+              <span className="text-gray-400 text-sm">Δ Z-Score:</span>
               <select
-                value={fnaiFilter}
-                onChange={(e) => setFnaiFilter(e.target.value)}
+                value={deltaZScoreFilter}
+                onChange={(e) => setDeltaZScoreFilter(e.target.value)}
                 className="bg-financial-gray border border-financial-border rounded px-3 py-2 text-white focus:border-blue-400 focus:outline-none w-full"
               >
-                <option value="all">All FNAI Values</option>
-                <option value="extreme">Extreme (|FNAI| {'>'} 2)</option>
-                <option value="significant">Significant (|FNAI| {'>'} 1)</option>
-                <option value="positive">Positive (FNAI {'>'} 0)</option>
-                <option value="negative">Negative (FNAI {'<'} 0)</option>
+                <option value="all">All Δ Z-Scores</option>
+                <option value="extreme">Extreme (|Δz| {'>'} 2)</option>
+                <option value="significant">Significant (|Δz| {'>'} 1)</option>
+                <option value="positive">Positive (Δz {'>'} 0)</option>
+                <option value="negative">Negative (Δz {'<'} 0)</option>
               </select>
             </div>
           </div>

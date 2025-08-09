@@ -335,8 +335,8 @@ class ETFMetricsService {
       rsiSignal: this.getRSISignal(momentumETF?.rsi || technical?.rsi),
       rsiDivergence: false,
       
-      // Z-Score calculations - populate from enhanced z-score data
-      zScore: zscore ? this.getCompositeZScore(zscore) : null,
+      // Z-Score calculations
+      zScore: null,
       sharpeRatio: momentumETF?.sharpeRatio || null,
       fiveDayReturn: momentumETF?.fiveDayChange || null,
       
@@ -346,8 +346,8 @@ class ETFMetricsService {
       obvTrend: momentumETF?.signal ? this.parseOBVFromSignal(momentumETF.signal) : 'neutral',
       
       // Z-Score system results
-      weightedScore: zscore ? this.getWeightedScore(zscore) : 0,
-      weightedSignal: zscore ? this.getZScoreSignal(zscore) : 'HOLD',
+      weightedScore: 0,
+      weightedSignal: 'HOLD',
       zScoreData: zscore ? this.buildZScoreDataOptimized(zscore) : null
     };
   }
@@ -800,45 +800,6 @@ class ETFMetricsService {
       vwapSignal: 'Loading...',
       obvTrend: 'neutral' as const
     }));
-  }
-
-  /**
-   * Extract composite Z-Score for main zScore field
-   */
-  private getCompositeZScore(zscore: any): number | null {
-    if (!zscore) return null;
-    const composite = typeof zscore.compositeZScore === 'string' ? parseFloat(zscore.compositeZScore) : zscore.compositeZScore;
-    return isNaN(composite) ? null : composite;
-  }
-
-  /**
-   * Extract weighted score from z-score data
-   */
-  private getWeightedScore(zscore: any): number {
-    if (!zscore) return 0;
-    const composite = this.getCompositeZScore(zscore);
-    if (composite === null) return 0;
-    
-    // Convert z-score to weighted score between -1 and 1
-    return Math.max(-1, Math.min(1, composite / 2));
-  }
-
-  /**
-   * Get trading signal from z-score data
-   */
-  private getZScoreSignal(zscore: any): string {
-    const composite = this.getCompositeZScore(zscore);
-    if (composite === null) return 'HOLD';
-    
-    // Use signal from z-score data if available, otherwise calculate from composite
-    if (zscore.signal && ['BUY', 'SELL', 'HOLD'].includes(zscore.signal)) {
-      return zscore.signal;
-    }
-    
-    // Calculate signal based on composite z-score thresholds
-    if (composite > 1.0) return 'SELL';
-    if (composite < -1.0) return 'BUY';
-    return 'HOLD';
   }
 
   /**
