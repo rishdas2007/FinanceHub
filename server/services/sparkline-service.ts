@@ -56,14 +56,13 @@ export class SparklineService {
     change: number;
   } | null> {
     try {
-      // Query historical sector data for the ETF
+      // Query historical sector data for the ETF (same table as z-score calculations)
       const result = await db.execute(sql`
         SELECT price, date
         FROM historical_sector_data 
         WHERE symbol = ${symbol} 
-        AND date >= datetime('now', '-30 days')
         ORDER BY date ASC
-        LIMIT 30
+        LIMIT 60
       `);
 
       if (!result.rows || result.rows.length < 10) {

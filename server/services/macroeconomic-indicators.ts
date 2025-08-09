@@ -22,13 +22,28 @@ export class MacroeconomicService {
     lastUpdate: string;
   } | null> {
     try {
-      // Query real historical data from economic_indicators_historical table
+      // Query real historical data from historical_economic_data table (same as z-score calculations)
+      // Try to find data by matching various patterns
+      const mappings: Record<string, string> = {
+        'unemployment_rate': 'UNRATE',
+        'industrial_production': 'INDPRO',
+        'nonfarm_payrolls': 'PAYEMS',
+        'cpi_inflation': 'CPIAUCSL',
+        'fed_funds_rate': 'FEDFUNDS',
+        'gdp_growth': 'GDP',
+        'housing_starts': 'HOUST',
+        'consumer_confidence': 'UMCSENT'
+      };
+
+      const searchId = mappings[indicatorId] || indicatorId.toUpperCase();
+      
+      // Use economic_indicators_current for real data that feeds the dashboard
       const result = await db.execute(sql`
-        SELECT date, value, metric
-        FROM economic_indicators_historical 
-        WHERE LOWER(REPLACE(REPLACE(metric, ' ', '_'), '-', '_')) LIKE '%' || ${indicatorId.toLowerCase().replace(/[^a-z0-9]/g, '_')} || '%'
-        OR LOWER(REPLACE(REPLACE(metric, ' ', '_'), '-', '_')) = ${indicatorId.toLowerCase()}
-        ORDER BY date DESC
+        SELECT period_date as date, value_numeric as value, series_id as metric
+        FROM economic_indicators_current 
+        WHERE series_id LIKE '%' || ${searchId} || '%'
+        OR series_id LIKE '%' || ${indicatorId.toUpperCase()} || '%'
+        ORDER BY period_date DESC
         LIMIT ${months * 12}
       `);
 
