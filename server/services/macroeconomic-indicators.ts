@@ -148,8 +148,8 @@ export class MacroeconomicService {
         };
 
         // Enhanced variance formatting with proper sign and magnitude
-        const formatVariance = (value: number | null | undefined, unit: string, metricName?: string): string => {
-          if (value === null || value === undefined || isNaN(Number(value))) {
+        const formatVariance = (value: number | null, unit: string, metric: string): string => {
+          if (value === null || value === undefined || isNaN(value)) {
             return 'N/A';
           }
           
@@ -159,7 +159,7 @@ export class MacroeconomicService {
           
           const sign = numVariance > 0 ? '+' : '';
           const absVariance = Math.abs(numVariance);
-          const metricLower = (metricName || '').toLowerCase();
+          const metricLower = metric.toLowerCase();
           
           // Format variance based on metric type, matching current reading format
           if (metricLower.includes('jobless claims')) {
@@ -202,7 +202,7 @@ export class MacroeconomicService {
 
         return {
           metric: indicator.metric,
-          type: indicator.type || 'Coincident',
+          type: indicator.type,
           category: indicator.category,
           releaseDate: indicator.releaseDate,
           period_date: indicator.period_date,
@@ -210,7 +210,6 @@ export class MacroeconomicService {
           priorReading: formatNumber(priorReading, indicator.unit, indicator.metric),
           varianceVsPrior: formatVariance(actualVariance, indicator.unit, indicator.metric),
           zScore: indicator.zScore,
-          deltaZScore: indicator.deltaZScore,
           fnai: indicator.fnai,
           fnaiInterpretation: indicator.fnaiInterpretation,
           frequency: indicator.frequency,

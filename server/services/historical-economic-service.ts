@@ -2,7 +2,6 @@ import { db } from '../db';
 import { sql } from 'drizzle-orm';
 import { logger } from '../../shared/utils/logger';
 import { fnaiCalculator, FNAIData } from './fnai-calculator';
-import { deltaZScoreCalculator } from './delta-zscore-calculator';
 
 export interface EconomicIndicatorData {
   seriesId: string;
@@ -15,7 +14,6 @@ export interface EconomicIndicatorData {
   priorReading?: number;
   varianceVsPrior?: number;
   zScore?: number;
-  deltaZScore?: number;
   fnai?: number;
   fnaiInterpretation?: string;
   frequency: string;
@@ -45,76 +43,41 @@ export class HistoricalEconomicService {
           h2.value as prior_value,
           h2.period_date as prior_period,
           h1.value - h2.value as variance_vs_prior,
-          -- Normalized z-score with unit harmonization
+          -- Simple z-score based on percentage change
           CASE 
-            -- Housing indicators: normalize to thousands
-            WHEN h1.series_id IN ('HOUST', 'PERMIT') AND h2.value > 0 THEN
-              CASE 
-                WHEN h2.value < 10 THEN ((h1.value - (h2.value * 1000)) / (h2.value * 1000)) * 100
-                ELSE ((h1.value - h2.value) / h2.value) * 100
-              END
-            -- Employment indicators: normalize large scale differences  
-            WHEN h1.series_id = 'PAYEMS' AND h2.value > 0 THEN
-              CASE 
-                WHEN h2.value < 1000 THEN ((h1.value - (h2.value * 1000)) / (h2.value * 1000)) * 100
-                ELSE ((h1.value - h2.value) / h2.value) * 100
-              END
-            -- Interest rates and percentages: direct percentage calculation
-            WHEN h1.series_id IN ('FEDFUNDS', 'DGS10', 'T10Y2Y', 'MORTGAGE30US') AND h2.value > 0 THEN
-              ((h1.value - h2.value) / h2.value) * 100
-            -- Default calculation for other indicators
             WHEN h2.value > 0 THEN
               ((h1.value - h2.value) / h2.value) * 100 
             ELSE 0
           END as simple_z_score
         FROM historical_economic_data h1
         JOIN historical_economic_data h2 ON h1.series_id = h2.series_id
-        WHERE h1.series_id IN (
-          -- Priority 1: Core Economic Indicators  
-          'ICSA', 'CCSA', 'PAYEMS', 'CES0500000003', 'GDPC1', 'JCXFE', 'UNRATE', 'FEDFUNDS',
-          -- Priority 2: Inflation & Price Indicators
-          'PCEPI', 'CPILFESL', 'CPIAUCSL', 'PCE', 'PPIFIS',
-          -- Priority 3: Housing & Interest Rate Indicators  
-          'T10Y2Y', 'DGS10', 'HOUST', 'MORTGAGE30US',
-          -- Priority 4: Manufacturing & Confidence
-          'INDPRO', 'UMCSENT', 'NAPM',
-          -- Priority 5: Additional Key Indicators
-          'TOTALSL', 'CFNAI', 'GASREGCOVW', 'PERMIT', 'U6RATE'
-        )
+        WHERE h1.series_id IN ('ICSA', 'CCSA', 'PAYEMS', 'CES0500000003', 'GDPC1', 'JCXFE', 'PCE', 'PPIFIS', 'INDPRO', 'TOTALSL', 'CFNAI', 'MORTGAGE30US', 'GASREGCOVW')
           AND h1.period_date = (SELECT MAX(period_date) FROM historical_economic_data WHERE series_id = h1.series_id)
           AND h2.period_date = (SELECT MAX(period_date) FROM historical_economic_data 
                                 WHERE series_id = h1.series_id AND period_date < h1.period_date)
         ORDER BY 
           CASE 
-            WHEN h1.series_id IN ('PAYEMS', 'ICSA', 'CCSA', 'UNRATE', 'GDPC1', 'FEDFUNDS') THEN 1
-            WHEN h1.series_id IN ('PCEPI', 'CPILFESL', 'CPIAUCSL', 'T10Y2Y', 'DGS10') THEN 2
-            WHEN h1.series_id IN ('HOUST', 'UMCSENT', 'INDPRO', 'NAPM') THEN 3
-            ELSE 4
+            WHEN h1.series_id IN ('ICSA', 'CCSA', 'PAYEMS', 'CES0500000003', 'GDPC1', 'JCXFE') THEN 1
+            WHEN h1.series_id IN ('PCE', 'PPIFIS', 'INDPRO') THEN 2
+            ELSE 3
           END,
           h1.series_id
       `;
 
       const result = await db.execute(query);
       
-      // Get all series IDs for bulk delta Z-score calculation
-      const seriesIds = result.rows.map(row => String(row.series_id));
-      logger.info(`🔄 Calculating delta Z-scores for ${seriesIds.length} indicators`);
-      
-      // Calculate delta Z-scores for all indicators in parallel
-      const deltaZScoreMap = await deltaZScoreCalculator.calculateBulkDeltaZScores(seriesIds);
-      
-      // Calculate FNAI and combine with delta Z-scores
-      const indicatorsWithEnhancedAnalysis: EconomicIndicatorData[] = [];
+      // Calculate FNAI for each indicator
+      const indicatorsWithFNAI: EconomicIndicatorData[] = [];
       
       for (const row of result.rows) {
-        const rowSeriesId = String(row.series_id);
-        const frequency = String(row.frequency) || 'monthly';
+        const seriesId = row.series_id;
+        const frequency = row.frequency || 'Monthly';
         
         // Get historical data for FNAI calculation
         const historicalQuery = sql`
           SELECT value, period_date
           FROM historical_economic_data
-          WHERE series_id = ${rowSeriesId}
+          WHERE series_id = ${seriesId}
           ORDER BY period_date DESC
           LIMIT 60
         `;
@@ -126,44 +89,29 @@ export class HistoricalEconomicService {
         }));
         
         // Calculate FNAI
-        const fnaiResult = fnaiCalculator.calculateFNAI(historicalData, frequency.toLowerCase());
+        const fnaiResult = fnaiCalculator.calculateFNAI(historicalData, frequency);
         
-        // Get delta Z-score data
-        const deltaData = deltaZScoreMap.get(rowSeriesId);
-        
-        // Clean data extraction
-        const currentValue = parseFloat(String(row.current_value)) || 0;
-        const priorValue = row.prior_value ? parseFloat(String(row.prior_value)) : undefined;
-        const rawVariance = row.variance_vs_prior ? parseFloat(String(row.variance_vs_prior)) : undefined;
-        const calculatedZScore = row.simple_z_score ? parseFloat(String(row.simple_z_score)) : undefined;
-        
-        // Cap extreme Z-scores at reasonable levels (max ±25)
-        const cappedZScore = calculatedZScore ? 
-          Math.min(Math.abs(calculatedZScore), 25) * Math.sign(calculatedZScore) : 
-          undefined;
-
         const indicator: EconomicIndicatorData = {
-          seriesId: rowSeriesId,
+          seriesId: String(row.series_id),
           metric: this.getIndicatorDisplayName(String(row.indicator)),
-          type: String(row.type) || 'Coincident', // Use database type field
+          type: this.getIndicatorType(String(row.series_id)),
           category: this.formatCategory(String(row.category)),
           period_date: String(row.current_period),
           releaseDate: String(row.release_date),
-          currentReading: currentValue,
-          priorReading: priorValue,
-          varianceVsPrior: rawVariance,
-          zScore: cappedZScore,
-          deltaZScore: deltaData?.deltaZScore,
+          currentReading: parseFloat(String(row.current_value)) || 0,
+          priorReading: row.prior_value ? parseFloat(String(row.prior_value)) : undefined,
+          varianceVsPrior: row.variance_vs_prior ? parseFloat(String(row.variance_vs_prior)) : undefined,
+          zScore: row.simple_z_score ? parseFloat(String(row.simple_z_score)) : undefined,
           fnai: fnaiResult.fnai,
           fnaiInterpretation: fnaiResult.interpretation,
-          frequency: frequency,
+          frequency: String(row.frequency) || 'Monthly',
           unit: String(row.unit) || 'Unknown'
         };
         
-        indicatorsWithEnhancedAnalysis.push(indicator);
+        indicatorsWithFNAI.push(indicator);
       }
 
-      const indicators = indicatorsWithEnhancedAnalysis;
+      const indicators = indicatorsWithFNAI;
 
       logger.info(`✅ Retrieved ${indicators.length} comprehensive economic indicators`);
       
@@ -195,18 +143,6 @@ export class HistoricalEconomicService {
       'Real Gross Domestic Product': 'GDP Growth Rate',
       'Core Personal Consumption Expenditures': 'Core PCE Inflation',
       'Personal Consumption Expenditures': 'Personal Consumption',
-      'GDP Growth Rate': 'GDP Growth Rate',
-      'CPI Year-over-Year': 'CPI Inflation',
-      'Core CPI Year-over-Year': 'Core CPI Inflation', 
-      'PCE Price Index YoY': 'PCE Price Index',
-      'Manufacturing PMI': 'Manufacturing PMI',
-      'Unemployment Rate': 'Unemployment Rate',
-      'Federal Funds Rate': 'Federal Funds Rate',
-      '10-Year Treasury Yield': '10-Year Treasury',
-      'Yield Curve (10yr-2yr)': 'Yield Curve',
-      'Housing Starts': 'Housing Starts',
-      'Michigan Consumer Sentiment': 'Consumer Sentiment',
-      'Building Permits': 'Building Permits',
       'Producer Price Index: Final Demand': 'PPI Final Demand',
       '30-Year Fixed Rate Mortgage Average': '30-Year Mortgage Rate',
       'US Regular All Formulations Gas Price': 'Gasoline Prices',
@@ -228,9 +164,29 @@ export class HistoricalEconomicService {
    * Get indicator type for classification
    */
   private getIndicatorType(seriesId: string): string {
-    // This method now returns the database type field value
-    // The type classification is handled in the database update
-    return 'Coincident'; // Will be overridden by database value
+    const typeMap: Record<string, string> = {
+      'ICSA': 'Labor',
+      'CCSA': 'Labor', 
+      'PAYEMS': 'Labor',
+      'CES0500000003': 'Labor',
+      'AWHMAN': 'Labor',
+      'MANEMP': 'Labor',
+      'JTSQUL': 'Labor',
+      'GDPC1': 'Growth',
+      'INDPRO': 'Growth',
+      'CFNAI': 'Growth',
+      'JCXFE': 'Inflation',
+      'PCE': 'Consumption',
+      'PPIFIS': 'Inflation',
+      'TOTALSL': 'Credit',
+      'MORTGAGE30US': 'Housing',
+      'GASREGCOVW': 'Energy',
+      'DEXUSEU': 'Currency',
+      'ISRATIO': 'Business',
+      'DGORDER': 'Manufacturing'
+    };
+    
+    return typeMap[seriesId] || 'Economic';
   }
   
   /**
