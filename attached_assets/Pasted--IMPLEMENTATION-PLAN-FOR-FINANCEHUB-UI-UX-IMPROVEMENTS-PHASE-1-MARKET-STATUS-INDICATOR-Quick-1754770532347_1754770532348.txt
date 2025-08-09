@@ -1,0 +1,116 @@
+ IMPLEMENTATION PLAN FOR FINANCEHUB UI/UX IMPROVEMENTS
+
+  PHASE 1: MARKET STATUS INDICATOR
+
+  (Quick Win - Highest Priority)
+
+  Step 1.1: Create Market Status Component
+  - Create /client/src/components/MarketStatusIndicator.tsx
+  - Leverage existing market-hours-detector.ts:38 service
+  - Component should display: Open/Closed/Pre-market/After-hours status
+  - Use existing color scheme (gain-green, loss-red) from dashboard theme
+
+  Step 1.2: Integrate Market Status in Header
+  - Modify /client/src/pages/dashboard.tsx:36-72 header section
+  - Position status indicator next to "Connected - Live Market Data" text
+  - Replace static connection indicator with dynamic market status
+  - Add real-time updates using existing useQuery pattern
+
+  Step 1.3: Backend API Enhancement
+  - Extend existing market hours service in
+  /server/services/market-hours-detector.ts
+  - Create new endpoint in /server/routes/ for market status
+  - Implement caching to avoid excessive API calls
+
+  ---
+  PHASE 2: TOP MOVERS SECTION
+
+  (High Impact Feature)
+
+  Step 2.1: Data Collection Enhancement
+  - Extend existing ETF data structure in
+  /client/src/components/ETFMetricsTable.tsx:6-14
+  - Add 7-day change tracking to existing momentum data
+  - Leverage existing technical indicators from
+  /server/services/etf-metrics-service.ts
+
+  Step 2.2: Create Top Movers Component
+  - Create /client/src/components/TopMoversSection.tsx
+  - Display biggest % changes in ETFs over past 7 days
+  - Show economic indicators with significant Z-score changes
+  - Use existing card UI pattern from MacroeconomicIndicators component
+
+  Step 2.3: Dashboard Integration
+  - Position Top Movers section in /client/src/pages/dashboard.tsx:74-85
+  - Place between header and existing ETFMetricsTable
+  - Implement responsive grid layout (2-column on desktop, 1 on mobile)
+
+  ---
+  PHASE 3: INFORMATION ARCHITECTURE REDESIGN
+
+  Step 3.1: Navigation Header Enhancement
+  - Modify /client/src/components/NavigationHeader.tsx (if exists) or
+  create new
+  - Add tab navigation: Dashboard | ETFs | Economy | Alerts | Settings
+  - Implement active state styling using existing theme colors
+
+  Step 3.2: Dashboard Restructuring
+  - 5-Second Scan Section: Key metrics overview at top
+    - Market status, top 3 ETF movers, economic health score
+    - Position immediately after header in dashboard.tsx
+  - Reorganize existing components by priority:
+    a. Quick scan metrics
+    b. Top Movers section
+    c. ETF technical analysis
+    d. Economic indicators and analysis
+
+  Step 3.3: Create New Page Structure
+  - Create /client/src/pages/etfs.tsx - Deep technical analysis
+  - Create /client/src/pages/economy.tsx - Macro indicators focus
+  - Create /client/src/pages/alerts.tsx - Notification management
+  - Create /client/src/pages/settings.tsx - User preferences
+  - Update router in /client/src/App.tsx:10-17
+
+  ---
+  PHASE 4: COMPONENT OPTIMIZATION
+
+  Step 4.1: Performance Enhancements
+  - Implement lazy loading for new components (following existing pattern
+  in dashboard.tsx:14-18)
+  - Add proper loading states using existing skeleton components
+  - Optimize API calls with smart caching (leverage existing
+  useSmartCaching hook)
+
+  Step 4.2: Responsive Design
+  - Ensure all new components work on mobile using existing Tailwind
+  responsive classes
+  - Test navigation on different screen sizes
+  - Maintain existing dark theme consistency
+
+  Step 4.3: Accessibility Improvements
+  - Add proper ARIA labels to new interactive elements
+  - Ensure keyboard navigation works for new components
+  - Maintain contrast ratios with existing color scheme
+
+  ---
+  IMPLEMENTATION ORDER & TIMELINE
+
+  1. Week 1: Market Status Indicator (immediate impact)
+  2. Week 2: Top Movers Section (high visibility feature)
+  3. Week 3-4: Information Architecture & Navigation
+  4. Week 5: Performance optimization and testing
+
+  KEY TECHNICAL CONSIDERATIONS
+
+  - Leverage Existing Infrastructure: Use established patterns from
+  ETFMetricsTable and MacroeconomicIndicators
+  - API Efficiency: Extend existing endpoints rather than creating entirely
+   new ones
+  - State Management: Utilize existing React Query setup and ETF context
+  - Styling Consistency: Maintain current financial-dark theme and
+  component patterns
+  - Performance: Follow existing lazy loading and caching strategies
+
+  This plan builds incrementally on your existing robust architecture while
+   delivering the specific improvements you've requested. Each phase
+  delivers standalone value while building toward the complete vision.
