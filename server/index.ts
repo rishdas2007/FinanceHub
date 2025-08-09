@@ -64,6 +64,31 @@ app.use('/api', compression());
 app.use('/api', cors(corsOptions));
 app.use('/api', apiRateLimit);
 
+// CRITICAL FIX: Ensure all API responses are JSON by default
+app.use('/api', (req: Request, res: Response, next: NextFunction) => {
+  // Set default Content-Type for API routes
+  if (!res.getHeader('Content-Type')) {
+    res.setHeader('Content-Type', 'application/json');
+  }
+
+  // Override res.send to always ensure JSON response for API routes
+  const originalSend = res.send;
+  res.send = function(data: any) {
+    if (typeof data === 'string' && !res.getHeader('Content-Type')?.toString().includes('application/json')) {
+      try {
+        JSON.parse(data);
+        res.setHeader('Content-Type', 'application/json');
+      } catch (e) {
+        // If it's not valid JSON, treat it as an error response
+        return originalSend.call(this, JSON.stringify({ error: data }));
+      }
+    }
+    return originalSend.call(this, data);
+  };
+
+  next();
+});
+
 // Optional Enhancements - Metrics Collection
 app.use('/api', metricsMiddleware());
 
@@ -153,6 +178,17 @@ app.use((req, res, next) => {
     } else {
       serveStatic(app);
     }
+
+    // API 404 handler - must come before catch-all HTML routes
+    app.use('/api/*', (req: Request, res: Response) => {
+      log(`❌ API endpoint not found: ${req.method} ${req.originalUrl}`);
+      res.status(404).json({
+        error: 'API endpoint not found',
+        path: req.originalUrl,
+        method: req.method,
+        timestamp: new Date().toISOString()
+      });
+    });
 
     // Basic error handler (keep original functionality)
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

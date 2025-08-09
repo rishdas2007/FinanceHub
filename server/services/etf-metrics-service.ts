@@ -314,16 +314,12 @@ class ETFMetricsService {
 
     // Calculate 30-day trend from database historical prices
     let change30Day = null;
-    console.log(`🔍 Starting 30-day trend calculation for ${symbol}...`);
     try {
       const { ETFTrendCalculatorService } = await import('./etf-trend-calculator');
-      console.log(`📦 Successfully imported ETFTrendCalculatorService for ${symbol}`);
       const trendCalculator = new ETFTrendCalculatorService();
       change30Day = await trendCalculator.calculate30DayTrend(symbol);
-      console.log(`✅ 30-day trend calculated for ${symbol}: ${change30Day}%`);
     } catch (error) {
       console.warn(`⚠️ Failed to calculate 30-day trend for ${symbol}:`, error);
-      console.error('Full error details:', error);
     }
 
     return {
