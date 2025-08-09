@@ -132,11 +132,39 @@ export class ApiController {
         apiVersion: req.apiVersion 
       });
       
-      // For now, return paginated recent data from storage
-      const stockData = await storage.getStockHistory(symbol.toUpperCase(), {
-        page: Number(page),
-        limit: Number(limit)
-      });
+      // FIXED: Use real database historical data instead of memory storage
+      const { db } = await import('../db');
+      const { historicalStockData } = await import('../../shared/schema');
+      const { desc, eq } = await import('drizzle-orm');
+      
+      const results = await db.select({
+        id: historicalStockData.id,
+        symbol: historicalStockData.symbol,
+        price: historicalStockData.close,
+        change: historicalStockData.close, // Will calculate change properly later
+        volume: historicalStockData.volume,
+        timestamp: historicalStockData.date
+      })
+      .from(historicalStockData)
+      .where(eq(historicalStockData.symbol, symbol.toUpperCase()))
+      .orderBy(desc(historicalStockData.date))
+      .limit(Number(limit));
+
+      // Transform to match expected StockData interface
+      const stockData = results.map((row, index) => ({
+        id: row.id,
+        symbol: row.symbol,
+        price: parseFloat(row.price).toFixed(2),
+        change: index < results.length - 1 ? 
+          (parseFloat(row.price) - parseFloat(results[index + 1].price)).toFixed(2) : 
+          '0.00',
+        changePercent: index < results.length - 1 ? 
+          (((parseFloat(row.price) - parseFloat(results[index + 1].price)) / parseFloat(results[index + 1].price)) * 100).toFixed(2) :
+          '0.00',
+        volume: row.volume,
+        marketCap: null,
+        timestamp: new Date(row.timestamp)
+      }));
       
       metricsCollector.endTimer(timerId, 'stock_history_fetch', { 
         symbol,
@@ -144,12 +172,8 @@ export class ApiController {
         success: 'true' 
       });
       
-      const response = {
-        data: stockData.data,
-        pagination: stockData.pagination
-      };
-      
-      ResponseUtils.success(res, response);
+      // Return the stock data array directly (client expects StockData[])
+      ResponseUtils.success(res, stockData);
     } catch (error) {
       metricsCollector.endTimer(timerId, 'stock_history_fetch', { 
         symbol,
