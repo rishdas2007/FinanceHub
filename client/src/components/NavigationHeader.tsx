@@ -1,121 +1,197 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { 
-  Home, 
-  Database, 
+  BarChart3, 
+  TrendingUp, 
   Activity, 
-  AlertTriangle,
-  TrendingUp,
-  BarChart3 
+  Bell, 
+  Settings, 
+  Menu, 
+  X 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { MarketStatusIndicator, MarketStatusIndicatorCompact } from "./MarketStatusIndicator";
 
-interface NavigationItem {
-  path: string;
-  label: string;
-  icon: React.ReactNode;
-  description: string;
-  badge?: string;
-  badgeVariant?: 'default' | 'secondary' | 'destructive' | 'outline';
-}
-
-const navigationItems: NavigationItem[] = [
+const navigationItems = [
   {
-    path: "/",
-    label: "Dashboard",
-    icon: <Home className="h-4 w-4" />,
-    description: "Main analytics dashboard"
+    name: "Dashboard",
+    href: "/",
+    icon: BarChart3,
+    description: "Overview and key metrics"
+  },
+  {
+    name: "ETFs",
+    href: "/etfs",
+    icon: TrendingUp,
+    description: "Deep technical analysis"
+  },
+  {
+    name: "Economy",
+    href: "/economy",
+    icon: Activity,
+    description: "Macro indicators focus"
+  },
+  {
+    name: "Alerts",
+    href: "/alerts",
+    icon: Bell,
+    description: "Notification management"
+  },
+  {
+    name: "Settings",
+    href: "/settings",
+    icon: Settings,
+    description: "User preferences"
   }
 ];
 
 export function NavigationHeader() {
   const [location] = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
-          {/* Logo and Title */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold">FinanceHub</h1>
+    <>
+      <nav className="bg-financial-gray border-b border-financial-border sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo and Brand */}
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="h-8 w-8 text-gain-green" />
+                <div>
+                  <h1 className="text-xl font-bold text-white">FinanceHub Pro</h1>
+                  <p className="text-xs text-gray-400 hidden sm:block">Advanced Market Analytics</p>
+                </div>
+              </div>
             </div>
-            <Badge variant="outline" className="text-xs">
-              Pro
-            </Badge>
-          </div>
 
-          {/* Navigation Items */}
-          <nav className="flex items-center gap-1">
-            {navigationItems.map((item) => (
-              <Link key={item.path} href={item.path}>
-                <Button
-                  variant={location === item.path ? "default" : "ghost"}
-                  size="sm"
-                  className={cn(
-                    "flex items-center gap-2 h-9",
-                    location === item.path && "bg-primary text-primary-foreground"
-                  )}
-                  data-testid={`nav-${item.label.toLowerCase().replace(' ', '-')}`}
-                >
-                  {item.icon}
-                  <span className="hidden sm:inline">{item.label}</span>
-                  {item.badge && (
-                    <Badge 
-                      variant={item.badgeVariant || "secondary"} 
-                      className="ml-1 text-xs px-1.5 py-0.5"
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center space-x-1">
+              {navigationItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location === item.href;
+                
+                return (
+                  <Link key={item.name} href={item.href}>
+                    <a
+                      className={cn(
+                        "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                        isActive
+                          ? "bg-gain-green/10 text-gain-green border border-gain-green/20"
+                          : "text-gray-300 hover:text-white hover:bg-financial-card border border-transparent"
+                      )}
                     >
-                      {item.badge}
-                    </Badge>
-                  )}
-                </Button>
-              </Link>
-            ))}
-          </nav>
+                      <Icon className="h-4 w-4" />
+                      <span>{item.name}</span>
+                    </a>
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Market Status and Mobile Menu */}
+            <div className="flex items-center space-x-4">
+              {/* Market Status - Desktop */}
+              <div className="hidden md:block">
+                <MarketStatusIndicator />
+              </div>
+              
+              {/* Market Status - Mobile */}
+              <div className="md:hidden">
+                <MarketStatusIndicatorCompact />
+              </div>
+
+              {/* Mobile Menu Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="lg:hidden text-gray-400 hover:text-white"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              >
+                {isMobileMenuOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <Menu className="h-5 w-5" />
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+
+        {/* Mobile Navigation Menu */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden border-t border-financial-border bg-financial-dark">
+            <div className="px-4 py-2 space-y-1">
+              {navigationItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location === item.href;
+                
+                return (
+                  <Link key={item.name} href={item.href}>
+                    <a
+                      className={cn(
+                        "flex items-center space-x-3 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200",
+                        isActive
+                          ? "bg-gain-green/10 text-gain-green border border-gain-green/20"
+                          : "text-gray-300 hover:text-white hover:bg-financial-card border border-transparent"
+                      )}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Icon className="h-5 w-5" />
+                      <div>
+                        <div>{item.name}</div>
+                        <div className="text-xs text-gray-400">{item.description}</div>
+                      </div>
+                    </a>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </nav>
+    </>
   );
 }
 
-export function QuickStatsHeader({ 
-  criticalIssues = 0, 
-  totalSymbols = 0,
-  avgConfidence = 0 
-}: {
-  criticalIssues?: number;
-  totalSymbols?: number;
-  avgConfidence?: number;
-}) {
+// Quick scan metrics component for dashboard
+export function QuickScanMetrics() {
   return (
-    <div className="bg-muted/30 border-b">
-      <div className="container mx-auto px-6 py-2">
-        <div className="flex items-center gap-6 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            <span>Market Analysis Active</span>
+    <div className="bg-gradient-to-r from-financial-card to-financial-gray border border-financial-border rounded-lg p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-white flex items-center">
+          <Activity className="h-5 w-5 text-blue-400 mr-2" />
+          5-Second Market Scan
+        </h2>
+        <div className="text-xs text-gray-400">
+          Live • Updates every 30s
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Market Status */}
+        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded">
+          <span className="text-sm text-gray-300">Market</span>
+          <MarketStatusIndicatorCompact />
+        </div>
+        
+        {/* Top ETF Mover */}
+        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded">
+          <span className="text-sm text-gray-300">Top Mover</span>
+          <div className="text-right">
+            <div className="text-sm font-medium text-white">XLK</div>
+            <div className="text-xs text-gain-green">+2.4%</div>
           </div>
-          
-          {criticalIssues > 0 && (
-            <div className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="h-4 w-4" />
-              <span>{criticalIssues} Critical Data Issues</span>
-            </div>
-          )}
-          
-          <div className="flex items-center gap-2">
-            <Database className="h-4 w-4" />
-            <span>{totalSymbols} Symbols Tracked</span>
+        </div>
+        
+        {/* Economic Health */}
+        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded">
+          <span className="text-sm text-gray-300">Econ Health</span>
+          <div className="text-right">
+            <div className="text-sm font-medium text-blue-400">73</div>
+            <div className="text-xs text-gray-400">Moderate</div>
           </div>
-          
-          {avgConfidence > 0 && (
-            <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              <span>{Math.round(avgConfidence * 100)}% Avg Data Confidence</span>
-            </div>
-          )}
         </div>
       </div>
     </div>

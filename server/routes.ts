@@ -266,6 +266,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Cache management endpoints removed (file deleted)
 
+  // Market status endpoint for UI/UX improvements
+  app.get("/api/market-status", async (req, res) => {
+    try {
+      const { MarketHoursDetector } = await import('./services/market-hours-detector');
+      const detector = new MarketHoursDetector();
+      const marketStatus = detector.getCurrentMarketStatus();
+      
+      res.json({
+        success: true,
+        marketStatus: {
+          isOpen: marketStatus.isOpen,
+          isPremarket: marketStatus.isPremarket,
+          isAfterHours: marketStatus.isAfterHours,
+          nextOpen: marketStatus.nextOpen.toISOString(),
+          nextClose: marketStatus.nextClose.toISOString(),
+          session: marketStatus.session
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Market status error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get market status',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Top movers endpoint for UI/UX improvements
+  app.get("/api/top-movers", async (req, res) => {
+    try {
+      const { etfMetricsService } = await import('./services/etf-metrics-service');
+      const { macroeconomicService } = await import('./services/macroeconomic-indicators');
+      
+      // Get ETF data for analysis
+      const etfData = await etfMetricsService.getConsolidatedETFMetrics();
+      
+      // Sort ETFs by performance
+      const sortedETFs = etfData.metrics.sort((a, b) => b.changePercent - a.changePercent);
+      
+      // Get top gainers and losers
+      const gainers = sortedETFs.filter(etf => etf.changePercent > 0).slice(0, 5);
+      const losers = sortedETFs.filter(etf => etf.changePercent < 0).slice(0, 5);
+      
+      // Get economic indicators with significant changes
+      const economicData = await macroeconomicService.getAuthenticEconomicData();
+      const economicMovers = economicData.indicators
+        .filter(indicator => indicator.change && Math.abs(indicator.changePercent || 0) > 0.5)
+        .sort((a, b) => Math.abs(b.changePercent || 0) - Math.abs(a.changePercent || 0))
+        .slice(0, 8)
+        .map(indicator => ({
+          metric: indicator.metric,
+          current: indicator.current || 0,
+          previous: indicator.previous || 0,
+          change: indicator.change || 0,
+          changePercent: indicator.changePercent || 0,
+          significance: Math.abs(indicator.changePercent || 0) > 2 ? 'high' : 
+                      Math.abs(indicator.changePercent || 0) > 1 ? 'medium' : 'low'
+        }));
+
+      // Calculate momentum statistics
+      const bullishCount = sortedETFs.filter(etf => etf.changePercent > 0).length;
+      const bearishCount = sortedETFs.filter(etf => etf.changePercent < 0).length;
+      const total = sortedETFs.length;
+      
+      const trending = sortedETFs
+        .filter(etf => Math.abs(etf.changePercent) > 1.5)
+        .slice(0, 3)
+        .map(etf => etf.symbol);
+
+      res.json({
+        success: true,
+        etfMovers: {
+          gainers: gainers.map(etf => ({
+            symbol: etf.symbol,
+            sector: etf.sector || 'Unknown',
+            price: etf.price || 0,
+            changePercent: etf.changePercent || 0,
+            change: etf.change || 0,
+            volume: etf.volume,
+            momentum: etf.momentum
+          })),
+          losers: losers.map(etf => ({
+            symbol: etf.symbol,
+            sector: etf.sector || 'Unknown',
+            price: etf.price || 0,
+            changePercent: etf.changePercent || 0,
+            change: etf.change || 0,
+            volume: etf.volume,
+            momentum: etf.momentum
+          }))
+        },
+        economicMovers,
+        momentum: {
+          bullish: Math.round((bullishCount / total) * 100),
+          bearish: Math.round((bearishCount / total) * 100),
+          trending
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Top movers error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get top movers data',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // API stats endpoint
   app.get("/api/stats", (req, res) => {
     res.json(getApiStats());
