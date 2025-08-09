@@ -263,7 +263,6 @@ const MacroeconomicIndicators: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [dateRangeFilter, setDateRangeFilter] = useState<string>('all');
   const [zScoreFilter, setZScoreFilter] = useState<string>('all');
-  const [deltaZScoreFilter, setDeltaZScoreFilter] = useState<string>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -369,25 +368,8 @@ const MacroeconomicIndicators: React.FC = () => {
       const matchesSearch = indicator.metric.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType = typeFilter === 'all' || indicator.type === typeFilter;
       
-      // Delta Z-Score filter
+      // Delta Z-Score filter (currently disabled - all pass)
       let matchesDeltaZScore = true;
-      if (deltaZScoreFilter !== 'all' && typeof indicator.deltaZScore === 'number') {
-        const deltaZScore = indicator.deltaZScore;
-        switch (deltaZScoreFilter) {
-          case 'extreme':
-            matchesDeltaZScore = Math.abs(deltaZScore) > 2;
-            break;
-          case 'significant':
-            matchesDeltaZScore = Math.abs(deltaZScore) > 1;
-            break;
-          case 'positive':
-            matchesDeltaZScore = deltaZScore > 0;
-            break;
-          case 'negative':
-            matchesDeltaZScore = deltaZScore < 0;
-            break;
-        }
-      }
       
       // Date range filter
       let matchesDateRange = true;
@@ -621,20 +603,7 @@ const MacroeconomicIndicators: React.FC = () => {
                 </select>
               </div>
               
-              <div className="flex items-center space-x-2">
-                <span className="text-gray-400 text-sm">Δ Z-Score:</span>
-                <select
-                  value={deltaZScoreFilter}
-                  onChange={(e) => setDeltaZScoreFilter(e.target.value)}
-                  className="bg-financial-gray border border-financial-border rounded px-3 py-2 text-white focus:border-blue-400 focus:outline-none w-full"
-                >
-                  <option value="all">All Δ Z-Scores</option>
-                  <option value="extreme">Extreme (|Δz| {'>'} 2)</option>
-                  <option value="significant">Significant (|Δz| {'>'} 1)</option>
-                  <option value="positive">Positive (Δz {'>'} 0)</option>
-                  <option value="negative">Negative (Δz {'<'} 0)</option>
-                </select>
-              </div>
+              {/* Delta Z-Score filter temporarily disabled during development */}
               
               <div className="flex items-center space-x-2">
                 <span className="text-gray-400 text-sm">Date Range:</span>
@@ -672,7 +641,6 @@ const MacroeconomicIndicators: React.FC = () => {
                   onClick={() => {
                     setSearchTerm('');
                     setTypeFilter('all');
-                    setDeltaZScoreFilter('all');
                     setDateRangeFilter('all');
                     setZScoreFilter('all');
                     setActiveCategory('Growth');
