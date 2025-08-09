@@ -7,7 +7,7 @@ import { TrendingUp, TrendingDown, AlertCircle, RefreshCw, Search, Filter, Chevr
 interface MacroIndicator {
   metric: string;
   type: 'Leading' | 'Coincident' | 'Lagging';
-  category: 'Growth' | 'Inflation' | 'Monetary Policy' | 'Labor' | 'Sentiment';
+  category: 'Growth' | 'Inflation' | 'Monetary Policy' | 'Labor' | 'Sentiment' | 'Credit' | 'Consumption';
   releaseDate: string;
   currentReading: number | string;
   priorReading: number | string;
@@ -17,6 +17,8 @@ interface MacroIndicator {
   deltaZScore?: number | null;
   frequency?: string;
   period_date?: string;
+  fnai?: number | null;
+  fnaiInterpretation?: string;
 }
 
 interface MacroData {
@@ -232,7 +234,7 @@ const MacroFormatUtils = {
 };
 
 type SortDirection = 'asc' | 'desc' | null;
-type SortColumn = 'metric' | 'type' | 'category' | 'period' | 'current' | 'zscore' | 'deltazscore' | 'prior' | 'variance';
+type SortColumn = 'metric' | 'type' | 'category' | 'period' | 'current' | 'zscore' | 'deltazscore' | 'prior' | 'variance' | 'fnai';
 
 const MacroeconomicIndicators: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('Growth');

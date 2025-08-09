@@ -133,7 +133,7 @@ export class HistoricalEconomicService {
         const indicator: EconomicIndicatorData = {
           seriesId: rowSeriesId,
           metric: this.getIndicatorDisplayName(String(row.indicator)),
-          type: this.getIndicatorType(rowSeriesId),
+          type: String(row.type) || 'Coincident', // Use database type field
           category: this.formatCategory(String(row.category)),
           period_date: String(row.current_period),
           releaseDate: String(row.release_date),
@@ -215,29 +215,9 @@ export class HistoricalEconomicService {
    * Get indicator type for classification
    */
   private getIndicatorType(seriesId: string): string {
-    const typeMap: Record<string, string> = {
-      'ICSA': 'Labor',
-      'CCSA': 'Labor', 
-      'PAYEMS': 'Labor',
-      'CES0500000003': 'Labor',
-      'AWHMAN': 'Labor',
-      'MANEMP': 'Labor',
-      'JTSQUL': 'Labor',
-      'GDPC1': 'Growth',
-      'INDPRO': 'Growth',
-      'CFNAI': 'Growth',
-      'JCXFE': 'Inflation',
-      'PCE': 'Consumption',
-      'PPIFIS': 'Inflation',
-      'TOTALSL': 'Credit',
-      'MORTGAGE30US': 'Housing',
-      'GASREGCOVW': 'Energy',
-      'DEXUSEU': 'Currency',
-      'ISRATIO': 'Business',
-      'DGORDER': 'Manufacturing'
-    };
-    
-    return typeMap[seriesId] || 'Economic';
+    // This method now returns the database type field value
+    // The type classification is handled in the database update
+    return 'Coincident'; // Will be overridden by database value
   }
   
   /**

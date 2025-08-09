@@ -227,6 +227,7 @@ export const historicalEconomicData = pgTable("historical_economic_data", {
   indicator: text("indicator").notNull(),
   value: decimal("value", { precision: 15, scale: 4 }).notNull(),
   category: text("category").notNull(),
+  type: text("type").notNull().default('Coincident'), // Leading, Coincident, Lagging
   frequency: text("frequency").notNull(),
   releaseDate: timestamp("release_date").notNull(),
   periodDate: timestamp("period_date").notNull(),
@@ -235,6 +236,8 @@ export const historicalEconomicData = pgTable("historical_economic_data", {
 }, (table) => ({
   seriesIdIdx: index("historical_economic_series_idx").on(table.seriesId),
   periodDateIdx: index("historical_economic_period_idx").on(table.periodDate),
+  categoryIdx: index("historical_economic_category_idx").on(table.category),
+  typeIdx: index("historical_economic_type_idx").on(table.type),
 }));
 // Data lineage tracking table for complete audit trail
 export const dataLineageLog = pgTable("data_lineage_log", {

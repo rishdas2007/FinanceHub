@@ -202,7 +202,7 @@ export class MacroeconomicService {
 
         return {
           metric: indicator.metric,
-          type: indicator.type,
+          type: indicator.type || 'Coincident',
           category: indicator.category,
           releaseDate: indicator.releaseDate,
           period_date: indicator.period_date,
