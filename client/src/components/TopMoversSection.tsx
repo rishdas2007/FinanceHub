@@ -16,6 +16,7 @@ interface ETFData {
   momentum?: {
     signal: string;
     strength: number;
+    zScore?: number;
   };
 }
 
@@ -26,6 +27,9 @@ interface EconomicIndicator {
   change: number;
   changePercent: number;
   significance?: 'high' | 'medium' | 'low';
+  zScore?: number;
+  deltaZScore?: number;
+  type?: string;
 }
 
 interface TopMoversData {
@@ -127,7 +131,20 @@ export function TopMoversSection() {
                 
                 if (spy) {
                   return (
-                    <div key={spy.symbol} className="p-3 bg-blue-900/20 border border-blue-700/50 rounded">
+                    <div 
+                      key={spy.symbol} 
+                      className="p-3 bg-blue-900/20 border border-blue-700/50 rounded cursor-pointer hover:bg-blue-900/30 transition-colors"
+                      onClick={() => setSelectedETF({
+                        symbol: spy.symbol,
+                        name: spy.sector,
+                        price: spy.price,
+                        changePercent: spy.changePercent,
+                        signal: spy.momentum?.signal || 'NEUTRAL',
+                        strength: String(spy.momentum?.strength || 0),
+                        zScore: spy.momentum?.zScore || 0
+                      })}
+                      data-testid={`spy-benchmark-${spy.symbol}`}
+                    >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <span className="font-mono text-blue-300 font-bold">{spy.symbol}</span>

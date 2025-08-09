@@ -33,8 +33,22 @@ export function ETFMoversModal({ isOpen, onClose, etf }: ETFMoversModalProps) {
     queryFn: async () => {
       const days = timeRange === '7D' ? 7 : timeRange === '30D' ? 30 : 90;
       const response = await fetch(`/api/stocks/${etf.symbol}/history?days=${days}`);
-      if (!response.ok) throw new Error('Failed to fetch chart data');
-      return response.json();
+      if (!response.ok) throw new Error(`Failed to fetch chart data: ${response.status}`);
+      const rawData = await response.json();
+      
+      // Transform the data if it's an array format
+      if (Array.isArray(rawData)) {
+        return {
+          success: true,
+          data: rawData.map((item: any) => ({
+            price: parseFloat(item.price),
+            date: item.date || item.created_at || new Date().toISOString(),
+            formattedDate: new Date(item.date || item.created_at || new Date()).toLocaleDateString()
+          }))
+        };
+      }
+      
+      return rawData;
     },
     enabled: isOpen
   });
@@ -113,15 +127,26 @@ export function ETFMoversModal({ isOpen, onClose, etf }: ETFMoversModalProps) {
             formatter={(value: any) => [`$${value.toFixed(2)}`, 'Price']}
             labelStyle={{ color: '#9CA3AF' }}
           />
-          <DataComponent
-            type="monotone"
-            dataKey="price"
-            stroke={chartColor}
-            fill={chartType === 'area' ? `${chartColor}20` : undefined}
-            strokeWidth={2}
-            dot={{ fill: chartColor, strokeWidth: 2, r: 3 }}
-            activeDot={{ r: 5, fill: chartColor }}
-          />
+          {chartType === 'area' ? (
+            <Area
+              type="monotone"
+              dataKey="price"
+              stroke={chartColor}
+              fill={`${chartColor}20`}
+              strokeWidth={2}
+              dot={{ fill: chartColor, strokeWidth: 2, r: 3 }}
+              activeDot={{ r: 5, fill: chartColor }}
+            />
+          ) : (
+            <Line
+              type="monotone"
+              dataKey="price"
+              stroke={chartColor}
+              strokeWidth={2}
+              dot={{ fill: chartColor, strokeWidth: 2, r: 3 }}
+              activeDot={{ r: 5, fill: chartColor }}
+            />
+          )}
         </ChartComponent>
       </ResponsiveContainer>
     );
