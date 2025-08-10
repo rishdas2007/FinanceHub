@@ -33,7 +33,12 @@ function validateAndUnwrap(response: any, url: string) {
     keys: typeof response === 'object' ? Object.keys(response) : []
   });
 
-  // Universal unwrapping: array → itself; otherwise prefer known keys
+  // Skip universal unwrapping for ETF metrics - return full response object
+  if (url.includes('/api/etf-metrics')) {
+    return response;
+  }
+  
+  // Universal unwrapping for other endpoints: array → itself; otherwise prefer known keys
   const unwrapped =
     Array.isArray(response) ? response :
     response?.data ?? response?.metrics ?? response?.results ?? response?.items ?? response?.rows ?? null;
@@ -50,10 +55,7 @@ function validateAndUnwrap(response: any, url: string) {
   if (url.includes('/api/top-movers')) {
     return response?.etfMovers ?? response?.movers ?? response;
   }
-  if (url.includes('/api/etf-metrics')) {
-    // CRITICAL FIX: Return the full response object so ETFMetricsTable can access .success and .data
-    return response;
-  }
+
   if (url.includes('/api/macroeconomic-indicators')) {
     const indicators = response?.indicators ?? response?.data;
     return Array.isArray(indicators) ? indicators : [];

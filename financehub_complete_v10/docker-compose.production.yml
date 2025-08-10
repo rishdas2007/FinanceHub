@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  financehub:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - TWELVE_DATA_API_KEY=${TWELVE_DATA_API_KEY}
+      - FRED_API_KEY=${FRED_API_KEY}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - REDIS_URL=${REDIS_URL}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
