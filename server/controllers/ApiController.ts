@@ -8,6 +8,55 @@ import { metricsCollector } from '../utils/MetricsCollector';
 import { financialDataService } from '../services/financial-data';
 import { storage } from '../storage';
 
+// Helper functions for stock history
+function computeUtcDateRange(window: string) {
+  // anchor at 00:00:00 UTC today
+  const end = new Date(Date.UTC(
+    new Date().getUTCFullYear(),
+    new Date().getUTCMonth(),
+    new Date().getUTCDate()
+  ));
+  const start = new Date(end);
+  const days = window === '7D' ? 7 : window === '30D' ? 30 : 90;
+  start.setUTCDate(start.getUTCDate() - days);
+  const toISO = (d: Date) => d.toISOString().slice(0,10);
+  return { startISO: toISO(start), endISO: toISO(end) };
+}
+
+function normalizeTwelveData(raw: any) {
+  const values = raw?.values ?? raw?.data ?? [];
+  return values
+    .map((v: any) => ({
+      date: (v.datetime || v.date || v.time)?.slice(0,10), // 'YYYY-MM-DD'
+      close: Number(v.close),
+    }))
+    .filter((r: any) => r.date && Number.isFinite(r.close))
+    .sort((a: any, b: any) => a.date.localeCompare(b.date));
+}
+
+function clipRange(rows: any[], startISO: string, endISO: string) {
+  return rows.filter(r => r.date >= startISO && r.date <= endISO);
+}
+
+async function fetchFromTwelveData(symbol: string, interval: string, startISO: string, endISO: string) {
+  const apiKey = process.env.TWELVE_DATA_API_KEY;
+  if (!apiKey) throw new Error('TWELVE_DATA_API_KEY not configured');
+  
+  const params = new URLSearchParams({
+    symbol,
+    interval,
+    start_date: startISO,
+    end_date: endISO,
+    outputsize: '1000',
+    apikey: apiKey
+  });
+  
+  const response = await fetch(`https://api.twelvedata.com/time_series?${params}`);
+  if (!response.ok) throw new Error(`TwelveData API error: ${response.status}`);
+  
+  return await response.json();
+}
+
 export class ApiController {
   static getAISummary = asyncHandler(async (req: Request, res: Response) => {
     const timerId = metricsCollector.startTimer('ai_summary_generation');
@@ -120,87 +169,109 @@ export class ApiController {
 
   static getStockHistory = asyncHandler(async (req: Request, res: Response) => {
     const { symbol } = req.params;
-    const { page = 1, limit = 20 } = req.query;
+    const window = String(req.query.window || '90D').toUpperCase(); // '7D'|'30D'|'90D'
     const timerId = metricsCollector.startTimer('stock_history_fetch');
     
     try {
-      console.log(`Fetching fresh historical data for ${symbol}...`);
-      logger.info('Fetching stock history', { 
-        symbol,
-        page,
-        limit,
+      logger.info('📈 Fetching historical data for chart', { 
+        symbol: symbol.toUpperCase(),
+        window,
         requestId: req.headers['x-request-id'],
         apiVersion: req.apiVersion 
       });
       
-      // FIXED: Use real database historical data instead of memory storage
+      console.log(`📈 Fetching historical data for ${symbol.toUpperCase()} from database...`);
+      
+      // ALWAYS use daily interval for consistent date axis display
+      const interval = '1day';
+      const { startISO, endISO } = computeUtcDateRange(window);
+      
+      // First try database (for database-backed symbols)
       const { db } = await import('../db');
       const { historicalStockData } = await import('../../shared/schema');
-      const { desc, eq } = await import('drizzle-orm');
+      const { desc, eq, and, gte, lte } = await import('drizzle-orm');
       
-      const results = await db.select({
-        id: historicalStockData.id,
-        symbol: historicalStockData.symbol,
-        price: historicalStockData.close,
-        change: historicalStockData.close, // Will calculate change properly later
-        volume: historicalStockData.volume,
-        timestamp: historicalStockData.date
+      const dbResults = await db.select({
+        date: historicalStockData.date,
+        close: historicalStockData.close,
+        volume: historicalStockData.volume
       })
       .from(historicalStockData)
-      .where(eq(historicalStockData.symbol, symbol.toUpperCase()))
-      .orderBy(desc(historicalStockData.date))
-      .limit(Number(limit));
-
-      // DEBUG: Log sample data to verify timestamps
-      if (results.length > 0) {
-        console.log(`📊 Sample historical data for ${symbol}:`, {
-          count: results.length,
-          first: { date: results[0].timestamp, price: results[0].price },
-          last: { date: results[results.length - 1].timestamp, price: results[results.length - 1].price }
+      .where(and(
+        eq(historicalStockData.symbol, symbol.toUpperCase()),
+        gte(historicalStockData.date, startISO),
+        lte(historicalStockData.date, endISO)
+      ))
+      .orderBy(historicalStockData.date)
+      .limit(200); // Safety limit
+      
+      if (dbResults.length > 0) {
+        console.log(`✅ Historical data returned for ${symbol.toUpperCase()}: ${dbResults.length} records`);
+        const normalizedData = dbResults.map(row => ({
+          date: row.date instanceof Date ? row.date.toISOString().slice(0,10) : String(row.date).slice(0,10),
+          close: Number(row.close)
+        }));
+        
+        metricsCollector.endTimer(timerId, 'stock_history_fetch', { 
+          symbol: symbol.toUpperCase(),
+          version: req.apiVersion || 'v1',
+          success: 'true',
+          source: 'database'
         });
+        
+        return ResponseUtils.success(res, normalizedData);
       }
-
-      // FIX 5: Server-Side Type Normalization - Return numbers not strings
-      const stockData = results.map((row, index) => {
-        const currentPrice = Number(row.price);
-        const previousPrice = index < results.length - 1 ? Number(results[index + 1].price) : currentPrice;
-        const changeValue = currentPrice - previousPrice;
-        const changePercent = previousPrice !== 0 ? (changeValue / previousPrice) * 100 : 0;
-
-        return {
-          id: row.id,
-          symbol: row.symbol,
-          price: currentPrice,      // number instead of string
-          change: changeValue,      // number instead of string
-          changePercent: changePercent,  // number instead of string
-          volume: row.volume,
-          marketCap: null,
-          timestamp: row.timestamp instanceof Date ? row.timestamp.toISOString() : new Date(row.timestamp).toISOString()  // consistent ISO string
-        };
-      });
+      
+      // Fallback to external provider for real-time symbols
+      try {
+        const raw = await fetchFromTwelveData(symbol.toUpperCase(), interval, startISO, endISO);
+        const normalized = normalizeTwelveData(raw);
+        const clipped = clipRange(normalized, startISO, endISO);
+        
+        if (clipped.length > 0) {
+          console.log(`✅ External data returned for ${symbol.toUpperCase()}: ${clipped.length} records`);
+          
+          metricsCollector.endTimer(timerId, 'stock_history_fetch', { 
+            symbol: symbol.toUpperCase(),
+            version: req.apiVersion || 'v1',
+            success: 'true',
+            source: 'external'
+          });
+          
+          return ResponseUtils.success(res, clipped);
+        }
+      } catch (providerError) {
+        console.error(`❌ External provider failed for ${symbol.toUpperCase()}:`, providerError);
+      }
+      
+      // Fail-soft: return empty array with warning (never crash the UI)
+      console.warn(`⚠️ No historical data available for ${symbol.toUpperCase()}`);
       
       metricsCollector.endTimer(timerId, 'stock_history_fetch', { 
-        symbol,
+        symbol: symbol.toUpperCase(),
         version: req.apiVersion || 'v1',
-        success: 'true' 
+        success: 'true',
+        source: 'empty'
       });
       
-      // Return the stock data array directly (client expects StockData[])
-      ResponseUtils.success(res, stockData);
+      return ResponseUtils.success(res, [], { warning: 'data_unavailable' });
+      
     } catch (error) {
       metricsCollector.endTimer(timerId, 'stock_history_fetch', { 
-        symbol,
+        symbol: symbol.toUpperCase(),
         version: req.apiVersion || 'v1',
         success: 'false' 
       });
       
       logger.error('Stock history fetch failed', { 
-        symbol,
+        symbol: symbol.toUpperCase(),
+        window,
         error: error instanceof Error ? error.message : 'Unknown error',
         requestId: req.headers['x-request-id'] 
       });
       
-      ResponseUtils.internalError(res, `History for ${symbol} temporarily unavailable`);
+      // CRITICAL: Never return {error:"Data not found"} - always fail soft
+      return ResponseUtils.success(res, [], { warning: 'data_unavailable' });
     }
   });
 

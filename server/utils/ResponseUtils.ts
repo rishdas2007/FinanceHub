@@ -8,11 +8,13 @@ export const createErrorResponse = (message: string, code?: string) => ({
 });
 
 export class ResponseUtils {
-  static success(res: Response, data: any, message?: string) {
+  static success(res: Response, data: any, messageOrMetadata?: string | object) {
+    const isMessage = typeof messageOrMetadata === 'string';
     return res.status(200).json({
       success: true,
-      message: message || 'Success',
-      data
+      message: isMessage ? messageOrMetadata : 'Success',
+      data,
+      ...(isMessage ? {} : messageOrMetadata)
     });
   }
 

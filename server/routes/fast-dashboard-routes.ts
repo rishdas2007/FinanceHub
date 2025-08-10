@@ -297,6 +297,31 @@ router.get('/technical-indicators', async (req, res) => {
   }
 });
 
+// Stock history endpoint with proper window/interval handling
+router.get('/stocks/:symbol/history', async (req, res) => {
+  const { symbol } = req.params;
+  const window = String(req.query.window || '30D').toUpperCase();
+  
+  try {
+    console.log(`🔍 Sparkline data request: ${symbol}`);
+    logger.info('📈 Fast stock history request', { symbol, window });
+    
+    // Import the fixed controller method
+    const { ApiController } = await import('../controllers/ApiController');
+    
+    // Delegate to the comprehensive fixed implementation
+    return await ApiController.getStockHistory(req, res);
+    
+  } catch (error) {
+    logger.error('❌ Fast stock history error:', error);
+    res.json({
+      success: true,
+      data: [], // Fail-soft
+      warning: 'data_unavailable'
+    });
+  }
+});
+
 // Add route debugging for troubleshooting
 router.use('*', (req, res, next) => {
   console.log(`🔍 Fast Dashboard Route: ${req.method} ${req.originalUrl}`);
