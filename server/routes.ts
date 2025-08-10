@@ -583,6 +583,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(getApiStats());
   });
 
+  // ADD THIS DEBUG ENDPOINT to see what's actually in your database
+  app.get('/api/debug/economic-indicators', async (req, res) => {
+    try {
+      console.log('🔍 Debug: Listing all economic indicators in database');
+
+      const result = await db.execute(sql`
+        SELECT DISTINCT 
+          series_id, 
+          metric, 
+          category,
+          unit,
+          COUNT(*) as count,
+          MIN(period_date) as earliest,
+          MAX(period_date) as latest
+        FROM economic_indicators_current 
+        GROUP BY series_id, metric, category, unit
+        ORDER BY count DESC, series_id
+        LIMIT 100
+      `);
+
+      console.log(`Found ${result.rows?.length || 0} unique indicators`);
+
+      res.json({
+        success: true,
+        indicators: result.rows || [],
+        sample_frontend_ids: [
+          'gdp_growth_rate',
+          'unemployment_rate',
+          'cpi_inflation',
+          'fed_funds_rate'
+        ],
+        message: 'Compare frontend IDs with available series_id values'
+      });
+
+    } catch (error) {
+      console.error('Debug endpoint error:', error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   // Test endpoint to debug 30-day trend calculation
   app.get('/api/test-30day-trend/:symbol', async (req, res) => {
     try {

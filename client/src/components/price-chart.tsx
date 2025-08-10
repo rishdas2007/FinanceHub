@@ -65,39 +65,48 @@ export function PriceChart() {
   };
 
   const chartData: ChartData[] = (stockHistory || []).map((item, index) => {
-    const prices = (stockHistory || []).map(h => parseFloat(h.price));
-    const rsiValues = generateRSIFromPrices(prices);
-    
-    // CRITICAL FIX: Ensure timestamp is properly parsed as Date
-    const dateObj = new Date(item.timestamp);
+    // DEBUG: Log the raw timestamp data
+    console.log(`📊 Processing stock data:`, {
+      symbol: item.symbol,
+      timestamp: item.timestamp,
+      timestampType: typeof item.timestamp,
+      rawDate: new Date(item.timestamp)
+    });
 
-    // Validate the date is not invalid
+    // FIX: Handle multiple timestamp formats
+    let dateObj: Date;
+    if (item.timestamp instanceof Date) {
+      dateObj = item.timestamp;
+    } else if (typeof item.timestamp === 'string') {
+      dateObj = new Date(item.timestamp);
+    } else {
+      // Fallback for number timestamps
+      dateObj = new Date(item.timestamp);
+    }
+
+    // Validate the date
     if (isNaN(dateObj.getTime())) {
       console.warn(`Invalid date for ${item.symbol}:`, item.timestamp);
-      // Use current date as fallback
-      const fallbackDate = new Date();
-      return {
-        price: parseFloat(item.price),
-        rsi: rsiValues[index] || 65,
-        date: fallbackDate.toISOString(),
-        timestamp: fallbackDate.toISOString(),
-        formattedDate: fallbackDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      };
+      dateObj = new Date(); // Use current date as fallback
     }
+
+    const prices = (stockHistory || []).map(h => parseFloat(h.price));
+    const rsiValues = generateRSIFromPrices(prices);
 
     return {
       price: parseFloat(item.price),
       rsi: rsiValues[index] || 65,
-      date: dateObj.toISOString(),
+      date: dateObj.toISOString().split('T')[0], // YYYY-MM-DD format
       timestamp: dateObj.toISOString(),
-      // FIX: Use proper date formatting for x-axis
+      // CRITICAL FIX: Format date properly for chart display
       formattedDate: dateObj.toLocaleDateString('en-US', {
         month: 'short',
-        day: 'numeric',
-        year: dateObj.getFullYear() !== new Date().getFullYear() ? '2-digit' : undefined
+        day: 'numeric'
       }),
     };
-  }).reverse(); // CRITICAL: Reverse to get chronological order for charts
+  }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // Sort chronologically
+
+  console.log(`📈 Final chart data sample:`, chartData.slice(0, 3));
 
   // ADD: Calculate percentage change for current timeframe
   const calculateStockPeriodChange = () => {

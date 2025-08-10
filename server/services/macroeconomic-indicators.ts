@@ -25,7 +25,7 @@ export class MacroeconomicService {
       // Query real historical data from historical_economic_data table (same as z-score calculations)
       console.log(`🔍 Searching for economic indicator: ${indicatorId}`);
 
-      // Enhanced mappings for economic indicators
+      // Enhanced mappings for economic indicators - ADD MISSING FRONTEND IDs
       const mappings: Record<string, string[]> = {
         'unemployment_rate': ['UNRATE', 'unemployment', 'jobless'],
         'industrial_production': ['INDPRO', 'industrial', 'production'],
@@ -33,9 +33,18 @@ export class MacroeconomicService {
         'cpi_inflation': ['CPIAUCSL', 'CPI', 'inflation', 'consumer_price'],
         'fed_funds_rate': ['FEDFUNDS', 'federal_funds', 'interest_rate'],
         'gdp_growth': ['GDP', 'gross_domestic', 'economic_growth'],
+        // ADD THESE MISSING MAPPINGS:
+        'gdp_growth_rate': ['GDP', 'GDPC1', 'gross_domestic', 'economic_growth'],
         'housing_starts': ['HOUST', 'housing', 'construction'],
         'consumer_confidence': ['UMCSENT', 'consumer_sentiment', 'confidence'],
-        'existing_home_sales': ['EXHOSLUSM495S', 'home_sales', 'existing_sales']
+        'existing_home_sales': ['EXHOSLUSM495S', 'home_sales', 'existing_sales'],
+        'average_weekly_hours': ['AWHMAN', 'weekly_hours', 'hours'],
+        'labor_force_participation': ['CIVPART', 'labor_force', 'participation'],
+        'months_supply_homes': ['MSACSR', 'housing_supply', 'homes_supply'],
+        'commercial_loans': ['BUSLOANS', 'commercial', 'loans'],
+        'retail_sales_food': ['RSFSDP', 'retail_sales', 'food_services'],
+        'construction_spending': ['TTLCONS', 'construction', 'spending'],
+        'total_construction_spending': ['TTLCONS', 'construction', 'spending']
       };
 
       // Get all possible search terms for this indicator
