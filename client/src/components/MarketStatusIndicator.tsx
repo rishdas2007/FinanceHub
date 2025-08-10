@@ -13,7 +13,8 @@ interface MarketStatus {
 
 interface MarketStatusResponse {
   success: boolean;
-  marketStatus: MarketStatus;
+  marketStatus?: MarketStatus; // Legacy field  
+  status?: MarketStatus; // New field from API
 }
 
 export function MarketStatusIndicator() {
@@ -23,16 +24,30 @@ export function MarketStatusIndicator() {
     staleTime: 25000, // Consider data stale after 25 seconds
   });
 
-  if (isLoading || !marketData?.success || !marketData?.marketStatus) {
+  if (isLoading) {
     return (
       <div className="flex items-center space-x-2 text-sm text-gray-400">
         <span className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></span>
-        <span>Checking Market Status...</span>
+        <span>Checking...</span>
       </div>
     );
   }
 
-  const { marketStatus } = marketData;
+  // Handle timeout or error gracefully
+  if (!marketData?.success || (!marketData?.status && !marketData?.marketStatus)) {
+    return (
+      <div className="flex items-center space-x-2 text-sm">
+        <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
+        <Calendar className="h-4 w-4 text-gray-400" />
+        <span className="font-medium text-gray-400">Unknown</span>
+        <span className="text-gray-400">•</span>
+        <span className="text-gray-300 text-xs">Status unavailable</span>
+      </div>
+    );
+  }
+
+  // Handle both response formats (marketStatus or status)
+  const marketStatus = marketData?.marketStatus || marketData?.status;
   
   const getStatusConfig = () => {
     switch (marketStatus?.session) {
@@ -115,16 +130,27 @@ export function MarketStatusIndicatorCompact() {
     staleTime: 25000,
   });
 
-  if (isLoading || !marketData?.success || !marketData?.marketStatus) {
+  if (isLoading) {
     return (
       <div className="flex items-center space-x-2">
         <span className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></span>
-        <span className="text-xs text-gray-400">Market Status</span>
+        <span className="text-xs text-gray-400">Checking...</span>
       </div>
     );
   }
 
-  const { marketStatus } = marketData;
+  // Handle timeout or error gracefully
+  if (!marketData?.success || (!marketData?.status && !marketData?.marketStatus)) {
+    return (
+      <div className="flex items-center space-x-2">
+        <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
+        <span className="text-xs font-medium text-gray-400">UNKNOWN</span>
+      </div>
+    );
+  }
+
+  // Handle both response formats (marketStatus or status)
+  const marketStatus = marketData?.marketStatus || marketData?.status;
   
   const getCompactConfig = () => {
     switch (marketStatus?.session) {

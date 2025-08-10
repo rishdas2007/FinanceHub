@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { 
   BarChart3, 
   TrendingUp, 
@@ -155,8 +156,17 @@ export function NavigationHeader() {
   );
 }
 
-// Quick scan metrics component for dashboard
+// Quick scan metrics component with independent loading states
 export function QuickScanMetrics() {
+  const { data: topMovers } = useQuery({ 
+    queryKey: ['/api/top-movers'],
+    staleTime: 30_000
+  });
+  const { data: economicHealth } = useQuery({ 
+    queryKey: ['/api/economic-health/dashboard'],
+    staleTime: 60_000  
+  });
+
   return (
     <div className="bg-gradient-to-r from-financial-card to-financial-gray border border-financial-border rounded-lg p-6">
       <div className="flex items-center justify-between mb-4">
@@ -170,27 +180,50 @@ export function QuickScanMetrics() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Market Status */}
+        {/* Market Status - Independent loading */}
         <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded">
           <span className="text-sm text-gray-300">Market</span>
           <MarketStatusIndicatorCompact />
         </div>
         
-        {/* Top ETF Mover */}
+        {/* Top ETF Mover - Independent loading */}
         <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded">
           <span className="text-sm text-gray-300">Top Mover</span>
           <div className="text-right">
-            <div className="text-sm font-medium text-white">XLK</div>
-            <div className="text-xs text-gain-green">+2.4%</div>
+            {topMovers?.etfMovers?.gainers?.[0] ? (
+              <>
+                <div className="text-sm font-medium text-white">{topMovers.etfMovers.gainers[0].symbol}</div>
+                <div className={`text-xs ${topMovers.etfMovers.gainers[0].changePercent >= 0 ? 'text-gain-green' : 'text-loss-red'}`}>
+                  {topMovers.etfMovers.gainers[0].changePercent >= 0 ? '+' : ''}{topMovers.etfMovers.gainers[0].changePercent?.toFixed(1)}%
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-sm font-medium text-gray-400">---</div>
+                <div className="text-xs text-gray-500">Loading...</div>
+              </>
+            )}
           </div>
         </div>
         
-        {/* Economic Health */}
+        {/* Economic Health - Independent loading */}
         <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded">
           <span className="text-sm text-gray-300">Econ Health</span>
           <div className="text-right">
-            <div className="text-sm font-medium text-blue-400">73</div>
-            <div className="text-xs text-gray-400">Moderate</div>
+            {economicHealth?.economicHealthScore ? (
+              <>
+                <div className="text-sm font-medium text-blue-400">{Math.round(economicHealth.economicHealthScore)}</div>
+                <div className="text-xs text-gray-400">
+                  {economicHealth.economicHealthScore >= 75 ? 'Strong' : 
+                   economicHealth.economicHealthScore >= 50 ? 'Moderate' : 'Weak'}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-sm font-medium text-gray-400">--</div>
+                <div className="text-xs text-gray-500">Loading...</div>
+              </>
+            )}
           </div>
         </div>
       </div>

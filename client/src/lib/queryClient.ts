@@ -69,26 +69,66 @@ function validateAndUnwrap(response: any, url: string) {
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
+const DEFAULT_TIMEOUT = 8000;
+
+async function fetchWithTimeout(url: string, options?: RequestInit): Promise<any> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
+  
+  try {
+    const res = await fetch(url, { 
+      ...options, 
+      credentials: "include",
+      signal: controller.signal 
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!res.ok) {
+      const text = (await res.text()) || res.statusText;
+      throw new Error(`${res.status}: ${text}`);
+    }
+    
+    const text = await res.text();
+    const json = text ? JSON.parse(text) : null;
+    
+    // Log response for debugging
+    console.log(`🔍 API Response for ${url}:`, { hasData: !!json?.data, keys: Object.keys(json || {}) });
+    
+    return validateAndUnwrap(json, url);
+  } catch (error) {
+    clearTimeout(timeoutId);
+    
+    // Handle timeout gracefully
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.warn(`⏰ Request timeout for ${url} after ${DEFAULT_TIMEOUT}ms`);
+      // Return fail-safe default based on endpoint
+      if (url.includes('/api/market-status')) {
+        return { isOpen: null, label: 'Unknown', status: 'timeout' };
+      }
+      return null;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const url = queryKey.join("/") as string;
-    const res = await fetch(url, {
-      credentials: "include",
-    });
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
-    }
-
-    await throwIfResNotOk(res);
-    const json = await res.json();
     
-    // FIX 1: Add error logging for debugging and unwrap response
-    console.log(`🔍 API Response for ${url}:`, { hasData: !!json?.data, keys: Object.keys(json || {}) });
-    return validateAndUnwrap(json, url);
+    try {
+      return await fetchWithTimeout(url);
+    } catch (error) {
+      if (unauthorizedBehavior === "returnNull" && (error as any)?.status === 401) {
+        return null;
+      }
+      throw error;
+    }
   };
 
 export const queryClient = new QueryClient({
@@ -97,8 +137,8 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      staleTime: 30_000, // 30 seconds instead of Infinity
+      retry: 1, // Retry once instead of never
     },
     mutations: {
       retry: false,
