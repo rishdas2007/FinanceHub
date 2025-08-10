@@ -23,7 +23,7 @@ export async function apiRequest(
   return res;
 }
 
-// Add response shape validation
+// Universal response unwrapping and validation
 function validateAndUnwrap(response: any, url: string) {
   // Log response shape for debugging
   console.log(`📊 Response from ${url}:`, {
@@ -33,17 +33,37 @@ function validateAndUnwrap(response: any, url: string) {
     keys: typeof response === 'object' ? Object.keys(response) : []
   });
 
-  // Unwrap if it's a success wrapper
-  if (response?.success === true && response?.data !== undefined) {
-    return response.data;
+  // Universal unwrapping: array → itself; otherwise prefer known keys
+  const unwrapped =
+    Array.isArray(response) ? response :
+    response?.data ?? response?.metrics ?? response?.results ?? response?.items ?? response?.rows ?? null;
+
+  // If we successfully unwrapped, return that
+  if (unwrapped !== null) {
+    return unwrapped;
   }
 
-  // Handle metrics wrapper (for ETF endpoints)
-  if (response?.metrics) {
-    return response.metrics;
+  // Fallbacks for named endpoints that return named objects
+  if (url.includes('/api/market-status')) {
+    return response?.status ?? response;
+  }
+  if (url.includes('/api/top-movers')) {
+    return response?.etfMovers ?? response?.movers ?? response;
+  }
+  if (url.includes('/api/etf-metrics')) {
+    // CRITICAL FIX: Always return an array, never null
+    const metrics = response?.data ?? response?.metrics;
+    return Array.isArray(metrics) ? metrics : [];
+  }
+  if (url.includes('/api/macroeconomic-indicators')) {
+    const indicators = response?.indicators ?? response?.data;
+    return Array.isArray(indicators) ? indicators : [];
+  }
+  if (url.includes('/api/economic-health')) {
+    return response;
   }
 
-  // Return as-is if already unwrapped
+  // Last resort: return original json so components can still inspect
   return response;
 }
 

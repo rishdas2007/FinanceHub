@@ -252,10 +252,15 @@ export default function ETFMetricsTable() {
   });
 
   const etfMetrics = useMemo(() => {
-    if (!etfMetricsResponse?.success || !etfMetricsResponse?.metrics) {
+    if (!etfMetricsResponse?.success) {
       return [];
     }
-    return etfMetricsResponse.metrics;
+    
+    // Use data field first (new format), fallback to metrics field (legacy)
+    const metrics = etfMetricsResponse.data || etfMetricsResponse.metrics;
+    
+    // Ensure we always return an array
+    return Array.isArray(metrics) ? metrics : [];
   }, [etfMetricsResponse]);
 
   if (isLoading) {
@@ -277,6 +282,12 @@ export default function ETFMetricsTable() {
 
   if (error || !etfMetricsResponse?.success) {
     console.error('ETF Metrics API Error:', error);
+    console.log('ETF Response Debug:', {
+      hasResponse: !!etfMetricsResponse,
+      success: etfMetricsResponse?.success,
+      hasData: !!(etfMetricsResponse?.data || etfMetricsResponse?.metrics),
+      dataType: Array.isArray(etfMetricsResponse?.data || etfMetricsResponse?.metrics) ? 'array' : typeof (etfMetricsResponse?.data || etfMetricsResponse?.metrics)
+    });
     return (
       <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-red-500 p-6" data-testid="etf-metrics-error">
         <div className="flex items-center gap-2 mb-4">

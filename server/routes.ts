@@ -143,14 +143,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('⚡ Fast Dashboard Route: GET /api/etf-metrics (Market-Aware)');
       const { etfMetricsService } = await import('./services/etf-metrics-service');
       
-      const metrics = await etfMetricsService.getConsolidatedETFMetrics();
+      const rawMetrics = await etfMetricsService.getConsolidatedETFMetrics();
+      
+      // FIX: Ensure metrics is always an array (never null)
+      const metrics = Array.isArray(rawMetrics) ? rawMetrics : [];
       
       const responseTime = Date.now() - startTime;
       console.log(`⚡ ETF Metrics response time: ${responseTime}ms`);
       
+      // CONSISTENT RESPONSE FORMAT: Always return data field for client unwrapping
       res.json({
         success: true,
-        metrics,
+        data: metrics, // Primary field for consistent client unwrapping
+        metrics, // Keep legacy field for backward compatibility
         count: metrics.length,
         timestamp: new Date().toISOString(),
         source: 'fast-market-aware-pipeline',
@@ -160,6 +165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('❌ ETF metrics error:', error);
       res.status(500).json({
         success: false,
+        data: [], // Always provide empty array on error
         error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
       });

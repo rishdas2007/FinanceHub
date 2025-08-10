@@ -819,12 +819,18 @@ class ETFMetricsService {
     return 0; // Neutral
   }
 
+  /**
+   * Safe fallback when metrics are unavailable - ALWAYS returns array (never null)
+   */
   private getFallbackMetrics(): ETFMetrics[] {
+    logger.warn('⚠️ Using fallback ETF metrics due to service error');
+    
     return this.ETF_SYMBOLS.map(symbol => ({
       symbol,
       name: ETFMetricsService.ETF_NAMES[symbol as keyof typeof ETFMetricsService.ETF_NAMES] || symbol,
       price: 0,
       changePercent: 0,
+      change30Day: null,
       
       // Required Z-Score weighted fields
       weightedScore: null,
@@ -833,20 +839,20 @@ class ETFMetricsService {
       
       bollingerPosition: null,
       bollingerSqueeze: false,
-      bollingerStatus: 'Loading...',
+      bollingerStatus: 'Data Unavailable',
       atr: null,
       volatility: null,
-      maSignal: 'Loading...',
+      maSignal: 'Data Unavailable',
       maTrend: 'neutral' as const,
       maGap: null,
       rsi: null,
-      rsiSignal: 'Loading...',
+      rsiSignal: 'Data Unavailable',
       rsiDivergence: false,
       zScore: null,
       sharpeRatio: null,
       fiveDayReturn: null,
       volumeRatio: null,
-      vwapSignal: 'Loading...',
+      vwapSignal: 'Data Unavailable',
       obvTrend: 'neutral' as const
     }));
   }
