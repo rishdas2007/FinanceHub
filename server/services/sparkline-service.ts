@@ -64,29 +64,33 @@ export class SparklineService {
     change: number;
   } | null> {
     try {
-      // Query historical sector data for the ETF (same table as z-score calculations)
+      // Query historical sector data for the ETF - get recent 30 days for sparkline
       const result = await db.execute(sql`
         SELECT price, date
         FROM historical_sector_data 
         WHERE symbol = ${symbol} 
-        ORDER BY date ASC
-        LIMIT 60
+        ORDER BY date DESC
+        LIMIT 30
       `);
 
       if (!result.rows || result.rows.length < 10) {
         return null; // Not enough data points
       }
 
-      const prices = result.rows.map((row: any) => parseFloat(row.price || 0)).filter(p => p > 0);
+      // Since we ordered by date DESC, reverse to get chronological order
+      const prices = result.rows
+        .map((row: any) => parseFloat(row.price || 0))
+        .filter(p => p > 0)
+        .reverse(); // Convert DESC to ASC for proper chronological order
       
       if (prices.length < 10) {
         return null;
       }
 
-      // Calculate trend and change
-      const firstPrice = prices[0];
-      const lastPrice = prices[prices.length - 1];
-      const changePercent = ((lastPrice - firstPrice) / firstPrice) * 100;
+      // Calculate 30-day trend: oldest price vs most recent price
+      const oldestPrice = prices[0]; // 30 days ago
+      const currentPrice = prices[prices.length - 1]; // Today
+      const changePercent = ((currentPrice - oldestPrice) / oldestPrice) * 100;
 
       let trend: 'up' | 'down' | 'flat' = 'flat';
       if (changePercent > 1) trend = 'up';
