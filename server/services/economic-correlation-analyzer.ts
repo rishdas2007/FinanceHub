@@ -1,7 +1,7 @@
-import { db } from '../db.js';
+import { db } from '../db';
 import { sql } from 'drizzle-orm';
-import { logger } from '../utils/logger.js';
-import { CacheService } from './cache-unified.js';
+import { logger } from '../utils/logger';
+import { CacheService } from './cache-unified';
 
 const cache = new CacheService();
 

@@ -1,7 +1,7 @@
-import { db } from '../db.js';
+import { db } from '../db';
 import { sql } from 'drizzle-orm';
-import { logger } from '../utils/logger.js';
-import { cacheService } from './cache-unified.js';
+import { logger } from '../utils/logger';
+import { cacheService } from './cache-unified';
 
 export interface SectorImpact {
   sector: string;

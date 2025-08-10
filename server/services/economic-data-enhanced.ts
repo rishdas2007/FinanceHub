@@ -1,4 +1,4 @@
-import { simplifiedEconomicCalendarService } from './simplified-economic-calendar.js';
+import { simplifiedEconomicCalendarService } from './simplified-economic-calendar';
 
 export interface EconomicEvent {
   id: string;

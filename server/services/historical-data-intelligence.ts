@@ -1,10 +1,10 @@
-import { db } from '../db.js';
+import { db } from '../db';
 import { 
   historicalTechnicalIndicators, 
   historicalSectorData,
   historicalMarketSentiment,
   stockData
-} from '@shared/schema.js';
+} from '@shared/schema';
 import { eq, and, gte, lte, desc, sql, asc } from 'drizzle-orm';
 
 interface HistoricalInsight {

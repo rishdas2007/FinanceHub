@@ -186,7 +186,8 @@ router.get('/etf-metrics', async (req, res) => {
     
     res.json({
       success: true,
-      metrics,
+      data: metrics, // PRIMARY: Universal client unwrapping compatibility
+      metrics, // LEGACY: Backward compatibility 
       count: metrics.length,
       timestamp: new Date().toISOString(),
       source: 'database-first-pipeline'
@@ -196,6 +197,7 @@ router.get('/etf-metrics', async (req, res) => {
     logger.error('❌ ETF metrics error:', error);
     res.status(500).json({
       success: false,
+      data: [], // Always provide empty array for client consistency
       error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
