@@ -44,6 +44,25 @@ export function EconomicChartModal({ isOpen, onClose, metric }: EconomicChartMod
   const [chartType, setChartType] = useState<ChartType>('line');
   const [timeRange, setTimeRange] = useState<TimeRange>('12M');
 
+  // ADD: Calculate percentage change for the time period - move to component level
+  const calculatePeriodChange = (data: any) => {
+    if (!data || data.length < 2) return null;
+
+    const firstValue = data[0].value;
+    const lastValue = data[data.length - 1].value;
+
+    if (firstValue === 0) return null;
+
+    const changePercent = ((lastValue - firstValue) / Math.abs(firstValue)) * 100;
+    const changeValue = lastValue - firstValue;
+
+    return {
+      percent: changePercent,
+      value: changeValue,
+      isPositive: changePercent >= 0
+    };
+  };
+
   const { data: chartData, isLoading, error } = useQuery({
     queryKey: ['economic-chart', metric.id, timeRange],
     queryFn: async () => {
@@ -280,6 +299,21 @@ export function EconomicChartModal({ isOpen, onClose, metric }: EconomicChartMod
                     Current: <span className="text-white font-medium">{metric.currentValue}{metric.unit || ''}</span>
                   </span>
                 )}
+                {/* ADD: Period change display */}
+                {chartData?.data && (() => {
+                  const periodChange = calculatePeriodChange(chartData.data);
+                  return periodChange ? (
+                    <span className="ml-4 text-sm">
+                      Change ({timeRange}):
+                      <span className={`font-medium ml-1 ${
+                        periodChange.isPositive ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        {periodChange.isPositive ? '+' : ''}{periodChange.percent.toFixed(2)}%
+                        ({periodChange.isPositive ? '+' : ''}{periodChange.value.toFixed(2)}{metric.unit || ''})
+                      </span>
+                    </span>
+                  ) : null;
+                })()}
               </DialogDescription>
             </div>
             

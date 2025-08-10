@@ -23,32 +23,97 @@ export class MacroeconomicService {
   } | null> {
     try {
       // Query real historical data from historical_economic_data table (same as z-score calculations)
-      // Try to find data by matching various patterns
-      const mappings: Record<string, string> = {
-        'unemployment_rate': 'UNRATE',
-        'industrial_production': 'INDPRO',
-        'nonfarm_payrolls': 'PAYEMS',
-        'cpi_inflation': 'CPIAUCSL',
-        'fed_funds_rate': 'FEDFUNDS',
-        'gdp_growth': 'GDP',
-        'housing_starts': 'HOUST',
-        'consumer_confidence': 'UMCSENT'
+      console.log(`🔍 Searching for economic indicator: ${indicatorId}`);
+
+      // Enhanced mappings for economic indicators
+      const mappings: Record<string, string[]> = {
+        'unemployment_rate': ['UNRATE', 'unemployment', 'jobless'],
+        'industrial_production': ['INDPRO', 'industrial', 'production'],
+        'nonfarm_payrolls': ['PAYEMS', 'payroll', 'employment'],
+        'cpi_inflation': ['CPIAUCSL', 'CPI', 'inflation', 'consumer_price'],
+        'fed_funds_rate': ['FEDFUNDS', 'federal_funds', 'interest_rate'],
+        'gdp_growth': ['GDP', 'gross_domestic', 'economic_growth'],
+        'housing_starts': ['HOUST', 'housing', 'construction'],
+        'consumer_confidence': ['UMCSENT', 'consumer_sentiment', 'confidence'],
+        'existing_home_sales': ['EXHOSLUSM495S', 'home_sales', 'existing_sales']
       };
 
-      const searchId = mappings[indicatorId] || indicatorId.toUpperCase();
-      
-      // Use economic_indicators_current for real data that feeds the dashboard
-      const result = await db.execute(sql`
-        SELECT period_date as date, value_numeric as value, series_id as metric
-        FROM economic_indicators_current 
-        WHERE series_id LIKE '%' || ${searchId} || '%'
-        OR series_id LIKE '%' || ${indicatorId.toUpperCase()} || '%'
-        ORDER BY period_date DESC
-        LIMIT ${months * 12}
-      `);
+      // Get all possible search terms for this indicator
+      const searchTerms = mappings[indicatorId] || [indicatorId.toUpperCase()];
 
-      if (!result.rows || result.rows.length === 0) {
-        logger.warn(`No historical data found for indicator: ${indicatorId}`);
+      console.log(`📊 Searching with terms: ${searchTerms.join(', ')}`);
+
+      // Try multiple query strategies
+      let result: any = null;
+
+      // Strategy 1: Direct series_id match
+      for (const term of searchTerms) {
+        try {
+          result = await db.execute(sql`
+            SELECT 
+              period_date as date, 
+              value_numeric as value, 
+              series_id as metric,
+              unit,
+              frequency
+            FROM economic_indicators_current 
+            WHERE UPPER(series_id) = UPPER(${term})
+            ORDER BY period_date DESC
+            LIMIT ${months * 20}
+          `);
+
+          if (result.rows && result.rows.length > 0) {
+            console.log(`✅ Found data with series_id: ${term}`);
+            break;
+          }
+        } catch (error) {
+          console.warn(`Query failed for ${term}:`, error);
+        }
+      }
+
+      // Strategy 2: Partial series_id match
+      if (!result?.rows || result.rows.length === 0) {
+        for (const term of searchTerms) {
+          try {
+            result = await db.execute(sql`
+              SELECT 
+                period_date as date, 
+                value_numeric as value, 
+                series_id as metric,
+                unit,
+                frequency
+              FROM economic_indicators_current 
+              WHERE UPPER(series_id) LIKE '%' || UPPER(${term}) || '%'
+              ORDER BY period_date DESC
+              LIMIT ${months * 20}
+            `);
+
+            if (result.rows && result.rows.length > 0) {
+              console.log(`✅ Found data with partial series_id match: ${term}`);
+              break;
+            }
+          } catch (error) {
+            console.warn(`Partial query failed for ${term}:`, error);
+          }
+        }
+      }
+
+      if (!result?.rows || result.rows.length === 0) {
+        // List all available indicators for debugging
+        const availableResult = await db.execute(sql`
+          SELECT DISTINCT series_id, metric, COUNT(*) as record_count
+          FROM economic_indicators_current 
+          GROUP BY series_id, metric
+          ORDER BY record_count DESC
+          LIMIT 20
+        `);
+
+        console.log('📋 Available economic indicators:');
+        availableResult.rows?.forEach((row: any) => {
+          console.log(`  - ${row.series_id}: ${row.metric} (${row.record_count} records)`);
+        });
+
+        logger.warn(`No data found for indicator: ${indicatorId}. Search terms: ${searchTerms.join(', ')}`);
         return null;
       }
 

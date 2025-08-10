@@ -1,0 +1,677 @@
+ADD PERCENTAGE CHANGE CALCULATION:
+  const renderChart = () => {
+    if (isLoading) {
+      // ... existing loading code
+    }
+
+    if (error || !chartData?.data) {
+      // ... existing error code  
+    }
+
+    const data = chartData.data;
+
+    // ADD: Calculate percentage change for the time period
+    const calculatePeriodChange = () => {
+      if (!data || data.length < 2) return null;
+
+      const firstValue = data[0].value;
+      const lastValue = data[data.length - 1].value;
+
+      if (firstValue === 0) return null;
+
+      const changePercent = ((lastValue - firstValue) /
+  Math.abs(firstValue)) * 100;
+      const changeValue = lastValue - firstValue;
+
+      return {
+        percent: changePercent,
+        value: changeValue,
+        isPositive: changePercent >= 0
+      };
+    };
+
+    const periodChange = calculatePeriodChange();
+    const isPositiveTrend = data.length > 1 && data[data.length -
+  1].value > data[0].value;
+
+    const commonProps = {
+      data,
+      margin: { top: 20, right: 30, left: 20, bottom: 5 }
+    };
+
+    const chartColor = isPositiveTrend ? '#10B981' : '#EF4444';
+
+    // ... rest of existing chart rendering code
+
+  File: /client/src/components/EconomicChartModal.tsxLocation: Add after
+  line 242 (in DialogDescription)
+
+  ADD CHANGE DISPLAY:
+  <DialogDescription className="text-gray-400 mt-1">
+    {metric.description || 'Historical economic data analysis'}
+    {metric.currentValue && (
+      <span className="ml-2 text-sm">
+        Current: <span className="text-white 
+  font-medium">{metric.currentValue}{metric.unit || ''}</span>
+      </span>
+    )}
+    {/* ADD: Period change display */}
+    {periodChange && (
+      <span className="ml-4 text-sm">
+        Change ({timeRange}):
+        <span className={`font-medium ml-1 ${
+          periodChange.isPositive ? 'text-green-400' : 'text-red-400'
+        }`}>
+          {periodChange.isPositive ? '+' :
+  ''}{periodChange.percent.toFixed(2)}%
+          ({periodChange.isPositive ? '+' :
+  ''}{periodChange.value.toFixed(2)}{metric.unit || ''})
+        </span>
+      </span>
+    )}
+  </DialogDescription>
+
+  ---
+  FIX 2: Add Percentage Change to Stock Charts
+
+  File: /client/src/components/price-chart.tsxLocation: Add after line 98
+   (after data processing)
+
+  ADD STOCK CHANGE CALCULATION:
+  // ADD: Calculate percentage change for current timeframe
+  const calculateStockPeriodChange = () => {
+    if (!chartData || chartData.length < 2) return null;
+
+    // Sort by date to ensure proper order
+    const sortedData = [...chartData].sort((a, b) =>
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    const firstPrice = parseFloat(sortedData[0].price);
+    const lastPrice = parseFloat(sortedData[sortedData.length -
+  1].price);
+
+    if (firstPrice === 0) return null;
+
+    const changePercent = ((lastPrice - firstPrice) / firstPrice) * 100;
+    const changeValue = lastPrice - firstPrice;
+
+    return {
+      percent: changePercent,
+      value: changeValue,
+      isPositive: changePercent >= 0,
+      period: selectedTimeframe
+    };
+  };
+
+  const stockPeriodChange = calculateStockPeriodChange();
+
+  File: /client/src/components/price-chart.tsxLocation: Add in CardHeader
+   section (around line 130)
+
+  ADD CHANGE DISPLAY TO STOCK CHART:
+  <CardHeader className="pb-3">
+    <div className="flex items-center justify-between">
+      <div>
+        <CardTitle className="text-lg font-semibold text-white flex 
+  items-center gap-2">
+          📈 {selectedETF.name} Price Chart
+        </CardTitle>
+        {/* ADD: Stock period change display */}
+        {stockPeriodChange && (
+          <p className="text-sm text-gray-400 mt-1">
+            {stockPeriodChange.period} Change:
+            <span className={`font-semibold ml-1 ${
+              stockPeriodChange.isPositive ? 'text-green-400' : 
+  'text-red-400'
+            }`}>
+              {stockPeriodChange.isPositive ? '+' :
+  ''}{stockPeriodChange.percent.toFixed(2)}%
+              (${stockPeriodChange.value.toFixed(2)})
+            </span>
+          </p>
+        )}
+      </div>
+
+      {/* Existing timeframe buttons */}
+      <div className="flex space-x-2">
+        {/* ... existing code ... */}
+      </div>
+    </div>
+  </CardHeader>
+
+  ---
+  FIX 3: Fix Economic Indicator API Data Retrieval
+
+  File: /server/services/macroeconomic-indicators.tsLocation: Replace
+  lines 18-80 (getHistoricalIndicatorData function)
+
+  COMPLETE FUNCTION REPLACEMENT:
+  async getHistoricalIndicatorData(indicatorId: string, months: number =
+  12): Promise<{
+    data: { date: string; value: number; formattedDate: string }[];
+    units: string;
+    frequency: string;
+    lastUpdate: string;
+  } | null> {
+    try {
+      console.log(`🔍 Searching for economic indicator: ${indicatorId}`);
+
+      // Enhanced mappings for economic indicators
+      const mappings: Record<string, string[]> = {
+        'unemployment_rate': ['UNRATE', 'unemployment', 'jobless'],
+        'industrial_production': ['INDPRO', 'industrial', 'production'],
+        'nonfarm_payrolls': ['PAYEMS', 'payroll', 'employment'],
+        'cpi_inflation': ['CPIAUCSL', 'CPI', 'inflation',
+  'consumer_price'],
+        'fed_funds_rate': ['FEDFUNDS', 'federal_funds', 'interest_rate'],
+        'gdp_growth': ['GDP', 'gross_domestic', 'economic_growth'],
+        'housing_starts': ['HOUST', 'housing', 'construction'],
+        'consumer_confidence': ['UMCSENT', 'consumer_sentiment',
+  'confidence']
+      };
+
+      // Get all possible search terms for this indicator
+      const searchTerms = mappings[indicatorId] ||
+  [indicatorId.toUpperCase()];
+
+      console.log(`📊 Searching with terms: ${searchTerms.join(', ')}`);
+
+      // Try multiple query strategies
+      let result: any = null;
+
+      // Strategy 1: Direct series_id match
+      for (const term of searchTerms) {
+        try {
+          result = await db.execute(sql`
+            SELECT 
+              period_date as date, 
+              value_numeric as value, 
+              series_id as metric,
+              unit,
+              frequency
+            FROM economic_indicators_current 
+            WHERE UPPER(series_id) = UPPER(${term})
+            ORDER BY period_date DESC
+            LIMIT ${months * 20}
+          `);
+
+          if (result.rows && result.rows.length > 0) {
+            console.log(`✅ Found data with series_id: ${term}`);
+            break;
+          }
+        } catch (error) {
+          console.warn(`Query failed for ${term}:`, error);
+        }
+      }
+
+      // Strategy 2: Partial series_id match
+      if (!result?.rows || result.rows.length === 0) {
+        for (const term of searchTerms) {
+          try {
+            result = await db.execute(sql`
+              SELECT 
+                period_date as date, 
+                value_numeric as value, 
+                series_id as metric,
+                unit,
+                frequency
+              FROM economic_indicators_current 
+              WHERE UPPER(series_id) LIKE '%' || UPPER(${term}) || '%'
+              ORDER BY period_date DESC
+              LIMIT ${months * 20}
+            `);
+
+            if (result.rows && result.rows.length > 0) {
+              console.log(`✅ Found data with partial series_id match: 
+  ${term}`);
+              break;
+            }
+          } catch (error) {
+            console.warn(`Partial query failed for ${term}:`, error);
+          }
+        }
+      }
+
+      // Strategy 3: Metric name match
+      if (!result?.rows || result.rows.length === 0) {
+        for (const term of searchTerms) {
+          try {
+            result = await db.execute(sql`
+              SELECT 
+                period_date as date, 
+                value_numeric as value, 
+                series_id as metric,
+                unit,
+                frequency
+              FROM economic_indicators_current 
+              WHERE UPPER(metric) LIKE '%' || UPPER(${term}) || '%'
+              ORDER BY period_date DESC
+              LIMIT ${months * 20}
+            `);
+
+            if (result.rows && result.rows.length > 0) {
+              console.log(`✅ Found data with metric match: ${term}`);
+              break;
+            }
+          } catch (error) {
+            console.warn(`Metric query failed for ${term}:`, error);
+          }
+        }
+      }
+
+      if (!result?.rows || result.rows.length === 0) {
+        // Strategy 4: List all available indicators for debugging
+        const availableResult = await db.execute(sql`
+          SELECT DISTINCT series_id, metric, COUNT(*) as record_count
+          FROM economic_indicators_current 
+          GROUP BY series_id, metric
+          ORDER BY record_count DESC
+          LIMIT 20
+        `);
+
+        console.log('📋 Available economic indicators:');
+        availableResult.rows?.forEach((row: any) => {
+          console.log(`  - ${row.series_id}: ${row.metric} 
+  (${row.record_count} records)`);
+        });
+
+        logger.warn(`No data found for indicator: ${indicatorId}. Search 
+  terms: ${searchTerms.join(', ')}`);
+        return null;
+      }
+
+      // Process the data with better date handling
+      const historicalData = result.rows.map((row: any) => {
+        const date = new Date(row.date);
+
+        // Validate date
+        if (isNaN(date.getTime())) {
+          console.warn(`Invalid date in economic data:`, row.date);
+          return null;
+        }
+
+        const value = parseFloat(row.value);
+        if (isNaN(value)) {
+          console.warn(`Invalid value in economic data:`, row.value);
+          return null;
+        }
+
+        return {
+          date: date.toISOString(),
+          value: value,
+          formattedDate: date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: '2-digit'
+          })
+        };
+      }).filter(Boolean) // Remove null entries
+      .reverse(); // Chronological order
+
+      // Get metadata from first row
+      const firstRow = result.rows[0];
+      const units = String(firstRow?.unit || '');
+      const frequency = String(firstRow?.frequency || 'Monthly');
+
+      console.log(`✅ Retrieved ${historicalData.length} data points for 
+  ${indicatorId}`);
+      console.log(`📊 Sample data:`, historicalData.slice(0, 3));
+
+      return {
+        data: historicalData,
+        units: units,
+        frequency: frequency,
+        lastUpdate: new Date().toISOString()
+      };
+
+    } catch (error) {
+      logger.error(`Failed to get historical data for ${indicatorId}:`,
+  String(error));
+
+      // Return sample data as fallback for development
+      console.log(`🔄 Returning sample data for ${indicatorId}`);
+      return this.generateSampleEconomicData(indicatorId, months);
+    }
+  }
+
+  /**
+   * Generate sample economic data for development/fallback
+   */
+  private generateSampleEconomicData(indicatorId: string, months: number)
+   {
+    const baseValues: Record<string, number> = {
+      'unemployment_rate': 4.2,
+      'cpi_inflation': 2.8,
+      'fed_funds_rate': 5.25,
+      'gdp_growth': 2.1,
+      'industrial_production': 105.2,
+      'housing_starts': 1.35,
+      'consumer_confidence': 98.5,
+      'nonfarm_payrolls': 150
+    };
+
+    const baseValue = baseValues[indicatorId] || 100;
+    const unit = indicatorId.includes('rate') ||
+  indicatorId.includes('inflation') ? '%' : '';
+
+    const data = Array.from({ length: months }, (_, i) => {
+      const date = new Date();
+      date.setMonth(date.getMonth() - (months - 1 - i));
+
+      // Add some realistic variation
+      const variation = (Math.random() - 0.5) * 0.2 * baseValue;
+      const value = baseValue + variation;
+
+      return {
+        date: date.toISOString(),
+        value: parseFloat(value.toFixed(2)),
+        formattedDate: date.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: '2-digit'
+        })
+      };
+    });
+
+    return {
+      data,
+      units: unit,
+      frequency: 'Monthly',
+      lastUpdate: new Date().toISOString()
+    };
+  }
+
+  ---
+  FIX 4: Enhanced Error Handling and Debugging
+
+⏺ Update Todos
+  ⎿  ☒ Analyze percentage change formula requirements for charts         
+     ☒ Investigate economic indicator data availability issues
+     ☒ Review database tables and data structure
+     ☒ Create formula instructions for time-period-based change 
+       calculation
+     ☒ Fix economic indicator API endpoint and data retrieval
+     ☐ Add debugging and fallback data handling
+
+⏺ File: /server/routes.tsLocation: Replace lines 467-500 (economic
+  indicators endpoint)
+
+  ENHANCED API ENDPOINT:
+  // Economic indicator historical chart data endpoint
+  app.get('/api/economic-indicators/:id/history', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const months = parseInt(req.query.months as string) || 12;
+
+      console.log(`📊 Economic chart data request: ${id} (${months}M)`);
+      console.log(`📊 Request details:`, { id, months, timestamp: new
+  Date().toISOString() });
+
+      const { macroeconomicService } = await
+  import('./services/macroeconomic-indicators');
+
+      // Add timeout to prevent hanging requests
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      );
+
+      const dataPromise =
+  macroeconomicService.getHistoricalIndicatorData(id, months);
+
+      const historicalData = await Promise.race([dataPromise,
+  timeoutPromise]);
+
+      if (!historicalData) {
+        console.log(`❌ No data returned for ${id}`);
+
+        // Check if we have ANY economic indicators in the database
+        const checkQuery = await db.execute(sql`
+          SELECT COUNT(*) as total_count, 
+                 COUNT(DISTINCT series_id) as unique_series
+          FROM economic_indicators_current 
+          LIMIT 1
+        `);
+
+        const dbStats = checkQuery.rows?.[0];
+        console.log(`📊 Database stats:`, dbStats);
+
+        return res.status(404).json({
+          success: false,
+          error: `No data available for indicator: ${id}`,
+          debug: {
+            searchedId: id,
+            databaseStats: dbStats,
+            suggestion: 'Check available indicators with GET 
+  /api/economic-indicators/available'
+          },
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      console.log(`✅ Economic data returned for ${id}:`, {
+        dataPoints: historicalData.data?.length || 0,
+        units: historicalData.units,
+        frequency: historicalData.frequency,
+        dateRange: historicalData.data?.length > 0 ? {
+          from: historicalData.data[0]?.formattedDate,
+          to: historicalData.data[historicalData.data.length -
+  1]?.formattedDate
+        } : null
+      });
+
+      const responseData = {
+        success: true,
+        indicator: id,
+        data: historicalData.data || [],
+        metadata: {
+          source: 'FRED',
+          units: historicalData.units || '',
+          frequency: historicalData.frequency || 'Monthly',
+          lastUpdate: historicalData.lastUpdate || new
+  Date().toISOString(),
+          count: historicalData.data?.length || 0,
+          period: `${months} months`
+        }
+      };
+
+      res.json(responseData);
+
+    } catch (error) {
+      console.error(`❌ Economic chart data error for ${req.params.id}:`,
+   String(error));
+
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch economic indicator data',
+        details: error instanceof Error ? error.message : 'Unknown 
+  error',
+        indicator: req.params.id,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // NEW: Debug endpoint to list available economic indicators
+  app.get('/api/economic-indicators/available', async (req, res) => {
+    try {
+      console.log('📋 Listing available economic indicators');
+
+      const result = await db.execute(sql`
+        SELECT DISTINCT 
+          series_id, 
+          metric, 
+          category,
+          unit,
+          frequency,
+          COUNT(*) as record_count,
+          MIN(period_date) as earliest_date,
+          MAX(period_date) as latest_date
+        FROM economic_indicators_current 
+        GROUP BY series_id, metric, category, unit, frequency
+        ORDER BY record_count DESC, series_id
+        LIMIT 50
+      `);
+
+      res.json({
+        success: true,
+        indicators: result.rows || [],
+        total: result.rows?.length || 0,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('Failed to list economic indicators:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to list available indicators',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  ---
+  FIX 5: Add Sparkline Percentage Changes
+
+  File: /client/src/components/ui/sparkline.tsxLocation: Add props and
+  calculation (around line 5)
+
+  ENHANCE SPARKLINE INTERFACE:
+  interface SparklineProps {
+    data: number[];
+    trend?: 'up' | 'down' | 'flat';
+    height?: number;
+    width?: string;
+    className?: string;
+    showTooltip?: boolean;
+    showChange?: boolean; // NEW: Show percentage change
+    period?: string; // NEW: Time period label
+  }
+
+  export function Sparkline({ 
+    data, 
+    trend = 'flat', 
+    height = 40, 
+    width = '100%',
+    className,
+    showTooltip = false,
+    showChange = false, // NEW
+    period = '30D' // NEW
+  }: SparklineProps) {
+    if (!data || data.length === 0) {
+      return (
+        <div 
+          className={cn("bg-gray-800/30 rounded animate-pulse", 
+  className)}
+          style={{ height, width }}
+        />
+      );
+    }
+
+    // Transform array of numbers to chart format
+    const chartData = data.map((value, index) => ({ index, value }));
+
+    // NEW: Calculate percentage change
+    const calculateChange = () => {
+      if (data.length < 2) return null;
+      const firstValue = data[0];
+      const lastValue = data[data.length - 1];
+      if (firstValue === 0) return null;
+
+      const changePercent = ((lastValue - firstValue) /
+  Math.abs(firstValue)) * 100;
+      return {
+        percent: changePercent,
+        isPositive: changePercent >= 0
+      };
+    };
+
+    const change = calculateChange();
+
+    const strokeColor =
+      trend === 'up' ? '#10B981' : // gain-green
+      trend === 'down' ? '#EF4444' : // loss-red
+      '#6B7280'; // neutral gray
+
+    return (
+      <div className="relative flex flex-col">
+        <div className={cn("relative", className)} style={{ height, width
+   }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData} margin={{ top: 2, right: 2, left:
+   2, bottom: 2 }}>
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke={strokeColor}
+                strokeWidth={2}
+                dot={false}
+                activeDot={showTooltip ? { r: 2, fill: strokeColor } : 
+  false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+
+          {/* Overlay gradient for visual enhancement */}
+          <div 
+            className="absolute inset-0 pointer-events-none rounded"
+            style={{
+              background: `linear-gradient(to bottom, transparent 0%, 
+  ${strokeColor}10 100%)`
+            }}
+          />
+        </div>
+
+        {/* NEW: Show change percentage */}
+        {showChange && change && (
+          <div className="text-xs text-center mt-1">
+            <span className={`font-medium ${
+              change.isPositive ? 'text-green-400' : 'text-red-400'
+            }`}>
+              {change.isPositive ? '+' : ''}{change.percent.toFixed(1)}%
+  ({period})
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  ---
+  🔍 TESTING INSTRUCTIONS
+
+  Step 1: Test Available Indicators
+
+  # Check what economic indicators are actually in your database
+  curl http://localhost:5000/api/economic-indicators/available
+
+  Step 2: Test Specific Indicator
+
+  # Test with a known indicator ID from the available list
+  curl
+  http://localhost:5000/api/economic-indicators/UNRATE/history?months=12
+
+  Step 3: Frontend Testing
+
+  Add this temporary logging in your browser console:
+  // In browser dev tools, check what indicators are being requested
+  fetch('/api/economic-indicators/available')
+    .then(r => r.json())
+    .then(data => console.log('Available indicators:',
+  data.indicators.slice(0, 10)));
+
+  ---
+  🎯 EXPECTED RESULTS
+
+  After implementing these fixes:
+
+  1. ✅ Percentage Changes: All charts will show "Change: +0.33%" based
+  on selected time period
+  2. ✅ Economic Data: Economic indicator charts will load real data from
+   the database
+  3. ✅ Better Error Messages: Clear debugging info when data isn't
+  available
+  4. ✅ Fallback Data: Sample data when real data isn't found
+  5. ✅ Available Indicators: Debug endpoint to see what's actually in
+  your database
+

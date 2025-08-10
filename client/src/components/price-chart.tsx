@@ -65,7 +65,7 @@ export function PriceChart() {
   };
 
   const chartData: ChartData[] = (stockHistory || []).map((item, index) => {
-    const prices = stockHistory.map(h => parseFloat(h.price));
+    const prices = (stockHistory || []).map(h => parseFloat(h.price));
     const rsiValues = generateRSIFromPrices(prices);
     
     // CRITICAL FIX: Ensure timestamp is properly parsed as Date
@@ -99,6 +99,33 @@ export function PriceChart() {
     };
   }).reverse(); // CRITICAL: Reverse to get chronological order for charts
 
+  // ADD: Calculate percentage change for current timeframe
+  const calculateStockPeriodChange = () => {
+    if (!chartData || chartData.length < 2) return null;
+
+    // Sort by date to ensure proper order
+    const sortedData = [...chartData].sort((a, b) =>
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    const firstPrice = parseFloat(String(sortedData[0].price));
+    const lastPrice = parseFloat(String(sortedData[sortedData.length - 1].price));
+
+    if (firstPrice === 0) return null;
+
+    const changePercent = ((lastPrice - firstPrice) / firstPrice) * 100;
+    const changeValue = lastPrice - firstPrice;
+
+    return {
+      percent: changePercent,
+      value: changeValue,
+      isPositive: changePercent >= 0,
+      period: selectedTimeframe
+    };
+  };
+
+  const stockPeriodChange = calculateStockPeriodChange();
+
   // Debug: Log the actual price range and date range for chart display
   if (chartData.length > 0) {
     const prices = chartData.map(d => d.price);
@@ -109,7 +136,8 @@ export function PriceChart() {
     console.log(`📈 Stock Chart Debug:`, {
       stockHistoryLength: stockHistory?.length || 0,
       chartDataLength: chartData?.length || 0,
-      sampleDates: chartData?.slice(0, 3).map(d => d.formattedDate) || []
+      sampleDates: chartData?.slice(0, 3).map(d => d.formattedDate) || [],
+      periodChange: stockPeriodChange
     });
     console.log(`${selectedETF.symbol} Price Range: $${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`);
     console.log(`${selectedETF.symbol} Date Range:`, dates);
@@ -119,9 +147,27 @@ export function PriceChart() {
 
   return (
     <Card className="bg-financial-gray border-financial-border">
-      <CardHeader>
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold text-white">{selectedETF.symbol} Price Chart</CardTitle>
+          <div>
+            <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
+              📈 {selectedETF.name} Price Chart
+            </CardTitle>
+            {/* ADD: Stock period change display */}
+            {stockPeriodChange && (
+              <p className="text-sm text-gray-400 mt-1">
+                {stockPeriodChange.period} Change:
+                <span className={`font-semibold ml-1 ${
+                  stockPeriodChange.isPositive ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {stockPeriodChange.isPositive ? '+' : ''}{stockPeriodChange.percent.toFixed(2)}%
+                  (${stockPeriodChange.value.toFixed(2)})
+                </span>
+              </p>
+            )}
+          </div>
+
+          {/* Existing timeframe buttons */}
           <div className="flex space-x-2">
             {timeframes.map((timeframe) => (
               <Button
