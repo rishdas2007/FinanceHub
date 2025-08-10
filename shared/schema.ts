@@ -2,6 +2,9 @@ import { pgTable, text, serial, integer, boolean, timestamp, date, decimal, json
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Export the 3-layer economic data model
+export * from './economic-data-model';
+
 // Historical tables for comprehensive market data analysis
 export const historicalStockData = pgTable("historical_stock_data", {
   id: serial("id").primaryKey(),
