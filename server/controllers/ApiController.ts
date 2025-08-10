@@ -3,34 +3,33 @@ import { ResponseUtils } from '../utils/ResponseUtils';
 import { asyncHandler } from '../middleware/standardized-error-handler';
 import { logger } from '../utils/logger';
 import { metricsCollector } from '../utils/MetricsCollector';
+import { computeUtcDateRange, isoDate, createChartPoint } from '../../shared/dates';
 
 // Import services (use existing ones)
 import { financialDataService } from '../services/financial-data';
 import { storage } from '../storage';
 
 // Helper functions for stock history
-function computeUtcDateRange(window: string) {
-  // anchor at 00:00:00 UTC today
-  const end = new Date(Date.UTC(
-    new Date().getUTCFullYear(),
-    new Date().getUTCMonth(),
-    new Date().getUTCDate()
-  ));
-  const start = new Date(end);
-  const days = window === '7D' ? 7 : window === '30D' ? 30 : 90;
-  start.setUTCDate(start.getUTCDate() - days);
-  const toISO = (d: Date) => d.toISOString().slice(0,10);
-  return { startISO: toISO(start), endISO: toISO(end) };
-}
+// computeUtcDateRange now imported from shared/dates.ts
 
 function normalizeTwelveData(raw: any) {
   const values = raw?.values ?? raw?.data ?? [];
   return values
-    .map((v: any) => ({
-      timestamp: (v.datetime || v.date || v.time)?.slice(0,10), // 'YYYY-MM-DD'
-      close: Number(v.close ?? v.c ?? v.adj_close),
-    }))
-    .filter((r: any) => r.timestamp && Number.isFinite(r.close))
+    .map((v: any) => {
+      const dateValue = v.datetime || v.date || v.time;
+      const priceValue = Number(v.close ?? v.c ?? v.adj_close);
+      
+      // Use safe chart point creation
+      const chartPoint = createChartPoint(dateValue, priceValue);
+      if (!chartPoint) return null;
+      
+      return {
+        timestamp: chartPoint.date, // ISO string
+        t: chartPoint.t,           // numeric timestamp
+        close: chartPoint.close
+      };
+    })
+    .filter((r: any) => r !== null)
     .sort((a: any, b: any) => a.timestamp.localeCompare(b.timestamp));
 }
 
@@ -200,8 +199,8 @@ export class ApiController {
       .from(historicalStockData)
       .where(and(
         eq(historicalStockData.symbol, symbol.toUpperCase()),
-        gte(historicalStockData.date, startISO),
-        lte(historicalStockData.date, endISO)
+        gte(historicalStockData.date, new Date(startISO + 'T00:00:00Z')),
+        lte(historicalStockData.date, new Date(endISO + 'T23:59:59Z'))
       ))
       .orderBy(historicalStockData.date)
       .limit(200); // Safety limit
@@ -211,47 +210,24 @@ export class ApiController {
         console.log(`📊 Sample date format:`, typeof dbResults[0]?.date, dbResults[0]?.date);
         
         const normalizedData = dbResults.map((row, index) => {
-          let dateStr: string;
-          try {
-            // Log the first few raw values for debugging
-            if (index < 3) {
-              console.log(`🔍 Row ${index} date type:`, typeof row.date, 'value:', row.date);
-            }
-            
-            if (!row.date) {
-              // Skip rows with null/undefined dates
-              return null;
-            }
-            
-            if (row.date instanceof Date) {
-              dateStr = row.date.toISOString().slice(0,10);
-            } else if (typeof row.date === 'string') {
-              // Handle string dates - ensure valid format
-              const cleanDate = row.date.slice(0,10);
-              if (cleanDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                dateStr = cleanDate;
-              } else {
-                dateStr = new Date(row.date).toISOString().slice(0,10);
-              }
-            } else {
-              // Handle other formats by converting to Date first
-              const dateObj = new Date(row.date);
-              if (isNaN(dateObj.getTime())) {
-                console.warn(`⚠️ Invalid date for ${symbol}:`, row.date);
-                return null;
-              }
-              dateStr = dateObj.toISOString().slice(0,10);
-            }
-          } catch (error) {
-            console.warn(`⚠️ Date conversion error for ${symbol}:`, error, 'Raw date:', row.date, 'Type:', typeof row.date);
+          // Log the first few raw values for debugging
+          if (index < 3) {
+            console.log(`🔍 Row ${index} date type:`, typeof row.date, 'value:', row.date);
+          }
+          
+          // Use safe date conversion utility
+          const chartPoint = createChartPoint(row.date, Number(row.close));
+          if (!chartPoint) {
+            console.warn(`⚠️ Skipping invalid data point for ${symbol}:`, { date: row.date, close: row.close });
             return null;
           }
           
           return {
-            timestamp: dateStr,
-            close: Number(row.close) || 0
+            timestamp: chartPoint.date, // ISO string
+            t: chartPoint.t,           // numeric timestamp for charts
+            close: chartPoint.close
           };
-        }).filter((row): row is NonNullable<typeof row> => row !== null && row.close > 0);
+        }).filter((row): row is NonNullable<typeof row> => row !== null);
         
         metricsCollector.endTimer(timerId, 'stock_history_fetch', { 
           symbol: symbol.toUpperCase(),

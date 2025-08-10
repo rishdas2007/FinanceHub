@@ -1,39 +1,100 @@
 /**
  * Chart utility functions for normalizing data and handling empty states
+ * Updated to use robust date handling that prevents toISOString errors
  */
 
 export interface ChartDataPoint {
   date: string;
+  t?: number;    // numeric timestamp for Recharts
   price: number;
 }
 
 /**
  * Normalizes stock history data from various API response formats
- * to the standard chart format: { date: string, price: number }[]
+ * to the standard chart format. Now handles mixed date formats safely.
  */
 export function toChartSeries(input: any): ChartDataPoint[] {
   const arr = Array.isArray(input) ? input : [];
   return arr
-    .map((r: any) => ({
-      date: r.timestamp || r.datetime || r.date || r.t,
-      price: Number(r.close ?? r.price ?? r.c ?? r.adjClose),
-    }))
-    .filter((r) => r.date && Number.isFinite(r.price))
+    .map((r: any) => {
+      // Extract date/timestamp values safely
+      const dateValue = r.timestamp || r.datetime || r.date || r.t;
+      const priceValue = Number(r.close ?? r.price ?? r.c ?? r.adjClose);
+      const timestampValue = r.t || (dateValue ? Date.parse(dateValue) : undefined);
+      
+      // Basic validation
+      if (!dateValue || !Number.isFinite(priceValue)) return null;
+      
+      // Ensure date is string format for compatibility
+      let dateStr: string;
+      if (typeof dateValue === 'string') {
+        dateStr = dateValue.slice(0, 10); // YYYY-MM-DD
+      } else if (dateValue instanceof Date) {
+        dateStr = dateValue.toISOString().slice(0, 10);
+      } else if (typeof dateValue === 'number') {
+        dateStr = new Date(dateValue).toISOString().slice(0, 10);
+      } else {
+        return null;
+      }
+      
+      return {
+        date: dateStr,
+        t: timestampValue,
+        price: priceValue
+      };
+    })
+    .filter((r): r is ChartDataPoint => r !== null)
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 /**
- * Formats date for chart axis display
+ * Formats date for chart axis display - safe version that never throws
  */
-export function formatChartDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric'
-    });
-  } catch {
-    return iso.slice(5, 10); // fallback to MM-DD
+export function formatChartDate(value: unknown): string {
+  if (!value) return '';
+  
+  // Handle string dates
+  if (typeof value === 'string') {
+    try {
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric'
+        });
+      }
+      // Fallback for ISO strings
+      return value.slice(5, 10).replace('-', '/');
+    } catch {
+      return String(value).slice(5, 10) || String(value);
+    }
   }
+  
+  // Handle numeric timestamps
+  if (typeof value === 'number') {
+    try {
+      return new Date(value).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return '';
+    }
+  }
+  
+  // Handle Date objects
+  if (value instanceof Date) {
+    try {
+      return value.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return '';
+    }
+  }
+  
+  return String(value);
 }
 
 /**

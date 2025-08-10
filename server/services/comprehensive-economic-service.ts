@@ -369,7 +369,7 @@ class ComprehensiveEconomicService {
         previous: row.previous_value,
         unit: row.unit,
         period: row.period,
-        releaseDate: row.release_date?.toISOString().split('T')[0] || '',
+        releaseDate: row.release_date ? new Date(row.release_date).toISOString().split('T')[0] : '',
         variance: row.variance,
         beatForecast: row.beat_forecast,
         source: row.source || ''
