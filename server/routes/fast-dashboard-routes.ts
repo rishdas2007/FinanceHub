@@ -177,28 +177,63 @@ router.get('/data-freshness', async (req, res) => {
 });
 
 // ETF Technical Metrics endpoint - Database-first approach
+// Cache for last good ETF metrics data
+let lastGoodETFMetrics: any[] = [];
+let lastGoodETFMetricsAt = 0;
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+
 router.get('/etf-metrics', async (req, res) => {
   try {
     logger.info('📊 ETF metrics request - using database-first pipeline');
     const { etfMetricsService } = await import('../services/etf-metrics-service');
     
     const metrics = await etfMetricsService.getConsolidatedETFMetrics();
+    const safeMetrics = Array.isArray(metrics) ? metrics : [];
+    
+    // Update cache on successful response
+    if (safeMetrics.length > 0) {
+      lastGoodETFMetrics = safeMetrics;
+      lastGoodETFMetricsAt = Date.now();
+    }
     
     res.json({
       success: true,
-      data: metrics, // PRIMARY: Universal client unwrapping compatibility
-      metrics, // LEGACY: Backward compatibility 
-      count: metrics.length,
+      data: safeMetrics,
+      metrics: safeMetrics, // LEGACY: Backward compatibility 
+      count: safeMetrics.length,
       timestamp: new Date().toISOString(),
-      source: 'database-first-pipeline'
+      source: 'database-first-pipeline',
+      cached: false
     });
     
   } catch (error) {
-    logger.error('❌ ETF metrics error:', error);
-    res.status(500).json({
-      success: false,
-      data: [], // Always provide empty array for client consistency
-      error: error instanceof Error ? error.message : 'Unknown error'
+    logger.error('❌ ETF metrics database error:', error);
+    
+    // Try to serve cached data if available and fresh
+    if (lastGoodETFMetrics.length > 0 && Date.now() - lastGoodETFMetricsAt < CACHE_DURATION) {
+      logger.info('📊 Serving cached ETF metrics due to database error');
+      return res.json({
+        success: true,
+        data: lastGoodETFMetrics,
+        metrics: lastGoodETFMetrics,
+        count: lastGoodETFMetrics.length,
+        timestamp: new Date().toISOString(),
+        source: 'cached-fallback',
+        cached: true,
+        warning: 'database_unavailable'
+      });
+    }
+    
+    // Return empty array with clear indication of issue
+    res.json({
+      success: true,
+      data: [],
+      metrics: [],
+      count: 0,
+      timestamp: new Date().toISOString(),
+      source: 'fallback-empty',
+      cached: false,
+      warning: 'database_unavailable'
     });
   }
 });

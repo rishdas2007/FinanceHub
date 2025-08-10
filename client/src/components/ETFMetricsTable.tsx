@@ -252,16 +252,31 @@ export default function ETFMetricsTable() {
     refetchOnMount: true, // Always fetch fresh data on mount
   });
 
+  // Extract ETF metrics data with fail-soft handling
   const etfMetrics = useMemo(() => {
-    if (!etfMetricsResponse?.success) {
-      return [];
+    if (!etfMetricsResponse) return [];
+    
+    // Handle cached/fallback responses
+    if (etfMetricsResponse.warning === 'database_unavailable') {
+      console.warn('⚠️ ETF metrics using fallback/cached data due to database issues');
     }
     
-    // Use data field first (new format), fallback to metrics field (legacy)
-    const metrics = etfMetricsResponse.data || etfMetricsResponse.metrics;
+    // Handle object responses with data/metrics fields
+    if (etfMetricsResponse.data && Array.isArray(etfMetricsResponse.data)) {
+      return etfMetricsResponse.data;
+    }
     
-    // Ensure we always return an array
-    return Array.isArray(metrics) ? metrics : [];
+    if (etfMetricsResponse.metrics && Array.isArray(etfMetricsResponse.metrics)) {
+      return etfMetricsResponse.metrics;
+    }
+    
+    // Handle direct array responses (legacy support)
+    if (Array.isArray(etfMetricsResponse)) {
+      return etfMetricsResponse;
+    }
+    
+    console.warn('⚠️ ETF metrics response format unexpected:', etfMetricsResponse);
+    return [];
   }, [etfMetricsResponse]);
 
   if (isLoading) {
@@ -281,7 +296,8 @@ export default function ETFMetricsTable() {
     );
   }
 
-  if (error || !etfMetricsResponse?.success) {
+  // Show non-blocking empty state instead of error modal
+  if (error || (!etfMetricsResponse?.success && !etfMetricsResponse?.data?.length)) {
     console.error('ETF Metrics API Error:', error);
     console.log('ETF Response Debug:', {
       hasResponse: !!etfMetricsResponse,
@@ -294,39 +310,32 @@ export default function ETFMetricsTable() {
       dataField: etfMetricsResponse?.data ? 'data exists' : 'data missing',
       metricsField: etfMetricsResponse?.metrics ? 'metrics exists' : 'metrics missing'
     });
-    return (
-      <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-red-500 p-6" data-testid="etf-metrics-error">
-        <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="h-5 w-5 text-red-400" />
-          <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
-          <span className="text-sm text-red-400">Connection Issue</span>
-        </div>
-        <div className="text-gray-300 space-y-2">
-          <p>Unable to load ETF metrics from database.</p>
-          <p className="text-sm text-gray-400">
-            {error ? `Error: ${(error as Error).message}` : 'Database connection failed.'}
-          </p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-white text-sm"
-            data-testid="refresh-button"
-          >
-            Refresh Page
-          </button>
-        </div>
-      </div>
-    );
   }
 
-  if (!etfMetrics.length) {
+  // Always render the component frame, even with no data
+  const showDatabaseWarning = etfMetricsResponse?.warning === 'database_unavailable' || etfMetrics.length === 0;
+
+  if (etfMetrics.length === 0) {
     return (
-      <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6">
+      <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6" data-testid="etf-metrics-empty">
         <div className="flex items-center gap-2 mb-4">
           <BarChart3 className="h-5 w-5 text-blue-400" />
           <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
+          {showDatabaseWarning && (
+            <span className="text-sm text-yellow-400">Database Unavailable</span>
+          )}
         </div>
         <div className="flex items-center justify-center py-8">
-          <span className="text-gray-400">No ETF data available</span>
+          <div className="text-center space-y-2">
+            <span className="text-gray-400">
+              {showDatabaseWarning ? 'Database connection issue - ETF metrics temporarily unavailable' : 'No ETF data available'}
+            </span>
+            {showDatabaseWarning && (
+              <p className="text-sm text-gray-500">
+                This is a non-blocking issue. Other dashboard components continue to work normally.
+              </p>
+            )}
+          </div>
         </div>
       </div>
     );

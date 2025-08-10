@@ -122,6 +122,11 @@ async function fetchWithTimeout(input: RequestInfo, init?: RequestInit) {
     // Log response for debugging
     console.log(`🔍 API Response for ${input}:`, { hasData: !!json?.data, keys: Object.keys(json || {}) });
 
+    // ETF metrics special case - preserve object structure
+    if (input.toString().includes('/api/etf-metrics') && json && typeof json === 'object') {
+      return json; // Don't unwrap ETF metrics - need the full response structure
+    }
+
     // universal unwrapping; still return raw object if none match
     const unwrapped =
       Array.isArray(json) ? json :
