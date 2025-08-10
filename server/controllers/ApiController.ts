@@ -168,130 +168,97 @@ export class ApiController {
   });
 
   static getStockHistory = asyncHandler(async (req: Request, res: Response) => {
-    const { symbol } = req.params;
+    const symbol = String(req.params.symbol || '').toUpperCase();
     const window = String(req.query.window || '90D').toUpperCase(); // '7D'|'30D'|'90D'
     const timerId = metricsCollector.startTimer('stock_history_fetch');
     
     try {
       logger.info('📈 Fetching historical data for chart', { 
-        symbol: symbol.toUpperCase(),
+        symbol,
         window,
         requestId: req.headers['x-request-id'],
         apiVersion: req.apiVersion 
       });
       
-      console.log(`📈 Fetching historical data for ${symbol.toUpperCase()} from database...`);
+      // Calculate UTC day bounds (end-exclusive) - CRITICAL for TIMESTAMPTZ comparison
+      const days = window === '7D' ? 7 : window === '30D' ? 30 : 90;
+      const todayUTC = new Date(Date.UTC(
+        new Date().getUTCFullYear(),
+        new Date().getUTCMonth(),
+        new Date().getUTCDate()
+      ));
+      const startTs = new Date(todayUTC); 
+      startTs.setUTCDate(startTs.getUTCDate() - days);
+      const endTs = new Date(todayUTC); 
+      endTs.setUTCDate(endTs.getUTCDate() + 1);
+
+      console.log(`📈 Querying ${symbol} from ${startTs.toISOString().slice(0,10)} to ${endTs.toISOString().slice(0,10)}`);
       
-      // ALWAYS use daily interval for consistent date axis display
-      const interval = '1day';
-      const { startDate, endDate } = computeUtcDateRange(window);
-      
-      // First try database (for database-backed symbols)
+      // 1) Database first - using raw SQL for TIMESTAMPTZ compatibility
       const { db } = await import('../db');
-      const { historicalStockData } = await import('../../shared/schema');
-      const { desc, eq, and, gte, lt } = await import('drizzle-orm');
+      const { sql } = await import('drizzle-orm');
       
-      const dbResults = await db.select({
-        date: historicalStockData.date,
-        close: historicalStockData.close,
-        volume: historicalStockData.volume
-      })
-      .from(historicalStockData)
-      .where(and(
-        eq(historicalStockData.symbol, symbol.toUpperCase()),
-        gte(historicalStockData.date, startDate),
-        lt(historicalStockData.date, endDate) // End-exclusive prevents midnight edge cases
-      ))
-      .orderBy(historicalStockData.date)
-      .limit(200); // Safety limit
-      
-      if (dbResults.length > 0) {
-        console.log(`✅ Historical data returned for ${symbol.toUpperCase()}: ${dbResults.length} records`);
-        console.log(`📊 Sample date format:`, typeof dbResults[0]?.date, dbResults[0]?.date);
-        
-        const normalizedData = dbResults.map((row, index) => {
-          // Log the first few raw values for debugging
-          if (index < 3) {
-            console.log(`🔍 Row ${index} date type:`, typeof row.date, 'value:', row.date);
-          }
+      const rows = await db.execute(sql`
+        SELECT date, close, volume
+        FROM historical_stock_data
+        WHERE symbol = ${symbol}
+          AND date >= ${startTs}::timestamptz
+          AND date <  ${endTs}::timestamptz
+        ORDER BY date ASC
+        LIMIT 200
+      `);
+
+      let series = rows.map((r: any) => ({
+        t: new Date(r.date).getTime(),
+        date: new Date(r.date).toISOString().slice(0, 10),
+        close: Number(r.close),
+        source: 'db' as const,
+      })).filter(d => Number.isFinite(d.close) && d.t);
+
+      // 2) External provider fallback if database empty
+      if (series.length === 0) {
+        console.log(`📡 Falling back to external provider for ${symbol}`);
+        try {
+          const { fetchFromTwelveData } = await import('../utils/data-fetchers');
+          const raw = await fetchFromTwelveData(symbol, '1day', 
+            startTs.toISOString().slice(0, 10), 
+            endTs.toISOString().slice(0, 10)
+          );
           
-          // Optimized: row.date is already a JS Date from PostgreSQL timestamptz
-          const timestamp = new Date(row.date).getTime(); // Direct conversion
-          const isoDateStr = isoDate(row.date); // Safe ISO conversion
-          
-          if (!isoDateStr || !Number.isFinite(timestamp) || !Number.isFinite(Number(row.close))) {
-            console.warn(`⚠️ Skipping invalid data point for ${symbol}:`, { date: row.date, close: row.close });
-            return null;
-          }
-          
-          return {
-            timestamp: isoDateStr, // ISO string for backward compatibility
-            t: timestamp,          // Numeric timestamp for Recharts
-            close: Number(row.close)
-          };
-        }).filter((row): row is NonNullable<typeof row> => row !== null);
-        
-        metricsCollector.endTimer(timerId, 'stock_history_fetch', { 
-          symbol: symbol.toUpperCase(),
-          version: req.apiVersion || 'v1',
-          success: 'true',
-          source: 'database'
-        });
-        
-        return res.json({ success: true, data: normalizedData });
-      }
-      
-      // Fallback to external provider for real-time symbols
-      try {
-        const startISO = isoDate(startDate) || '';
-        const endISO = isoDate(endDate) || '';
-        const raw = await fetchFromTwelveData(symbol.toUpperCase(), interval, startISO, endISO);
-        const normalized = normalizeTwelveData(raw);
-        const clipped = clipRange(normalized, startISO, endISO);
-        
-        if (clipped.length > 0) {
-          console.log(`✅ External data returned for ${symbol.toUpperCase()}: ${clipped.length} records`);
-          
-          metricsCollector.endTimer(timerId, 'stock_history_fetch', { 
-            symbol: symbol.toUpperCase(),
-            version: req.apiVersion || 'v1',
-            success: 'true',
-            source: 'external'
-          });
-          
-          return res.json({ success: true, data: clipped });
+          const vals = raw?.values ?? raw?.data ?? [];
+          series = vals
+            .map((v: any) => ({
+              date: String(v.datetime ?? v.date ?? v.time).slice(0, 10),
+              t: Date.parse(String(v.datetime ?? v.date ?? v.time)),
+              close: Number(v.close ?? v.c ?? v.adj_close),
+              source: 'provider' as const,
+            }))
+            .filter((d: any) => Number.isFinite(d.close) && d.t)
+            .sort((a: any, b: any) => a.t - b.t);
+        } catch (providerError) {
+          console.error(`❌ Provider fallback failed for ${symbol}:`, providerError);
         }
-      } catch (providerError) {
-        console.error(`❌ External provider failed for ${symbol.toUpperCase()}:`, providerError);
       }
-      
-      // Fail-soft: return empty array with warning (never crash the UI)
-      console.warn(`⚠️ No historical data available for ${symbol.toUpperCase()}`);
+
+      console.log(`✅ Returning ${series.length} data points for ${symbol} (${window})`);
       
       metricsCollector.endTimer(timerId, 'stock_history_fetch', { 
-        symbol: symbol.toUpperCase(),
+        symbol,
         version: req.apiVersion || 'v1',
         success: 'true',
-        source: 'empty'
+        source: series.length > 0 ? series[0].source : 'empty'
       });
       
-      return res.json({ success: true, data: [], warning: 'data_unavailable' });
+      return res.json({ success: true, data: series });
       
     } catch (error) {
+      console.error('HISTORY ERROR', symbol, error);
       metricsCollector.endTimer(timerId, 'stock_history_fetch', { 
-        symbol: symbol.toUpperCase(),
+        symbol,
         version: req.apiVersion || 'v1',
-        success: 'false' 
+        success: 'false'
       });
       
-      logger.error('Stock history fetch failed', { 
-        symbol: symbol.toUpperCase(),
-        window,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        requestId: req.headers['x-request-id'] 
-      });
-      
-      // CRITICAL: Never return {error:"Data not found"} - always fail soft
       return res.json({ success: true, data: [], warning: 'data_unavailable' });
     }
   });

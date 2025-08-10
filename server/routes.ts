@@ -51,6 +51,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 3-Layer Economic Data Model (Bronze → Silver → Gold)
   app.use('/api/econ', (await import('./routes/economic-data-routes')).economicDataRoutes);
   
+  // CRITICAL: Economic chart compatibility routes for 404 fixes
+  const { EconCompatController } = await import('./controllers/EconCompatController');
+  app.get('/api/econ/metrics/:id/chart', EconCompatController.getEconChart);
+  app.get('/api/econ/observations/:seriesId', EconCompatController.getSeriesObservations);
+  
   // Data Sufficiency and Backfill Management endpoints
   app.use('/api/data-sufficiency', (await import('./routes/data-sufficiency-routes')).default);
   

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { ApiController } from '../controllers/ApiController';
+import { EconCompatController } from '../controllers/EconCompatController';
 import { paginationSchema, stockSymbolSchema } from '../../shared/validation';
 import { validate } from '../middleware/validation-middleware';
 
@@ -17,6 +18,11 @@ router.get('/stocks/:symbol/history',
   ApiController.getStockHistory
 );
 router.get('/technical/:symbol', validate({ params: { symbol: stockSymbolSchema } }), ApiController.getTechnicalIndicators);
+
+// Economic chart compatibility routes - CRITICAL for 404 fixes
+router.get('/econ/metrics/:id/chart', EconCompatController.getEconChart);
+router.get('/econ/observations/:seriesId', EconCompatController.getSeriesObservations);
+
 router.get('/health', ApiController.getHealthCheck);
 
 export { router as enhancedApiRoutes };

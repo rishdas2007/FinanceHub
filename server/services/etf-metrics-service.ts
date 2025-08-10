@@ -394,11 +394,50 @@ class ETFMetricsService {
         });
       }
 
-      // Log MA gap calculations to identify placeholder data
+      // CRITICAL: Check for insufficient data - require minimum lookback
+      const MIN_OBS = 180; // Minimum trading days for reliable calculations
+      const hassufficientHistory = zscore?.date && 
+        (new Date().getTime() - new Date(zscore.date).getTime()) / (1000 * 60 * 60 * 24) < 365; // Within 1 year
+      
+      if (!hassufficientHistory || !technical || !zscore) {
+        logger.warn(`⚠️ Insufficient data for ${symbol}: fallback=true`);
+        return {
+          symbol,
+          name: ETFMetricsService.ETF_NAMES[symbol as keyof typeof ETFMetricsService.ETF_NAMES] || symbol,
+          fallback: true,
+          reason: 'insufficient_data',
+          price: null,
+          changePercent: null,
+          bollingerPosition: null,
+          bollingerSqueeze: false,
+          bollingerStatus: 'insufficient_data',
+          atr: null,
+          volatility: null,
+          maSignal: 'insufficient_data',
+          maTrend: 'neutral' as const,
+          maGap: null,
+          rsi: null,
+          rsiSignal: 'insufficient_data',
+          rsiDivergence: false,
+          zScore: null,
+          sharpeRatio: null,
+          fiveDayReturn: null,
+          change30Day: null,
+          volumeRatio: null,
+          vwapSignal: 'insufficient_data',
+          obvTrend: 'insufficient_data',
+          zScoreData: null,
+          weightedScore: null,
+          weightedSignal: null,
+          lastUpdated: null
+        };
+      }
+
+      // Log actual data quality checks
       if (technical?.sma_20 && technical?.sma_50) {
         const gap = parseFloat((parseFloat(technical.sma_20) - parseFloat(technical.sma_50)).toFixed(2));
-        if (gap === 5.00) {
-          logger.warn(`⚠️ PLACEHOLDER DATA DETECTED: ${symbol} has suspicious MA gap of exactly 5.00 (SMA20: ${technical.sma_20}, SMA50: ${technical.sma_50})`);
+        if (gap === 5.00 || gap === 0.00) {
+          logger.warn(`⚠️ SUSPICIOUS DATA: ${symbol} has uniform MA gap (${gap}) - potential placeholder`);
         }
       }
 
