@@ -76,10 +76,8 @@ export function PriceChart() {
     
     // Create proper date from timestamp - ensure we get the actual date, not just "Jul 16"
     const dateObj = new Date(item.timestamp);
-    const dateStr = dateObj.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric'
-    });
+    // Use month/day format to show progressive dates clearly
+    const dateStr = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
     
     return {
       date: dateStr,
@@ -90,14 +88,19 @@ export function PriceChart() {
     };
   }) || [];
 
+  // Reverse data for chronological order (oldest to newest for better chart visualization)
+  chartData.reverse();
+
   // Debug: Log the actual price range and date range for chart display
   if (chartData.length > 0) {
     const prices = chartData.map(d => d.price);
-    const dates = chartData.map(d => d.formattedDate);
+    const dates = chartData.map(d => d.date);
+    const timestamps = chartData.map(d => d.timestamp);
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
-    console.log(`SPY Price Range: $${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`);
-    console.log(`Date Range: ${dates[0]} to ${dates[dates.length - 1]}`);
+    console.log(`${selectedETF.symbol} Price Range: $${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`);
+    console.log(`${selectedETF.symbol} Date Range:`, dates);
+    console.log(`${selectedETF.symbol} Raw Timestamps:`, timestamps.slice(0, 3));
   }
 
 
