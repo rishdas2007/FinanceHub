@@ -158,13 +158,15 @@ export function NavigationHeader() {
 
 // Quick scan metrics component with independent loading states
 export function QuickScanMetrics() {
-  const { data: topMovers } = useQuery({ 
+  const { data: topMovers, isLoading: topMoversLoading } = useQuery({ 
     queryKey: ['/api/top-movers'],
-    staleTime: 30_000
+    staleTime: 30_000,
+    refetchInterval: 60_000
   });
-  const { data: economicHealth } = useQuery({ 
+  const { data: economicHealth, isLoading: econLoading } = useQuery({ 
     queryKey: ['/api/economic-health/dashboard'],
-    staleTime: 60_000  
+    staleTime: 60_000,
+    refetchInterval: 120_000
   });
 
   return (

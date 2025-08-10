@@ -1,0 +1,169 @@
+Thanks for the patience—this “nothing loads” symptom almost always means the **client isn’t actually hitting valid URLs anymore** (so every query sits in “loading” or errors silently). Given the changes we made, the most likely culprit is the **queryFn building bad URLs** from `queryKey.join('')`. If any of your queries use a params object (very common with TanStack Query), `join('')` produces `"[object Object]"` in the URL → 404/blocked → perpetual loading.
+
+Here’s how to fix it cleanly and make it bullet‑proof.
+
+# 1) Fix the query function (this usually unbricks everything)
+
+Replace your default `queryFn` with a robust helper that:
+
+* Accepts either a string or `[url, params]`
+* Builds a proper querystring for params
+* Times out (so nothing hangs forever)
+* Safely parses JSON (even for empty/non‑JSON bodies)
+* Unwraps common shapes (`data`, `metrics`, etc.) but still returns raw JSON if needed
+
+```ts
+// client/src/lib/queryClient.ts
+import { QueryClient } from "@tanstack/react-query";
+
+const DEFAULT_TIMEOUT = 8000;
+
+function buildUrlFromQueryKey(qk: unknown): string {
+  // 1) string URL
+  if (typeof qk === "string") return qk;
+
+  // 2) array: [url, params?]
+  if (Array.isArray(qk)) {
+    const [first, second] = qk as [unknown, any];
+    const base = typeof first === "string" ? first : String(first ?? "");
+    if (second && typeof second === "object" && !Array.isArray(second)) {
+      const qs = new URLSearchParams(
+        Object.entries(second).reduce<Record<string, string>>((acc, [k, v]) => {
+          if (v === undefined || v === null) return acc;
+          acc[k] = Array.isArray(v) ? v.join(",") : String(v);
+          return acc;
+        }, {})
+      ).toString();
+      return qs ? `${base}?${qs}` : base;
+    }
+    return base;
+  }
+
+  // 3) fallback (defensive)
+  return String(qk ?? "");
+}
+
+async function fetchWithTimeout(input: RequestInfo, init?: RequestInit) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
+
+  try {
+    const res = await fetch(input, { ...init, signal: controller.signal });
+
+    // accept non-2xx; try to parse body anyway for error info
+    const text = await res.text();
+    if (!text) return null;
+
+    let json: any = null;
+    try { json = JSON.parse(text); } catch { /* not JSON; return text */ return text; }
+
+    // universal unwrapping; still return raw object if none match
+    const unwrapped =
+      Array.isArray(json) ? json :
+      json?.data ?? json?.metrics ?? json?.results ?? json?.items ?? json?.rows ?? json;
+
+    return unwrapped;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      queryFn: ({ queryKey }) => {
+        const url = buildUrlFromQueryKey(queryKey as any);
+        return fetchWithTimeout(url);
+      },
+      retry: 1,
+      staleTime: 30_000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+```
+
+Why this matters: if you have queries like
+
+```ts
+useQuery({ queryKey: ['/api/etf-metrics', { symbols: ['SPY','XLK'] }] })
+```
+
+the old `join('')` made `/api/etf-metrics[object Object]`. The helper above correctly makes `/api/etf-metrics?symbols=SPY,XLK`.
+
+# 2) Make the header tiles independent (no single-call blockade)
+
+Ensure the top header doesn’t block on one slow call:
+
+```ts
+const [qStatus, qMover, qEcon] = useQueries({
+  queries: [
+    { queryKey: ['/api/market-status'] },
+    { queryKey: ['/api/top-movers'] },
+    { queryKey: ['/api/econ-health'] },
+  ],
+});
+
+const headerReady = [qMover, qEcon].every(q => q.status !== 'loading');
+// Render Top Mover + Econ Health as soon as they’re ready.
+// Market Status tile can show "Unknown" on timeout/error.
+```
+
+# 3) Server safety checks (quick)
+
+These won’t be the primary cause of “nothing loads,” but they stop cascading failures:
+
+* **Health endpoint** (so you can see DB status fast):
+
+```ts
+app.get('/api/health', async (_req, res) => {
+  try { await pool.query('select 1'); return res.json({ ok: true, db: true }); }
+  catch (e:any) { return res.status(503).json({ ok: false, db: false, error: e?.message }); }
+});
+```
+
+* **Market status endpoint** should never hang and should always return JSON:
+
+```ts
+app.get('/api/market-status', async (_req, res) => {
+  try {
+    const data = await getMarketStatusFast(/* with provider timeout */);
+    return res.json({ success:true, data });
+  } catch (e:any) {
+    return res.json({ success:true, data:{ isOpen:null, label:'Unknown' }, warning:e?.message });
+  }
+});
+```
+
+* **ETF metrics** should never return `null` (only `[]`) even on DB failure.
+
+# 4) Quick diagnostics (60 seconds)
+
+Open DevTools → **Network**:
+
+* Do you see requests firing at all? If not, the queryFn URL builder is the issue (fix above).
+* Click any `/api/...` row:
+
+  * **Status 404 with path ending in `[object Object]`** → the old `join('')` bug. The fix above resolves it.
+  * **Pending > 8s** → your fetch had no timeout; the fix above aborts and shows neutral UI.
+  * **CORS** or **Content-Type** errors → double‑check any “JSON‑only” middleware; GET endpoints must still respond with `application/json`.
+
+# 5) One more UI guard (prevents “global loading”)
+
+If you currently compute:
+
+```ts
+const isLoading = s1 || s2 || s3;
+```
+
+replace it with **per‑tile** loading and only block a section on its own query, not others. This way the header can partially render even if one call is flaky.
+
+---
+
+If it’s still not loading after patching the queryFn, send me:
+
+* One **Network** row’s **Request URL** and **Response** (e.g., `/api/market-status`)
+* The first error line from the **Console**
+* The output of `GET /api/health`
+
+But 9 times out of 10, fixing the queryFn URL builder above unblocks the whole app.

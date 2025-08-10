@@ -71,46 +71,65 @@ function validateAndUnwrap(response: any, url: string) {
 type UnauthorizedBehavior = "returnNull" | "throw";
 const DEFAULT_TIMEOUT = 8000;
 
-async function fetchWithTimeout(url: string, options?: RequestInit): Promise<any> {
+function buildUrlFromQueryKey(qk: unknown): string {
+  // 1) string URL
+  if (typeof qk === "string") return qk;
+
+  // 2) array: [url, params?]
+  if (Array.isArray(qk)) {
+    const [first, second] = qk as [unknown, any];
+    const base = typeof first === "string" ? first : String(first ?? "");
+    if (second && typeof second === "object" && !Array.isArray(second)) {
+      const qs = new URLSearchParams(
+        Object.entries(second).reduce<Record<string, string>>((acc, [k, v]) => {
+          if (v === undefined || v === null) return acc;
+          acc[k] = Array.isArray(v) ? v.join(",") : String(v);
+          return acc;
+        }, {})
+      ).toString();
+      return qs ? `${base}?${qs}` : base;
+    }
+    return base;
+  }
+
+  // 3) fallback (defensive)
+  return String(qk ?? "");
+}
+
+async function fetchWithTimeout(input: RequestInfo, init?: RequestInit) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
-  
+  const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
+
   try {
-    const res = await fetch(url, { 
-      ...options, 
+    const res = await fetch(input, { 
+      ...init, 
       credentials: "include",
       signal: controller.signal 
     });
-    
-    clearTimeout(timeoutId);
-    
-    if (!res.ok) {
-      const text = (await res.text()) || res.statusText;
-      throw new Error(`${res.status}: ${text}`);
-    }
-    
+
+    // accept non-2xx; try to parse body anyway for error info
     const text = await res.text();
-    const json = text ? JSON.parse(text) : null;
-    
-    // Log response for debugging
-    console.log(`🔍 API Response for ${url}:`, { hasData: !!json?.data, keys: Object.keys(json || {}) });
-    
-    return validateAndUnwrap(json, url);
-  } catch (error) {
-    clearTimeout(timeoutId);
-    
-    // Handle timeout gracefully
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.warn(`⏰ Request timeout for ${url} after ${DEFAULT_TIMEOUT}ms`);
-      // Return fail-safe default based on endpoint
-      if (url.includes('/api/market-status')) {
-        return { isOpen: null, label: 'Unknown', status: 'timeout' };
-      }
-      return null;
+    if (!text) return null;
+
+    let json: any = null;
+    try { 
+      json = JSON.parse(text); 
+    } catch { 
+      // not JSON; return text 
+      return text; 
     }
-    throw error;
+
+    // Log response for debugging
+    console.log(`🔍 API Response for ${input}:`, { hasData: !!json?.data, keys: Object.keys(json || {}) });
+
+    // universal unwrapping; still return raw object if none match
+    const unwrapped =
+      Array.isArray(json) ? json :
+      json?.data ?? json?.metrics ?? json?.results ?? json?.items ?? json?.rows ?? json;
+
+    return unwrapped;
   } finally {
-    clearTimeout(timeoutId);
+    clearTimeout(timer);
   }
 }
 
@@ -119,7 +138,7 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const url = queryKey.join("/") as string;
+    const url = buildUrlFromQueryKey(queryKey);
     
     try {
       return await fetchWithTimeout(url);
@@ -134,11 +153,14 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false,
+      queryFn: ({ queryKey }) => {
+        const url = buildUrlFromQueryKey(queryKey as any);
+        return fetchWithTimeout(url);
+      },
+      retry: 1,
+      staleTime: 30_000,
       refetchOnWindowFocus: false,
-      staleTime: 30_000, // 30 seconds instead of Infinity
-      retry: 1, // Retry once instead of never
+      refetchInterval: false,
     },
     mutations: {
       retry: false,
