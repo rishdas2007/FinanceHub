@@ -48,11 +48,34 @@ export function EconomicChartModal({ isOpen, onClose, metric }: EconomicChartMod
     queryKey: ['economic-chart', metric.id, timeRange],
     queryFn: async () => {
       const months = timeRange === '3M' ? 3 : timeRange === '6M' ? 6 : timeRange === '12M' ? 12 : 24;
+
+      // FIX: Add better error handling and logging
+      console.log(`🔍 Fetching economic chart data for ${metric.id} (${months}M)`);
+
       const response = await fetch(`/api/economic-indicators/${metric.id}/history?months=${months}`);
-      if (!response.ok) throw new Error('Failed to fetch chart data');
-      return response.json();
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Economic chart API error:`, errorText);
+        throw new Error(`Failed to fetch chart data: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log(`📊 Economic chart data received:`, result);
+
+      // FIX: Handle both success/data format and direct data format
+      if (result.success === false) {
+        throw new Error(result.error || 'API returned error');
+      }
+
+      // Return consistent format
+      return {
+        data: result.data || result, // Handle both wrapped and direct data
+        metadata: result.metadata || { source: 'FRED', lastUpdate: new Date().toISOString() }
+      };
     },
-    enabled: isOpen && !!metric.id
+    enabled: isOpen && !!metric.id,
+    retry: 2,
+    staleTime: 5 * 60 * 1000 // 5 minutes
   });
 
   const handleExport = async (format: 'png' | 'csv') => {
@@ -83,11 +106,21 @@ export function EconomicChartModal({ isOpen, onClose, metric }: EconomicChartMod
     }
 
     if (error || !chartData?.data) {
+      // FIX: Add more detailed error information
+      console.error('Economic chart error:', error);
+      console.log('Chart data received:', chartData);
+
       return (
         <div className="h-96 flex items-center justify-center text-gray-400">
           <div className="text-center">
             <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Unable to load chart data</p>
+            <p className="text-sm text-gray-500 mt-1">
+              {error?.message || 'No data available for this indicator'}
+            </p>
+            <p className="text-xs text-gray-600 mt-1">
+              Metric ID: {metric.id} | Range: {timeRange}
+            </p>
             <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="mt-2">
               Retry
             </Button>
@@ -97,6 +130,14 @@ export function EconomicChartModal({ isOpen, onClose, metric }: EconomicChartMod
     }
 
     const data = chartData.data;
+
+    // Add debug logging after line 135
+    console.log('📊 Chart Data Debug:', {
+      hasData: !!chartData?.data,
+      dataLength: chartData?.data?.length || 0,
+      firstItem: chartData?.data?.[0],
+      lastItem: chartData?.data?.[chartData.data.length - 1]
+    });
     const isPositiveTrend = data.length > 1 && data[data.length - 1].value > data[0].value;
 
     const commonProps = {

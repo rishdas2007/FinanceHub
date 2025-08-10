@@ -463,6 +463,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to validate and format chart data
+  function validateChartData(data: any[], metricName: string) {
+    if (!Array.isArray(data)) {
+      console.warn(`Invalid data format for ${metricName}: not an array`);
+      return [];
+    }
+
+    return data.filter(item => {
+      if (!item.date || !item.value || isNaN(parseFloat(item.value))) {
+        console.warn(`Invalid data point for ${metricName}:`, item);
+        return false;
+      }
+      return true;
+    }).map(item => ({
+      ...item,
+      value: parseFloat(item.value),
+      date: new Date(item.date).toISOString(),
+      formattedDate: item.formattedDate || new Date(item.date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: '2-digit'
+      })
+    }));
+  }
+
   // Economic indicator historical chart data endpoint
   app.get('/api/economic-indicators/:id/history', async (req, res) => {
     try {
@@ -474,25 +499,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const historicalData = await macroeconomicService.getHistoricalIndicatorData(id, months);
       
       if (!historicalData) {
+        console.warn(`⚠️ No historical data found for indicator: ${id}`);
         return res.status(404).json({
           success: false,
-          error: 'Economic indicator not found',
+          error: 'No data available for this indicator',
           timestamp: new Date().toISOString()
         });
       }
-      
-      res.json({
+
+      // Add before res.json()
+      console.log(`📊 Returning economic data for ${id}:`, {
+        dataPoints: historicalData.data?.length || 0,
+        sampleData: historicalData.data?.slice(0, 3) || []
+      });
+
+      // FIX: Ensure data is in correct format
+      const responseData = {
         success: true,
         indicator: id,
-        data: historicalData.data,
+        data: validateChartData(historicalData.data || [], id),
         metadata: {
           source: 'FRED',
-          units: historicalData.units,
-          frequency: historicalData.frequency,
-          lastUpdate: historicalData.lastUpdate
-        },
-        timestamp: new Date().toISOString()
-      });
+          units: historicalData.units || '',
+          frequency: historicalData.frequency || 'Monthly',
+          lastUpdate: historicalData.lastUpdate || new Date().toISOString(),
+          count: historicalData.data?.length || 0
+        }
+      };
+
+      // Validate data format before sending
+      if (!responseData.data || !Array.isArray(responseData.data)) {
+        console.warn(`⚠️ Invalid data format for ${id}`);
+        responseData.data = [];
+      }
+
+      res.json(responseData);
       
     } catch (error) {
       console.error('Economic chart data error:', error);

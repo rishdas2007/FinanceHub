@@ -64,43 +64,55 @@ export function PriceChart() {
     });
   };
 
-  const chartData: ChartData[] = stockHistory?.map((item, index) => {
+  const chartData: ChartData[] = (stockHistory || []).map((item, index) => {
     const prices = stockHistory.map(h => parseFloat(h.price));
     const rsiValues = generateRSIFromPrices(prices);
     
-    // Debug: Check if we have realistic SPY data (should be 590-624 range)
-    const price = parseFloat(item.price);
-    if (price < 500 || price > 700) {
-      console.warn(`Unexpected SPY price: ${price} on ${item.timestamp}`);
-    }
-    
-    // Create proper date from timestamp - ensure we get the actual date, not just "Jul 16"
+    // CRITICAL FIX: Ensure timestamp is properly parsed as Date
     const dateObj = new Date(item.timestamp);
-    // Use month/day format to show progressive dates clearly
-    const dateStr = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
-    
-    return {
-      date: dateStr,
-      price: price,
-      rsi: rsiValues[index] || 66.73, // Use realistic RSI from your screenshot
-      timestamp: item.timestamp.toString(),
-      formattedDate: dateObj.toLocaleDateString(),
-    };
-  }) || [];
 
-  // Reverse data for chronological order (oldest to newest for better chart visualization)
-  chartData.reverse();
+    // Validate the date is not invalid
+    if (isNaN(dateObj.getTime())) {
+      console.warn(`Invalid date for ${item.symbol}:`, item.timestamp);
+      // Use current date as fallback
+      const fallbackDate = new Date();
+      return {
+        price: parseFloat(item.price),
+        rsi: rsiValues[index] || 65,
+        date: fallbackDate.toISOString(),
+        timestamp: fallbackDate.toISOString(),
+        formattedDate: fallbackDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      };
+    }
+
+    return {
+      price: parseFloat(item.price),
+      rsi: rsiValues[index] || 65,
+      date: dateObj.toISOString(),
+      timestamp: dateObj.toISOString(),
+      // FIX: Use proper date formatting for x-axis
+      formattedDate: dateObj.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: dateObj.getFullYear() !== new Date().getFullYear() ? '2-digit' : undefined
+      }),
+    };
+  }).reverse(); // CRITICAL: Reverse to get chronological order for charts
 
   // Debug: Log the actual price range and date range for chart display
   if (chartData.length > 0) {
     const prices = chartData.map(d => d.price);
-    const dates = chartData.map(d => d.date);
+    const dates = chartData.map(d => d.formattedDate);
     const timestamps = chartData.map(d => d.timestamp);
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
+    console.log(`📈 Stock Chart Debug:`, {
+      stockHistoryLength: stockHistory?.length || 0,
+      chartDataLength: chartData?.length || 0,
+      sampleDates: chartData?.slice(0, 3).map(d => d.formattedDate) || []
+    });
     console.log(`${selectedETF.symbol} Price Range: $${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`);
     console.log(`${selectedETF.symbol} Date Range:`, dates);
-    console.log(`${selectedETF.symbol} Raw Timestamps:`, timestamps.slice(0, 3));
   }
 
 
@@ -159,7 +171,7 @@ export function PriceChart() {
               <ComposedChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#404040" />
                 <XAxis 
-                  dataKey="date" 
+                  dataKey="formattedDate" 
                   stroke="#9CA3AF"
                   fontSize={12}
                   interval="preserveStartEnd"

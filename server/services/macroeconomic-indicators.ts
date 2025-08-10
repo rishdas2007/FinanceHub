@@ -52,15 +52,33 @@ export class MacroeconomicService {
         return null;
       }
 
-      // Process the real data
+      // Process the real data with enhanced validation
       const historicalData = result.rows.map((row: any) => {
         const date = new Date(row.date);
+
+        // FIX: Validate date and handle parsing errors
+        if (isNaN(date.getTime())) {
+          logger.warn(`Invalid date in economic data:`, row.date);
+          return null;
+        }
+
+        const value = parseFloat(row.value);
+        if (isNaN(value)) {
+          logger.warn(`Invalid value in economic data:`, row.value);
+          return null;
+        }
+
         return {
-          date: row.date,
-          value: parseFloat(row.value),
-          formattedDate: date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+          date: date.toISOString(), // Standardize date format
+          value: value,
+          formattedDate: date.toLocaleDateString('en-US', {
+            month: 'short',
+            year: '2-digit',
+            day: 'numeric' // Add day for better granularity
+          })
         };
-      }).reverse(); // Reverse to get chronological order
+      }).filter(Boolean) // Remove invalid entries
+      .reverse(); // Chronological order
 
       // Determine units based on metric type
       const metricName = String(result.rows[0]?.metric || '');
