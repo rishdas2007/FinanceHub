@@ -208,11 +208,50 @@ export class ApiController {
       
       if (dbResults.length > 0) {
         console.log(`✅ Historical data returned for ${symbol.toUpperCase()}: ${dbResults.length} records`);
-        const normalizedData = dbResults.map(row => ({
-          timestamp: row.date instanceof Date ? row.date.toISOString().slice(0,10) : 
-                     typeof row.date === 'string' ? row.date.slice(0,10) : String(row.date).slice(0,10),
-          close: Number(row.close)
-        }));
+        console.log(`📊 Sample date format:`, typeof dbResults[0]?.date, dbResults[0]?.date);
+        
+        const normalizedData = dbResults.map((row, index) => {
+          let dateStr: string;
+          try {
+            // Log the first few raw values for debugging
+            if (index < 3) {
+              console.log(`🔍 Row ${index} date type:`, typeof row.date, 'value:', row.date);
+            }
+            
+            if (!row.date) {
+              // Skip rows with null/undefined dates
+              return null;
+            }
+            
+            if (row.date instanceof Date) {
+              dateStr = row.date.toISOString().slice(0,10);
+            } else if (typeof row.date === 'string') {
+              // Handle string dates - ensure valid format
+              const cleanDate = row.date.slice(0,10);
+              if (cleanDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                dateStr = cleanDate;
+              } else {
+                dateStr = new Date(row.date).toISOString().slice(0,10);
+              }
+            } else {
+              // Handle other formats by converting to Date first
+              const dateObj = new Date(row.date);
+              if (isNaN(dateObj.getTime())) {
+                console.warn(`⚠️ Invalid date for ${symbol}:`, row.date);
+                return null;
+              }
+              dateStr = dateObj.toISOString().slice(0,10);
+            }
+          } catch (error) {
+            console.warn(`⚠️ Date conversion error for ${symbol}:`, error, 'Raw date:', row.date, 'Type:', typeof row.date);
+            return null;
+          }
+          
+          return {
+            timestamp: dateStr,
+            close: Number(row.close) || 0
+          };
+        }).filter((row): row is NonNullable<typeof row> => row !== null && row.close > 0);
         
         metricsCollector.endTimer(timerId, 'stock_history_fetch', { 
           symbol: symbol.toUpperCase(),
