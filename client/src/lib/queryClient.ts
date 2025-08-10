@@ -23,13 +23,38 @@ export async function apiRequest(
   return res;
 }
 
+// Add response shape validation
+function validateAndUnwrap(response: any, url: string) {
+  // Log response shape for debugging
+  console.log(`📊 Response from ${url}:`, {
+    isWrapped: !!response?.success && !!response?.data,
+    hasData: !!response?.data,
+    isArray: Array.isArray(response),
+    keys: typeof response === 'object' ? Object.keys(response) : []
+  });
+
+  // Unwrap if it's a success wrapper
+  if (response?.success === true && response?.data !== undefined) {
+    return response.data;
+  }
+
+  // Handle metrics wrapper (for ETF endpoints)
+  if (response?.metrics) {
+    return response.metrics;
+  }
+
+  // Return as-is if already unwrapped
+  return response;
+}
+
 type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
+    const url = queryKey.join("/") as string;
+    const res = await fetch(url, {
       credentials: "include",
     });
 
@@ -38,7 +63,11 @@ export const getQueryFn: <T>(options: {
     }
 
     await throwIfResNotOk(res);
-    return await res.json();
+    const json = await res.json();
+    
+    // FIX 1: Add error logging for debugging and unwrap response
+    console.log(`🔍 API Response for ${url}:`, { hasData: !!json?.data, keys: Object.keys(json || {}) });
+    return validateAndUnwrap(json, url);
   };
 
 export const queryClient = new QueryClient({

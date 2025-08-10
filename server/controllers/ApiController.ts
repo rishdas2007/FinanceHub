@@ -14,7 +14,7 @@ export class ApiController {
     
     try {
       // Import AI service dynamically to avoid circular dependencies
-      const { aiAnalysisService } = await import('../services/ai-analysis-unified');
+      const { aiAnalysisService } = await import('../services/ai-analysis');
       
       logger.info('Generating AI summary', { 
         requestId: req.headers['x-request-id'],
@@ -24,7 +24,7 @@ export class ApiController {
       const analysis = await aiAnalysisService.generateMarketSummary();
       
       metricsCollector.endTimer(timerId, 'ai_summary_generation', { 
-        version: req.apiVersion,
+        version: req.apiVersion || 'v1',
         success: 'true' 
       });
       
@@ -36,7 +36,7 @@ export class ApiController {
       ResponseUtils.success(res, response);
     } catch (error) {
       metricsCollector.endTimer(timerId, 'ai_summary_generation', { 
-        version: req.apiVersion,
+        version: req.apiVersion || 'v1',
         success: 'false' 
       });
       
@@ -61,14 +61,14 @@ export class ApiController {
       const sectors = await financialDataService.getSectorETFs();
       
       metricsCollector.endTimer(timerId, 'sector_data_fetch', { 
-        version: req.apiVersion,
+        version: req.apiVersion || 'v1',
         success: 'true' 
       });
       
       ResponseUtils.success(res, sectors);
     } catch (error) {
       metricsCollector.endTimer(timerId, 'sector_data_fetch', { 
-        version: req.apiVersion,
+        version: req.apiVersion || 'v1',
         success: 'false' 
       });
       
@@ -96,7 +96,7 @@ export class ApiController {
       
       metricsCollector.endTimer(timerId, 'stock_quote_fetch', { 
         symbol,
-        version: req.apiVersion,
+        version: req.apiVersion || 'v1',
         success: 'true' 
       });
       
@@ -104,7 +104,7 @@ export class ApiController {
     } catch (error) {
       metricsCollector.endTimer(timerId, 'stock_quote_fetch', { 
         symbol,
-        version: req.apiVersion,
+        version: req.apiVersion || 'v1',
         success: 'false' 
       });
       
@@ -160,25 +160,28 @@ export class ApiController {
         });
       }
 
-      // CRITICAL FIX: Use historical dates as timestamps - NOT current time
-      const stockData = results.map((row, index) => ({
-        id: row.id,
-        symbol: row.symbol,
-        price: parseFloat(row.price).toFixed(2),
-        change: index < results.length - 1 ? 
-          (parseFloat(row.price) - parseFloat(results[index + 1].price)).toFixed(2) : 
-          '0.00',
-        changePercent: index < results.length - 1 ? 
-          (((parseFloat(row.price) - parseFloat(results[index + 1].price)) / parseFloat(results[index + 1].price)) * 100).toFixed(2) :
-          '0.00',
-        volume: row.volume,
-        marketCap: null,
-        timestamp: row.timestamp  // This should be the historical date from database
-      }));
+      // FIX 5: Server-Side Type Normalization - Return numbers not strings
+      const stockData = results.map((row, index) => {
+        const currentPrice = Number(row.price);
+        const previousPrice = index < results.length - 1 ? Number(results[index + 1].price) : currentPrice;
+        const changeValue = currentPrice - previousPrice;
+        const changePercent = previousPrice !== 0 ? (changeValue / previousPrice) * 100 : 0;
+
+        return {
+          id: row.id,
+          symbol: row.symbol,
+          price: currentPrice,      // number instead of string
+          change: changeValue,      // number instead of string
+          changePercent: changePercent,  // number instead of string
+          volume: row.volume,
+          marketCap: null,
+          timestamp: row.timestamp instanceof Date ? row.timestamp.toISOString() : new Date(row.timestamp).toISOString()  // consistent ISO string
+        };
+      });
       
       metricsCollector.endTimer(timerId, 'stock_history_fetch', { 
         symbol,
-        version: req.apiVersion,
+        version: req.apiVersion || 'v1',
         success: 'true' 
       });
       
@@ -187,7 +190,7 @@ export class ApiController {
     } catch (error) {
       metricsCollector.endTimer(timerId, 'stock_history_fetch', { 
         symbol,
-        version: req.apiVersion,
+        version: req.apiVersion || 'v1',
         success: 'false' 
       });
       
@@ -216,7 +219,7 @@ export class ApiController {
       
       metricsCollector.endTimer(timerId, 'technical_indicators_fetch', { 
         symbol,
-        version: req.apiVersion,
+        version: req.apiVersion || 'v1',
         success: 'true' 
       });
       
@@ -224,7 +227,7 @@ export class ApiController {
     } catch (error) {
       metricsCollector.endTimer(timerId, 'technical_indicators_fetch', { 
         symbol,
-        version: req.apiVersion,
+        version: req.apiVersion || 'v1',
         success: 'false' 
       });
       

@@ -35,33 +35,33 @@ export function PriceChart() {
     refetchInterval: false,
   });
 
-  // Generate more realistic RSI based on price movements
-  const generateRSIFromPrices = (prices: number[]): number[] => {
-    if (prices.length < 2) return [65]; // Default RSI if insufficient data
-    
+  // FIX 3: Remove Random RSI - Calculate Real RSI
+  const calculateRealRSI = (prices: number[], period: number = 14): number[] => {
+    if (prices.length < period + 1) {
+      return prices.map(() => 50); // Neutral RSI for insufficient data
+    }
+
     const gains: number[] = [];
     const losses: number[] = [];
-    
+
     for (let i = 1; i < prices.length; i++) {
       const change = prices[i] - prices[i - 1];
       gains.push(change > 0 ? change : 0);
       losses.push(change < 0 ? Math.abs(change) : 0);
     }
-    
-    const avgGain = gains.reduce((sum, gain) => sum + gain, 0) / gains.length;
-    const avgLoss = losses.reduce((sum, loss) => sum + loss, 0) / losses.length;
-    
-    if (avgLoss === 0) return prices.map(() => 100);
-    
-    const rs = avgGain / avgLoss;
-    const rsi = 100 - (100 / (1 + rs));
-    
-    // Generate slight variations around the calculated RSI
-    return prices.map((_, index) => {
-      const baseRSI = Math.max(20, Math.min(80, rsi));
-      const variation = (Math.random() - 0.5) * 6; // ±3 RSI points
-      return Math.max(20, Math.min(80, baseRSI + variation));
-    });
+
+    const rsiValues: number[] = [];
+
+    for (let i = period - 1; i < gains.length; i++) {
+      const avgGain = gains.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period;
+      const avgLoss = losses.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period;
+
+      const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+      const rsi = 100 - (100 / (1 + rs));
+      rsiValues.push(rsi);
+    }
+
+    return rsiValues;
   };
 
   const chartData: ChartData[] = (stockHistory || []).map((item, index) => {
@@ -91,7 +91,7 @@ export function PriceChart() {
     }
 
     const prices = (stockHistory || []).map(h => parseFloat(h.price));
-    const rsiValues = generateRSIFromPrices(prices);
+    const rsiValues = calculateRealRSI(prices);
 
     return {
       price: parseFloat(item.price),
@@ -217,9 +217,18 @@ export function PriceChart() {
         </div>
         
         <div className="bg-financial-card rounded-lg p-4 h-80">
+          {/* FIX 7: Add Chart Loading States */}
           {historyLoading ? (
-            <div className="flex items-center justify-center h-full text-gray-400">
-              Loading real market data...
+            <div className="animate-pulse">
+              <div className="h-4 bg-gray-600 rounded w-3/4 mb-4"></div>
+              <div className="h-64 bg-gray-700/50 rounded"></div>
+            </div>
+          ) : !stockHistory || stockHistory.length === 0 ? (
+            <div className="text-center text-gray-400 flex flex-col items-center justify-center h-full">
+              <p className="mb-4">No price data available for {selectedETF.symbol}</p>
+              <Button onClick={() => window.location.reload()} variant="outline" size="sm">
+                Retry
+              </Button>
             </div>
           ) : chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">

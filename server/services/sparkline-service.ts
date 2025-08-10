@@ -23,7 +23,9 @@ export class SparklineService {
           data: realData.rawData,
           normalizedData: realData.normalizedData,
           trend: realData.trend,
-          change: realData.change
+          change: realData.change,
+          isFallback: false, // FIX 6: Add fallback transparency
+          dataSource: 'database' // ADD THIS
         };
       }
 
@@ -32,7 +34,10 @@ export class SparklineService {
       const sampleData = this.generateSampleSparklineData(symbol);
       return {
         success: true,
-        ...sampleData
+        ...sampleData,
+        isFallback: true, // FIX 6: Add fallback transparency
+        dataSource: 'sample', // ADD THIS
+        reason: 'No historical data available'
       };
     } catch (error) {
       logger.error(`Failed to get sparkline data for ${symbol}:`, String(error));
@@ -41,7 +46,10 @@ export class SparklineService {
       const sampleData = this.generateSampleSparklineData(symbol);
       return {
         success: true,
-        ...sampleData
+        ...sampleData,
+        isFallback: true, // FIX 6: Add fallback transparency
+        dataSource: 'sample', // ADD THIS
+        reason: 'Database error occurred'
       };
     }
   }

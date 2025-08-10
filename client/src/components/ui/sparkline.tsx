@@ -9,6 +9,7 @@ interface SparklineProps {
   width?: string;
   className?: string;
   showTooltip?: boolean;
+  isFallback?: boolean; // FIX 6: Add fallback indicator
 }
 
 export function Sparkline({ 
@@ -17,7 +18,8 @@ export function Sparkline({
   height = 40, 
   width = '100%',
   className,
-  showTooltip = false
+  showTooltip = false,
+  isFallback = false
 }: SparklineProps) {
   if (!data || data.length === 0) {
     return (
@@ -50,6 +52,13 @@ export function Sparkline({
           />
         </LineChart>
       </ResponsiveContainer>
+      
+      {/* FIX 6: Fallback indicator badge */}
+      {isFallback && (
+        <div className="absolute top-0 right-0 text-xs bg-yellow-600 text-white px-1 rounded">
+          Sample
+        </div>
+      )}
       
       {/* Overlay gradient for visual enhancement */}
       <div 
