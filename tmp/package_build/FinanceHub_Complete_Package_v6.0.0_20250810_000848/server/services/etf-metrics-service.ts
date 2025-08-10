@@ -47,10 +47,12 @@ export interface ETFMetrics {
   rsi: number | null;
   rsiSignal: string;
   rsiDivergence: boolean;
-  // Z-Score, Sharpe, Returns
+  // Z-Score, Sharpe, Returns  
   zScore: number | null;
   sharpeRatio: number | null;
   fiveDayReturn: number | null;
+  // 30-Day Trend (Fixed calculation from database)
+  change30Day: number | null;
   // Volume, VWAP, OBV
   volumeRatio: number | null;
   vwapSignal: string;
@@ -75,8 +77,8 @@ interface MomentumData {
 
 class ETFMetricsService {
   private static instance: ETFMetricsService;
-  private readonly CACHE_KEY = 'etf-metrics-consolidated-v1';
-  private readonly FAST_CACHE_KEY = 'etf-metrics-fast-v1';
+  private readonly CACHE_KEY = 'etf-metrics-consolidated-v2-with-30day-trend';
+  private readonly FAST_CACHE_KEY = 'etf-metrics-fast-v2-with-30day-trend';
   private readonly CACHE_TTL = 300; // 5 minutes
   private readonly FAST_CACHE_TTL = 120; // 2 minutes during market hours
   
@@ -310,6 +312,16 @@ class ETFMetricsService {
     const zscore = zscoreData.get(symbol);
     const momentumETF = momentum.find(m => m.ticker === symbol);
 
+    // Calculate 30-day trend from database historical prices
+    let change30Day = null;
+    try {
+      const { ETFTrendCalculatorService } = await import('./etf-trend-calculator');
+      const trendCalculator = new ETFTrendCalculatorService();
+      change30Day = await trendCalculator.calculate30DayTrend(symbol);
+    } catch (error) {
+      console.warn(`⚠️ Failed to calculate 30-day trend for ${symbol}:`, error);
+    }
+
     return {
       symbol,
       name: ETFMetricsService.ETF_NAMES[symbol as keyof typeof ETFMetricsService.ETF_NAMES] || symbol,
@@ -335,10 +347,17 @@ class ETFMetricsService {
       rsiSignal: this.getRSISignal(momentumETF?.rsi || technical?.rsi),
       rsiDivergence: false,
       
+      // Technical Signal Analysis - from momentum data  
+      signal: momentumETF?.momentum === 'bullish' ? 'BULLISH' : 
+              momentumETF?.momentum === 'bearish' ? 'BEARISH' : 'NEUTRAL',
+      strength: momentumETF?.strength ? Math.round(momentumETF.strength * 10) : null,
+      
       // Z-Score calculations
-      zScore: null,
+      zScore: momentumETF?.zScore || null,
       sharpeRatio: momentumETF?.sharpeRatio || null,
       fiveDayReturn: momentumETF?.fiveDayChange || null,
+      // 30-Day Trend (Fixed calculation from database)
+      change30Day,
       
       // Volume, VWAP, OBV
       volumeRatio: null,
@@ -412,17 +431,32 @@ class ETFMetricsService {
         zScore: null, // Will be calculated fresh from Z-score Technical Service
         sharpeRatio: momentumETF?.sharpeRatio || null,
         fiveDayReturn: momentumETF?.fiveDayChange || null,
+        // 30-Day Trend (Fixed calculation from database)
+        change30Day: null, // Will be calculated from historical price data
         
         // Volume, VWAP, OBV - Enhanced VWAP integration
         volumeRatio: null, // Will be calculated from Z-score data if available
         vwapSignal: this.getVWAPSignal(technical, zscore, momentumETF),
         obvTrend: momentumETF?.signal ? this.parseOBVFromSignal(momentumETF.signal) : 'neutral',
         
+        // Technical Signal Analysis - Enhanced integration with momentum data
+        signal: null, // Will be populated from momentum data
+        strength: null, // Will be populated from momentum data
+        
         // Initialize properties for Z-score system
         weightedScore: 0,
         weightedSignal: 'HOLD',
         zScoreData: null
       };
+
+      // Map momentum data to main metrics object
+      if (momentumETF) {
+        (metrics as any).signal = momentumETF.momentum === 'bullish' ? 'BULLISH' : 
+                                   momentumETF.momentum === 'bearish' ? 'BEARISH' : 'NEUTRAL';
+        (metrics as any).strength = momentumETF.strength ? Math.round(momentumETF.strength * 10) : null;
+        (metrics as any).zScore = momentumETF.zScore || null;
+        console.log(`✅ Momentum signals mapped for ${symbol}: ${(metrics as any).signal}, strength: ${(metrics as any).strength}, zScore: ${(metrics as any).zScore}`);
+      }
 
       // Calculate weighted scoring system with LIVE Z-score integration
       const weightedResult = await this.calculateWeightedTechnicalScore(metrics, momentumETF);
@@ -440,6 +474,21 @@ class ETFMetricsService {
         console.log(`✅ Live Z-score assigned for ${metrics.symbol}: ${weightedResult.zScoreData.compositeZScore}`);
       } else {
         console.log(`⚠️ No Z-score data available for ${metrics.symbol}`);
+      }
+
+      // Calculate accurate 30-day trend from database historical prices
+      console.log(`🔍 Starting 30-day trend calculation for ${symbol}...`);
+      try {
+        const { ETFTrendCalculatorService } = await import('./etf-trend-calculator');
+        console.log(`📦 Successfully imported ETFTrendCalculatorService for ${symbol}`);
+        const trendCalculator = new ETFTrendCalculatorService();
+        const trend30Day = await trendCalculator.calculate30DayTrend(symbol);
+        metrics.change30Day = trend30Day;
+        console.log(`✅ 30-day trend calculated for ${symbol}: ${trend30Day}%`);
+      } catch (error) {
+        console.warn(`⚠️ Failed to calculate 30-day trend for ${symbol}:`, error);
+        console.error('Full error details:', error);
+        metrics.change30Day = null;
       }
 
       return metrics;

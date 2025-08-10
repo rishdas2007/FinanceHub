@@ -20,6 +20,9 @@ const EconomicHealthScoreAppendix = lazy(() =>
 
 import { AAIISentiment } from "@/components/aaii-sentiment";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
+import { MarketStatusIndicator, MarketStatusIndicatorCompact } from "@/components/MarketStatusIndicator";
+import { TopMoversSection } from "@/components/TopMoversSection";
+import { QuickScanMetrics } from "@/components/NavigationHeader";
 
 
 
@@ -50,9 +53,11 @@ export default function Dashboard() {
                 Follow my market insights on Substack
               </a>
             </div>
-            <div className="hidden md:flex items-center space-x-2 text-sm text-gray-400">
-              <span className="w-2 h-2 bg-gain-green rounded-full animate-pulse"></span>
-              <span>Connected - Live Market Data</span>
+            <div className="hidden md:flex">
+              <MarketStatusIndicator />
+            </div>
+            <div className="md:hidden">
+              <MarketStatusIndicatorCompact />
             </div>
           </div>
           <div className="flex items-center space-x-4">
@@ -72,8 +77,11 @@ export default function Dashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
+        {/* 5-Second Market Scan */}
+        <QuickScanMetrics />
 
-
+        {/* Top Movers Section */}
+        <TopMoversSection />
 
         {/* Breakout Analysis - Real-time squeeze and breakout monitoring */}
         <ETFMetricsTable />

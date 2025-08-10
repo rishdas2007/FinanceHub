@@ -13,6 +13,83 @@ export class MacroeconomicService {
   private readonly CACHE_KEY = `fred-delta-adjusted-v${Math.floor(Date.now() / 100)}`;
   
   /**
+   * Get historical data for economic indicators (for charts)
+   */
+  async getHistoricalIndicatorData(indicatorId: string, months: number = 12): Promise<{
+    data: { date: string; value: number; formattedDate: string }[];
+    units: string;
+    frequency: string;
+    lastUpdate: string;
+  } | null> {
+    try {
+      // Query real historical data from historical_economic_data table (same as z-score calculations)
+      // Try to find data by matching various patterns
+      const mappings: Record<string, string> = {
+        'unemployment_rate': 'UNRATE',
+        'industrial_production': 'INDPRO',
+        'nonfarm_payrolls': 'PAYEMS',
+        'cpi_inflation': 'CPIAUCSL',
+        'fed_funds_rate': 'FEDFUNDS',
+        'gdp_growth': 'GDP',
+        'housing_starts': 'HOUST',
+        'consumer_confidence': 'UMCSENT'
+      };
+
+      const searchId = mappings[indicatorId] || indicatorId.toUpperCase();
+      
+      // Use economic_indicators_current for real data that feeds the dashboard
+      const result = await db.execute(sql`
+        SELECT period_date as date, value_numeric as value, series_id as metric
+        FROM economic_indicators_current 
+        WHERE series_id LIKE '%' || ${searchId} || '%'
+        OR series_id LIKE '%' || ${indicatorId.toUpperCase()} || '%'
+        ORDER BY period_date DESC
+        LIMIT ${months * 12}
+      `);
+
+      if (!result.rows || result.rows.length === 0) {
+        logger.warn(`No historical data found for indicator: ${indicatorId}`);
+        return null;
+      }
+
+      // Process the real data
+      const historicalData = result.rows.map((row: any) => {
+        const date = new Date(row.date);
+        return {
+          date: row.date,
+          value: parseFloat(row.value),
+          formattedDate: date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+        };
+      }).reverse(); // Reverse to get chronological order
+
+      // Determine units based on metric type
+      const metricName = String(result.rows[0]?.metric || '');
+      let units = '';
+      if (metricName.toLowerCase().includes('rate') || metricName.toLowerCase().includes('cpi')) {
+        units = '%';
+      } else if (metricName.toLowerCase().includes('index')) {
+        units = 'Index';
+      } else if (metricName.toLowerCase().includes('claims') || metricName.toLowerCase().includes('payroll')) {
+        units = 'Thousands';
+      } else {
+        units = 'Units';
+      }
+
+      logger.info(`Retrieved ${historicalData.length} historical data points for ${indicatorId}`);
+      
+      return {
+        data: historicalData,
+        units,
+        frequency: 'Monthly',
+        lastUpdate: new Date().toISOString()
+      };
+    } catch (error) {
+      logger.error('Failed to get historical indicator data:', String(error));
+      return null;
+    }
+  }
+  
+  /**
    * Get authentic FRED economic data with live z-score calculations
    */
   async getAuthenticEconomicData(): Promise<MacroeconomicData> {

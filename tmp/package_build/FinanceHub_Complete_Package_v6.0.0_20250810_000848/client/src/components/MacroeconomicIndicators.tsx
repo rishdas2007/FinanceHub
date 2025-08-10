@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, AlertCircle, RefreshCw, Search, Filter, ChevronUp, ChevronDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertCircle, RefreshCw, Search, Filter, ChevronUp, ChevronDown, BarChart3 } from 'lucide-react';
+import { EconomicChartModal } from './EconomicChartModal';
 
 
 interface MacroIndicator {
@@ -244,6 +245,13 @@ const MacroeconomicIndicators: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const [selectedIndicator, setSelectedIndicator] = useState<{
+    id: string;
+    name: string;
+    unit?: string;
+    description?: string;
+    currentValue?: number;
+  } | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -757,12 +765,26 @@ const MacroeconomicIndicators: React.FC = () => {
               </thead>
               <tbody className="space-y-1">
                 {filteredAndSortedIndicators.map((indicator, index) => (
-                  <tr key={index} className="border-b border-financial-border hover:bg-financial-gray/50 transition-colors">
+                  <tr key={index} className="border-b border-financial-border hover:bg-financial-gray/50 transition-colors cursor-pointer"
+                      onClick={() => setSelectedIndicator({
+                        id: indicator.metric.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase(),
+                        name: indicator.metric,
+                        unit: indicator.unit,
+                        description: `${indicator.type} ${indicator.category} indicator`,
+                        currentValue: typeof indicator.currentReading === 'number' ? indicator.currentReading : undefined
+                      })}
+                      data-testid={`indicator-row-${index}`}
+                  >
                     <td className="py-3 px-2 w-1/5">
-                      <div>
-                        <div className="text-white font-medium text-sm break-words">{indicator.metric}</div>
-                        <div className="text-xs text-gray-400">
-                          {indicator.releaseDate ? `Released: ${new Date(indicator.releaseDate).toLocaleDateString()}` : ''}
+                      <div className="flex items-center gap-2">
+                        <div>
+                          <div className="text-white font-medium text-sm break-words flex items-center gap-1">
+                            {indicator.metric}
+                            <BarChart3 className="h-3 w-3 text-blue-400 opacity-60" />
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {indicator.releaseDate ? `Released: ${new Date(indicator.releaseDate).toLocaleDateString()}` : ''}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -814,12 +836,20 @@ const MacroeconomicIndicators: React.FC = () => {
         <p className="text-sm text-gray-400">
           <strong className="text-white">Delta-Adjusted Z-Score Definition:</strong> Measures how many standard deviations the current value is from its 12-month historical average, with economic directionality applied. 
           <strong className="text-blue-400"> Positive z-scores = Economic Strength, Negative z-scores = Economic Weakness.</strong> 
-          Indicators marked "(Δ-adjusted)" have been inverted for consistent interpretation (e.g., lower unemployment rates show positive z-scores). 
-          Values above ±2.0 indicate statistically significant economic conditions.
+          Indicators marked "(Δ-adjusted)" have been inverted for consistent interpretation (e.g., lower unemployment rates show positive z-scores).
+          <br />
+          <strong className="text-white">Interactive Charts:</strong> Click any indicator row to view detailed historical charts with multiple time ranges and export options.
         </p>
       </div>
 
-
+      {/* Economic Chart Modal */}
+      {selectedIndicator && (
+        <EconomicChartModal
+          isOpen={!!selectedIndicator}
+          onClose={() => setSelectedIndicator(null)}
+          metric={selectedIndicator}
+        />
+      )}
     </div>
   );
 };

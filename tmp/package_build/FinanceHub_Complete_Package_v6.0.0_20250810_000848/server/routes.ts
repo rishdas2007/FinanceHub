@@ -5,6 +5,9 @@ import { storage } from "./storage";
 import { financialDataService } from "./services/financial-data";
 import { getMarketHoursInfo } from '@shared/utils/marketHours';
 import { CACHE_DURATIONS } from '@shared/constants';
+import { db } from "./db";
+import { historicalStockData } from "@shared/schema";
+import { eq, desc } from "drizzle-orm";
 
 import { apiLogger, getApiStats } from "./middleware/apiLogger";
 import path from 'path';
@@ -266,9 +269,307 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Cache management endpoints removed (file deleted)
 
+  // Market status endpoint for UI/UX improvements
+  app.get("/api/market-status", async (req, res) => {
+    try {
+      const { MarketHoursDetector } = await import('./services/market-hours-detector');
+      const detector = new MarketHoursDetector();
+      const marketStatus = detector.getCurrentMarketStatus();
+      
+      res.json({
+        success: true,
+        marketStatus: {
+          isOpen: marketStatus.isOpen,
+          isPremarket: marketStatus.isPremarket,
+          isAfterHours: marketStatus.isAfterHours,
+          nextOpen: marketStatus.nextOpen.toISOString(),
+          nextClose: marketStatus.nextClose.toISOString(),
+          session: marketStatus.session
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Market status error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get market status',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Top movers endpoint for UI/UX improvements - using REAL data sources with momentum integration
+  app.get("/api/top-movers", async (req, res) => {
+    try {
+      // Get ETF data from sectors endpoint (same as ETF Technical Metrics uses)
+      const sectorsResponse = await fetch(`${req.protocol}://${req.get('host')}/api/sectors`);
+      const sectorsData = await sectorsResponse.json();
+      
+      // Get economic data from macroeconomic-indicators endpoint (same as Economic Indicators uses)
+      const economicResponse = await fetch(`${req.protocol}://${req.get('host')}/api/macroeconomic-indicators`);
+      const economicData = await economicResponse.json();
+      
+      // Get momentum data from momentum-analysis endpoint for technical signals
+      const momentumResponse = await fetch(`${req.protocol}://${req.get('host')}/api/momentum-analysis`);
+      const momentumData = await momentumResponse.json();
+      
+      // Create momentum lookup map
+      const momentumMap = new Map();
+      if (momentumData.momentumStrategies) {
+        momentumData.momentumStrategies.forEach((strategy: any) => {
+          momentumMap.set(strategy.ticker, {
+            signal: strategy.momentum.toUpperCase(),
+            strength: Math.round(strategy.strength * 10), // Convert to 0-10 scale
+            zScore: strategy.zScore,
+            description: strategy.signal
+          });
+        });
+      }
+      
+      // Process ETF data for movers with momentum integration
+      const etfMovers = sectorsData.map((etf: any) => {
+        const momentumInfo = momentumMap.get(etf.symbol) || { signal: 'NEUTRAL', strength: 0, zScore: 0 };
+        return {
+          symbol: etf.symbol,
+          sector: etf.sector || getSectorName(etf.symbol),
+          price: parseFloat(etf.price || 0),
+          changePercent: parseFloat(etf.changePercent || 0),
+          change: parseFloat(etf.change || 0),
+          volume: etf.volume || 0,
+          momentum: momentumInfo
+        };
+      }).sort((a: any, b: any) => b.changePercent - a.changePercent);
+      
+      // Get top gainers and losers
+      const gainers = etfMovers.filter((etf: any) => etf.changePercent > 0).slice(0, 5);
+      const losers = etfMovers.filter((etf: any) => etf.changePercent < 0).slice(0, 5);
+      
+      // Process economic indicators for significant movers
+      const economicMovers = economicData.indicators
+        .filter((indicator: any) => indicator.zScore !== undefined && Math.abs(indicator.zScore) > 0.3)
+        .sort((a: any, b: any) => Math.abs(b.zScore || 0) - Math.abs(a.zScore || 0))
+        .slice(0, 8)
+        .map((indicator: any) => {
+          // Calculate percentage change from variance vs prior
+          const varianceStr = indicator.varianceVsPrior || "0";
+          const currentStr = indicator.currentReading || "0";
+          const priorStr = indicator.priorReading || "0";
+          
+          // Extract numeric values from formatted strings
+          const current = parseFloat(currentStr.replace(/[^-\d.]/g, '')) || 0;
+          const prior = parseFloat(priorStr.replace(/[^-\d.]/g, '')) || 0;
+          const variance = parseFloat(varianceStr.replace(/[^-\d.]/g, '')) || 0;
+          
+          const changePercent = prior !== 0 ? (variance / prior) * 100 : 0;
+          
+          return {
+            metric: indicator.metric,
+            current: current,
+            previous: prior,
+            change: variance,
+            changePercent: parseFloat(changePercent.toFixed(2)),
+            significance: Math.abs(indicator.zScore) > 2 ? 'high' : 
+                        Math.abs(indicator.zScore) > 1 ? 'medium' : 'low',
+            zScore: indicator.zScore
+          };
+        });
+
+      // Calculate momentum statistics from real ETF data
+      const bullishCount = etfMovers.filter((etf: any) => etf.changePercent > 0).length;
+      const bearishCount = etfMovers.filter((etf: any) => etf.changePercent < 0).length;
+      const total = etfMovers.length;
+      
+      const trending = etfMovers
+        .filter((etf: any) => Math.abs(etf.changePercent) > 1.5)
+        .slice(0, 3)
+        .map((etf: any) => etf.symbol);
+
+      res.json({
+        success: true,
+        etfMovers: {
+          gainers,
+          losers
+        },
+        economicMovers,
+        momentum: {
+          bullish: Math.round((bullishCount / total) * 100),
+          bearish: Math.round((bearishCount / total) * 100),
+          trending
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Top movers error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get top movers data',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Helper function for sector names
+  function getSectorName(symbol: string): string {
+    const sectorMap: { [key: string]: string } = {
+      'SPY': 'S&P 500',
+      'XLK': 'Technology',
+      'XLV': 'Healthcare',
+      'XLF': 'Financial',
+      'XLY': 'Consumer Discretionary',
+      'XLI': 'Industrial',
+      'XLC': 'Communication',
+      'XLP': 'Consumer Staples',
+      'XLE': 'Energy',
+      'XLU': 'Utilities',
+      'XLB': 'Materials',
+      'XLRE': 'Real Estate'
+    };
+    return sectorMap[symbol] || 'Unknown';
+  }
+
+  // Sparkline data endpoint for ETF 30-day price history
+  app.get('/api/stocks/:symbol/sparkline', async (req, res) => {
+    try {
+      const { symbol } = req.params;
+      console.log(`🔍 Sparkline data request: ${symbol}`);
+      
+      const { sparklineService } = await import('./services/sparkline-service');
+      const result = await sparklineService.getSparklineData(symbol);
+      
+      if (result.success) {
+        res.json({
+          success: true,
+          symbol,
+          data: result.data,
+          trend: result.trend,
+          change: result.change || 0,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          error: result.error || 'Failed to get sparkline data',
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+    } catch (error) {
+      console.error('Sparkline data error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get sparkline data',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Economic indicator historical chart data endpoint
+  app.get('/api/economic-indicators/:id/history', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const months = parseInt(req.query.months as string) || 12;
+      console.log(`📊 Economic chart data request: ${id} (${months}M)`);
+      
+      const { macroeconomicService } = await import('./services/macroeconomic-indicators');
+      const historicalData = await macroeconomicService.getHistoricalIndicatorData(id, months);
+      
+      if (!historicalData) {
+        return res.status(404).json({
+          success: false,
+          error: 'Economic indicator not found',
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      res.json({
+        success: true,
+        indicator: id,
+        data: historicalData.data,
+        metadata: {
+          source: 'FRED',
+          units: historicalData.units,
+          frequency: historicalData.frequency,
+          lastUpdate: historicalData.lastUpdate
+        },
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('Economic chart data error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get economic chart data',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Chart export endpoint
+  app.get('/api/charts/export/:format/:id', async (req, res) => {
+    try {
+      const { format, id } = req.params;
+      const timeRange = req.query.timeRange as string || '12M';
+      
+      if (format === 'csv') {
+        const { macroeconomicService } = await import('./services/macroeconomic-indicators');
+        const months = timeRange === '3M' ? 3 : timeRange === '6M' ? 6 : timeRange === '12M' ? 12 : 24;
+        const data = await macroeconomicService.getHistoricalIndicatorData(id, months);
+        
+        if (!data) {
+          return res.status(404).json({ error: 'Data not found' });
+        }
+        
+        // Generate CSV
+        const csvHeader = 'Date,Value\n';
+        const csvRows = data.data.map((row: any) => `${row.date},${row.value}`).join('\n');
+        const csvContent = csvHeader + csvRows;
+        
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="${id}_${timeRange}.csv"`);
+        res.send(csvContent);
+      } else {
+        res.status(400).json({ error: 'PNG export not implemented yet' });
+      }
+      
+    } catch (error) {
+      console.error('Export error:', error);
+      res.status(500).json({ error: 'Export failed' });
+    }
+  });
+
   // API stats endpoint
   app.get("/api/stats", (req, res) => {
     res.json(getApiStats());
+  });
+
+  // Test endpoint to debug 30-day trend calculation
+  app.get('/api/test-30day-trend/:symbol', async (req, res) => {
+    try {
+      const { symbol } = req.params;
+      const { etfTrendCalculator } = await import('./services/etf-trend-calculator');
+      
+      console.log(`🔍 Testing 30-day trend calculation for ${symbol}`);
+      
+      // Get detailed analysis
+      const analysis = await etfTrendCalculator.getTrendAnalysis(symbol);
+      const trend = await etfTrendCalculator.calculate30DayTrend(symbol);
+      
+      res.json({
+        success: true,
+        symbol,
+        trend: trend,
+        analysis: analysis,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('30-day trend test error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to calculate trend',
+        timestamp: new Date().toISOString()
+      });
+    }
   });
 
   // Historical Economic Indicators Routes removed (FRED eliminated)
@@ -414,34 +715,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { symbol } = req.params;
       const limit = parseInt(req.query.limit as string) || 30;
       
-      // First check if we have recent historical data in storage
-      let history = await storage.getStockHistory(symbol.toUpperCase(), limit);
+      console.log(`📈 Fetching historical data for ${symbol} from database...`);
       
-      // If we don't have enough data or data is old, fetch from API
-      if (!history || history.length < Math.min(limit, 5)) {
-        console.log(`Fetching fresh historical data for ${symbol}...`);
-        const freshData = await financialDataService.getHistoricalData(symbol.toUpperCase(), limit);
-        
-        // Store the fresh data
-        for (const item of freshData) {
-          await storage.createStockData({
-            symbol: item.symbol,
-            price: item.price.toString(),
-            change: item.change.toString(),
-            changePercent: item.changePercent.toString(),
-            volume: item.volume,
-            // timestamp: item.timestamp, // Remove this line as it's not in the schema
-          });
-        }
-        
-        // Get the updated history from storage
-        history = await storage.getStockHistory(symbol.toUpperCase(), limit);
-      }
-      
-      res.json(history || []);
+      // Use historical stock data table with proper date mapping
+      const results = await db
+        .select({
+          id: historicalStockData.id,
+          symbol: historicalStockData.symbol,
+          price: historicalStockData.close,
+          volume: historicalStockData.volume,
+          date: historicalStockData.date,
+          open: historicalStockData.open,
+          high: historicalStockData.high,
+          low: historicalStockData.low,
+        })
+        .from(historicalStockData)
+        .where(eq(historicalStockData.symbol, symbol.toUpperCase()))
+        .orderBy(desc(historicalStockData.date))
+        .limit(limit);
+
+      // Transform to match expected StockData interface with historical timestamps
+      const stockData = results.map((row, index) => ({
+        id: row.id,
+        symbol: row.symbol,
+        price: parseFloat(row.price).toFixed(2),
+        change: index < results.length - 1 ? 
+          (parseFloat(row.price) - parseFloat(results[index + 1].price)).toFixed(2) : 
+          '0.00',
+        changePercent: index < results.length - 1 ? 
+          (((parseFloat(row.price) - parseFloat(results[index + 1].price)) / parseFloat(results[index + 1].price)) * 100).toFixed(2) :
+          '0.00',
+        volume: row.volume,
+        marketCap: null,
+        timestamp: row.date  // CRITICAL FIX: Use historical date, not current time
+      }));
+
+      console.log(`✅ Historical data returned for ${symbol}: ${stockData.length} records`);
+      res.json(stockData);
     } catch (error) {
-      console.error('Error fetching stock history:', error);
-      res.status(500).json({ message: 'Failed to fetch stock history' });
+      console.error('Error fetching stock history from database:', error);
+      res.status(500).json({ message: 'Failed to fetch stock history from database' });
     }
   });
 

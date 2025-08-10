@@ -27,7 +27,7 @@ export const stockData = pgTable("stock_data", {
   percentChange: decimal("percent_change", { precision: 5, scale: 2 }).notNull(),
   volume: integer("volume").notNull(),
   marketCap: decimal("market_cap", { precision: 15, scale: 0 }),
-  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  timestamp: timestamp("timestamp").notNull(), // Removed .defaultNow() to allow custom timestamps
 });
 
 export const marketSentiment = pgTable("market_sentiment", {

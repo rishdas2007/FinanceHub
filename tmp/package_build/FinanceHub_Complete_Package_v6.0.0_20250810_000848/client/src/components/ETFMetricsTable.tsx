@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { TrendingUp, TrendingDown, Activity, BarChart3, Zap, Volume2, DollarSign } from "lucide-react";
 import { TechnicalIndicatorLegend } from './TechnicalIndicatorLegend';
+import { Sparkline } from '@/components/ui/sparkline';
 
 interface ETFData {
   symbol: string;
@@ -122,6 +123,51 @@ const formatNumber = (value: number | null | undefined, decimals: number = 2): s
   if (value === null || value === undefined || typeof value !== 'number' || isNaN(value)) return 'N/A';
   return value.toFixed(decimals);
 };
+
+// Sparkline container component with harmonized scaling
+function SparklineContainer({ symbol }: { symbol: string }) {
+  const { data: sparklineData, isLoading } = useQuery({
+    queryKey: ['sparkline', symbol],
+    queryFn: async () => {
+      const response = await fetch(`/api/stocks/${symbol}/sparkline`);
+      if (!response.ok) throw new Error('Failed to fetch sparkline data');
+      return response.json();
+    },
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+  });
+
+  if (isLoading) {
+    return (
+      <div className="h-8 w-24 bg-gray-700 rounded animate-pulse" />
+    );
+  }
+
+  if (!sparklineData?.success || !sparklineData.data?.length) {
+    return (
+      <div className="text-xs text-gray-500">No data</div>
+    );
+  }
+
+  // Use normalized data if available, otherwise use raw data
+  const chartData = sparklineData.normalizedData || sparklineData.data;
+
+  return (
+    <div className="flex flex-col items-center">
+      <Sparkline 
+        data={chartData}
+        trend={sparklineData.trend}
+        height={32}
+        width="80px"
+        className="mb-1"
+      />
+      <div className={`text-xs font-medium ${
+        sparklineData.change >= 0 ? 'text-green-400' : 'text-red-400'
+      }`}>
+        {sparklineData.change >= 0 ? '+' : ''}{sparklineData.change?.toFixed(1)}%
+      </div>
+    </div>
+  );
+}
 
 const getRSIStatus = (rsi: number | null): { signal: string; color: string } => {
   if (rsi === null) return { signal: 'No Data', color: 'text-gray-500' };
@@ -302,6 +348,12 @@ export default function ETFMetricsTable() {
           <thead>
             <tr className="bg-gray-800/50 border-b border-gray-600">
               <th className="text-left p-3 font-medium text-white sticky left-0 bg-gray-800/50 z-10">ETF</th>
+              <th className="text-center p-3 font-medium text-gray-300 min-w-[120px]">
+                <div className="flex items-center justify-center gap-1">
+                  <Activity className="h-4 w-4" />
+                  <span>30-Day Trend</span>
+                </div>
+              </th>
               <th className="text-center p-3 font-medium text-gray-300 min-w-[100px] bg-gray-700/80">
                 <div className="flex items-center justify-center gap-1">
                   <TrendingUp className="h-4 w-4" />
@@ -368,6 +420,11 @@ export default function ETFMetricsTable() {
                         </span>
                       </div>
                     </div>
+                  </td>
+
+                  {/* Sparkline Column */}
+                  <td className="p-3 text-center">
+                    <SparklineContainer symbol={etf.symbol} />
                   </td>
 
                   {/* Weighted Signal Column - Dark and prominent */}
