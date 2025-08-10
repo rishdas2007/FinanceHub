@@ -132,7 +132,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Fast dashboard endpoints - add before other routes
+  // Health endpoints first - ensure they're not overridden
+  const healthRoutes = (await import('./routes/health')).default;
+  app.use('/api', healthRoutes);
+  
+  // Fast dashboard endpoints - add after health routes
   const fastDashboardRoutes = (await import('./routes/fast-dashboard-routes')).default;
   app.use('/api', fastDashboardRoutes);
   

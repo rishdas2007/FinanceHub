@@ -228,7 +228,8 @@ export default function ETFMetricsTable() {
   // NEW: Single consolidated API call - Database-first approach
   const { data: etfMetricsResponse, isLoading, error } = useQuery<{ 
     success: boolean; 
-    metrics: ETFMetrics[]; 
+    data: ETFMetrics[]; // PRIMARY: Universal client unwrapping
+    metrics: ETFMetrics[]; // LEGACY: Backward compatibility
     count: number; 
     timestamp: string;
     source: string;
@@ -284,9 +285,14 @@ export default function ETFMetricsTable() {
     console.error('ETF Metrics API Error:', error);
     console.log('ETF Response Debug:', {
       hasResponse: !!etfMetricsResponse,
-      success: etfMetricsResponse?.success,
       hasData: !!(etfMetricsResponse?.data || etfMetricsResponse?.metrics),
-      dataType: Array.isArray(etfMetricsResponse?.data || etfMetricsResponse?.metrics) ? 'array' : typeof (etfMetricsResponse?.data || etfMetricsResponse?.metrics)
+      dataType: typeof (etfMetricsResponse?.data || etfMetricsResponse?.metrics),
+      dataIsArray: Array.isArray(etfMetricsResponse?.data || etfMetricsResponse?.metrics),
+      dataLength: (etfMetricsResponse?.data || etfMetricsResponse?.metrics)?.length,
+      success: etfMetricsResponse?.success,
+      responseKeys: etfMetricsResponse ? Object.keys(etfMetricsResponse) : [],
+      dataField: etfMetricsResponse?.data ? 'data exists' : 'data missing',
+      metricsField: etfMetricsResponse?.metrics ? 'metrics exists' : 'metrics missing'
     });
     return (
       <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-red-500 p-6" data-testid="etf-metrics-error">

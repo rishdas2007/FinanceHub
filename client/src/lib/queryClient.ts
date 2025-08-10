@@ -51,9 +51,8 @@ function validateAndUnwrap(response: any, url: string) {
     return response?.etfMovers ?? response?.movers ?? response;
   }
   if (url.includes('/api/etf-metrics')) {
-    // CRITICAL FIX: Always return an array, never null
-    const metrics = response?.data ?? response?.metrics;
-    return Array.isArray(metrics) ? metrics : [];
+    // CRITICAL FIX: Return the full response object so ETFMetricsTable can access .success and .data
+    return response;
   }
   if (url.includes('/api/macroeconomic-indicators')) {
     const indicators = response?.indicators ?? response?.data;
