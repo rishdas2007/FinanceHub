@@ -1,0 +1,70 @@
+Z-Score Statistical Analysis Review
+
+  I've completed a comprehensive review of your Finance_App's z-score
+  implementations in both the ETF Technical Metrics and Economic Indicators
+   Table sections. Here are the key findings and potential issues:
+
+  ETF Technical Metrics Section Issues
+
+  1. Rolling Window Calculation Problem
+  (zscore-technical-service.ts:102-119)
+  - Issue: Population variance formula instead of sample variance
+  - Current: variance = sum(x - mean)² / N
+  - Should be: variance = sum(x - mean)² / (N-1) for sample data
+  - Impact: Underestimates standard deviation, inflates z-scores
+
+  2. Missing Historical Data Reference Issue
+  (zscore-technical-service.ts:158)
+  - Issue: historicalStockData is used but not imported
+  - Location: Line 158 in calculatePriceMomentum()
+  - Impact: Runtime errors for price momentum z-scores
+
+  3. Insufficient Data Handling (zscore-technical-service.ts:195)
+  - Issue: Only warns but continues processing with insufficient data
+  - Current: Continues with < 20 data points for 20-day window
+  - Impact: Unreliable z-score calculations
+
+  Economic Indicators Section Issues
+
+  1. Population vs Sample Variance (live-zscore-calculator.ts:319-322)
+  - Issue: Same population variance problem
+  - Impact: Consistently inflated z-scores for economic indicators
+
+  2. Extreme Value Capping Logic (live-zscore-calculator.ts:325-326)
+  - Issue: Arbitrary 50 z-score cap may mask legitimate extreme economic
+  events
+  - Better approach: Flag as unprecedented events instead of capping
+
+  3. Economic Directionality Conflicts (live-zscore-calculator.ts:11-78)
+  - Issue: Some indicators have questionable directionality assignments
+  - Example: "Personal Savings Rate" marked as -1 (bad when increasing) may
+   not always be correct
+
+  Cross-Cutting Issues
+
+  1. Inconsistent Z-Score Formulas
+  - Different services use slightly different calculation approaches
+  - Some use population variance, others attempt sample variance
+  - Test file shows proper capping at ±50 but production code doesn't
+  consistently implement this
+
+  2. Window Size Inconsistencies
+  - ETF metrics use 20-day window
+  - Economic indicators use 12-month window
+  - No justification for different lookback periods
+
+  Recommendations
+
+  1. Fix variance calculations everywhere to use sample variance: (N-1) in
+  denominator
+  2. Add missing import for historicalStockData in
+  zscore-technical-service.ts
+  3. Implement consistent data sufficiency checks across all z-score
+  calculations
+  4. Review economic directionality mappings for accuracy
+  5. Standardize extreme value handling approach across all services
+  6. Add validation to ensure z-score inputs have adequate historical data
+
+  The z-score calculations are mathematically sound in concept but have
+  implementation issues that could lead to inaccurate signals, particularly
+   the variance calculation bug which systematically inflates all z-scores.

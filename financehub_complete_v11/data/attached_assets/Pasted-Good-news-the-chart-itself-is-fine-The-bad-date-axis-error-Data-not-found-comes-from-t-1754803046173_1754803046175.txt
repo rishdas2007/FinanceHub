@@ -1,0 +1,145 @@
+Good news: the chart itself is fine. The bad date axis + “`{"error":"Data not found"}`” comes from the **history endpoint** returning either (a) **no rows** or (b) **intraday rows that all share today’s date** because of how the window → provider params are mapped. Then the tick formatter collapses everything to the same calendar date.
+
+Here’s how to fix it, step-by-step.
+
+---
+
+# What’s happening
+
+1. **Window→interval bug**
+   For `7D/30D/90D` you’re sometimes calling the data provider with `interval=1min/5min` (based on “days < N → intraday”), and you’re *not* sending `start_date/end_date`. The provider returns **only today’s intraday bars**. Your tick formatter uses `toLocaleDateString`, so every tick shows the same date (screenshot).
+
+2. **“Data not found”**
+   When the provider returns an empty payload (symbol/exchange mismatch, weekend/holiday, or date filters out everything), your controller throws/returns `{error:"Data not found"}`. The modal’s CSV button hits that route directly, so you see the raw error.
+
+3. **Timezone cutoff**
+   When you *do* pass dates, you’re building them in local time (not UTC). Near midnight UTC the start date can equal the end date → empty set → “Data not found”.
+
+---
+
+# Fix (server, 10 minutes)
+
+Make this endpoint boring and deterministic:
+
+```ts
+// server/controllers/price-history.ts
+app.get('/api/stocks/:symbol/history', async (req, res) => {
+  const symbol = String(req.params.symbol || '').toUpperCase();
+  const window = String(req.query.window || '90D').toUpperCase(); // '7D'|'30D'|'90D'
+  const interval = '1day'; // ALWAYS daily for these windows
+  const { startISO, endISO } = computeUtcDateRange(window);
+
+  try {
+    const raw = await twelveData.timeSeries({
+      symbol, interval,
+      start_date: startISO,  // 'YYYY-MM-DD' (UTC)
+      end_date: endISO,
+      outputsize: 1000,
+      // exchange: 'ARCA', // if your provider needs it for ETFs
+      // adjusted: true,
+    });
+
+    const rows = normalizeTwelveData(raw);      // → [{date:'YYYY-MM-DD', close: number}]
+    const pruned = clipRange(rows, startISO, endISO);
+
+    return res.json({ success: true, data: pruned }); // never null, never error
+  } catch (e: any) {
+    console.error('HISTORY ERROR', symbol, e?.message);
+    return res.json({ success: true, data: [], warning: 'data_unavailable' }); // fail-soft
+  }
+});
+
+function computeUtcDateRange(window: string) {
+  // anchor at 00:00:00 UTC today
+  const end = new Date(Date.UTC(
+    new Date().getUTCFullYear(),
+    new Date().getUTCMonth(),
+    new Date().getUTCDate()
+  ));
+  const start = new Date(end);
+  const days = window === '7D' ? 7 : window === '30D' ? 30 : 90;
+  start.setUTCDate(start.getUTCDate() - days);
+  const toISO = (d: Date) => d.toISOString().slice(0,10);
+  return { startISO: toISO(start), endISO: toISO(end) };
+}
+
+function normalizeTwelveData(raw: any) {
+  const values = raw?.values ?? raw?.data ?? [];
+  return values
+    .map((v: any) => ({
+      date: (v.datetime || v.date || v.time)?.slice(0,10), // 'YYYY-MM-DD'
+      close: Number(v.close),
+    }))
+    .filter((r: any) => r.date && Number.isFinite(r.close))
+    .sort((a: any, b: any) => a.date.localeCompare(b.date));
+}
+
+function clipRange(rows: any[], startISO: string, endISO: string) {
+  return rows.filter(r => r.date >= startISO && r.date <= endISO);
+}
+```
+
+**Why this works**
+
+* Always **daily** bars for 7D/30D/90D → no intraday “all-same-date” issue.
+* Dates are computed in **UTC** and sent as `YYYY-MM-DD`, avoiding midnight cutoffs.
+* On failure, the route returns `{success:true,data:[]}` so the chart shows a clean empty state (not a crash or `{error:…}`).
+
+If you want intraday for `7D`, do it explicitly and render time on the x-axis:
+
+```ts
+const interval = window === '7D' ? '1h' : '1day';
+```
+
+---
+
+# Fix (client, 5 minutes)
+
+**1) Don’t collapse time away when the data is intraday.**
+
+```tsx
+const isIntraday = window === '7D' && data.some(d => d.date.length > 10); // if you keep intraday
+<XAxis
+  dataKey="date"
+  tickFormatter={(iso) => isIntraday
+    ? format(new Date(iso), 'M/d HH:mm')
+    : format(new Date(iso), 'M/d')}
+/>
+```
+
+If you follow the server change above (daily for all three windows), you can keep a simple `M/d` formatter.
+
+**2) Show a gentle empty state when `data.length === 0`**
+Title can say “No data (provider unavailable)” if `warning` exists.
+
+---
+
+# Hardening (optional but recommended)
+
+* **Symbol map for ETFs** (provider quirks):
+
+  ```ts
+  const ETF_MAP: Record<string,string> = { XLF:'XLF', XLK:'XLK', ... };
+  const providerSymbol = ETF_MAP[symbol] ?? symbol;
+  ```
+
+  Some APIs need `exchange=ARCA`/`NYSEARCA`. If your provider supports it, pass it.
+
+* **Timeouts** on provider calls (so the UI never waits forever).
+
+* **Cache last good series** per symbol for 24h. Serve it on provider errors.
+
+---
+
+# Quick checks
+
+1. Network → `/api/stocks/XLF/history?window=90D`
+   Should return `{ success:true, data:[{date:'2025-05-12', close:…}, …] }` with \~90 points.
+
+2. The modal’s **CSV** should now download data (not `{"error":…}`).
+
+3. X-axis shows multiple different dates (not the same repeated), and the 7D/30D/90D buttons change the number of points.
+
+---
+
+If you share the **exact request URL** your chart is hitting right now and the **raw response** body, I can tailor the server mapper to your provider (TwelveData/FMP/etc.) and add the `exchange` flag if needed.

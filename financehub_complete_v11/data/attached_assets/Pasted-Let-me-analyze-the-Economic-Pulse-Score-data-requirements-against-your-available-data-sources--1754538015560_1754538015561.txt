@@ -1,0 +1,98 @@
+Let me analyze the Economic Pulse Score data requirements against your available data sources:
+
+  📊 Economic Pulse Score Data Source Analysis
+
+  ✅ DATA WE HAVE (Available & Updateable)
+
+  Layer 1: Core Economic Momentum (60%)
+
+  ✅ A. Growth Momentum (25%)
+  - Housing Starts: FRED API (HOUST) - ✅ Available
+  - Construction Spending: FRED API (TTLCON) - ✅ Available
+  - GDP Growth: FRED API (A191RL1Q225SBEA) - ✅ Available
+
+  ✅ B. Financial Stress (20%)
+  - VIX Volatility: Your vixData table - ✅ Available & Live
+  - Federal Funds Rate: FRED API (FEDFUNDS) - ✅ Available
+  - Treasury Yield Curve: Can calculate from FRED (DGS10, DGS2) - ✅ Available
+
+  ✅ C. Labor Health (15%)
+  - Employment-Pop Ratio: FRED API (EMRATIO) - ✅ Available
+  - Nonfarm Payrolls: FRED API (PAYEMS) - ✅ Available
+  - Unemployment Rate: FRED API (UNRATE) - ✅ Available
+
+  Layer 2: Inflation & Policy Balance (25%)
+
+  ✅ D. Inflation Trajectory (15%)
+  - Core CPI: FRED API (CPILFESL) - ✅ Available
+  - Core PCE: FRED API (PCEPILFE) - ✅ Available
+  - PPI: FRED API (PPILFE) - ✅ Available
+
+  ✅ E. Policy Effectiveness (10%)
+  - Fed Funds Rate: FRED API (FEDFUNDS) - ✅ Available
+  - Money Supply M2: FRED API (M2SL) - ✅ Available
+
+  ❌ DATA WE DON'T HAVE (Missing/Unreliable)
+
+  Layer 3: Forward-Looking Confidence (15%)
+
+  ❌ F. Economic Expectations (15%)
+  - Consumer Confidence Index - Not in FRED API consistently
+  - Business Confidence Survey - Not available
+  - Economic Survey Expectations - Not available
+  - Forward GDP Consensus - Requires paid financial data services
+
+  🔧 RECOMMENDED FORMULA ADJUSTMENT
+
+  Current Formula: Needs 15% "Economic Expectations" data we don't have
+
+  Revised Formula (Using Available Data Only):
+  Layer 1: Core Economic Momentum (75% - increased from 60%)
+    A. Growth Momentum (30% - from 25%)
+    B. Financial Stress (25% - from 20%)
+    C. Labor Health (20% - from 15%)
+
+  Layer 2: Inflation & Policy Balance (25% - unchanged)
+    D. Inflation Trajectory (15% - unchanged)
+    E. Policy Effectiveness (10% - unchanged)
+
+  Layer 3: REMOVED (was 15% Economic Expectations)
+
+  🎯 Implementation Strategy
+
+  Phase 1: Verify Available Data
+
+  1. Check FRED API Service: Confirm your fred-api-service.ts is pulling all required indicators
+  2. Verify VIX Data: Ensure vixData table is populated and current
+  3. Test Data Freshness: Confirm economic data is updating daily/weekly
+
+  Phase 2: Adjust Formula Weights
+
+  1. Redistribute 15%: Spread the missing "Economic Expectations" weight across existing components
+  2. Update Service: Modify economic-health-calculator.ts to use only available data
+  3. Recalibrate Ranges: Adjust score normalization for the new 2-layer system
+
+  Phase 3: Update UI Components
+
+  1. Remove Layer 3: Delete "Forward-Looking Confidence" from EconomicHealthScoreAppendix.tsx
+  2. Update Calculations: Show 2-layer breakdown instead of 3-layer
+  3. Maintain Transparency: Keep detailed calculation steps visible
+
+  📋 Specific Actions Needed
+
+  Immediate Fix Instructions:
+
+  1. Update Weights in economic-health-calculator.ts:
+  private readonly BASE_WEIGHTS: WeightStructure = {
+    growthMomentum: 0.30,      // Increased from 0.25
+    financialStress: 0.25,     // Increased from 0.20  
+    laborHealth: 0.20,         // Increased from 0.15
+    inflationTrajectory: 0.15, // Unchanged
+    policyEffectiveness: 0.10, // Unchanged
+    economicExpectations: 0.00 // Removed (was 0.15)
+  };
+  2. Verify FRED Data Availability: Check that all required FRED series are in your keyIndicators array
+  3. Update UI Component: Modify EconomicHealthScoreAppendix.tsx to show 2-layer system with corrected weights
+
+  This approach uses 100% available, updateable data sources and eliminates the data inconsistency issue.
+

@@ -1,0 +1,256 @@
+After comprehensive code review, I've identified critical issues preventing your dashboard from functioning as an effective Bloomberg-like terminal. Here are my stack-ranked recommendations from a statistician and trader perspective:
+
+  ---
+  🚨 PRIORITY 1: Fix Core Statistical Foundations (CRITICAL)
+
+  Issue 1A: Inconsistent Variance Calculations
+
+  Files: zscore-technical-service.ts:75-79, economic-calculations.ts:114-116, momentum-analysis-service.ts:399-401
+
+  Problem: Mixing population and sample variance formulas
+  // WRONG (population variance)
+  variance = sum(x - mean)² / N
+
+  // CORRECT (sample variance for financial data)
+  variance = sum(x - mean)² / (N-1)
+
+  Fix: Standardize to sample variance everywhere:
+  private calculateZScore(values: number[], windowSize: number): number {
+    if (values.length < windowSize) return null;
+
+    const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+    // Use (N-1) for sample variance - critical for small samples
+    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (values.length - 1);
+    const stdDev = Math.sqrt(variance);
+
+    return (values[values.length - 1] - mean) / stdDev;
+  }
+
+  Issue 1B: Statistically Invalid Z-Score Scaling
+
+  File: zscore-technical-service.ts:86-89
+
+  Problem: Arbitrary division by 2 breaks statistical meaning
+  // WRONG - destroys z-score statistical properties
+  return Math.max(-1, Math.min(1, zscore / 2));
+
+  Fix: Use proper statistical thresholds:
+  private zscoreToSignal(zscore: number): number {
+    // Maintain statistical significance
+    if (Math.abs(zscore) > 2.58) return Math.sign(zscore) * 1.0;    // 99% confidence
+    if (Math.abs(zscore) > 1.96) return Math.sign(zscore) * 0.75;   // 95% confidence  
+    if (Math.abs(zscore) > 1.0) return Math.sign(zscore) * 0.5;     // 68% confidence
+    return zscore * 0.25; // Linear scaling for small deviations
+  }
+
+  ---
+  🔥 PRIORITY 2: Economic Data Pipeline Reliability (HIGH)
+
+  Issue 2A: Hard-coded Economic Forecasts
+
+  File: economic-indicators.ts:44-100
+
+  Problem: Static forecasts become stale and misleading
+  'GDP Growth Rate': { forecast: -1.50 } // Hard-coded!
+
+  Fix: Dynamic forecast integration:
+  private async getForecastConsensus(seriesId: string): Promise<number | null> {
+    // Integrate with Trading Economics, Bloomberg API, or consensus data
+    try {
+      const consensusResponse = await fetch(`/api/forecasts/${seriesId}`);
+      const consensus = await consensusResponse.json();
+      return consensus.median_forecast;
+    } catch {
+      return null; // Don't use stale hard-coded values
+    }
+  }
+
+  Issue 2B: Economic Directionality Errors
+
+  File: live-zscore-calculator.ts:58
+
+  Problem: "Personal Savings Rate" marked as -1 (bad when increasing) is questionable
+  'Personal Savings Rate': -1, // This may not always be correct
+
+  Fix: Context-dependent directionality:
+  private getContextualDirectionality(metric: string, currentValue: number, historicalPercentile: number): number {
+    switch(metric) {
+      case 'Personal Savings Rate':
+        // High savings rate is good during recessions, bad during expansions
+        return this.isRecessionaryPeriod() ? 1 : -0.5;
+      case 'Federal Funds Rate':
+        // Rate increases are hawkish but context-dependent
+        return this.getInflationRegime() === 'high' ? 1 : -1;
+      default:
+        return ECONOMIC_DIRECTIONALITY[metric] || 0;
+    }
+  }
+
+  ---
+  ⚡ PRIORITY 3: Trading Signal Optimization (HIGH)
+
+  Issue 3A: Arbitrary Signal Thresholds
+
+  File: zscore-technical-service.ts:61-62
+
+  Problem: ±0.25 thresholds lack statistical basis
+  private readonly BUY_THRESHOLD = 0.25;   // Why 0.25?
+  private readonly SELL_THRESHOLD = -0.25; // No backtesting evidence
+
+  Fix: Statistically-derived thresholds:
+  class AdaptiveThresholds {
+    private calculateOptimalThresholds(historicalReturns: number[], zscores: number[]): {buy: number, sell: number} {
+      // Use ROC analysis to find optimal thresholds
+      const thresholds = [];
+      for (let t = 0.1; t <= 2.0; t += 0.1) {
+        const signals = zscores.map(z => z > t ? 1 : z < -t ? -1 : 0);
+        const sharpe = this.calculateSharpe(signals, historicalReturns);
+        thresholds.push({threshold: t, sharpe});
+      }
+
+      const optimal = thresholds.reduce((best, current) =>
+        current.sharpe > best.sharpe ? current : best
+      );
+
+      return {buy: optimal.threshold, sell: -optimal.threshold};
+    }
+  }
+
+  Issue 3B: Missing Volatility Regime Detection
+
+  Files: Multiple z-score services
+
+  Problem: Same thresholds used in all market conditions
+  Fix: Volatility-adjusted signals:
+  private adjustForVolatilityRegime(zScore: number, vixLevel: number): number {
+    const volatilityMultiplier = vixLevel > 30 ? 1.5 : vixLevel < 15 ? 0.7 : 1.0;
+    return zScore * volatilityMultiplier;
+  }
+
+  ---
+  📊 PRIORITY 4: Window Size Standardization (MEDIUM)
+
+  Issue 4A: Inconsistent Lookback Periods
+
+  Files: Various z-score services
+
+  Problem:
+  - Technical indicators: 20-day window
+  - Economic indicators: 12-month window
+  - Momentum analysis: Variable windows
+
+  Fix: Asset-class appropriate windows:
+  const OPTIMAL_WINDOWS = {
+    EQUITIES: 252,      // 1 year daily data
+    ETF_TECHNICAL: 63,  // 3 months daily data  
+    ECONOMIC_MONTHLY: 36, // 3 years monthly data
+    ECONOMIC_QUARTERLY: 40, // 10 years quarterly data
+    VOLATILITY: 22      // 1 month for vol calculations
+  };
+
+  ---
+  🔧 PRIORITY 5: Data Quality & Validation (MEDIUM)
+
+  Issue 5A: Insufficient Data Validation
+
+  Files: Multiple services
+
+  Problem: Weak validation allows corrupted z-scores
+  if (values.length < windowSize) return 0; // Should be null!
+
+  Fix: Robust validation:
+  private validateDataQuality(values: number[]): {isValid: boolean, quality: number} {
+    // Check for sufficient data
+    if (values.length < this.MIN_OBSERVATIONS) return {isValid: false, quality: 0};
+
+    // Check for data gaps
+    const gapRatio = this.calculateGapRatio(values);
+    if (gapRatio > 0.1) return {isValid: false, quality: 0.5};
+
+    // Check for outliers that could skew statistics
+    const outlierRatio = this.calculateOutlierRatio(values);
+    const quality = Math.max(0, 1 - outlierRatio * 2);
+
+    return {isValid: quality > 0.7, quality};
+  }
+
+  ---
+  📈 PRIORITY 6: Performance & Caching (LOW)
+
+  Issue 6A: Redundant Z-Score Calculations
+
+  Files: Multiple momentum services
+
+  Problem: Recalculating same z-scores across services
+  Fix: Centralized z-score service with intelligent caching:
+  class CentralizedZScoreService {
+    private cache = new Map<string, {zScore: number, timestamp: number, quality: number}>();
+
+    async getZScore(symbol: string, metric: string): Promise<number | null> {
+      const cacheKey = `${symbol}:${metric}`;
+      const cached = this.cache.get(cacheKey);
+
+      // Use cached value if recent and high quality
+      if (cached && Date.now() - cached.timestamp < 300000 && cached.quality > 0.8) {
+        return cached.zScore;
+      }
+
+      const fresh = await this.calculateFreshZScore(symbol, metric);
+      this.cache.set(cacheKey, fresh);
+      return fresh.zScore;
+    }
+  }
+
+  ---
+  🎯 IMPLEMENTATION ROADMAP
+
+  Week 1: Statistical Foundation
+
+  1. Fix variance calculation inconsistencies
+  2. Remove arbitrary z-score scaling
+  3. Implement proper error handling
+
+  Week 2: Data Pipeline
+
+  1. Replace hard-coded forecasts with dynamic data
+  2. Fix economic directionality logic
+  3. Add data quality validation
+
+  Week 3: Trading Signals
+
+  1. Implement statistically-derived thresholds
+  2. Add volatility regime detection
+  3. Backtest signal performance
+
+  Week 4: Optimization
+
+  1. Standardize window sizes
+  2. Implement centralized z-score service
+  3. Add performance monitoring
+
+  ---
+  🔍 VALIDATION METRICS
+
+  Track these metrics to ensure improvements:
+
+  interface DashboardHealth {
+    statisticalAccuracy: {
+      zScoreDistribution: number[]; // Should approximate standard normal
+      correlationStability: number; // Should remain consistent
+      forecastAccuracy: number;     // Hit rate vs actual releases
+    };
+
+    tradingPerformance: {
+      signalSharpeRatio: number;    // Risk-adjusted returns
+      maxDrawdown: number;          // Worst losing streak
+      hitRate: number;              // % of profitable signals
+    };
+
+    dataQuality: {
+      freshnessScore: number;       // How current is data
+      completenessRatio: number;    // % of expected data points
+      validationFailures: number;   // Data quality issues
+    };
+  }
+
+  Expected Results: Fixing these issues should transform your dashboard from a broken approximation into a reliable, Bloomberg-quality financial terminal with statistically sound signals and accurate economic insights.

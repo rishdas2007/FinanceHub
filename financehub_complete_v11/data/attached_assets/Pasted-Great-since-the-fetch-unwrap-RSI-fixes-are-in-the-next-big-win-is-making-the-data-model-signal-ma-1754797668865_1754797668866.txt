@@ -1,0 +1,347 @@
+Great—since the fetch/unwrap/RSI fixes are in, the next big win is making the data model & signal math consistent so the UI can’t drift. Here’s a tight plan that’s easy to implement without rewriting the world.
+
+What’s going wrong (at a glance)
+
+Units are mixed (%, bps, index points, $M/$B, “hrs”, counts). Different endpoints re‑scale on the fly → tables display apples next to oranges.
+
+Transforms are layered (e.g., “delta‑adjusted z‑scores”) without a single source of truth for: base series, transformation, window, and scale.
+
+Signals (Level, Trend, Multi‑signal) are computed with slightly different inputs/thresholds by component → contradictory classifications.
+
+Make it boring: a 3‑layer data model
+
+Think Bronze → Silver → Gold. This alone will remove 80% of inconsistencies.
+
+1) Bronze (raw ingestion; immutable)
+
+Store exactly what the source gave you.
+
+Table: econ_series_raw
+
+series_id (fk) — e.g., FRED:CPIAUCSL
+
+period_end (date) — native frequency
+
+value_raw (numeric) — as published
+
+unit_raw (text) — e.g., “Index 1982‑84=100”, “Percent”, “Thous. of persons”
+
+seasonal_adj (enum: SA/NSA)
+
+vintage_timestamp (timestamptz) — for revisions
+
+source (text) — FRED, BLS, BEA, etc.
+
+No scaling/rounding. Never change these rows.
+
+2) Silver (standardized & aligned; 1 truth for units)
+
+Convert everything into canonical units and month‑end alignment (per your preference) with explicit metadata.
+
+Table: econ_series_observation
+
+series_id
+
+period_start, period_end
+
+freq (enum: W/M/Q)
+
+standard_unit (enum below)
+
+value_std (double precision)
+
+Canonical rules:
+
+Rates: store as decimal (4.2% → 0.042).
+
+BPS: convert to decimal (12 bps → 0.0012).
+
+Dollars: store in USD (not M/B); keep scale in metadata.
+
+Counts: raw count (e.g., 226,000).
+
+Indexes: store index level (e.g., 313.5).
+
+agg_method (enum: last/avg/sum) — for weekly→monthly alignment
+
+scale_hint (enum: NONE/M/B/K) — display only
+
+display_precision (int) — display only
+
+transform_code (enum: LEVEL, YOY, MOM, QOQ_ANN, LOG_LEVEL, LOG_DIFF_MOM, LOG_DIFF_YOY) — the exact transform used to produce value_std from Bronze. For Silver, this is usually LEVEL (untransformed), but you may also store a second logical series for YOY if you treat that as a distinct indicator.
+
+Silver is the only table the UI should query for “numbers.” All formatting derives from standard_unit + scale_hint + display_precision.
+
+Canonical unit enum (keep it short)
+
+PCT_DECIMAL, USD, COUNT, INDEX_PT, HOURS, RATIO_DECIMAL
+
+(You’ll convert to “%”, “$B”, “hrs” only in the view layer.)
+
+3) Gold (features & signals; reproducible math)
+
+All statistics live here—never in components.
+
+Table: econ_series_features
+
+series_id, period_end
+
+Feature inputs (computed on the Silver value_std for a given transform):
+
+ref_window_months (int; e.g., 60)
+
+value_t (double) — current transformed level
+
+delta_t (double) — value_t - value_{t-1}
+
+mean_level, sd_level
+
+mean_delta, sd_delta
+
+Z‑scores (only two—you do not need z‑of‑z):
+
+level_z = (value_t - mean_level)/sd_level
+
+change_z = (delta_t - mean_delta)/sd_delta
+
+Classifications (single source of truth):
+
+level_class (enum): ABOVE(≥+1) | NEUTRAL(|<1|) | BELOW(≤-1)
+
+trend_class (enum): ACCEL(≥+0.5) | FLAT(|<0.5|) | DECEL(≤-0.5)
+
+multi_signal (enum; see rules below)
+
+pipeline_version (text) — e.g., econ_v3.2
+
+provenance (jsonb) — parameters used (transform, winsorize, missing-data policy, etc.)
+
+No “delta‑adjusted z‑score” here. If you really need it, name it explicitly and store it as a separate feature (but you almost never do once you have change_z).
+
+One metadata table to rule them all
+
+Table: econ_series_def
+
+series_id (pk) — stable key your UI uses
+
+display_name, category, type_tag (Leading/Lagging/Coincident)
+
+native_unit, standard_unit, scale_hint, display_precision
+
+default_transform (LEVEL or YOY etc.)
+
+align_policy (W→M = last | avg | sum)
+
+preferred_window_months (e.g., 60)
+
+notes (text) + source_url
+
+This table drives:
+
+How to standardize Bronze → Silver
+
+Which transform feeds the features
+
+How to format in tables & charts consistently
+
+Display logic (consistent everywhere)
+
+Create a single formatter used by the table, cards, and charts:
+
+formatValue({
+  valueStd,               // Silver canonical number
+  unit: 'PCT_DECIMAL' | 'USD' | 'COUNT' | 'INDEX_PT' | 'HOURS',
+  scaleHint: 'NONE' | 'K' | 'M' | 'B',
+  precision: number
+}) => string
+
+// examples:
+PCT_DECIMAL 0.042 → "4.2%"
+USD 1400000000 + B → "$1.40B"
+COUNT 226000 + K → "226.0K"
+HOURS 34.3 → "34.3 hrs"
+INDEX_PT 313.5 → "313.5"
+
+Charts should read Silver for y‑axis units and Gold for overlays (e.g., z‑scores). Never re‑scale in a component.
+
+Signal math (simple, reproducible, documented)
+
+Transforms (pick one per indicator; in metadata)
+
+Inflation series (CPI, Core CPI): use YOY as value_t.
+
+Jobless claims: LEVEL or LOG_LEVEL; delta_t is MoM change after weekly→monthly aggregation.
+
+Rates (10Y, Fed Funds): LEVEL (decimal), delta_t = monthly change in decimal.
+
+Activity (Durables, Retail Sales): consider LOG_LEVEL for skewed data; delta_t = LOG_DIFF_MOM.
+
+Z‑scores
+
+level_z: z‑score of the selected transform (not raw level by default).
+
+change_z: z‑score of the first difference of that same transform.
+
+Rolling window: default 60 months (override per indicator via metadata).
+
+Classification thresholds
+
+Use a compact 3×3 grid to drive the Multi‑signal:
+
+|                | ACCEL (change_z ≥ +0.5) | FLAT (|change_z| < 0.5) | DECEL (change_z ≤ −0.5) |
+|---|---|---|---|
+| ABOVE (level_z ≥ +1) | Strong, strengthening | Strong, steady | Strong, weakening |
+| NEUTRAL (|level_z| < 1) | Improving | Neutral | Softening |
+| BELOW (level_z ≤ −1) | Weak, rebounding | Weak, steady | Weak, deteriorating |
+
+Persist the final label as multi_signal. Your “Critical Economic Insights” tiles should render only this label + the two z‑scores.
+
+Frontend simplifications
+
+One query per page section:
+
+/api/econ/observations?series_id=... → Silver values + formatting metadata
+
+/api/econ/features?series_id=... → Gold signals for the same periods
+
+No local math in components beyond chart smoothing/tooltip formatting.
+
+One formatter for all numbers (using standard_unit, scale_hint, precision).
+
+Show units once in the column header (e.g., “Current (%, SA, YoY)”)—derive the text from metadata (standard_unit=PCT_DECIMAL, default_transform=YOY, seasonal_adj=SA).
+
+Concrete schema (Drizzle/SQL sketches)
+
+-- Series definitions
+create table econ_series_def (
+  series_id text primary key,
+  display_name text not null,
+  category text not null,
+  type_tag text not null,                 -- Leading/Lagging/Coincident
+  native_unit text not null,
+  standard_unit text not null,            -- enum in app layer
+  scale_hint text not null default 'NONE',
+  display_precision int not null default 2,
+  default_transform text not null default 'LEVEL',
+  align_policy text not null default 'last',
+  preferred_window_months int not null default 60,
+  seasonal_adj text not null,             -- SA/NSA
+  source text not null,
+  source_url text
+);
+
+-- Bronze
+create table econ_series_raw (
+  series_id text references econ_series_def(series_id),
+  period_end date not null,
+  value_raw numeric not null,
+  unit_raw text not null,
+  seasonal_adj text not null,
+  vintage_timestamp timestamptz not null default now(),
+  source text not null,
+  primary key (series_id, period_end, vintage_timestamp)
+);
+
+-- Silver
+create table econ_series_observation (
+  series_id text references econ_series_def(series_id),
+  period_start date not null,
+  period_end date not null,
+  freq text not null,                      -- W/M/Q
+  value_std double precision not null,     -- canonical numeric
+  standard_unit text not null,
+  agg_method text not null,
+  scale_hint text not null,
+  display_precision int not null,
+  transform_code text not null,
+  primary key (series_id, period_end, transform_code)
+);
+
+-- Gold
+create table econ_series_features (
+  series_id text references econ_series_def(series_id),
+  period_end date not null,
+  transform_code text not null,
+  ref_window_months int not null,
+  value_t double precision not null,
+  delta_t double precision not null,
+  mean_level double precision not null,
+  sd_level double precision not null,
+  mean_delta double precision not null,
+  sd_delta double precision not null,
+  level_z double precision not null,
+  change_z double precision not null,
+  level_class text not null,
+  trend_class text not null,
+  multi_signal text not null,
+  pipeline_version text not null,
+  provenance jsonb not null,
+  primary key (series_id, period_end, transform_code, pipeline_version)
+);
+
+In Drizzle, mirror these with enums where helpful; keep conversions centralized in a standardizeObservation() util used by your ETL.
+
+Migration plan (fast path)
+
+Lock metadata firstFill econ_series_def for your 40 indicators:
+
+standard_unit, scale_hint, display_precision
+
+default_transform
+
+align_policy (weekly → month‑end avg for yields; sum for claims if you want flow; last is also common—choose and document).
+
+Build a single ETL (script or job):
+
+Bronze ← fetch/vintage
+
+Silver ← standardize + align (use econ_series_def)
+
+Gold ← compute features (same function for every series)
+
+Swap the UI to read only:
+
+/econ/observations for table “Current/Prior”
+
+/econ/features for Z‑scores & classifications
+
+Remove any component‑side unit math.
+
+QA harness
+
+Snapshot 5 key series (CPI, Core CPI, 10Y, Claims, GDP) and verify:
+
+Unit strings in headers match metadata.
+
+Current/prior values equal Silver after formatting.
+
+Level/Trend/Multi‑signal equal Gold (and are stable across reloads).
+
+Quick answers to pain points in your screenshots
+
+“Current” column with mixed units → Will be consistent once every cell is formatted off (standard_unit, scale_hint, precision). Example:
+
+10‑year Treasury: value_std=0.042, standard_unit=PCT_DECIMAL, scale_hint=NONE, precision=1 → 4.2%
+
+Jobless claims: value_std=226000, COUNT + K + 1 → 226.0K
+
+AHE: USD + NONE + 2 → $36.44
+
+Hours: HOURS + NONE + 1 → 34.3 hrs
+
+“Δ Z‑Score” confusion → Replace with Change Z‑Score (your change_z from Gold). Drop “delta‑adjusted” wording entirely.
+
+“Mixed / Warning / Directional” badges → Drive them solely from the 3×3 grid above; the same words, colors, and thresholds across the app.
+
+Guardrails & good habits
+
+No rounding before storage. Round only in the formatter.
+
+No z‑of‑z. Exactly 2 z‑scores: level_z, change_z.
+
+One transform per indicator (declared in metadata). If you need both LEVEL and YOY, treat them as two logical series with distinct series_ids (e.g., CPI_YOY).
+
+Version everything (pipeline_version), so you can change windows/thresholds without breaking history.
+
+Badge fallbacks (SA/NSA conversions, imputation, alignment) in provenance and expose a tiny “ℹ︎” tooltip in the UI when any non‑default policy was applied.
+

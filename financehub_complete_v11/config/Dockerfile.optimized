@@ -1,0 +1,66 @@
+# Multi-stage Docker build for production optimization
+FROM node:20-alpine AS base
+
+# Install security updates and dependencies
+RUN apk add --no-cache \
+    dumb-init \
+    && addgroup -g 1001 -S nodejs \
+    && adduser -S financehub -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Install dependencies
+FROM base AS deps
+RUN npm ci --only=production && npm cache clean --force
+
+# Build stage
+FROM base AS build
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+# Production stage
+FROM base AS production
+
+# Copy node_modules from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy built application from build stage
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/server ./server
+COPY --from=build /app/shared ./shared
+COPY --from=build /app/package.json ./
+
+# Copy environment and configuration files
+COPY drizzle.config.ts ./
+COPY ecosystem.config.js ./
+
+# Create directory for logs
+RUN mkdir -p /app/logs && chown financehub:nodejs /app/logs
+
+# Switch to non-root user
+USER financehub
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:5000/health/system-status || exit 1
+
+# Expose port
+EXPOSE 5000
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start application
+CMD ["node", "dist/index.js"]

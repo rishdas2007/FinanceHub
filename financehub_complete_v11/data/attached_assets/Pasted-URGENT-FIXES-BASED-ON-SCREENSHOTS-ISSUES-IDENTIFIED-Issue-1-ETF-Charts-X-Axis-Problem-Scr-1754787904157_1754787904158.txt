@@ -1,0 +1,257 @@
+URGENT FIXES BASED ON SCREENSHOTS
+
+  📊 ISSUES IDENTIFIED
+
+  Issue 1: ETF Charts X-Axis Problem (Screenshot 3)
+
+  - Problem: SPY chart shows all dates as "8/9/2025" instead of
+  historical progression
+  - Root Cause: Date formatting is not working properly in the chart data
+
+  Issue 2: Economic Indicator Charts Failing (Screenshot 4)
+
+  - Error: "Unable to load chart data" with "Failed to fetch chart data:
+  404"
+  - Details: Metric ID: gdp_growth_rate | Range: 12M
+  - Root Cause: Economic indicator ID mismatch
+
+  Issue 3: Missing Sparklines in ETF Table (Screenshots 1 & 2)
+
+  - Problem: No sparkline charts visible in the "30-Day Trend" column
+  - **The trend column shows percentages but no visual charts
+
+  🔧 IMMEDIATE FIXES REQUIRED
+
+  FIX 1: ETF Chart X-Axis Date Issue
+
+  File: /client/src/components/price-chart.tsx
+  Location: Around line 85-95 (chart data processing)
+
+  PROBLEM: The chart is receiving proper historical dates but not
+  displaying them correctly.
+
+  YOUR ANALYST NEEDS TO ADD:
+  // In the chartData processing section, ADD this debugging and fix:
+  const chartData: ChartData[] = (stockHistory || []).map((item, index) 
+  => {
+    // DEBUG: Log the raw timestamp data
+    console.log(`📊 Processing stock data:`, {
+      symbol: item.symbol,
+      timestamp: item.timestamp,
+      timestampType: typeof item.timestamp,
+      rawDate: new Date(item.timestamp)
+    });
+
+    // FIX: Handle multiple timestamp formats
+    let dateObj: Date;
+    if (item.timestamp instanceof Date) {
+      dateObj = item.timestamp;
+    } else if (typeof item.timestamp === 'string') {
+      dateObj = new Date(item.timestamp);
+    } else {
+      // Fallback for number timestamps
+      dateObj = new Date(item.timestamp);
+    }
+
+    // Validate the date
+    if (isNaN(dateObj.getTime())) {
+      console.warn(`Invalid date for ${item.symbol}:`, item.timestamp);
+      dateObj = new Date(); // Use current date as fallback
+    }
+
+    return {
+      price: parseFloat(item.price),
+      rsi: calculatedRSI[index] || 65,
+      date: dateObj.toISOString().split('T')[0], // YYYY-MM-DD format
+      timestamp: dateObj.toISOString(),
+      // CRITICAL FIX: Format date properly for chart display
+      formattedDate: dateObj.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
+      }),
+    };
+  }).sort((a, b) => new Date(a.date).getTime() - new
+  Date(b.date).getTime()); // Sort chronologically
+
+  console.log(`📈 Final chart data sample:`, chartData.slice(0, 3));
+
+  ---
+  FIX 2: Economic Indicator ID Mapping
+
+  File: /server/services/macroeconomic-indicators.ts
+  Location: Lines 27-36 (mappings object)
+
+  PROBLEM: Frontend is sending gdp_growth_rate but your system expects
+  different IDs.
+
+  YOUR ANALYST NEEDS TO UPDATE:
+  // Update the mappings to include the exact IDs from your frontend
+  const mappings: Record<string, string[]> = {
+    'unemployment_rate': ['UNRATE', 'unemployment', 'jobless'],
+    'industrial_production': ['INDPRO', 'industrial', 'production'],
+    'nonfarm_payrolls': ['PAYEMS', 'payroll', 'employment'],
+    'cpi_inflation': ['CPIAUCSL', 'CPI', 'inflation', 'consumer_price'],
+    'fed_funds_rate': ['FEDFUNDS', 'federal_funds', 'interest_rate'],
+    // ADD THESE MISSING MAPPINGS:
+    'gdp_growth_rate': ['GDP', 'GDPC1', 'gross_domestic',
+  'economic_growth'],
+    'housing_starts': ['HOUST', 'housing', 'construction'],
+    'consumer_confidence': ['UMCSENT', 'consumer_sentiment',
+  'confidence'],
+    'average_weekly_hours': ['AWHMAN', 'weekly_hours', 'hours'],
+    'labor_force_participation': ['CIVPART', 'labor_force',
+  'participation'],
+    'months_supply_homes': ['MSACSR', 'housing_supply', 'homes_supply'],
+    'commercial_loans': ['BUSLOANS', 'commercial', 'loans'],
+    'retail_sales_food': ['RSFSDP', 'retail_sales', 'food_services'],
+    'construction_spending': ['TTLCONS', 'construction', 'spending']
+  };
+
+  ---
+  FIX 3: Add Sparkline Components to ETF Table
+
+  File: /client/src/components/ETFMetricsTable.tsx
+  Location: In the table header and row rendering sections
+
+  YOUR ANALYST NEEDS TO ADD:
+
+  Step 1: Import Sparkline:
+  import { Sparkline } from '@/components/ui/sparkline';
+
+  Step 2: Add Sparkline Data Fetching:
+  // Add this hook for sparkline data
+  const { data: sparklineData } = useQuery({
+    queryKey: ['sparklines', etfData?.map(etf => etf.symbol)],
+    queryFn: async () => {
+      if (!etfData) return {};
+
+      const sparklinePromises = etfData.map(async (etf) => {
+        try {
+          const response = await
+  fetch(`/api/stocks/${etf.symbol}/sparkline`);
+          if (response.ok) {
+            const result = await response.json();
+            return { symbol: etf.symbol, data: result.data || [], trend:
+  result.trend || 'flat' };
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch sparkline for ${etf.symbol}`);
+        }
+        return { symbol: etf.symbol, data: [], trend: 'flat' };
+      });
+
+      const results = await Promise.all(sparklinePromises);
+      return results.reduce((acc, item) => {
+        acc[item.symbol] = item;
+        return acc;
+      }, {} as Record<string, any>);
+    },
+    enabled: !!etfData?.length,
+    staleTime: 5 * 60 * 1000
+  });
+
+  Step 3: Add Sparkline Column to Table:
+  // In the table header, ADD this column:
+  <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 
+  uppercase tracking-wider">
+    30-Day Trend
+  </th>
+
+  // In the table row rendering, ADD this cell:
+  <td className="px-3 py-2 whitespace-nowrap">
+    <div className="w-20 h-8">
+      {sparklineData?.[etf.symbol] ? (
+        <Sparkline 
+          data={sparklineData[etf.symbol].data || []} 
+          trend={sparklineData[etf.symbol].trend || 'flat'}
+          height={32}
+          showChange={true}
+          period="30D"
+        />
+      ) : (
+        <div className="w-20 h-8 bg-gray-800/30 rounded animate-pulse" />
+      )}
+    </div>
+  </td>
+
+  ---
+  FIX 4: Debug Economic Indicator IDs
+
+  File: /server/routes.ts
+  Location: Add this temporary debug endpoint
+
+  YOUR ANALYST SHOULD ADD:
+  // ADD THIS DEBUG ENDPOINT to see what's actually in your database
+  app.get('/api/debug/economic-indicators', async (req, res) => {
+    try {
+      console.log('🔍 Debug: Listing all economic indicators in 
+  database');
+
+      const result = await db.execute(sql`
+        SELECT DISTINCT 
+          series_id, 
+          metric, 
+          category,
+          unit,
+          COUNT(*) as count,
+          MIN(period_date) as earliest,
+          MAX(period_date) as latest
+        FROM economic_indicators_current 
+        GROUP BY series_id, metric, category, unit
+        ORDER BY count DESC, series_id
+        LIMIT 100
+      `);
+
+      console.log(`Found ${result.rows?.length || 0} unique indicators`);
+
+      res.json({
+        success: true,
+        indicators: result.rows || [],
+        sample_frontend_ids: [
+          'gdp_growth_rate',
+          'unemployment_rate',
+          'cpi_inflation',
+          'fed_funds_rate'
+        ],
+        message: 'Compare frontend IDs with available series_id values'
+      });
+
+    } catch (error) {
+      console.error('Debug endpoint error:', error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  ---
+  🔍 IMMEDIATE TESTING STEPS
+
+  Step 1: Test the Debug Endpoint
+
+  curl http://localhost:5000/api/debug/economic-indicators
+
+  Step 2: Test Stock Chart Data
+
+  curl http://localhost:5000/api/stocks/SPY/history?limit=30
+
+  Step 3: Test Economic Indicator
+
+  # Use the actual series_id from your debug endpoint
+  curl
+  http://localhost:5000/api/economic-indicators/GDP/history?months=12
+
+  ---
+  🎯 EXPECTED RESULTS
+
+  After implementing these fixes:
+
+  1. ✅ SPY Chart X-Axis: Will show proper date progression instead of
+  repeated "8/9/2025"
+  2. ✅ Economic Charts: Will load data instead of showing 404 errors
+  3. ✅ Sparklines: Will appear in the ETF table "30-Day Trend" column
+  4. ✅ Debug Info: You'll see exactly what economic indicators are
+  available in your database
+
+  The key insight is that your frontend is sending different indicator
+  IDs than what exists in your economic_indicators_current table. The
+  debug endpoint will reveal the exact mismatch so you can fix the
+  mappings.

@@ -1,0 +1,269 @@
+Economic Health Score - Complete Redesign
+
+  If I were starting from scratch, I'd build a 3-layer validation-driven 
+  approach focused on predictive accuracy rather than complexity.
+
+  Core Philosophy Changes
+
+  1. Validation First: Every component must prove it predicts economic
+  outcomes
+  2. Simplicity Over Sophistication: 6 components instead of 11
+  3. Dynamic Weighting: Weights adjust based on data quality and predictive
+   power
+  4. Transparent Methodology: Every calculation step clearly documented
+
+  ---
+  New Architecture: The "Economic Pulse" Score
+
+  Layer 1: Core Economic Momentum (60% weight)
+
+  A. Growth Momentum (25%)
+  interface GrowthMomentum {
+    gdpTrend: number;        // 3-quarter GDP trend
+    employmentMomentum: number; // Employment-population ratio trend
+    consumptionHealth: number;  // Retail sales + personal income
+  }
+
+  calculateGrowthMomentum(): number {
+    // Use trend analysis, not absolute levels
+    const gdpTrend = this.calculateTrendStrength(gdpData, 3); // 3 quarters
+    const empTrend = this.calculateTrendStrength(employmentRatio, 6); // 6 
+  months
+    const consumptionTrend = this.calculateTrendStrength(retailSales, 3);
+
+    // Weight by data quality and recency
+    const weights = this.getDataQualityWeights(['GDP', 'Employment',
+  'Consumption']);
+
+    return (gdpTrend * weights.gdp + empTrend * weights.employment +
+            consumptionTrend * weights.consumption) / weights.total;
+  }
+
+  B. Financial Stress Indicator (20%)
+  calculateFinancialStress(): number {
+    // Combine multiple stress indicators
+    const yieldCurveStress = this.analyzeYieldCurve(); // Inversion = 
+  stress
+    const creditSpreads = this.getCreditSpreadStress(); // Corporate bond 
+  spreads
+    const equityVolatility = this.getVIXStress(); // Market fear gauge
+
+    // Financial stress is most predictive of recessions
+    return this.combineStressSignals([yieldCurveStress, creditSpreads,
+  equityVolatility]);
+  }
+
+  C. Labor Market Health (15%)
+  calculateLaborHealth(): number {
+    // Focus on leading indicators, not lagging unemployment rate
+    const jobOpeningsRatio = this.getJOLTSRatio(); // Job openings per 
+  unemployed
+    const layoffTrend = this.getLayoffTrend(); // Initial claims trend
+    const quitRate = this.getQuitRate(); // Worker confidence indicator
+
+    // Weight based on leading vs lagging nature
+    return jobOpeningsRatio * 0.4 + layoffTrend * 0.4 + quitRate * 0.2;
+  }
+
+  Layer 2: Inflation & Policy Balance (25% weight)
+
+  D. Inflation Trajectory (15%)
+  calculateInflationTrajectory(): number {
+    // Not just level, but trajectory and composition
+    const coreInflationTrend = this.getTrendMomentum(coreCPI, 6);
+    const breadthOfInflation = this.getInflationBreadth(); // How 
+  widespread
+    const inflationExpectations = this.getBreakevenRates(); // Market 
+  expectations
+
+    // Target zone scoring (2% +/- 0.5% is optimal)
+    const currentCore = this.getLatestCoreCPI();
+    let trajectoryScore = this.scoreInflationLevel(currentCore);
+
+    // Adjust for trend and expectations
+    trajectoryScore *=
+  this.getInflationMomentumMultiplier(coreInflationTrend);
+
+    return trajectoryScore;
+  }
+
+  E. Policy Effectiveness (10%)
+  calculatePolicyEffectiveness(): number {
+    // How well are policy tools working?
+    const monetaryPolicyStance = this.assessFedPolicy(); // Hawkish/Dovish 
+  vs needed
+    const fiscalDrag = this.getFiscalImpact(); // Government spending 
+  impact
+    const policyCredibility = this.getPolicyCredibility(); // Market trust 
+  in Fed
+
+    return this.combinePolicy([monetaryPolicyStance, fiscalDrag,
+  policyCredibility]);
+  }
+
+  Layer 3: Forward-Looking Confidence (15% weight)
+
+  F. Economic Expectations (15%)
+  calculateEconomicExpectations(): number {
+    // Combine survey and market-based expectations
+    const businessConfidence = this.getBusinessSurveys(); // ISM, NFIB
+    const consumerSentiment = this.getConsumerExpectations(); // Michigan, 
+  Conference Board
+    const marketExpectations = this.getMarketBasedExpectations(); // Term 
+  structure, equity multiples
+
+    // Weight by historical predictive accuracy
+    const weights = this.getExpectationWeights();
+
+    return businessConfidence * weights.business +
+           consumerSentiment * weights.consumer +
+           marketExpectations * weights.market;
+  }
+
+  ---
+  Scoring Methodology
+
+  1. Percentile-Based Scoring (0-100)
+
+  calculateComponentScore(rawValue: number, indicator: string): number {
+    // Use 20-year historical percentiles, not arbitrary thresholds
+    const historicalData = this.getHistoricalData(indicator, 20); // 20 
+  years
+    const percentile = this.calculatePercentile(rawValue, historicalData);
+
+    // Convert percentile to health score
+    if (percentile >= 80) return 90 + (percentile - 80) * 0.5; // 90-100
+    if (percentile >= 60) return 70 + (percentile - 60); // 70-90
+    if (percentile >= 40) return 50 + (percentile - 40); // 50-70
+    if (percentile >= 20) return 30 + (percentile - 20); // 30-50
+    return percentile * 1.5; // 0-30
+  }
+
+  2. Dynamic Weight Adjustment
+
+  calculateDynamicWeights(): WeightStructure {
+    const baseWeights = {
+      growthMomentum: 0.25,
+      financialStress: 0.20,
+      laborHealth: 0.15,
+      inflationTrajectory: 0.15,
+      policyEffectiveness: 0.10,
+      economicExpectations: 0.15
+    };
+
+    // Adjust based on data quality and regime
+    const dataQuality = this.assessDataQuality();
+    const currentRegime = this.detectEconomicRegime(); // Expansion, 
+  slowdown, recession
+
+    // In recession risk periods, emphasize leading indicators
+    if (currentRegime === 'slowdown') {
+      baseWeights.financialStress += 0.05; // Increase from 20% to 25%
+      baseWeights.economicExpectations += 0.05; // Increase from 15% to 20%
+      baseWeights.growthMomentum -= 0.05; // Decrease from 25% to 20%
+      baseWeights.inflationTrajectory -= 0.05; // Decrease from 15% to 10%
+    }
+
+    return this.normalizeWeights(baseWeights);
+  }
+
+  3. Confidence Intervals
+
+  interface HealthScoreResult {
+    score: number;
+    confidence: number; // 0-100
+    range: [number, number]; // 95% confidence interval
+    dataQuality: {
+      freshness: number; // Days since latest data
+      completeness: number; // % of indicators with recent data
+      revision_risk: number; // How much could revisions change score
+    };
+    keyDrivers: string[]; // Top 3 factors moving the score
+    riskFactors: string[]; // What could go wrong
+  }
+
+  ---
+  Example Calculation
+
+  Current Economic Conditions (Example)
+
+  // Raw data inputs
+  const economicData = {
+    gdpGrowth: [2.1, 2.4, 2.8], // Last 3 quarters
+    employmentRatio: [60.0, 60.1, 60.2, 60.1, 60.3, 60.4], // Last 6 months
+    retailSales: [0.3, 0.7, -0.2], // Last 3 months MoM
+    yieldCurve: 0.8, // 10Y-2Y spread
+    vix: 18.5,
+    joltsRatio: 1.4, // Job openings per unemployed person
+    coreCPI: 3.8, // Current level
+    coreCPITrend: [-0.2, -0.1, 0.1], // Monthly changes
+    fedFundsRate: 5.25,
+    consumerSentiment: 68.2
+  };
+
+  // Step 1: Calculate component scores
+  const components = {
+    growthMomentum: this.calculateGrowthMomentum(economicData), // = 72
+    financialStress: this.calculateFinancialStress(economicData), // = 65  
+    laborHealth: this.calculateLaborHealth(economicData), // = 78
+    inflationTrajectory: this.calculateInflationTrajectory(economicData),
+  // = 45
+    policyEffectiveness: this.calculatePolicyEffectiveness(economicData),
+  // = 58
+    economicExpectations: this.calculateEconomicExpectations(economicData)
+  // = 62
+  };
+
+  // Step 2: Apply dynamic weights
+  const weights = this.calculateDynamicWeights(); // Normal expansion 
+  weights
+
+  // Step 3: Calculate weighted score
+  const weightedScore =
+    components.growthMomentum * 0.25 +      // 72 * 0.25 = 18.0
+    components.financialStress * 0.20 +     // 65 * 0.20 = 13.0
+    components.laborHealth * 0.15 +         // 78 * 0.15 = 11.7
+    components.inflationTrajectory * 0.15 + // 45 * 0.15 = 6.75
+    components.policyEffectiveness * 0.10 + // 58 * 0.10 = 5.8
+    components.economicExpectations * 0.15; // 62 * 0.15 = 9.3
+
+  // Final Score = 64.55 → 65
+
+  Final Output
+
+  const result: HealthScoreResult = {
+    score: 65,
+    confidence: 78, // High data quality, moderate agreement across 
+  indicators
+    range: [59, 71], // 95% confidence interval
+    dataQuality: {
+      freshness: 12, // 12 days since latest GDP data
+      completeness: 92, // 92% of indicators current
+      revision_risk: 3 // Score could change ±3 points from revisions
+    },
+    keyDrivers: [
+      "Strong labor market momentum (+8 points)",
+      "Elevated inflation trajectory (-12 points)",
+      "Solid GDP growth trend (+5 points)"
+    ],
+    riskFactors: [
+      "Inflation persistence could trigger aggressive Fed policy",
+      "Consumer sentiment below historical average",
+      "Yield curve still inverted in some segments"
+    ]
+  };
+
+  ---
+  Key Advantages of This Approach
+
+  1. Validation-Based: Every component can be backtested against recession
+  history
+  2. Adaptive: Weights adjust based on economic regime and data quality
+  3. Transparent: Clear percentile-based scoring with confidence intervals
+  4. Predictive Focus: Emphasizes leading indicators over lagging ones
+  5. Actionable: Identifies key drivers and risk factors
+  6. Honest About Uncertainty: Provides confidence intervals and revision
+  risk
+
+  This approach would provide a more reliable and interpretable economic
+  health measure than the current complex but unvalidated system.

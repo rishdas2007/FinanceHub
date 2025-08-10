@@ -1,0 +1,153 @@
+You’re right—that error means somewhere we’re calling `.toISOString()` on something that isn’t a `Date`. After your fail-soft changes, several places now pass **strings (e.g., `"2025-08-09"`) or numbers** through code that still assumes `Date`. That’s why you’re seeing:
+
+```
+TypeError: value.toISOString is not a function
+```
+
+Here’s the fastest, safe fix that will eliminate it everywhere and stop it from coming back.
+
+---
+
+# What’s breaking
+
+Typical offenders I’ve seen in your codebase patterns:
+
+* Helpers like `toISO = (value) => value.toISOString().slice(0,10)` used on values that are already **strings**.
+* Chart formatters/tick mappers that call `someDate.toISOString()` when data from the API is **`"YYYY-MM-DD"` strings** (since we standardized API output).
+* DB/ETL code that logs/normalizes by calling `toISOString` during insert/update when timestamps are **numbers**.
+
+---
+
+# Fix (add one robust helper, use it everywhere)
+
+Create a tiny utility that **accepts Date | number | string** and returns a canonical ISO **date** (`YYYY-MM-DD`) or `null`:
+
+```ts
+// shared/dates.ts
+export function isoDate(value: unknown): string | null {
+  if (value == null) return null;
+
+  // Already an ISO date string?
+  if (typeof value === 'string') {
+    const s = value.trim();
+    // Fast path for 'YYYY-MM-DD...' strings
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    // Try to parse other formats
+    const d = new Date(s);
+    if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    return null;
+  }
+
+  if (value instanceof Date) {
+    if (!Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10);
+    return null;
+  }
+
+  if (typeof value === 'number') {
+    const d = new Date(value); // ms since epoch
+    if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    return null;
+  }
+
+  return null;
+}
+```
+
+## Replace all direct `.toISOString()` uses on non-typed inputs
+
+Search the repo for `toISOString(` and change patterns like:
+
+```ts
+// before
+const d = value.toISOString().slice(0,10);
+
+// after
+import { isoDate } from '../shared/dates';
+const d = isoDate(value) ?? '';
+```
+
+**Likely files to touch:**
+
+* `server/controllers/*history*.ts` (any date clipping/normalization)
+* `server/services/*economic*/*.ts` (period alignment/logging)
+* `client/components/*Chart*.tsx` (tick formatters / series mapping)
+* `utils/formatDate.ts` (if present)
+
+---
+
+# Make chart data unbreakable (include a numeric time)
+
+Even with `isoDate`, charts are happier with a numeric x-axis. Return **both**:
+
+**Server (price history)**
+
+```ts
+// after you build each row
+{ date: '2025-08-09', t: Date.parse('2025-08-09'), close: 265.92 }
+```
+
+**Client (Recharts)**
+
+```tsx
+<XAxis
+  dataKey="t"
+  type="number"
+  domain={['dataMin','dataMax']}
+  tickFormatter={(ms) => new Date(ms).toLocaleDateString()}
+/>
+<Line dataKey="close" />
+```
+
+This prevents any accidental `.toISOString()` calls in the view layer.
+
+---
+
+# Guard your formatters (one-line safety)
+
+If you have helpers like:
+
+```ts
+export const toIsoDay = (d: Date) => d.toISOString().slice(0,10);
+```
+
+Change the signature to accept `unknown` and use `isoDate(d) ?? ''`. This stops runtime crashes even if a string sneaks in.
+
+---
+
+# Quick checks to confirm
+
+1. **Find/replace audit**
+
+   * Global search `toISOString(`. After refactor, it should only appear **inside `isoDate`** or in places where the input is a typed `Date`.
+
+2. **Unit smoke**
+
+   ```ts
+   isoDate('2025-08-09')        // '2025-08-09'
+   isoDate('08/09/2025')        // '2025-08-09'
+   isoDate(1723161600000)       // '2025-08-09'
+   isoDate(new Date('2025-08-09')) // '2025-08-09'
+   isoDate('garbage')           // null
+   ```
+
+3. **Network → price history**
+
+   * Payload rows include both `date` (string) and `t` (number).
+   * Chart renders; no console “toISOString” errors.
+
+---
+
+# Bonus: add a type to stop this at compile time
+
+If you prefer compile-time safety, change DTOs so `date` fields are **strings**, not `Date`:
+
+```ts
+// client/types.ts
+export interface PriceBarDTO { date: string; t: number; close: number; }
+```
+
+Then your IDE will flag any attempt to call `.toISOString()` on `date`.
+
+---
+
+If you paste one of the exact stack traces (file + line number) where the error fires, I’ll give you the precise edit for that spot. But implementing `isoDate(...)` and replacing direct `toISOString()` calls will resolve this class of errors across the app.

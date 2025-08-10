@@ -1,0 +1,108 @@
+Deep breath — crashes usually come from one of three buckets: (1) a fatal import/resolve error, (2) env validation exiting the process, or (3) a thrown JSON/response error during boot. I unpacked your v8.1.0 tarball and found a **smoking gun** plus a couple easy footguns to fix.
+
+# The immediate crash culprit
+
+Your server TypeScript files **import `.js` files that don’t exist** (they’re actually `.ts`). In dev, `tsx` sometimes “just works,” but in production (or even dev depending on flags) Node/esbuild can’t resolve them and the app crashes on startup.
+
+Examples (there are many):
+
+* `server/index.ts`
+
+  ```ts
+  import { intelligentCronScheduler } from "./services/intelligent-cron-scheduler.js"; // ❌ file is .ts
+  ```
+* `server/services/historical-data-intelligence.ts`
+
+  ```ts
+  import { db } from '../db.js'; // ❌ file is .ts
+  ```
+* `server/services/economic-data-enhanced.ts`
+
+  ```ts
+  import { simplifiedEconomicCalendar } from './simplified-economic-calendar.js'; // ❌
+  ```
+
+I counted **\~52** imports that reference `.js` paths while the actual source is `.ts`.
+
+## Quick fix (recommended)
+
+Change **all** relative imports that end in `.js` (and point to your own code) to **extensionless** imports:
+
+```ts
+// change this
+import { X } from '../db.js';
+// to this
+import { X } from '../db';
+```
+
+Do the same for every `./something.js` that is your own TS file.
+
+> Why: `tsx` and `esbuild` can resolve extensionless imports via your tsconfig, but they will not magically swap `.js` → `.ts` at runtime when the physical `.js` file doesn’t exist yet.
+
+If you prefer explicit extensions during development, you can also change them to `.ts`, but **extensionless** is nicest (works in both dev and after bundling).
+
+---
+
+# Two other things that can kill the app
+
+## 1) Env validation exits the process
+
+`server/index.ts` validates env and **calls `process.exit(1)` in production** if anything’s missing. If your deploy doesn’t have all required vars, it will look like a “crash.”
+
+* Either set the missing env vars (ideal), **or** temporarily relax the exit rule while you debug:
+
+  ```ts
+  if (process.env.NODE_ENV === 'production') {
+    // process.exit(1);  // ← comment out while debugging
+  }
+  ```
+
+## 2) JSON middleware “Content-Type” guard
+
+You added a middleware that forces `Content-Type: application/json` and wraps `res.send`. If any route returns a **string that isn’t valid JSON**, this will throw and crash the request (and potentially stop boot if it triggers on startup calls). Keep it, but be sure all health/static routes use `res.json(...)` or set headers explicitly. You already scoped it to `/api`, which is good.
+
+---
+
+# What to do right now (5‑minute plan)
+
+1. **Fix imports (the crash fix)**
+
+   * Replace all local `'.js'` imports in `server/**.ts` with extensionless imports.
+   * Files I saw with bad imports include (non‑exhaustive):
+     `server/index.ts`, `services/*`, `routes/*`, `utils/*`, `db` consumers.
+   * Commit and re-run `npm run dev` (or your start command).
+
+2. **If it still dies**, check logs for:
+
+   * “could not resolve ‘../db.js’” or similar (means one more slipped through).
+   * “Environment validation failed” (set env vars or relax the exit).
+   * JSON/content-type errors from your new middleware (make sure every `/api/*` route returns `res.json(...)`).
+
+3. **Smoke-test the endpoints we touched**
+
+   * `GET /api/etf-metrics` should return `{ success:true, data:[...], metrics:[...], ... }`.
+   * `GET /api/market-status` returns `{ success:true, status:{...} }`.
+   * `GET /api/top-movers` returns `{ success:true, etfMovers:{...} }`.
+
+---
+
+# (Optional) Small hardening patches
+
+* In `server/routes.ts` for `/api/etf-metrics`, you already send **both** `data` and `metrics` and never `null` — perfect. Keep that pattern for UI-facing endpoints.
+* Keep the client’s **universal unwrapping** you added:
+
+  ```ts
+  const unwrapped =
+    Array.isArray(json) ? json :
+    json?.data ?? json?.metrics ?? json?.results ?? json?.items ?? json?.rows ?? null;
+  ```
+* Add a tiny guard on startup to log unresolved path aliases early:
+
+  ```ts
+  import { resolve } from 'node:path';
+  console.log('Paths OK:', resolve('./shared/schema.ts'));
+  ```
+
+---
+
+If you want, I can generate a tiny patch that auto-rewrites all `from './*.js'` to extensionless in `server/**/*.ts`. Or paste your latest crash log and I’ll point to the exact line stopping boot.

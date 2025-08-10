@@ -1,0 +1,68 @@
+ 🎯 Step-by-Step Analysis Plan:
+
+  Phase 1: Run These Queries in Your Database
+
+  1. Copy the queries from direct-analysis-queries.sql I just created
+  2. Run them one by one in your database console (Neon, pgAdmin, or similar)
+  3. Share the results with me for interpretation
+
+  Phase 2: What Each Query Reveals
+
+  Query 1 - Confirms you have recent signal data
+  Query 2 - Shows signal distribution by symbolQuery 3 - Reveals your z-score components in action
+  Query 4 - Verifies historical price data for performance measurement
+  Query 5 - Quick performance spot-check on recent signals
+
+  📊 Based on Your Current Formula Structure, Here's My Analysis:
+
+  Current Weights:
+
+  - RSI (35%) - Primary momentum
+  - MACD (30%) - Trend confirmation
+  - Bollinger %B (20%) - Mean reversion (inverted)
+  - MA Trend (15%) - Trend direction
+  - Price Momentum (10%) - Short-term momentum
+
+  Theoretical Assessment:
+
+  🔴 Likely Issues:
+  1. RSI 35% too high - RSI can whipsaw in choppy markets
+  2. MACD + MA Trend = 45% - Redundant trend signals
+  3. Bollinger inversion - Fights strong trends
+  4. Static ±1.0 thresholds - Don't adapt to market volatility
+
+  🟢 Strengths:
+  1. Z-score normalization - Statistically sound approach
+  2. Multi-timeframe signals - RSI(14) + MACD(12,26) + MA(20,50)
+  3. Balanced approach - Momentum + trend + mean reversion
+
+  💡 My Optimization Recommendation:
+
+  New Weights:
+
+  RSI: 25% (reduced from 35%)
+  MACD: 35% (increased from 30%)
+  Bollinger: 15% (reduced from 20%)
+  MA Trend: 20% (increased from 15%)
+  Price Momentum: 5% (reduced from 10%)
+
+  Dynamic Thresholds:
+
+  Current: Fixed ±1.0
+  Optimized: VIX-adjusted
+  - Low Vol (VIX <20): ±0.75
+  - Normal Vol (VIX 20-30): ±1.0
+  - High Vol (VIX >30): ±1.5
+
+  🚀 Immediate Action Items:
+
+  1. Run the 5 SQL queries I provided
+  2. Look for these key metrics:
+    - BUY signal win rate >55%
+    - SELL signal win rate >55%
+    - Average returns positive for BUY, negative for SELL
+    - Signal frequency (not too rare, not too frequent)
+  3. If performance is poor (<50% accuracy):
+    - Test my optimized weights
+    - Implement volatility-adjusted thresholds
+    - Consider removing Bollinger inversion
