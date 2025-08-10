@@ -184,12 +184,12 @@ export class ApiController {
       
       // ALWAYS use daily interval for consistent date axis display
       const interval = '1day';
-      const { startISO, endISO } = computeUtcDateRange(window);
+      const { startDate, endDate } = computeUtcDateRange(window);
       
       // First try database (for database-backed symbols)
       const { db } = await import('../db');
       const { historicalStockData } = await import('../../shared/schema');
-      const { desc, eq, and, gte, lte } = await import('drizzle-orm');
+      const { desc, eq, and, gte, lt } = await import('drizzle-orm');
       
       const dbResults = await db.select({
         date: historicalStockData.date,
@@ -199,8 +199,8 @@ export class ApiController {
       .from(historicalStockData)
       .where(and(
         eq(historicalStockData.symbol, symbol.toUpperCase()),
-        gte(historicalStockData.date, new Date(startISO + 'T00:00:00Z')),
-        lte(historicalStockData.date, new Date(endISO + 'T23:59:59Z'))
+        gte(historicalStockData.date, startDate),
+        lt(historicalStockData.date, endDate) // End-exclusive prevents midnight edge cases
       ))
       .orderBy(historicalStockData.date)
       .limit(200); // Safety limit
@@ -215,17 +215,19 @@ export class ApiController {
             console.log(`🔍 Row ${index} date type:`, typeof row.date, 'value:', row.date);
           }
           
-          // Use safe date conversion utility
-          const chartPoint = createChartPoint(row.date, Number(row.close));
-          if (!chartPoint) {
+          // Optimized: row.date is already a JS Date from PostgreSQL timestamptz
+          const timestamp = new Date(row.date).getTime(); // Direct conversion
+          const isoDateStr = isoDate(row.date); // Safe ISO conversion
+          
+          if (!isoDateStr || !Number.isFinite(timestamp) || !Number.isFinite(Number(row.close))) {
             console.warn(`⚠️ Skipping invalid data point for ${symbol}:`, { date: row.date, close: row.close });
             return null;
           }
           
           return {
-            timestamp: chartPoint.date, // ISO string
-            t: chartPoint.t,           // numeric timestamp for charts
-            close: chartPoint.close
+            timestamp: isoDateStr, // ISO string for backward compatibility
+            t: timestamp,          // Numeric timestamp for Recharts
+            close: Number(row.close)
           };
         }).filter((row): row is NonNullable<typeof row> => row !== null);
         
@@ -241,6 +243,8 @@ export class ApiController {
       
       // Fallback to external provider for real-time symbols
       try {
+        const startISO = isoDate(startDate) || '';
+        const endISO = isoDate(endDate) || '';
         const raw = await fetchFromTwelveData(symbol.toUpperCase(), interval, startISO, endISO);
         const normalized = normalizeTwelveData(raw);
         const clipped = clipRange(normalized, startISO, endISO);

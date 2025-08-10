@@ -8,31 +8,27 @@
  * @param value - Date, string, number, or unknown value
  * @returns ISO date string or null if invalid
  */
+/**
+ * Optimized version following recommended pattern for maximum safety
+ */
 export function isoDate(value: unknown): string | null {
   if (value == null) return null;
-
-  // Already an ISO date string?
+  
   if (typeof value === 'string') {
     const s = value.trim();
-    // Fast path for 'YYYY-MM-DD...' strings
-    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-    // Try to parse other formats
-    const d = new Date(s);
-    if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
-    return null;
+    // Fast path for 'YYYY-MM-DD...' strings - no conversion needed
+    return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : 
+           (new Date(s).toISOString().slice(0, 10));
   }
-
+  
   if (value instanceof Date) {
-    if (!Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10);
-    return null;
+    return value.toISOString().slice(0, 10);
   }
-
+  
   if (typeof value === 'number') {
-    const d = new Date(value); // ms since epoch
-    if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
-    return null;
+    return new Date(value).toISOString().slice(0, 10);
   }
-
+  
   return null;
 }
 
@@ -115,19 +111,32 @@ export const toIsoDay = (d: unknown): string => isoDate(d) ?? '';
 
 /**
  * Compute UTC date range for time windows (7D, 30D, 90D)
+ * Returns actual Date objects for proper database comparison
  * @param window - Time window string
- * @returns Start and end ISO date strings
+ * @returns Start and end Date objects (end-exclusive)
  */
-export function computeUtcDateRange(window: string): { startISO: string; endISO: string } {
-  const now = new Date();
-  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const start = new Date(end);
-  
+export function computeUtcDateRange(window: string): { startDate: Date; endDate: Date } {
+  const todayUTC = utcStartOfDay(new Date());
   const days = window === '7D' ? 7 : window === '30D' ? 30 : 90;
-  start.setUTCDate(start.getUTCDate() - days);
   
-  return { 
-    startISO: start.toISOString().slice(0, 10), 
-    endISO: end.toISOString().slice(0, 10) 
-  };
+  const startDate = addDaysUTC(todayUTC, -days);
+  const endDate = addDaysUTC(todayUTC, 1); // End-exclusive, includes "today"
+  
+  return { startDate, endDate };
+}
+
+/**
+ * Get UTC start of day for a given date
+ */
+export function utcStartOfDay(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+
+/**
+ * Add days to a UTC date
+ */
+export function addDaysUTC(d: Date, n: number): Date {
+  const result = new Date(d.getTime());
+  result.setUTCDate(result.getUTCDate() + n);
+  return result;
 }
