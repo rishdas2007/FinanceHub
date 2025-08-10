@@ -122,6 +122,12 @@ async function fetchWithTimeout(input: RequestInfo, init?: RequestInit) {
     // Log response for debugging
     console.log(`🔍 API Response for ${input}:`, { hasData: !!json?.data, keys: Object.keys(json || {}) });
 
+    // CRITICAL: Treat provider errors as empty data (never crash UI)
+    if (json && (json.error || json.code === 400 || json.status === 'error')) {
+      console.warn(`⚠️ Provider error treated as empty data:`, json.error || json.message);
+      return [];
+    }
+
     // ETF metrics special case - preserve object structure
     if (input.toString().includes('/api/etf-metrics') && json && typeof json === 'object') {
       return json; // Don't unwrap ETF metrics - need the full response structure

@@ -27,15 +27,15 @@ function normalizeTwelveData(raw: any) {
   const values = raw?.values ?? raw?.data ?? [];
   return values
     .map((v: any) => ({
-      date: (v.datetime || v.date || v.time)?.slice(0,10), // 'YYYY-MM-DD'
-      close: Number(v.close),
+      timestamp: (v.datetime || v.date || v.time)?.slice(0,10), // 'YYYY-MM-DD'
+      close: Number(v.close ?? v.c ?? v.adj_close),
     }))
-    .filter((r: any) => r.date && Number.isFinite(r.close))
-    .sort((a: any, b: any) => a.date.localeCompare(b.date));
+    .filter((r: any) => r.timestamp && Number.isFinite(r.close))
+    .sort((a: any, b: any) => a.timestamp.localeCompare(b.timestamp));
 }
 
 function clipRange(rows: any[], startISO: string, endISO: string) {
-  return rows.filter(r => r.date >= startISO && r.date <= endISO);
+  return rows.filter(r => r.timestamp >= startISO && r.timestamp <= endISO);
 }
 
 async function fetchFromTwelveData(symbol: string, interval: string, startISO: string, endISO: string) {
@@ -48,7 +48,8 @@ async function fetchFromTwelveData(symbol: string, interval: string, startISO: s
     start_date: startISO,
     end_date: endISO,
     outputsize: '1000',
-    apikey: apiKey
+    apikey: apiKey,
+    ...(symbol.startsWith('XL') ? { exchange: 'ARCA' } : {}) // ETF exchange fix
   });
   
   const response = await fetch(`https://api.twelvedata.com/time_series?${params}`);
@@ -208,7 +209,8 @@ export class ApiController {
       if (dbResults.length > 0) {
         console.log(`✅ Historical data returned for ${symbol.toUpperCase()}: ${dbResults.length} records`);
         const normalizedData = dbResults.map(row => ({
-          date: row.date instanceof Date ? row.date.toISOString().slice(0,10) : String(row.date).slice(0,10),
+          timestamp: row.date instanceof Date ? row.date.toISOString().slice(0,10) : 
+                     typeof row.date === 'string' ? row.date.slice(0,10) : String(row.date).slice(0,10),
           close: Number(row.close)
         }));
         
@@ -219,7 +221,7 @@ export class ApiController {
           source: 'database'
         });
         
-        return ResponseUtils.success(res, normalizedData);
+        return res.json({ success: true, data: normalizedData });
       }
       
       // Fallback to external provider for real-time symbols
@@ -238,7 +240,7 @@ export class ApiController {
             source: 'external'
           });
           
-          return ResponseUtils.success(res, clipped);
+          return res.json({ success: true, data: clipped });
         }
       } catch (providerError) {
         console.error(`❌ External provider failed for ${symbol.toUpperCase()}:`, providerError);
@@ -254,7 +256,7 @@ export class ApiController {
         source: 'empty'
       });
       
-      return ResponseUtils.success(res, [], { warning: 'data_unavailable' });
+      return res.json({ success: true, data: [], warning: 'data_unavailable' });
       
     } catch (error) {
       metricsCollector.endTimer(timerId, 'stock_history_fetch', { 
@@ -271,7 +273,7 @@ export class ApiController {
       });
       
       // CRITICAL: Never return {error:"Data not found"} - always fail soft
-      return ResponseUtils.success(res, [], { warning: 'data_unavailable' });
+      return res.json({ success: true, data: [], warning: 'data_unavailable' });
     }
   });
 
