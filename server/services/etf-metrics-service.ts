@@ -1,9 +1,10 @@
 import { db } from '../db';
-import { technicalIndicators, zscoreTechnicalIndicators } from '@shared/schema';
-import { desc, eq, and, gte } from 'drizzle-orm';
+import { technicalIndicators, zscoreTechnicalIndicators, historicalStockData } from '@shared/schema';
+import { desc, eq, and, gte, sql } from 'drizzle-orm';
 import { cacheService } from './cache-unified';
 import { logger } from '../middleware/logging';
 import { zscoreTechnicalService } from './zscore-technical-service';
+import { welfordStats, hasSufficientData, zScore, calculateRSI } from '@shared/utils/statistics';
 
 export interface ETFMetrics {
   symbol: string;
@@ -394,18 +395,17 @@ class ETFMetricsService {
         });
       }
 
-      // CRITICAL: Check for insufficient data - require minimum lookback
-      const MIN_OBS = 180; // Minimum trading days for reliable calculations
-      const hassufficientHistory = zscore?.date && 
-        (new Date().getTime() - new Date(zscore.date).getTime()) / (1000 * 60 * 60 * 24) < 365; // Within 1 year
+      // CRITICAL: Check for sufficient data using database verification
+      const MIN_OBS = 180; // Minimum trading days for reliable calculations 
+      const sufficientData = await this.checkDataSufficiency(symbol, MIN_OBS);
       
-      if (!hassufficientHistory || !technical || !zscore) {
-        logger.warn(`⚠️ Insufficient data for ${symbol}: fallback=true`);
+      if (!sufficientData.sufficient || !technical || !zscore) {
+        logger.warn(`⚠️ Insufficient data for ${symbol}: bars=${sufficientData.bars}, sd=${sufficientData.stdDev?.toFixed(4)} - fallback=true`);
         return {
           symbol,
           name: ETFMetricsService.ETF_NAMES[symbol as keyof typeof ETFMetricsService.ETF_NAMES] || symbol,
           fallback: true,
-          reason: 'insufficient_data',
+          reason: `insufficient_data: ${sufficientData.bars} bars (need ${MIN_OBS})`,
           price: null,
           changePercent: null,
           bollingerPosition: null,
@@ -940,6 +940,69 @@ class ETFMetricsService {
     // Following principle: API → Database → Cache → Frontend
     
     logger.info('✅ ETF metrics refresh initiated');
+  }
+
+  /**
+   * Check data sufficiency for reliable Z-Score calculations
+   * Based on actual historical stock data in database
+   */
+  private async checkDataSufficiency(symbol: string, minObs: number = 180): Promise<{
+    sufficient: boolean;
+    bars: number;
+    stdDev: number | null;
+    reason?: string;
+  }> {
+    try {
+      // Query actual bars and standard deviation from database
+      const result = await db.execute(sql`
+        SELECT 
+          COUNT(*) AS bars,
+          stddev_pop(close) AS sd_close
+        FROM historical_stock_data
+        WHERE symbol = ${symbol}
+          AND date >= NOW() AT TIME ZONE 'UTC' - INTERVAL '365 days'
+        GROUP BY symbol
+      `);
+
+      const data = result.rows?.[0] as any;
+      if (!data) {
+        return { sufficient: false, bars: 0, stdDev: null, reason: 'no_data' };
+      }
+
+      const bars = Number(data.bars) || 0;
+      const stdDev = Number(data.sd_close) || null;
+      const sufficient = bars >= minObs && stdDev !== null && stdDev > 1e-8;
+
+      return {
+        sufficient,
+        bars,
+        stdDev,
+        reason: sufficient ? undefined : 
+               bars < minObs ? `insufficient_bars` :
+               !stdDev || stdDev <= 1e-8 ? `degenerate_stddev` : 'unknown'
+      };
+    } catch (error) {
+      logger.warn(`Failed to check data sufficiency for ${symbol}:`, error);
+      return { sufficient: false, bars: 0, stdDev: null, reason: 'query_error' };
+    }
+  }
+
+  /**
+   * PERFORMANCE OPTIMIZED: Reduce "CRITICAL: Z-Score performance degraded" warnings
+   * Only warn on actual latency issues, not data issues
+   */
+  private trackPerformance(operation: string, startTime: number, hadFallbacks: number = 0) {
+    const ms = Date.now() - startTime;
+    
+    // Only warn on actual performance issues, not data issues
+    if (ms > 250) {
+      logger.warn(`Z-Score performance slow: ${operation}`, { ms, symbols: this.ETF_SYMBOLS.length });
+    }
+    
+    // Info-level logging for data issues (not critical)
+    if (hadFallbacks > 0) {
+      logger.info(`Z-Score data partial: ${operation}`, { fallbackCount: hadFallbacks, totalSymbols: this.ETF_SYMBOLS.length });
+    }
   }
 }
 

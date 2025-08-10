@@ -18,10 +18,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add API logging middleware
   app.use('/api', apiLogger);
   
-  // Add route debugging middleware
+  // Add route debugging middleware (clean up Buffer logging)
   app.use('/api/*', (req, res, next) => {
     console.log(`🔍 API Request: ${req.method} ${req.path}`);
     console.log(`🔍 Full URL: ${req.originalUrl}`);
+    
+    // Clean response logging - decode JSON responses only
+    const originalSend = res.send;
+    res.send = function(data: any) {
+      const ct = res.getHeader('content-type')?.toString() || '';
+      
+      // Only log JSON responses and keep them short
+      if (ct.includes('application/json') && typeof data === 'string') {
+        try {
+          const jsonData = JSON.parse(data);
+          const logData = JSON.stringify(jsonData).slice(0, 200);
+          console.log(`📤 ${req.method} ${req.path} → ${logData}...`);
+        } catch (e) {
+          // Skip logging if not valid JSON
+        }
+      }
+      
+      return originalSend.call(this, data);
+    };
+    
     next();
   });
   
