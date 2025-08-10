@@ -71,6 +71,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 3-Layer Economic Data Model (Bronze → Silver → Gold)
   app.use('/api/econ', (await import('./routes/economic-data-routes')).economicDataRoutes);
   
+  // V2 API routes with unified response envelope
+  app.use('/api/v2', (await import('./routes/api-v2-routes')).default);
+  
   // CRITICAL: Economic chart compatibility routes for 404 fixes
   const { EconCompatController } = await import('./controllers/EconCompatController');
   app.get('/api/econ/metrics/:id/chart', EconCompatController.getEconChart);
