@@ -2,8 +2,11 @@ import { Request, Response } from 'express';
 import { createApiResponse, createApiError } from '@shared/types/api-contracts';
 import { logger } from '../middleware/logging';
 import { equityFeaturesETL } from './equity-features-etl';
+import { economicFeaturesETL } from './economic-features-etl';
+import { historicalDataService } from './historical-data-service';
 import { cacheService } from './cache-unified';
 import { getMarketHoursInfo } from '@shared/utils/marketHours';
+import { circuitBreakers } from './circuit-breaker';
 
 export class ApiV2Service {
   
@@ -100,21 +103,17 @@ export class ApiV2Service {
         return;
       }
       
-      // TODO: Implement DB-first, provider-fallback logic
-      // For now, return empty structure
-      const response = {
-        symbol,
-        window,
-        points: [],
-        fallback: true
-      };
+      // Use circuit breaker for protection
+      const response = await circuitBreakers.database.execute(async () => {
+        return await historicalDataService.getStockHistory(symbol, window);
+      });
       
       await cacheService.set(cacheKey, response, 300); // 5 minute cache
       
       res.json(createApiResponse(response, { 
-        source: 'db', 
+        source: response.fallback ? 'provider' : 'db', 
         version: 'v2',
-        warning: 'Historical data migration in progress'
+        warning: response.fallback ? 'Using fallback data - limited historical coverage' : undefined
       }));
       
     } catch (error) {
@@ -144,20 +143,17 @@ export class ApiV2Service {
         return;
       }
       
-      // TODO: Implement thin close series from equity_daily_bars
-      const response = {
-        symbol,
-        days,
-        points: [],
-        fallback: true
-      };
+      // Use circuit breaker and historical data service
+      const response = await circuitBreakers.database.execute(async () => {
+        return await historicalDataService.getSparkline(symbol, days);
+      });
       
       await cacheService.set(cacheKey, response, 300); // 5 minute cache
       
       res.json(createApiResponse(response, { 
-        source: 'db', 
+        source: response.fallback ? 'provider' : 'db', 
         version: 'v2',
-        warning: 'Sparkline data migration in progress'
+        warning: response.fallback ? 'Limited sparkline data available' : undefined
       }));
       
     } catch (error) {
@@ -171,14 +167,41 @@ export class ApiV2Service {
    */
   async getHealth(req: Request, res: Response): Promise<void> {
     try {
-      // TODO: Implement comprehensive health checks
+      // Comprehensive health checks with circuit breaker status
+      const circuitBreakerHealth = Object.entries(circuitBreakers).reduce((acc, [name, breaker]) => {
+        const stats = breaker.getStats();
+        acc[name] = {
+          state: stats.state,
+          healthy: stats.state === 'CLOSED',
+          failures: stats.failures,
+          successes: stats.successes
+        };
+        return acc;
+      }, {} as Record<string, any>);
+      
+      const dbHealthy = circuitBreakers.database.getState() === 'CLOSED';
+      const providersHealthy = circuitBreakers.fredApi.getState() === 'CLOSED' && 
+                               circuitBreakers.twelveData.getState() === 'CLOSED';
+      
+      // Get feature store metrics
+      const etfFeatures = await equityFeaturesETL.getLatestFeatures(['SPY', 'XLK', 'XLF']);
+      const validFeaturesCount = etfFeatures.filter(f => !f.fallback).length;
+      const validFeaturesPercent = etfFeatures.length > 0 ? 
+        (validFeaturesCount / etfFeatures.length) * 100 : 0;
+      
       const health = {
-        ok: true,
-        db: true,
-        provider: true,
+        ok: dbHealthy && providersHealthy,
+        db: dbHealthy,
+        provider: providersHealthy,
         lastEtlAt: new Date().toISOString(),
-        validFeatures: 85.5, // % of symbols with valid features
-        uptime: process.uptime()
+        validFeatures: Math.round(validFeaturesPercent * 10) / 10,
+        uptime: process.uptime(),
+        circuitBreakers: circuitBreakerHealth,
+        featureStore: {
+          totalSymbols: etfFeatures.length,
+          validSymbols: validFeaturesCount,
+          fallbackSymbols: etfFeatures.length - validFeaturesCount
+        }
       };
       
       res.json(createApiResponse(health, { version: 'v2' }));
@@ -186,6 +209,43 @@ export class ApiV2Service {
     } catch (error) {
       logger.error('Failed to get health:', error);
       res.status(500).json(createApiError('Failed to get health status'));
+    }
+  }
+  
+  /**
+   * GET /api/v2/economic-indicators
+   */
+  async getEconomicIndicators(req: Request, res: Response): Promise<void> {
+    try {
+      const cacheKey = 'economic-indicators-v2';
+      const cached = await cacheService.get(cacheKey);
+      
+      if (cached) {
+        res.json(createApiResponse(cached, { cached: true, source: 'cache' }));
+        return;
+      }
+      
+      // Get features from economic feature store
+      const features = await economicFeaturesETL.getLatestFeatures();
+      
+      const response = {
+        indicators: features,
+        count: features.length,
+        pipelineVersion: 'v1.0.0',
+        dataSource: 'economic_feature_store'
+      };
+      
+      await cacheService.set(cacheKey, response, 300); // 5 minute cache
+      
+      res.json(createApiResponse(response, { 
+        source: 'db', 
+        version: 'v2',
+        warning: features.length === 0 ? 'Economic features not yet computed' : undefined
+      }));
+      
+    } catch (error) {
+      logger.error('Failed to get economic indicators:', error);
+      res.status(500).json(createApiError('Failed to get economic indicators'));
     }
   }
 }

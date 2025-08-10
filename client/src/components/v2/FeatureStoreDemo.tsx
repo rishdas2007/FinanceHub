@@ -76,6 +76,22 @@ export function FeatureStoreDemo() {
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Refresh Data
             </Button>
+            
+            <Button
+              variant="outline"
+              onClick={() => window.open('/api/v2/health', '_blank')}
+              data-testid="button-health"
+            >
+              View Raw Health API
+            </Button>
+            
+            <Button
+              variant="outline"
+              onClick={() => window.open('/api/v2/etf-metrics?symbols=SPY,XLK', '_blank')}
+              data-testid="button-metrics"
+            >
+              View Raw Metrics API
+            </Button>
           </div>
 
           {error && (
