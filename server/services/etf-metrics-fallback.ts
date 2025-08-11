@@ -93,7 +93,7 @@ export class ETFMetricsFallbackService {
         const price = latestPrice[0];
         const tech = latestTech[0] || {};
 
-        // Calculate basic signals with available data
+        // Calculate weighted Z-score signals with available data
         const rsi = tech.rsi || null;
         const bollingerPosition = this.calculateBollingerPosition(
           price.price, 
@@ -101,15 +101,28 @@ export class ETFMetricsFallbackService {
           tech.bb_lower
         );
 
-        const signal = this.generateBasicSignal(rsi, bollingerPosition);
         const maSignal = this.getMASignal(tech.sma_20, tech.sma_50, price.price);
+        const change30Day = await this.calculate30DayChange(symbol);
+        
+        // Use Optimized Z-Score Weighted System
+        const weightedResult = this.calculateWeightedZScoreSignal({
+          rsi: rsi,
+          macd: tech.macd,
+          macdSignal: tech.macdSignal,
+          bollingerPosition: bollingerPosition,
+          sma20: tech.sma_20,
+          sma50: tech.sma_50,
+          price: price.price,
+          atr: tech.atr,
+          change30Day: change30Day
+        });
         
         results.push({
           symbol,
           name: ETF_NAMES[symbol as keyof typeof ETF_NAMES] || symbol,
           price: price.price,
           changePercent: price.change_percent || 0,
-          signal,
+          signal: weightedResult.signal, // Use weighted Z-score signal
           rsi,
           bollingerPosition,
           bollingerStatus: this.getBollingerStatus(bollingerPosition),
@@ -117,10 +130,12 @@ export class ETFMetricsFallbackService {
           maTrend: maSignal.trend,
           maGap: this.calculateMAGap(tech.sma_20, tech.sma_50),
           volatility: tech.volatility || null,
-          change30Day: await this.calculate30DayChange(symbol),
-          weightedSignal: signal, // Use same signal for now
+          change30Day: change30Day,
+          weightedSignal: weightedResult.signal, // Weighted Z-score signal
+          weightedScore: weightedResult.weightedScore,
+          zScoreData: weightedResult.zScoreData,
           atr: tech.atr || null,
-          zScore: null, // Not available in fallback
+          zScore: weightedResult.weightedScore, // Use weighted score as z-score
           sharpeRatio: null, // Not available in fallback
           fiveDayReturn: null // Not available in fallback
         });
@@ -147,6 +162,115 @@ export class ETFMetricsFallbackService {
     if (position >= 0.8) return 'Near Upper';
     if (position <= 0.2) return 'Near Lower';
     return 'Middle';
+  }
+
+  // Optimized Z-Score Weighted System Signal Calculation
+  // MACD 35%, RSI 25%, MA Trend 20%, Bollinger 15%, Price Momentum 5%, ATR 0%
+  private calculateWeightedZScoreSignal(data: {
+    rsi?: number | null;
+    macd?: number | null;
+    macdSignal?: number | null;
+    bollingerPosition?: number | null;
+    sma20?: number | null;
+    sma50?: number | null;
+    price?: number | null;
+    atr?: number | null;
+    change30Day?: number | null;
+  }): { signal: string; weightedScore: number; zScoreData: any } {
+    
+    let totalScore = 0;
+    let componentCount = 0;
+    
+    const zScoreData = {
+      rsiZScore: null as number | null,
+      macdZScore: null as number | null,
+      bollingerZScore: null as number | null,
+      maTrendZScore: null as number | null,
+      priceMomentumZScore: null as number | null,
+      atrZScore: null as number | null,
+      compositeZScore: 0,
+      signal: 'HOLD',
+      regimeAware: false
+    };
+
+    // MACD Component (35% weight)
+    if (data.macd !== null && data.macd !== undefined && data.macdSignal !== null && data.macdSignal !== undefined) {
+      const macdDiff = data.macd - data.macdSignal;
+      const macdZScore = this.normalizeToZScore(macdDiff, -2, 2); // Normalize MACD difference
+      zScoreData.macdZScore = macdZScore;
+      totalScore += macdZScore * 0.35;
+      componentCount++;
+    }
+
+    // RSI Component (25% weight)
+    if (data.rsi !== null && data.rsi !== undefined) {
+      const rsiZScore = this.normalizeToZScore(data.rsi, 30, 70); // RSI normalized (oversold/overbought)
+      zScoreData.rsiZScore = rsiZScore;
+      totalScore += rsiZScore * 0.25;
+      componentCount++;
+    }
+
+    // MA Trend Component (20% weight)
+    if (data.sma20 !== null && data.sma20 !== undefined && 
+        data.sma50 !== null && data.sma50 !== undefined && 
+        data.price !== null && data.price !== undefined) {
+      let maTrendScore = 0;
+      if (data.sma20 > data.sma50) maTrendScore += 0.5; // SMA20 > SMA50 (bullish)
+      if (data.price > data.sma20) maTrendScore += 0.5; // Price > SMA20 (bullish)
+      
+      const maTrendZScore = (maTrendScore - 0.5) * 4; // Convert to -2 to +2 range
+      zScoreData.maTrendZScore = maTrendZScore;
+      totalScore += maTrendZScore * 0.20;
+      componentCount++;
+    }
+
+    // Bollinger Component (15% weight)
+    if (data.bollingerPosition !== null && data.bollingerPosition !== undefined) {
+      const bollingerZScore = this.normalizeToZScore(data.bollingerPosition, 0.2, 0.8); // %B normalized
+      zScoreData.bollingerZScore = bollingerZScore;
+      totalScore += bollingerZScore * 0.15;
+      componentCount++;
+    }
+
+    // Price Momentum Component (5% weight)
+    if (data.change30Day !== null && data.change30Day !== undefined) {
+      const momentumZScore = this.normalizeToZScore(data.change30Day, -10, 10); // 30-day % change
+      zScoreData.priceMomentumZScore = momentumZScore;
+      totalScore += momentumZScore * 0.05;
+      componentCount++;
+    }
+
+    // ATR Component (0% weight - kept for completeness)
+    if (data.atr !== null && data.atr !== undefined) {
+      const atrZScore = this.normalizeToZScore(data.atr, 1, 10); // ATR normalized
+      zScoreData.atrZScore = atrZScore;
+      // totalScore += atrZScore * 0.0; // 0% weight
+    }
+
+    // Calculate composite Z-score
+    const compositeZScore = componentCount > 0 ? totalScore : 0;
+    zScoreData.compositeZScore = compositeZScore;
+
+    // Generate signal based on composite Z-score
+    let signal = 'HOLD';
+    if (compositeZScore > 0.5) signal = 'BULLISH';
+    else if (compositeZScore < -0.5) signal = 'BEARISH';
+
+    zScoreData.signal = signal;
+    zScoreData.regimeAware = componentCount >= 3;
+
+    return {
+      signal,
+      weightedScore: Math.round(compositeZScore * 100) / 100,
+      zScoreData
+    };
+  }
+
+  // Helper function to normalize values to Z-score range
+  private normalizeToZScore(value: number, lowerBound: number, upperBound: number): number {
+    const midpoint = (upperBound + lowerBound) / 2;
+    const range = (upperBound - lowerBound) / 4; // Scale to approx -2 to +2
+    return (value - midpoint) / range;
   }
 
   private generateBasicSignal(rsi: number | null, bollingerPosition: number | null): string {
