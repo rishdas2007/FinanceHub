@@ -322,7 +322,6 @@ export default function ETFMetricsTable() {
   console.log('ETF Metrics Debug:', {
     hasResponse: !!etfMetricsResponse,
     isLoading,
-    error: error?.message,
     responseKeys: etfMetricsResponse ? Object.keys(etfMetricsResponse) : [],
     hasSuccess: etfMetricsResponse?.success,
     hasData: !!etfMetricsResponse?.data,
@@ -330,7 +329,7 @@ export default function ETFMetricsTable() {
   });
 
   // Always render the component frame, even with no data
-  const showDatabaseWarning = etfMetricsResponse?.warning === 'database_unavailable' || etfMetrics.length === 0;
+  const showDatabaseWarning = etfMetrics.length === 0;
 
   if (etfMetrics.length === 0) {
     return (
