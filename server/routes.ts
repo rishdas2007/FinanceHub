@@ -205,10 +205,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('❌ ETF metrics error:', error);
-      res.status(500).json({
-        success: false,
+      // Return 200 with graceful fallback instead of 500 error
+      res.status(200).json({
+        success: true,
         data: [], // Always provide empty array on error
-        error: error instanceof Error ? error.message : 'Unknown error',
+        warning: "data_temporarily_unavailable",
+        message: "ETF metrics temporarily unavailable, please try again in a moment",
         timestamp: new Date().toISOString()
       });
     }
