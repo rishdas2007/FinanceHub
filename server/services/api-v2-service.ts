@@ -26,11 +26,11 @@ export class ApiV2Service {
       const marketInfo = getMarketHoursInfo();
       const status = {
         isOpen: marketInfo.isOpen,
-        isPremarket: false, // TODO: Add to market hours utility
-        isAfterHours: !marketInfo.isOpen,
-        nextOpen: new Date().toISOString(), // TODO: Add to market hours utility
-        nextClose: new Date().toISOString(), // TODO: Add to market hours utility
-        session: marketInfo.isOpen ? 'open' : 'closed',
+        isPremarket: marketInfo.session === 'premarket',
+        isAfterHours: marketInfo.session === 'afterhours',
+        nextOpen: marketInfo.nextOpen,
+        nextClose: marketInfo.nextClose,
+        session: marketInfo.session,
         label: `Market ${marketInfo.isOpen ? 'open' : 'closed'}`
       };
       

@@ -60,7 +60,7 @@ export function MarketStatusIndicator() {
           textColor: 'text-gain-green',
           icon: CircleDot,
           label: 'Market Open',
-          description: `Closes: ${formatMarketTime(marketStatus?.nextClose, userTz)}`
+          description: `Closes: ${formatMarketTime(marketStatus?.nextClose || null, userTz)}`
         };
       case 'premarket':
         return {
@@ -68,7 +68,7 @@ export function MarketStatusIndicator() {
           textColor: 'text-blue-400',
           icon: Sun,
           label: 'Pre-Market',
-          description: `Opens: ${formatMarketTime(marketStatus?.nextOpen, userTz)}`
+          description: `Opens: ${formatMarketTime(marketStatus?.nextOpen || null, userTz)}`
         };
       case 'afterhours':
         return {
@@ -76,7 +76,7 @@ export function MarketStatusIndicator() {
           textColor: 'text-yellow-400',
           icon: Moon,
           label: 'After Hours',
-          description: `Next open: ${formatMarketTime(marketStatus?.nextOpen, userTz)}`
+          description: `Next open: ${formatMarketTime(marketStatus?.nextOpen || null, userTz)}`
         };
       default:
         return {
@@ -84,7 +84,7 @@ export function MarketStatusIndicator() {
           textColor: 'text-loss-red',
           icon: Calendar,
           label: 'Market Closed',
-          description: `Next open: ${formatMarketTime(marketStatus?.nextOpen, userTz)}`
+          description: `Next open: ${formatMarketTime(marketStatus?.nextOpen || null, userTz)}`
         };
     }
   };
