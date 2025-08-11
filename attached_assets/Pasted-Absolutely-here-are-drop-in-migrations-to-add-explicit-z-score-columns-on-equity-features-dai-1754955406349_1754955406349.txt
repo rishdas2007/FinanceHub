@@ -1,0 +1,136 @@
+Absolutely — here are drop-in migrations to **add explicit z-score columns** on `equity_features_daily`, plus an optional SQL backfill so the UI can use them immediately.
+
+---
+
+# Option A — Raw SQL migration
+
+Save as `migrations/20250812_add_component_z_columns.sql`:
+
+```sql
+-- Add explicit component z-score columns (safe re-run)
+ALTER TABLE equity_features_daily
+  ADD COLUMN IF NOT EXISTS rsi_z_60d     double precision,
+  ADD COLUMN IF NOT EXISTS bb_z_60d      double precision,
+  ADD COLUMN IF NOT EXISTS ma_gap_z_60d  double precision,
+  ADD COLUMN IF NOT EXISTS mom5d_z_60d   double precision;
+
+-- (Optional) helper index if you’ll sort/filter by these a lot
+CREATE INDEX IF NOT EXISTS idx_efd_compz_60d
+  ON equity_features_daily (horizon, asof_date DESC, rsi_z_60d, bb_z_60d, ma_gap_z_60d, mom5d_z_60d);
+```
+
+### (Optional) One-time backfill so the columns aren’t null
+
+This computes the 60-day rolling z for **RSI(14)**, **Bollinger %B**, **MA gap %**, and **5-day momentum** and writes them into the new columns. Run once after the migration.
+
+```sql
+-- 1) Backfill RSI/Bollinger/MA-gap z from features (horizon = '60D')
+WITH z AS (
+  SELECT
+    symbol,
+    asof_date,
+    -- 60-day rolling mean/sd on each component
+    (rsi14 - AVG(rsi14) OVER (PARTITION BY symbol ORDER BY asof_date
+                              ROWS BETWEEN 59 PRECEDING AND CURRENT ROW))
+    / NULLIF(STDDEV_SAMP(rsi14) OVER (PARTITION BY symbol ORDER BY asof_date
+                                      ROWS BETWEEN 59 PRECEDING AND CURRENT ROW), 0)                  AS rsi_z,
+    (bb_pctb_20 - AVG(bb_pctb_20) OVER (PARTITION BY symbol ORDER BY asof_date
+                                        ROWS BETWEEN 59 PRECEDING AND CURRENT ROW))
+    / NULLIF(STDDEV_SAMP(bb_pctb_20) OVER (PARTITION BY symbol ORDER BY asof_date
+                                           ROWS BETWEEN 59 PRECEDING AND CURRENT ROW), 0)             AS bb_z,
+    (ma_gap_pct - AVG(ma_gap_pct) OVER (PARTITION BY symbol ORDER BY asof_date
+                                        ROWS BETWEEN 59 PRECEDING AND CURRENT ROW))
+    / NULLIF(STDDEV_SAMP(ma_gap_pct) OVER (PARTITION BY symbol ORDER BY asof_date
+                                           ROWS BETWEEN 59 PRECEDING AND CURRENT ROW), 0)             AS ma_gap_z
+  FROM equity_features_daily
+  WHERE horizon = '60D'
+)
+UPDATE equity_features_daily e
+SET
+  rsi_z_60d    = COALESCE(z.rsi_z, 0),
+  bb_z_60d     = COALESCE(z.bb_z, 0),
+  ma_gap_z_60d = COALESCE(z.ma_gap_z, 0)
+FROM z
+WHERE e.symbol = z.symbol
+  AND e.asof_date = z.asof_date
+  AND e.horizon = '60D';
+
+-- 2) Backfill 5-day momentum z from raw bars (close-to-close total return)
+WITH r AS (
+  SELECT
+    symbol,
+    ts_utc::date AS d,
+    close,
+    (close / LAG(close, 5) OVER (PARTITION BY symbol ORDER BY ts_utc) - 1) AS ret5d
+  FROM equity_daily_bars
+),
+z AS (
+  SELECT
+    symbol,
+    d AS asof_date,
+    (ret5d - AVG(ret5d) OVER (PARTITION BY symbol ORDER BY d
+                              ROWS BETWEEN 59 PRECEDING AND CURRENT ROW))
+    / NULLIF(STDDEV_SAMP(ret5d) OVER (PARTITION BY symbol ORDER BY d
+                                      ROWS BETWEEN 59 PRECEDING AND CURRENT ROW), 0)                  AS mom5d_z
+  FROM r
+)
+UPDATE equity_features_daily e
+SET mom5d_z_60d = COALESCE(z.mom5d_z, 0)
+FROM z
+WHERE e.symbol = z.symbol
+  AND e.asof_date = z.asof_date
+  AND e.horizon = '60D';
+```
+
+> Notes
+> • We use **rolling 60 trading days** (`ROWS BETWEEN 59 PRECEDING…`) to define the z-window.
+> • `COALESCE(..., 0)` protects against initial warm-up periods / zero std-dev.
+> • If your %B isn’t clamped yet, clamp before z if you prefer: `LEAST(GREATEST(bb_pctb_20,0),1)`.
+
+---
+
+# Option B — Drizzle migration (TypeScript)
+
+Save as `drizzle/20250812_add_component_z_columns.ts`:
+
+```ts
+import { sql } from "drizzle-orm";
+import type { Migration } from "./_meta"; // adjust to your setup
+
+export const up: Migration = async (db) => {
+  await db.execute(sql`
+    ALTER TABLE equity_features_daily
+      ADD COLUMN IF NOT EXISTS rsi_z_60d     double precision,
+      ADD COLUMN IF NOT EXISTS bb_z_60d      double precision,
+      ADD COLUMN IF NOT EXISTS ma_gap_z_60d  double precision,
+      ADD COLUMN IF NOT EXISTS mom5d_z_60d   double precision;
+  `);
+
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS idx_efd_compz_60d
+      ON equity_features_daily (horizon, asof_date DESC, rsi_z_60d, bb_z_60d, ma_gap_z_60d, mom5d_z_60d);
+  `);
+};
+
+export const down: Migration = async (db) => {
+  // Usually we keep columns for history; only drop if you need to roll back hard:
+  // await db.execute(sql`ALTER TABLE equity_features_daily
+  //   DROP COLUMN IF EXISTS rsi_z_60d,
+  //   DROP COLUMN IF EXISTS bb_z_60d,
+  //   DROP COLUMN IF EXISTS ma_gap_z_60d,
+  //   DROP COLUMN IF EXISTS mom5d_z_60d;`);
+};
+```
+
+---
+
+## UI hookup (what changes after this)
+
+* Stop computing orientation on the client; just read the prebuilt columns:
+
+  * `rsi_z_60d` (remember RSI is **mean-reverting** → use **−z** when coloring if you want “green = bullish”).
+  * `bb_z_60d` (mean-reverting → **−z**).
+  * `ma_gap_z_60d`, `mom5d_z_60d` (trend → **+z**).
+* Your composite can now sum **oriented** z’s directly; no per-render window math.
+
+If you want, I can also add a small **backfill script** in Node/TS that computes these z’s off your existing features/bars and upserts (same math as the SQL above) — just say the word.

@@ -152,7 +152,13 @@ export function TechnicalIndicatorLegend({ className = '' }: TechnicalIndicatorL
           <TabsContent value="signals" className="space-y-4 mt-4">
             <div className="space-y-4">
               <div className="bg-gray-800 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-200 mb-3">Optimized Signal Composition (August 6, 2025)</h4>
+                <h4 className="font-medium text-gray-200 mb-3">Optimized Signal Composition (August 12, 2025)</h4>
+                <div className="mb-3 p-3 bg-blue-900/20 border border-blue-600 rounded">
+                  <p className="text-xs text-blue-300">
+                    <strong>Polarity-Aware Coloring:</strong> All Z-scores are oriented so that green means the component supports a long position. 
+                    RSI &amp; Bollinger use inverted polarity (low = bullish), while MACD, MA Trend &amp; Momentum use normal polarity (high = bullish).
+                  </p>
+                </div>
                 <div className="space-y-2 text-sm text-gray-300">
                   <div className="flex justify-between">
                     <span>MACD (Enhanced trend detection)</span>
@@ -182,7 +188,7 @@ export function TechnicalIndicatorLegend({ className = '' }: TechnicalIndicatorL
               </div>
 
               <div className="bg-gray-800 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-200 mb-3">Optimized Signal Thresholds (August 6, 2025)</h4>
+                <h4 className="font-medium text-gray-200 mb-3">Optimized Signal Thresholds (August 12, 2025)</h4>
                 <div className="space-y-3 text-sm text-gray-300">
                   <div className="bg-green-900/20 p-3 rounded border border-green-700">
                     <div className="flex justify-between mb-1">
@@ -213,7 +219,7 @@ export function TechnicalIndicatorLegend({ className = '' }: TechnicalIndicatorL
               </div>
 
               <div className="bg-gray-800 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-200 mb-3">Enhanced Z-Score Statistical Analysis (August 6, 2025)</h4>
+                <h4 className="font-medium text-gray-200 mb-3">Enhanced Z-Score Statistical Analysis (August 12, 2025)</h4>
                 <div className="space-y-2 text-sm text-gray-300">
                   <p><strong>Window:</strong> 252-day rolling window (institutional-grade 10-year dataset with 2,610 records per symbol)</p>
                   <p><strong>Optimized Thresholds:</strong> Lowered from ±1.0 to ±0.75 for 40% more actionable signals while maintaining 95% confidence</p>

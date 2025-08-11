@@ -1,0 +1,67 @@
+Short answer: it’s close, but two components are likely **inverted** relative to your color guide.
+
+For traders, “green = good/buy” should mean *“this component pushes the trade in a bullish direction.”* That depends on the **polarity** of the indicator:
+
+* **Trend-following (higher is bullish):** MACD z, MA-gap z, 5-Day momentum z → **positive = green**, negative = red.
+* **Mean-reversion (lower is buy / oversold is good):** **RSI z, Bollinger %B z** → **negative = green**, positive = red.
+
+Right now your screenshot suggests all z’s are colored the same way. That makes **RSI** and **Bollinger** misleading (e.g., a negative RSI z—oversold vs history—should be *green*, not red).
+
+Here’s the exact mapping I recommend:
+
+| Component          | What “bullish” means                 | Color rule (use oriented z) |
+| ------------------ | ------------------------------------ | --------------------------- |
+| MACD z (60D)       | MACD rich vs its 60D norm            | `score = z`                 |
+| MA Trend gap z     | MA50 ≫ MA200 (gap wide & rising)     | `score = z`                 |
+| 5-Day momentum z   | Strong recent return vs 60D norm     | `score = z`                 |
+| **RSI z (60D)**    | **RSI low vs norm (oversold)**       | `score = -z`                |
+| **Bollinger %B z** | **%B low vs norm (near lower band)** | `score = -z`                |
+
+Then color by thresholds on the **oriented** score:
+
+* `score ≥ +0.75` → **Green** (buy-helping)
+* `-0.75 < score < +0.75` → **Yellow** (neutral/caution)
+* `score ≤ −0.75` → **Red** (sell-pressuring)
+
+A couple of sensible guards:
+
+* If **RSI > 70** (overbought) or **RSI < 30** (oversold), add a tiny ⚠︎ in the tooltip regardless of color.
+* Clamp %B to \[0,1]; show “NA” if σ=0 recently.
+
+### Tiny implementation helper
+
+```ts
+type Component = 'macdZ'|'rsiZ'|'bollZ'|'maGapZ'|'mom5dZ';
+
+const POLARITY: Record<Component, 1|-1> = {
+  macdZ: +1,     // higher is bullish
+  maGapZ: +1,
+  mom5dZ: +1,
+  rsiZ:  -1,     // lower is bullish
+  bollZ: -1
+};
+
+export function colorForZ(component: Component, z?: number) {
+  if (z == null || !isFinite(z)) return 'muted'; // show "—"
+  const score = z * POLARITY[component];
+  if (score >= 0.75) return 'green';
+  if (score <= -0.75) return 'red';
+  return 'yellow';
+}
+```
+
+Use this for both the text color of the “Z:” label and the tiny bullet/heat chip. If you’re combining into the composite, make sure you weight the **oriented** z’s (same polarity table).
+
+### Copy tweak (legend)
+
+> “All z-scores are **oriented** so that green means the component supports a long (e.g., low RSI / low %B are green). Thresholds ±0.75 adapt with volatility.”
+
+### Quick QA checklist
+
+* Pick a known oversold day: RSI z negative → cell shows **green**.
+* Pick an overbought day: RSI z positive → **red** (with ⚠︎ if RSI>70).
+* %B hugging lower band: %B z negative → **green**.
+* MACD ripping: MACD z positive → **green**.
+* Composite badge should agree with weighted oriented z’s.
+
+If you want, I can also add explicit columns in `equity_features_daily` (`rsi_z_60d`, `bb_z_60d`, `ma_gap_z_60d`, `mom5d_z_60d`) so the UI doesn’t have to recompute them.

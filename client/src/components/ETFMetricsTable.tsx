@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, Activity, BarChart3, Zap, Volume2, DollarSign
 import { TechnicalIndicatorLegend } from './TechnicalIndicatorLegend';
 import { Sparkline } from '@/components/ui/sparkline';
 import { formatNumber } from '@/lib/utils';
+import { getZScoreColor, formatZScore } from '@/lib/zscoreUtils';
 
 interface ETFData {
   symbol: string;
@@ -303,11 +304,8 @@ function ETFRow({ etf }: { etf: ETFMetrics }) {
           <span className="text-xs text-gray-400">
             Signal
           </span>
-          <span className={`text-xs font-mono mt-1 ${
-            (etf.zScoreData?.macdZScore || 0) > 0 ? 'text-green-300' :
-            (etf.zScoreData?.macdZScore || 0) < 0 ? 'text-red-300' : 'text-gray-300'
-          }`}>
-            Z: {safeFormatNumber(etf.zScoreData?.macdZScore, 3)}
+          <span className={`text-xs font-mono mt-1 ${getZScoreColor('macdZ', etf.zScoreData?.macdZScore)}`}>
+            Z: {formatZScore(etf.zScoreData?.macdZScore, 3)}
           </span>
         </div>
       </td>
@@ -321,11 +319,8 @@ function ETFRow({ etf }: { etf: ETFMetrics }) {
           <span className={`text-xs ${rsiStatus.color}`}>
             RSI
           </span>
-          <span className={`text-xs font-mono mt-1 ${
-            (etf.zScoreData?.rsiZScore || 0) > 0 ? 'text-red-300' :
-            (etf.zScoreData?.rsiZScore || 0) < 0 ? 'text-green-300' : 'text-gray-300'
-          }`}>
-            Z: {safeFormatNumber(etf.zScoreData?.rsiZScore, 3)}
+          <span className={`text-xs font-mono mt-1 ${getZScoreColor('rsiZ', etf.zScoreData?.rsiZScore)}`}>
+            Z: {formatZScore(etf.zScoreData?.rsiZScore, 3)}
           </span>
         </div>
       </td>
@@ -339,11 +334,8 @@ function ETFRow({ etf }: { etf: ETFMetrics }) {
           <span className="text-xs text-gray-400">
             %B: {etf.bollingerPosition ? (etf.bollingerPosition * 100).toFixed(0) + '%' : 'N/A'}
           </span>
-          <span className={`text-xs font-mono mt-1 ${
-            (etf.zScoreData?.bollingerZScore || 0) > 0 ? 'text-red-300' :
-            (etf.zScoreData?.bollingerZScore || 0) < 0 ? 'text-green-300' : 'text-gray-300'
-          }`}>
-            Z: {safeFormatNumber(etf.zScoreData?.bollingerZScore, 3)}
+          <span className={`text-xs font-mono mt-1 ${getZScoreColor('bollZ', etf.zScoreData?.bollingerZScore)}`}>
+            Z: {formatZScore(etf.zScoreData?.bollingerZScore, 3)}
           </span>
         </div>
       </td>
@@ -357,11 +349,8 @@ function ETFRow({ etf }: { etf: ETFMetrics }) {
           <span className="text-xs text-gray-400">
             Gap: {formatPercent(etf.maGap)}
           </span>
-          <span className={`text-xs font-mono mt-1 ${
-            (etf.zScoreData?.maTrendZScore || 0) > 0 ? 'text-green-300' :
-            (etf.zScoreData?.maTrendZScore || 0) < 0 ? 'text-red-300' : 'text-gray-300'
-          }`}>
-            Z: {safeFormatNumber(etf.zScoreData?.maTrendZScore, 3)}
+          <span className={`text-xs font-mono mt-1 ${getZScoreColor('maGapZ', etf.zScoreData?.maTrendZScore)}`}>
+            Z: {formatZScore(etf.zScoreData?.maTrendZScore, 3)}
           </span>
         </div>
       </td>
@@ -377,11 +366,8 @@ function ETFRow({ etf }: { etf: ETFMetrics }) {
           }`}>
             {formatPercent(etf.fiveDayReturn)}
           </span>
-          <span className={`text-xs font-mono mt-1 ${
-            (etf.zScoreData?.priceMomentumZScore || 0) > 0 ? 'text-green-300' :
-            (etf.zScoreData?.priceMomentumZScore || 0) < 0 ? 'text-red-300' : 'text-gray-300'
-          }`}>
-            Z: {safeFormatNumber(etf.zScoreData?.priceMomentumZScore, 3)}
+          <span className={`text-xs font-mono mt-1 ${getZScoreColor('mom5dZ', etf.zScoreData?.priceMomentumZScore)}`}>
+            Z: {formatZScore(etf.zScoreData?.priceMomentumZScore, 3)}
           </span>
         </div>
       </td>
