@@ -564,6 +564,34 @@ export default function ETFMetricsTable() {
                   <span>RSI</span>
                 </div>
               </th>
+              <th className="text-center p-3 font-medium text-purple-300 min-w-[80px] bg-purple-900/20">
+                <div className="text-xs">RSI Z</div>
+                <div className="text-xs text-gray-400">(25%)</div>
+              </th>
+              <th className="text-center p-3 font-medium text-purple-300 min-w-[80px] bg-purple-900/20">
+                <div className="text-xs">MACD Z</div>
+                <div className="text-xs text-gray-400">(35%)</div>
+              </th>
+              <th className="text-center p-3 font-medium text-purple-300 min-w-[80px] bg-purple-900/20">
+                <div className="text-xs">BB Z</div>
+                <div className="text-xs text-gray-400">(15%)</div>
+              </th>
+              <th className="text-center p-3 font-medium text-purple-300 min-w-[80px] bg-purple-900/20">
+                <div className="text-xs">MA Z</div>
+                <div className="text-xs text-gray-400">(20%)</div>
+              </th>
+              <th className="text-center p-3 font-medium text-purple-300 min-w-[80px] bg-purple-900/20">
+                <div className="text-xs">Mom Z</div>
+                <div className="text-xs text-gray-400">(5%)</div>
+              </th>
+              <th className="text-center p-3 font-medium text-purple-300 min-w-[80px] bg-purple-900/20">
+                <div className="text-xs">ATR Z</div>
+                <div className="text-xs text-gray-400">(0%)</div>
+              </th>
+              <th className="text-center p-3 font-medium text-purple-300 min-w-[90px] bg-purple-900/30">
+                <div className="text-xs font-bold">Composite</div>
+                <div className="text-xs text-gray-400">Final Z</div>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -766,6 +794,85 @@ export default function ETFMetricsTable() {
                           Z: {formatNumber(etf.zScoreData.rsiZScore, 2)}
                         </span>
                       )}
+                    </div>
+                  </td>
+
+                  {/* Individual Z-Score Components */}
+                  {/* RSI Z-Score (25%) */}
+                  <td className="p-3 text-center bg-purple-900/20">
+                    <span className={`text-sm font-mono ${
+                      (etf.zScoreData?.rsiZScore || 0) > 0 ? 'text-red-300' :
+                      (etf.zScoreData?.rsiZScore || 0) < 0 ? 'text-green-300' : 'text-gray-300'
+                    }`}>
+                      {formatNumber(etf.zScoreData?.rsiZScore, 3)}
+                    </span>
+                  </td>
+
+                  {/* MACD Z-Score (35%) */}
+                  <td className="p-3 text-center bg-purple-900/20">
+                    <span className={`text-sm font-mono ${
+                      (etf.zScoreData?.macdZScore || 0) > 0 ? 'text-green-300' :
+                      (etf.zScoreData?.macdZScore || 0) < 0 ? 'text-red-300' : 'text-gray-300'
+                    }`}>
+                      {formatNumber(etf.zScoreData?.macdZScore, 3)}
+                    </span>
+                  </td>
+
+                  {/* Bollinger Z-Score (15%) */}
+                  <td className="p-3 text-center bg-purple-900/20">
+                    <span className={`text-sm font-mono ${
+                      (etf.zScoreData?.bollingerZScore || 0) > 0 ? 'text-red-300' :
+                      (etf.zScoreData?.bollingerZScore || 0) < 0 ? 'text-green-300' : 'text-gray-300'
+                    }`}>
+                      {formatNumber(etf.zScoreData?.bollingerZScore, 3)}
+                    </span>
+                  </td>
+
+                  {/* MA Trend Z-Score (20%) */}
+                  <td className="p-3 text-center bg-purple-900/20">
+                    <span className={`text-sm font-mono ${
+                      (etf.zScoreData?.maTrendZScore || 0) > 0 ? 'text-green-300' :
+                      (etf.zScoreData?.maTrendZScore || 0) < 0 ? 'text-red-300' : 'text-gray-300'
+                    }`}>
+                      {formatNumber(etf.zScoreData?.maTrendZScore, 3)}
+                    </span>
+                  </td>
+
+                  {/* Price Momentum Z-Score (5%) */}
+                  <td className="p-3 text-center bg-purple-900/20">
+                    <span className={`text-sm font-mono ${
+                      (etf.zScoreData?.priceMomentumZScore || 0) > 0 ? 'text-green-300' :
+                      (etf.zScoreData?.priceMomentumZScore || 0) < 0 ? 'text-red-300' : 'text-gray-300'
+                    }`}>
+                      {formatNumber(etf.zScoreData?.priceMomentumZScore, 3)}
+                    </span>
+                  </td>
+
+                  {/* ATR Z-Score (0% - not used) */}
+                  <td className="p-3 text-center bg-purple-900/20">
+                    <span className="text-sm font-mono text-gray-500">
+                      {formatNumber(etf.zScoreData?.atrZScore, 3)}
+                    </span>
+                    <div className="text-xs text-gray-500 mt-1">Not Used</div>
+                  </td>
+
+                  {/* Composite Z-Score - Final weighted result */}
+                  <td className="p-3 text-center bg-purple-900/30">
+                    <div className="flex flex-col items-center">
+                      <span className={`text-base font-bold font-mono ${
+                        (etf.zScoreData?.compositeZScore || 0) > 0.5 ? 'text-green-400' :
+                        (etf.zScoreData?.compositeZScore || 0) < -0.5 ? 'text-red-400' : 
+                        'text-yellow-400'
+                      }`}>
+                        {formatNumber(etf.zScoreData?.compositeZScore, 3)}
+                      </span>
+                      <span className={`text-xs font-medium mt-1 px-2 py-1 rounded ${
+                        etf.zScoreData?.signal === 'BUY' ? 'bg-green-800/50 text-green-300' :
+                        etf.zScoreData?.signal === 'SELL' ? 'bg-red-800/50 text-red-300' :
+                        'bg-gray-800/50 text-yellow-300'
+                      }`}>
+                        {etf.zScoreData?.signal || 'HOLD'}
+                      </span>
                     </div>
                   </td>
 
