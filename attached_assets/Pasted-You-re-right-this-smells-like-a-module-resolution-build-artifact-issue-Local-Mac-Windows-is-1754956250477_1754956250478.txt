@@ -1,0 +1,219 @@
+You’re right—this smells like a **module-resolution / build-artifact** issue. Local (Mac/Windows) is forgiving; prod (Linux, serverless) is strict. Here’s how to fix it cleanly and keep the API from failing even if the import breaks.
+
+---
+
+# 0) Grab the exact error (30s)
+
+Check your server logs for the failing request (the ETF API). You’ll likely see one of these:
+
+* `ERR_MODULE_NOT_FOUND: Cannot find module '.../zscoreUtils'`
+* `Cannot use import statement outside a module`
+* `Named export 'orientedZ' not found. The requested module ... is a CommonJS module`
+* `Error [ERR_MODULE_RESOLUTION_LEGACY]` (Vercel/Edge with ESM)
+
+The steps below fix all of these classes.
+
+---
+
+# 1) Pick one module system for the **server** (recommend ESM)
+
+**package.json**
+
+```json
+{
+  "type": "module",
+  "scripts": {
+    "build:server": "tsc -p tsconfig.server.json",
+    "start:prod": "node dist/server/index.js"
+  }
+}
+```
+
+**tsconfig.server.json**
+
+```json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "server",
+    "outDir": "dist/server",
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "sourceMap": false,
+    "declaration": false
+  },
+  "include": ["server/**/*.ts"]
+}
+```
+
+> If you prefer CommonJS, flip `type` to `"commonjs"`, set `module: "CommonJS"`, and use `require`. Don’t mix.
+
+---
+
+# 2) Fix the import path **and extension** (ESM rule)
+
+In ESM, the compiled JS must import **with a `.js` extension** and a **case-exact path**. Rename the file to **kebab case** to avoid case drift:
+
+```
+server/utils/zscore-utils.ts
+```
+
+**Export (named):**
+
+```ts
+// server/utils/zscore-utils.ts
+export const POLARITY = { macdZ: 1, maGapZ: 1, mom5dZ: 1, rsiZ: -1, bollZ: -1 } as const;
+
+export type Component = keyof typeof POLARITY;
+
+export function orientedZ(key: Component, z?: number | null) {
+  if (z == null || !Number.isFinite(Number(z))) return null;
+  return Number(z) * POLARITY[key];
+}
+
+export function colorForZ(key: Component, z?: number | null) {
+  const s = orientedZ(key, z);
+  if (s == null) return "muted";
+  if (s >= 0.75) return "green";
+  if (s <= -0.75) return "red";
+  return "yellow";
+}
+```
+
+**Import (server code):**
+
+```ts
+// GOOD (ESM): note the .js and exact casing
+import { orientedZ, colorForZ, POLARITY } from "../utils/zscore-utils.js";
+```
+
+> Common mistakes that work locally but fail on Linux prod:
+>
+> * Importing `../utils/zscoreUtils` (case mismatch)
+> * Omitting extension in ESM (`../utils/zscore-utils`)
+> * Importing from `src/…` instead of built `dist/server/…` at runtime
+
+---
+
+# 3) Make sure the file is in the build artifact
+
+After `pnpm build:server`:
+
+```
+dist/server/utils/zscore-utils.js    ✅
+```
+
+If it’s missing:
+
+* Check `include` in `tsconfig.server.json` covers `server/utils/**/*.ts`.
+* If you have a custom bundler (tsup/esbuild), ensure `--outDir dist/server` and that the file isn’t excluded.
+
+---
+
+# 4) Kill path aliases (or wire them correctly)
+
+If you wrote:
+
+```ts
+import { orientedZ } from "@/utils/zscore-utils";
+```
+
+Either:
+
+* Replace with a **relative** import (simplest), **or**
+* Add runtime alias resolution (server only):
+
+```ts
+// server/index.ts (very top)
+import 'tsconfig-paths/register';
+```
+
+and ensure `tsconfig.server.json` carries:
+
+```json
+"baseUrl": ".",
+"paths": { "@/*": ["server/*"] }
+```
+
+Serverless runtimes often won’t honor aliases unless you bundle or register a resolver.
+
+---
+
+# 5) Guard the API so a failed import never 500s
+
+In the controller that uses z utils:
+
+```ts
+let Z = { orientedZ: (k:any,z:any)=>z, colorForZ: (_:any)=>"muted", POLARITY: {} as any };
+
+try {
+  // ESM dynamic import so it works even if bundlers split chunks
+  Z = await import("../utils/zscore-utils.js");
+} catch (e) {
+  console.error("[zscore-utils] import failed, falling back", e);
+  // fallback keeps API alive (will just not color/orient)
+}
+
+// … use Z.orientedZ() safely inside try/catch when building payload
+```
+
+And make the route return a **soft empty** when anything breaks:
+
+```ts
+try {
+  // build metrics…
+  return res.json({ success: true, data });
+} catch (err) {
+  console.error("[/api/etf/metrics] fatal", err);
+  return res.json({ success: true, data: [], warning: "data_unavailable" });
+}
+```
+
+This prevents the “Internal Server Error” and shows your gentle “No data” UI only when truly empty.
+
+---
+
+# 6) CI/CD sanity checks (catch before deploy)
+
+Add a prod-like smoke run in your pipeline:
+
+```bash
+pnpm build:server
+# Linux case sensitivity check
+node -e "import('file://$(pwd)/dist/server/utils/zscore-utils.js').then(()=>console.log('OK')).catch(e=>{console.error(e);process.exit(1)})"
+node dist/server/index.js --check-only   # optional: boot server in 'check' mode
+```
+
+Also run the server in **Docker (linux)** locally once; macOS hides case issues.
+
+---
+
+# 7) If you’re on CommonJS instead (alternate)
+
+* `package.json` → `"type": "commonjs"`.
+* Import with `require` (no extension required):
+
+```js
+const { orientedZ, colorForZ, POLARITY } = require('../utils/zscore-utils');
+```
+
+Do **not** `require` an ESM file; if zscore utils stays ESM, use `import()` dynamic instead.
+
+---
+
+# 8) Quick checklist
+
+* [ ] Import path uses **relative path** and **`.js` extension** (ESM).
+* [ ] File exists in **dist**.
+* [ ] No **case mismatch** between dev and prod (Linux is strict).
+* [ ] No **tsconfig `paths`** in production unless `tsconfig-paths/register` is loaded or you bundle.
+* [ ] Controller wraps import & returns **200 with empty data** on failure.
+* [ ] Logs show the real error (no swallowed exceptions).
+
+---
+
+If you paste the exact deployment error line (stacktrace), I can point to the precise line/path that needs changing and give you the one-line fix for your repo.
