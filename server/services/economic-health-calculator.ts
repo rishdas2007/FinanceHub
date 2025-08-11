@@ -126,7 +126,7 @@ export class EconomicHealthCalculator {
       const result = await db.execute(sql`
         SELECT metric, value,
                CAST(COALESCE(NULLIF(z_score, ''), '0') AS DECIMAL) as z_score
-        FROM economicIndicatorsCurrent 
+        FROM economic_indicators_current 
         WHERE metric IN ('GDP Growth Rate', 'Unemployment Rate (Δ-adjusted)', 'Employment Population Ratio')
         ORDER BY period_date DESC
       `);
@@ -291,7 +291,7 @@ export class EconomicHealthCalculator {
       const result = await db.execute(sql`
         SELECT metric, value, period_date,
                CAST(COALESCE(NULLIF(z_score, ''), '0') AS DECIMAL) as z_score
-        FROM economicIndicatorsCurrent 
+        FROM economic_indicators_current 
         WHERE metric IN ('GDP Growth Rate', 'Employment Population Ratio', 'Retail Sales')
         ORDER BY period_date DESC
       `);
@@ -337,7 +337,7 @@ export class EconomicHealthCalculator {
     try {
       const result = await db.execute(sql`
         SELECT metric, value
-        FROM economicIndicatorsCurrent 
+        FROM economic_indicators_current 
         WHERE metric IN ('Yield Curve (10yr-2yr)', 'VIX', '10-Year Treasury Yield (Δ-adjusted)')
         ORDER BY period_date DESC
       `);
@@ -376,7 +376,7 @@ export class EconomicHealthCalculator {
       const result = await db.execute(sql`
         SELECT metric, value,
                CAST(COALESCE(NULLIF(z_score, ''), '0') AS DECIMAL) as z_score
-        FROM economicIndicatorsCurrent 
+        FROM economic_indicators_current 
         WHERE metric IN ('Unemployment Rate (Δ-adjusted)', 'Nonfarm Payrolls', 'Employment Population Ratio')
         ORDER BY period_date DESC
       `);
@@ -430,7 +430,7 @@ export class EconomicHealthCalculator {
       const result = await db.execute(sql`
         SELECT metric, value,
                CAST(COALESCE(NULLIF(z_score, ''), '0') AS DECIMAL) as z_score
-        FROM economicIndicatorsCurrent 
+        FROM economic_indicators_current 
         WHERE metric IN ('Core CPI (Δ-adjusted)', 'Core PCE Price Index (Δ-adjusted)')
         ORDER BY period_date DESC
       `);
@@ -470,7 +470,7 @@ export class EconomicHealthCalculator {
     try {
       const result = await db.execute(sql`
         SELECT metric, value
-        FROM economicIndicatorsCurrent 
+        FROM economic_indicators_current 
         WHERE metric IN ('Federal Funds Rate (Δ-adjusted)', '10-Year Treasury Yield (Δ-adjusted)')
         ORDER BY period_date DESC
       `);
@@ -519,8 +519,8 @@ export class EconomicHealthCalculator {
     try {
       const result = await db.execute(sql`
         SELECT COUNT(*) as total_indicators,
-               COUNT(CASE WHEN period_date >= DATE('now', '-30 days') THEN 1 END) as fresh_indicators
-        FROM economicIndicatorsCurrent
+               COUNT(CASE WHEN period_date >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as fresh_indicators
+        FROM economic_indicators_current
       `);
 
       const row = result.rows[0] as any;
