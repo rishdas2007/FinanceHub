@@ -224,6 +224,83 @@ const getVWAPSignal = (price: number, vwap: number | null): { signal: string; co
   return { signal: 'At VWAP', color: 'text-yellow-600', deviation }; // Neutral
 };
 
+// Individual ETF Row Component
+function ETFRow({ etf }: { etf: ETFMetrics }) {
+  const rsiStatus = getRSIStatus(etf.rsi);
+  const bollingerStatus = getBollingerStatus(etf.bollingerPosition);
+  
+  // Signal color mapping
+  const getSignalColor = (signal: string) => {
+    if (signal === 'BULLISH' || signal === 'BUY') return 'text-green-400';
+    if (signal === 'BEARISH' || signal === 'SELL') return 'text-red-400';
+    return 'text-yellow-400';
+  };
+
+  // Format percentage change
+  const formatPercent = (value: number | null | undefined) => {
+    if (value === null || value === undefined) return 'N/A';
+    return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+  };
+
+  // Format price
+  const formatPrice = (price: number) => {
+    if (price >= 1000) return `$${(price/1000).toFixed(1)}k`;
+    return `$${price.toFixed(2)}`;
+  };
+
+  return (
+    <tr className="border-b border-gray-700/50 hover:bg-gray-800/30 transition-colors">
+      <td className="py-3 px-1">
+        <div className="flex flex-col">
+          <span className="font-medium text-white">{etf.symbol}</span>
+          <span className="text-xs text-gray-400 truncate max-w-[80px]">{etf.name}</span>
+        </div>
+      </td>
+      <td className="py-3 px-1 text-white font-medium">
+        {formatPrice(etf.price)}
+      </td>
+      <td className="py-3 px-1">
+        <span className={`font-medium ${etf.changePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          {formatPercent(etf.changePercent)}
+        </span>
+      </td>
+      <td className="py-3 px-1">
+        <span className={`font-medium ${(etf.change30Day || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          {formatPercent(etf.change30Day)}
+        </span>
+      </td>
+      <td className="py-3 px-1">
+        <span className={`px-2 py-1 rounded text-xs font-medium ${getSignalColor(etf.signal || etf.weightedSignal || 'HOLD')}`}>
+          {etf.signal || etf.weightedSignal || 'HOLD'}
+        </span>
+      </td>
+      <td className="py-3 px-1">
+        <span className={`text-sm ${rsiStatus.color}`}>
+          {etf.rsi ? etf.rsi.toFixed(1) : 'N/A'}
+        </span>
+      </td>
+      <td className="py-3 px-1">
+        <span className={`text-sm ${bollingerStatus.color}`}>
+          {etf.bollingerPosition ? (etf.bollingerPosition * 100).toFixed(0) + '%' : 'N/A'}
+        </span>
+      </td>
+      <td className="py-3 px-1">
+        <span className="text-sm text-gray-300">
+          {etf.volatility ? etf.volatility.toFixed(1) + '%' : 'N/A'}
+        </span>
+      </td>
+      <td className="py-3 px-1">
+        <span className={`text-sm ${(etf.maGap || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          {formatPercent(etf.maGap)}
+        </span>
+      </td>
+      <td className="py-3 px-1">
+        <SparklineCell symbol={etf.symbol} />
+      </td>
+    </tr>
+  );
+}
+
 export default function ETFMetricsTable() {
   // Database-first ETF metrics API call
   const { data: etfMetricsResponse, isLoading, error } = useQuery<any>({
