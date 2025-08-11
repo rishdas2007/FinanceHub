@@ -17,13 +17,14 @@ interface ETFMoversData {
 }
 
 interface EconomicIndicator {
-  metric: string;
+  seriesId: string;
+  displayName: string;
   period: string;
-  current: string;
-  prior: string;
-  change: string;
+  current: number;
+  prior: number;
+  vsPrior: number;
   zScore: number | null;
-  spark: Array<{ t: number; value: number }>;
+  spark12m: Array<{ t: number; value: number }>;
 }
 
 function SignalBadge({ signal }: { signal: string }) {
@@ -260,21 +261,20 @@ export function EconomicPulse() {
   return (
     <div className="space-y-3" data-testid="economic-pulse">
       {data.map((indicator, i) => {
-        const changeStr = indicator.change || '';
-        const changeNum = parseFloat(changeStr.replace(/[^\d.-]/g, '')) || 0;
-        const isPositive = changeNum >= 0;
+        const isPositive = indicator.vsPrior >= 0;
         const trendDirection = isPositive ? 'up' : 'down';
+        const vsPriorFormatted = isPositive ? `+${indicator.vsPrior.toFixed(2)}` : indicator.vsPrior.toFixed(2);
         
         return (
-          <div key={`${indicator.metric || 'unknown'}-${i}`} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+          <div key={`${indicator.seriesId}-${i}`} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1 pr-3">
-                <div className="font-medium text-white text-sm leading-tight">{indicator.metric || 'Economic Indicator'}</div>
-                <div className="text-xs text-gray-400 mt-1">{indicator.period || 'N/A'}</div>
+                <div className="font-medium text-white text-sm leading-tight">{indicator.displayName}</div>
+                <div className="text-xs text-gray-400 mt-1">{indicator.period}</div>
               </div>
               <div className="flex-shrink-0">
                 <SimpleSparkline 
-                  data={indicator.spark} 
+                  data={indicator.spark12m} 
                   trend={trendDirection}
                 />
               </div>
@@ -282,18 +282,18 @@ export function EconomicPulse() {
             <div className="grid grid-cols-3 gap-2 text-xs">
               <div>
                 <div className="text-gray-400">Current</div>
-                <div className="text-white font-medium">{indicator.current || '—'}</div>
+                <div className="text-white font-medium">{indicator.current.toFixed(2)}</div>
               </div>
               <div>
                 <div className="text-gray-400">Prior</div>
-                <div className="text-gray-300">{indicator.prior || '—'}</div>
+                <div className="text-gray-300">{indicator.prior.toFixed(2)}</div>
               </div>
               <div>
                 <div className="text-gray-400">vs Prior</div>
                 <div className={cn("font-medium", 
                   isPositive ? 'text-emerald-400' : 'text-red-400'
                 )}>
-                  {indicator.change || '—'}
+                  {vsPriorFormatted}
                 </div>
               </div>
             </div>
