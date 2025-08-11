@@ -225,63 +225,42 @@ const getVWAPSignal = (price: number, vwap: number | null): { signal: string; co
 };
 
 export default function ETFMetricsTable() {
-  // NEW: Single consolidated API call - Database-first approach
-  const { data: etfMetricsResponse, isLoading, error } = useQuery<{ 
-    success: boolean; 
-    data: ETFMetrics[]; // PRIMARY: Universal client unwrapping
-    metrics: ETFMetrics[]; // LEGACY: Backward compatibility
-    count: number; 
-    timestamp: string;
-    source: string;
-  }>({
+  // Database-first ETF metrics API call
+  const { data: etfMetricsResponse, isLoading, error } = useQuery<any>({
     queryKey: ['/api/etf-metrics'],
-    refetchInterval: () => {
-      // Market-aware refresh intervals
-      const now = new Date();
-      const estHour = now.getHours(); // Rough EST approximation
-      const isMarketHours = estHour >= 9 && estHour <= 16; // 9:30 AM - 4:00 PM EST
-      const isExtendedHours = (estHour >= 4 && estHour < 9) || (estHour > 16 && estHour <= 20);
-      
-      if (isMarketHours) return 120000; // 2 minutes during market hours
-      if (isExtendedHours) return 300000; // 5 minutes during extended hours
-      return 900000; // 15 minutes when market is closed
-    },
-    staleTime: 60000, // 1 minute - aggressive freshness during market hours
-    retry: 3,
-    refetchOnWindowFocus: true, // Refetch when user returns to window
-    refetchOnMount: true, // Always fetch fresh data on mount
+    staleTime: 30000, // 30 seconds
+    refetchInterval: 120000, // 2 minutes  
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
-  // Extract ETF metrics data with simplified handling for new response format
+  // Extract ETF metrics data - simplified and robust
   const etfMetrics = useMemo(() => {
-    if (!etfMetricsResponse) return [];
-    
-    console.log('🔍 ETF Data Extraction:', {
-      hasData: !!etfMetricsResponse.data,
-      dataLength: etfMetricsResponse.data?.length,
-      hasMetrics: !!etfMetricsResponse.metrics,
-      metricsLength: etfMetricsResponse.metrics?.length,
-      success: etfMetricsResponse.success
+    console.log('🔍 Fresh ETF Data Extraction:', { 
+      hasResponse: !!etfMetricsResponse,
+      response: etfMetricsResponse 
     });
     
-    // Primary: Use data field if available
-    if (etfMetricsResponse.data && Array.isArray(etfMetricsResponse.data)) {
-      console.log('✅ Using data field:', etfMetricsResponse.data.length, 'ETFs');
-      return etfMetricsResponse.data;
+    if (!etfMetricsResponse?.success) {
+      console.log('❌ No successful response');
+      return [];
     }
     
-    // Fallback: Use metrics field
-    if (etfMetricsResponse.metrics && Array.isArray(etfMetricsResponse.metrics)) {
-      console.log('✅ Using metrics field:', etfMetricsResponse.metrics.length, 'ETFs');
-      return etfMetricsResponse.metrics;
+    // Try data field first
+    const dataArray = etfMetricsResponse.data;
+    if (Array.isArray(dataArray) && dataArray.length > 0) {
+      console.log('✅ SUCCESS: Using data field with', dataArray.length, 'ETFs');
+      return dataArray;
     }
     
-    // Debug for unexpected format
-    console.warn('⚠️ No valid ETF data found in response:', {
-      responseKeys: Object.keys(etfMetricsResponse),
-      dataType: typeof etfMetricsResponse.data,
-      metricsType: typeof etfMetricsResponse.metrics
-    });
+    // Try metrics field as fallback
+    const metricsArray = etfMetricsResponse.metrics;
+    if (Array.isArray(metricsArray) && metricsArray.length > 0) {
+      console.log('✅ SUCCESS: Using metrics field with', metricsArray.length, 'ETFs');
+      return metricsArray;
+    }
+    
+    console.warn('❌ FAILED: No valid ETF array found');
     return [];
   }, [etfMetricsResponse]);
 
@@ -319,19 +298,94 @@ export default function ETFMetricsTable() {
   }
 
   // Debug logging for troubleshooting
-  console.log('ETF Metrics Debug:', {
-    hasResponse: !!etfMetricsResponse,
+  console.log('🚨 FINAL RENDER DECISION:', {
+    etfMetricsLength: etfMetrics.length,
+    etfMetricsType: typeof etfMetrics,
+    etfMetricsIsArray: Array.isArray(etfMetrics),
     isLoading,
-    responseKeys: etfMetricsResponse ? Object.keys(etfMetricsResponse) : [],
-    hasSuccess: etfMetricsResponse?.success,
-    hasData: !!etfMetricsResponse?.data,
-    dataLength: etfMetricsResponse?.data?.length
+    hasError: !!error,
+    firstETF: etfMetrics[0]?.symbol || 'none'
   });
 
-  // Always render the component frame, even with no data
-  const showDatabaseWarning = etfMetrics.length === 0;
+  // Show table if we have data, loading if still fetching, empty state only if error or no data after loading
+  const hasData = etfMetrics.length > 0;
+  
+  // Show loading state if no data yet and still loading
+  if (isLoading && !hasData) {
+    return (
+      <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6" data-testid="etf-metrics-loading">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className="h-5 w-5 text-blue-400 animate-pulse" />
+          <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
+          <span className="text-sm text-blue-400">Loading...</span>
+        </div>
+        <div className="space-y-3">
+          {[1,2,3,4,5].map(i => (
+            <div key={i} className="h-12 bg-gray-800 rounded animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-  if (etfMetrics.length === 0) {
+  // Show table if we have data
+  if (hasData) {
+    return (
+      <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6" data-testid="etf-metrics-table">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-blue-400" />
+            <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
+            <span className="text-sm text-gray-400">({etfMetrics.length} ETFs)</span>
+          </div>
+          <TechnicalIndicatorLegend />
+        </div>
+
+        <div className="mb-4 p-3 bg-gray-800/50 rounded-lg border border-gray-600">
+          <p className="text-sm text-gray-300">
+            <strong className="text-white">Color Guide:</strong> 
+            <span className="text-green-400 font-medium">Green = Good/Buy signals</span>, 
+            <span className="text-yellow-400 font-medium">Yellow = Neutral/Caution</span>, 
+            <span className="text-red-400 font-medium">Red = Bad/Sell signals</span>. 
+            <br />
+            <strong className="text-white">Metrics:</strong> 
+            <strong className="text-white"> Signal</strong> - Optimized Z-Score Weighted System (MACD 35%, RSI 25%, MA Trend 20%, Bollinger 15%, Price Momentum 5%, ATR 0%). BUY ≥0.75, SELL ≤-0.75, HOLD -0.75 to 0.75. Dynamic thresholds adjust for market volatility.
+            <strong className="text-white"> Bollinger</strong> - Price position in bands (oversold=good, overbought=bad). 
+            <strong className="text-white"> RSI</strong> - Momentum oscillator (≤30=oversold/good, ≥70=overbought/bad).
+            <strong className="text-white"> Volatility</strong> - Price variation indicator. 
+            <strong className="text-white"> MA Gap</strong> - SMA20 vs SMA50 spread (positive=uptrend).
+          </p>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-600">
+                <th className="text-left py-2 px-1 text-gray-300 font-medium">Symbol</th>
+                <th className="text-left py-2 px-1 text-gray-300 font-medium">Price</th>
+                <th className="text-left py-2 px-1 text-gray-300 font-medium">24h%</th>
+                <th className="text-left py-2 px-1 text-gray-300 font-medium">30d%</th>
+                <th className="text-left py-2 px-1 text-gray-300 font-medium">Signal</th>
+                <th className="text-left py-2 px-1 text-gray-300 font-medium">RSI</th>
+                <th className="text-left py-2 px-1 text-gray-300 font-medium">%B</th>
+                <th className="text-left py-2 px-1 text-gray-300 font-medium">Vol</th>
+                <th className="text-left py-2 px-1 text-gray-300 font-medium">MA Gap</th>
+                <th className="text-left py-2 px-1 text-gray-300 font-medium">Spark</th>
+              </tr>
+            </thead>
+            <tbody>
+              {etfMetrics.map((etf) => (
+                <ETFRow key={etf.symbol} etf={etf} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state only if not loading and no data
+  if (!hasData) {
     return (
       <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6" data-testid="etf-metrics-empty">
         <div className="flex items-center gap-2 mb-4">
