@@ -283,31 +283,25 @@ function ETFRow({ etf }: { etf: ETFMetrics }) {
            (etf.zScoreData?.compositeZScore || 0) <= -0.75 ? 'SELL' : 'HOLD'}
         </span>
       </td>
-      {/* Multi-Horizon Z-Score */}
-      <td className="py-3 px-1 text-center bg-blue-900/20">
-        <div className="flex flex-col items-start space-y-0.5 text-xs">
-          {etf.zScoreData?.shortTermZScore !== null && etf.zScoreData?.shortTermZScore !== undefined ? (
-            <div className="w-full">
-              <div className="text-left">
-                <span className="text-gray-400">ST:</span> 
-                <span className={`ml-1 ${
-                  (etf.zScoreData.shortTermZScore || 0) > 0 ? 'text-green-300' : 'text-red-300'
-                }`}>
-                  {safeFormatNumber(etf.zScoreData.shortTermZScore, 2)}
-                </span>
-              </div>
-              <div className="text-left">
-                <span className="text-gray-400">MT:</span> 
-                <span className={`ml-1 ${
-                  (etf.zScoreData.mediumTermZScore || 0) > 0 ? 'text-green-300' : 'text-red-300'
-                }`}>
-                  {safeFormatNumber(etf.zScoreData.mediumTermZScore, 2)}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <span className="text-gray-400">Legacy</span>
-          )}
+
+      {/* Composite Z-Score - Final weighted result (moved to front) */}
+      <td className="py-3 px-1 text-center bg-purple-900/30">
+        <div className="flex flex-col items-center">
+          <span className={`text-sm font-bold font-mono ${
+            (etf.zScoreData?.compositeZScore || 0) >= 0.75 ? 'text-green-400' :
+            (etf.zScoreData?.compositeZScore || 0) <= -0.75 ? 'text-red-400' : 
+            'text-yellow-400'
+          }`}>
+            {safeFormatNumber(etf.zScoreData?.compositeZScore, 3)}
+          </span>
+          <span className={`text-xs font-medium mt-1 px-2 py-1 rounded ${
+            (etf.zScoreData?.compositeZScore || 0) >= 0.75 ? 'bg-green-800/50 text-green-300' :
+            (etf.zScoreData?.compositeZScore || 0) <= -0.75 ? 'bg-red-800/50 text-red-300' :
+            'bg-gray-800/50 text-yellow-300'
+          }`}>
+            {(etf.zScoreData?.compositeZScore || 0) >= 0.75 ? 'BUY' :
+             (etf.zScoreData?.compositeZScore || 0) <= -0.75 ? 'SELL' : 'HOLD'}
+          </span>
         </div>
       </td>
 
@@ -390,35 +384,15 @@ function ETFRow({ etf }: { etf: ETFMetrics }) {
             5-Day
           </span>
           <span className={`text-xs ${
-            (etf.fiveDayChange || 0) > 0 ? 'text-green-400' : 'text-red-400'
+            (etf.fiveDayReturn || 0) > 0 ? 'text-green-400' : 'text-red-400'
           }`}>
-            {formatPercent(etf.fiveDayChange)}
+            {formatPercent(etf.fiveDayReturn)}
           </span>
           <span className={`text-xs font-mono mt-1 ${
             (etf.zScoreData?.priceMomentumZScore || 0) > 0 ? 'text-green-300' :
             (etf.zScoreData?.priceMomentumZScore || 0) < 0 ? 'text-red-300' : 'text-gray-300'
           }`}>
             Z: {safeFormatNumber(etf.zScoreData?.priceMomentumZScore, 3)}
-          </span>
-        </div>
-      </td>
-      {/* Composite Z-Score - Final weighted result */}
-      <td className="py-3 px-1 text-center bg-purple-900/30">
-        <div className="flex flex-col items-center">
-          <span className={`text-sm font-bold font-mono ${
-            (etf.zScoreData?.compositeZScore || 0) >= 0.75 ? 'text-green-400' :
-            (etf.zScoreData?.compositeZScore || 0) <= -0.75 ? 'text-red-400' : 
-            'text-yellow-400'
-          }`}>
-            {safeFormatNumber(etf.zScoreData?.compositeZScore, 3)}
-          </span>
-          <span className={`text-xs font-medium mt-1 px-2 py-1 rounded ${
-            (etf.zScoreData?.compositeZScore || 0) >= 0.75 ? 'bg-green-800/50 text-green-300' :
-            (etf.zScoreData?.compositeZScore || 0) <= -0.75 ? 'bg-red-800/50 text-red-300' :
-            'bg-gray-800/50 text-yellow-300'
-          }`}>
-            {(etf.zScoreData?.compositeZScore || 0) >= 0.75 ? 'BUY' :
-             (etf.zScoreData?.compositeZScore || 0) <= -0.75 ? 'SELL' : 'HOLD'}
           </span>
         </div>
       </td>
@@ -567,13 +541,12 @@ export default function ETFMetricsTable() {
                 <th className="text-left py-2 px-1 text-gray-300 font-medium">Price</th>
                 <th className="text-left py-2 px-1 text-gray-300 font-medium">24h%</th>
                 <th className="text-left py-2 px-1 text-gray-300 font-medium">Signal</th>
-                <th className="text-center py-2 px-1 text-blue-300 font-medium bg-blue-900/20">Multi-Horizon Z</th>
+                <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/30">Composite Z</th>
                 <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">RSI (25%)</th>
                 <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">MACD (35%)</th>
                 <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">Bollinger (15%)</th>
                 <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">MA Trend (20%)</th>
                 <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">5-Day (5%)</th>
-                <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/30">Composite Z</th>
               </tr>
             </thead>
             <tbody>
