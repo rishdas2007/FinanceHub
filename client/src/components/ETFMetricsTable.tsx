@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { TrendingUp, TrendingDown, Activity, BarChart3, Zap, Volume2, DollarSign } from "lucide-react";
 import { TechnicalIndicatorLegend } from './TechnicalIndicatorLegend';
 import { Sparkline } from '@/components/ui/sparkline';
+import { formatNumber } from '@/lib/utils';
 
 interface ETFData {
   symbol: string;
@@ -119,11 +120,6 @@ const formatPercentage = (value: number | null | undefined): string => {
   return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
 };
 
-const formatNumber = (value: number | null | undefined, decimals: number = 2): string => {
-  if (value === null || value === undefined || typeof value !== 'number' || isNaN(value)) return 'N/A';
-  return value.toFixed(decimals);
-};
-
 // Sparkline container component with harmonized scaling
 function SparklineContainer({ symbol }: { symbol: string }) {
   const { data: sparklineData, isLoading } = useQuery({
@@ -224,6 +220,12 @@ const getVWAPSignal = (price: number, vwap: number | null): { signal: string; co
   return { signal: 'At VWAP', color: 'text-yellow-600', deviation }; // Neutral
 };
 
+// Helper function for safe number formatting with null handling
+const safeFormatNumber = (value: number | null | undefined, decimals: number = 2): string => {
+  if (value === null || value === undefined || isNaN(value)) return 'N/A';
+  return formatNumber(value, decimals);
+};
+
 // Individual ETF Row Component
 function ETFRow({ etf }: { etf: ETFMetrics }) {
   const rsiStatus = getRSIStatus(etf.rsi);
@@ -296,6 +298,62 @@ function ETFRow({ etf }: { etf: ETFMetrics }) {
       </td>
       <td className="py-3 px-1">
         <div className="text-xs text-gray-500">Chart</div>
+      </td>
+      {/* Individual Z-Score Components */}
+      <td className="py-3 px-1 text-center bg-purple-900/20">
+        <span className={`text-xs font-mono ${
+          (etf.zScoreData?.rsiZScore || 0) > 0 ? 'text-red-300' :
+          (etf.zScoreData?.rsiZScore || 0) < 0 ? 'text-green-300' : 'text-gray-300'
+        }`}>
+          {safeFormatNumber(etf.zScoreData?.rsiZScore, 3)}
+        </span>
+      </td>
+      <td className="py-3 px-1 text-center bg-purple-900/20">
+        <span className={`text-xs font-mono ${
+          (etf.zScoreData?.macdZScore || 0) > 0 ? 'text-green-300' :
+          (etf.zScoreData?.macdZScore || 0) < 0 ? 'text-red-300' : 'text-gray-300'
+        }`}>
+          {safeFormatNumber(etf.zScoreData?.macdZScore, 3)}
+        </span>
+      </td>
+      <td className="py-3 px-1 text-center bg-purple-900/20">
+        <span className={`text-xs font-mono ${
+          (etf.zScoreData?.bollingerZScore || 0) > 0 ? 'text-red-300' :
+          (etf.zScoreData?.bollingerZScore || 0) < 0 ? 'text-green-300' : 'text-gray-300'
+        }`}>
+          {safeFormatNumber(etf.zScoreData?.bollingerZScore, 3)}
+        </span>
+      </td>
+      <td className="py-3 px-1 text-center bg-purple-900/20">
+        <span className={`text-xs font-mono ${
+          (etf.zScoreData?.maTrendZScore || 0) > 0 ? 'text-green-300' :
+          (etf.zScoreData?.maTrendZScore || 0) < 0 ? 'text-red-300' : 'text-gray-300'
+        }`}>
+          {safeFormatNumber(etf.zScoreData?.maTrendZScore, 3)}
+        </span>
+      </td>
+      <td className="py-3 px-1 text-center bg-purple-900/20">
+        <span className={`text-xs font-mono ${
+          (etf.zScoreData?.priceMomentumZScore || 0) > 0 ? 'text-green-300' :
+          (etf.zScoreData?.priceMomentumZScore || 0) < 0 ? 'text-red-300' : 'text-gray-300'
+        }`}>
+          {safeFormatNumber(etf.zScoreData?.priceMomentumZScore, 3)}
+        </span>
+      </td>
+      <td className="py-3 px-1 text-center bg-purple-900/20">
+        <span className="text-xs font-mono text-gray-500">
+          {safeFormatNumber(etf.zScoreData?.atrZScore, 3)}
+        </span>
+        <div className="text-xs text-gray-500 mt-1">0%</div>
+      </td>
+      <td className="py-3 px-1 text-center bg-purple-900/30">
+        <span className={`text-sm font-bold font-mono ${
+          (etf.zScoreData?.compositeZScore || 0) > 0.5 ? 'text-green-400' :
+          (etf.zScoreData?.compositeZScore || 0) < -0.5 ? 'text-red-400' : 
+          'text-yellow-400'
+        }`}>
+          {safeFormatNumber(etf.zScoreData?.compositeZScore, 3)}
+        </span>
       </td>
     </tr>
   );
@@ -448,6 +506,13 @@ export default function ETFMetricsTable() {
                 <th className="text-left py-2 px-1 text-gray-300 font-medium">Vol</th>
                 <th className="text-left py-2 px-1 text-gray-300 font-medium">MA Gap</th>
                 <th className="text-left py-2 px-1 text-gray-300 font-medium">Spark</th>
+                <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">RSI Z (25%)</th>
+                <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">MACD Z (35%)</th>
+                <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">BB Z (15%)</th>
+                <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">MA Z (20%)</th>
+                <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">Mom Z (5%)</th>
+                <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">ATR Z (0%)</th>
+                <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/30">Composite Z</th>
               </tr>
             </thead>
             <tbody>
