@@ -1,0 +1,335 @@
+Got it. Here’s a step-by-step implementation plan to turn the new **ETF Technical Metrics** into a trader-ready panel. I grouped it by **data**, **API**, and **UI**, with code/SQL sketches, formulas, caching, and acceptance tests. (I excluded the options/IV idea per your note.)
+
+---
+
+# Phase 0 — Scope & prerequisites
+
+* Universe: 11 sector ETFs + SPY benchmark. (Config: `ETF_UNIVERSE`.)
+* Source bars: `equity_daily_bars(symbol, ts_utc, open, high, low, close, volume)`.
+* “Gold” table: `equity_features_daily` (one row per `symbol, asof_date, horizon`). We’ll extend it to carry everything the grid needs so the API is just 1–2 SELECTs.
+
+---
+
+# Phase 1 — Data model (Gold features)
+
+## 1.1 Migrations (Postgres)
+
+Add (or verify) these columns. Keep `pipeline_version` for auditability.
+
+```sql
+alter table equity_features_daily
+  add column if not exists composite_z_60d           double precision,
+  add column if not exists dz1_60d                   double precision,        -- 1-day Δ composite z
+  add column if not exists dz5_60d                   double precision,        -- 5-day Δ composite z
+  add column if not exists macd_z_60d               double precision,
+  add column if not exists rsi14                     double precision,
+  add column if not exists bb_pctb_20               double precision,         -- 0..1
+  add column if not exists ma50                      double precision,
+  add column if not exists ma200                     double precision,
+  add column if not exists ma_gap_pct               double precision,         -- (MA50-MA200)/MA200
+  add column if not exists atr14                     double precision,
+  add column if not exists rs_spy_30d               double precision,         -- rel strength vs SPY (return diff)
+  add column if not exists rs_spy_90d               double precision,
+  add column if not exists beta_spy_252d            double precision,
+  add column if not exists corr_spy_252d            double precision,
+  add column if not exists vol_dollar_20d           double precision;         -- avg(volume*close)
+
+create index if not exists idx_efd_sym_date on equity_features_daily (symbol, asof_date desc);
+create index if not exists idx_efd_sym_date_h on equity_features_daily (symbol, asof_date desc, horizon);
+```
+
+> We’ll continue storing z-scores per **horizon** (`20D`, `60D`, `252D`). The table can have multiple rows per date for different horizons; your grid will consume the `60D` slice by default.
+
+## 1.2 Formulas (what the builder must compute)
+
+* **Composite Z (60D)** = weighted sum of standardized components:
+  `0.35*macd_z_60d + 0.25*z_rsi + 0.20*z_ma_gap + 0.15*z_bb_pctb + 0.05*z_px_mom_5d`
+
+  * `macd` = EMA12 − EMA26; `signal` = EMA9(MACD); z-score MACD over last 60d.
+  * `z_rsi` = z-score of RSI(14) over last 60d (or normalize to 0..1 then z).
+  * `z_ma_gap` = z-score of `ma_gap_pct`.
+  * `z_bb_pctb` = z-score of `%B` over last 60d; `%B = (close − (MA20 − 2σ)) / (4σ)` clamped \[0,1].
+  * `z_px_mom_5d` = z-score of 5-day return over last 60d.
+* **Δz**: `dz1 = composite_z_today − composite_z_yesterday`; `dz5 = composite_z_today − composite_z_5days_ago`.
+* **RSI14**: Wilder’s smoothing.
+* **ATR14**: Wilder’s true range with EMA smoothing.
+* **MA Gaps**: `ma50`, `ma200`, `ma_gap_pct = (ma50−ma200)/ma200`.
+* **Rel Strength vs SPY**:
+  `rs_spy_30d = ret_30d(symbol) − ret_30d(SPY)`, similarly for 90d. (Total return from closes.)
+* **Beta & Corr vs SPY (252d)**: from daily log returns over 252d:
+  `beta = cov(r_sym, r_spy)/var(r_spy)`; `corr = corrcoef(r_sym, r_spy)`.
+* **Liquidity**: `vol_dollar_20d = avg(volume*close, 20)`.
+
+> We keep all inputs deterministic off `equity_daily_bars`. No external calls.
+
+## 1.3 Feature builder (job)
+
+* Implement as a Node/TS CLI: `pnpm features:build`.
+* Strategy:
+
+  * Load \~400 trading days per symbol.
+  * Compute all indicators in memory (EMA/RSI/ATR/Wilder).
+  * Emit per-day object for the last **300 days**.
+  * **Upsert** rows into `equity_features_daily` with `ON CONFLICT (symbol, asof_date, horizon) DO UPDATE`.
+* Schedule: **daily 06:45 ET** + **post-backfill manual run**.
+
+**Upsert sketch (fast path):**
+
+```ts
+await db.execute(sql`
+  insert into equity_features_daily
+    (symbol, asof_date, horizon, pipeline_version,
+     composite_z_60d, dz1_60d, dz5_60d, macd_z_60d, rsi14, bb_pctb_20,
+     ma50, ma200, ma_gap_pct, atr14, rs_spy_30d, rs_spy_90d, beta_spy_252d,
+     corr_spy_252d, vol_dollar_20d, updated_at)
+  select * from jsonb_to_recordset(${JSON.stringify(batch)}::jsonb)
+  as x(symbol text, asof_date date, horizon text, pipeline_version text,
+       composite_z_60d double precision, dz1_60d double precision, dz5_60d double precision,
+       macd_z_60d double precision, rsi14 double precision, bb_pctb_20 double precision,
+       ma50 double precision, ma200 double precision, ma_gap_pct double precision, atr14 double precision,
+       rs_spy_30d double precision, rs_spy_90d double precision, beta_spy_252d double precision,
+       corr_spy_252d double precision, vol_dollar_20d double precision, updated_at timestamptz)
+  on conflict (symbol, asof_date, horizon)
+  do update set
+    composite_z_60d = excluded.composite_z_60d,
+    dz1_60d         = excluded.dz1_60d,
+    dz5_60d         = excluded.dz5_60d,
+    macd_z_60d      = excluded.macd_z_60d,
+    rsi14           = excluded.rsi14,
+    bb_pctb_20      = excluded.bb_pctb_20,
+    ma50            = excluded.ma50,
+    ma200           = excluded.ma200,
+    ma_gap_pct      = excluded.ma_gap_pct,
+    atr14           = excluded.atr14,
+    rs_spy_30d      = excluded.rs_spy_30d,
+    rs_spy_90d      = excluded.rs_spy_90d,
+    beta_spy_252d   = excluded.beta_spy_252d,
+    corr_spy_252d   = excluded.corr_spy_252d,
+    vol_dollar_20d  = excluded.vol_dollar_20d,
+    updated_at      = now();
+`);
+```
+
+**Acceptance (data layer)**
+
+* For each symbol in universe, last 60 trading days have non-null `composite_z_60d`, `rsi14`, `bb_pctb_20`, `atr14`, `ma_gap_pct`.
+* `beta_spy_252d` and `corr_spy_252d` present when ≥252d history exists.
+
+---
+
+# Phase 2 — APIs
+
+## 2.1 Main grid data
+
+`GET /api/etf/metrics?horizon=60D`
+
+**Returns (per symbol):**
+
+```json
+{
+  "symbol": "XLK",
+  "price": 262.40, "pctChange": 0.0041,
+  "compositeZ": -0.85, "dz1": 0.12, "dz5": 0.42,
+  "components": { "macdZ": -0.44, "rsi14": 71.2, "bbPctB": 0.78, "maGapPct": 0.037, "mom5dZ": 0.11 },
+  "ma": { "ma50": 255.1, "ma200": 238.4, "gapPct": 0.070 },
+  "atr14": 3.71,
+  "rs": { "rs30": 0.026, "rs90": 0.045, "beta252": 1.16, "corr252": 0.92 },
+  "liq": { "avgDollarVol20d": 1.23e9 },
+  "sparkZ": [{ "t": 1719878400000, "value": -0.33 }, ...]  // 90D composite z spark
+}
+```
+
+**Query plan:**
+
+* Query 1 (features): latest row per symbol for `horizon='60D'`.
+* Query 2 (prices): last two `equity_daily_bars` per symbol for price/pct.
+* Spark (composite z): one monthly-downsampled or 90D daily points query per symbol, or a single union SQL with `unnest()`—cache 60s.
+
+**SQL (features, batched):**
+
+```sql
+with u as (select unnest(${universe}::text[]) as symbol),
+mx as (
+  select symbol, max(asof_date) d
+  from equity_features_daily join u using(symbol)
+  where horizon = '60D'
+  group by symbol
+)
+select f.*
+from equity_features_daily f
+join mx on mx.symbol=f.symbol and mx.d=f.asof_date
+where f.horizon='60D';
+```
+
+**Caching**
+
+* Key: `etf:metrics:60D:v1`.
+* TTL 60–120s, with `lastGood` fallback (10 min).
+
+## 2.2 Breadth
+
+`GET /api/etf/breadth?horizon=60D&buy=-1.0&sell=1.0`
+
+* Compute BUY/SELL counts from `composite_z_60d` thresholds.
+* Payload: `{ buy: 3, sell: 2, total: 11 }`.
+
+## 2.3 Conditional stats (side panel)
+
+`GET /api/etf/conditional-stats?symbol=XLK&rule=z<=-1.0&forward=20`
+
+* Scan history where `composite_z_60d <= -1.0`. Join forward returns from bars.
+* Return: `n, mean, median, hitRate, p25, p75, min, max`.
+
+**SQL sketch:**
+
+```sql
+with z as (
+  select symbol, asof_date
+  from equity_features_daily
+  where symbol = $1 and horizon='60D' and composite_z_60d <= -1.0
+),
+fwd as (
+  select z.asof_date as entry_date,
+         b20.close / b0.close - 1 as ret20
+  from z
+  join lateral (
+    select close from equity_daily_bars where symbol=$1 and ts_utc::date = z.asof_date limit 1
+  ) b0 on true
+  join lateral (
+    select close from equity_daily_bars where symbol=$1 and ts_utc::date >= z.asof_date
+    order by ts_utc asc offset 20 limit 1
+  ) b20 on true
+)
+select count(*) n,
+       avg(ret20) mean, percentile_cont(0.5) within group (order by ret20) median,
+       avg(case when ret20>0 then 1 else 0 end)::float hitRate,
+       percentile_cont(0.25) within group (order by ret20) p25,
+       percentile_cont(0.75) within group (order by ret20) p75,
+       min(ret20) min, max(ret20) max
+from fwd;
+```
+
+---
+
+# Phase 3 — UI/UX
+
+## 3.1 Columns to add/change
+
+* **Signal**: show `compositeZ` with badge (BUY ≤ −1.0, SELL ≥ +1.0, HOLD otherwise).
+* **Spark (12W)**: spark of **composite z** (not price) for recency context.
+* **Δ columns**: `Δz(1D)`, `Δz(5D)` with green/red coloring.
+* **Contribution hover**: tooltip over Signal shows weighted parts:
+
+  ```
+  MACD +0.22 • RSI -0.10 • MA -0.03 • Boll +0.05 • 5D +0.01
+  ```
+* **ATR risk box**:
+
+  * Default stop: `Price − 1.5×ATR` (BUY) / `Price + 1.5×ATR` (SELL).
+  * Position size helper (needs user risk setting `$Risk%`):
+    `size = (AccountEquity × Risk%) / (1.5 × ATR)` (rounded to nearest share).
+* **R\:R snapshot**:
+
+  * Target = `MA50` (revert-to-mean) or last swing;
+  * `RR = |Target − Entry| / (1.5 × ATR)`.
+* **Liquidity badge**: map `avgDollarVol20d` to A/B/C:
+
+  * A: ≥ \$500M, B: \$100–500M, C: < \$100M.
+
+## 3.2 Sort/filter presets (top of table)
+
+* Preset chips:
+
+  * **Strong BUY/SELL**: filter by thresholds.
+  * **Most stretched**: sort by `|compositeZ|` desc.
+  * **Improving fastest**: sort by `dz5` desc.
+* Persist last preset in query string or local storage.
+
+## 3.3 Side panel (row click)
+
+* Tabs:
+
+  1. **Summary**: price/indicators/RS vs SPY widgets.
+  2. **History**: composite-z + price dual chart.
+  3. **Edge**: conditional stats (from API).
+* Export PNG/CSV (reuse your existing toolkit).
+
+---
+
+# Phase 4 — Alerts & watchlist (lightweight)
+
+## 4.1 Data model
+
+```sql
+create table if not exists user_watchlist (
+  user_id uuid, symbol text, created_at timestamptz default now(),
+  primary key (user_id, symbol)
+);
+
+create table if not exists alert_rules (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid, symbol text,
+  rule text,              -- e.g., 'z<=-1.0'
+  horizon text default '60D',
+  is_active boolean default true,
+  created_at timestamptz default now()
+);
+```
+
+## 4.2 Worker (runs after feature build)
+
+* For each active rule, check today’s `composite_z_60d` vs condition.
+* If triggered and not triggered in last 3 days → send push/email → store event.
+
+---
+
+# Phase 5 — Performance & resilience
+
+* **API cache**: 60–120s for `/api/etf/metrics`, 10–30m for conditional stats (they’re historical).
+* **No N+1**: use 2 batched queries (features/prices). Spark data: 1 union query w/ `unnest()` or per-symbol cache.
+* **Fallback**: if features temporarily empty, return `{success:true,data:[],"warning":"no_features"}`—table shows soft “No signals” state, not an error.
+* **Health checks**:
+
+  * `/health/etf-features` → ensure ≥ 1 row for SPY in last 5 days.
+  * Startup guard: if empty after boot, log CRITICAL and kick the builder.
+
+---
+
+# Phase 6 — QA checklist
+
+1. **Data correctness**
+
+   * Random spot checks: recompute a few rows in Python/Excel; verify RSI/ATR/MA gap and z’s.
+   * Composite weight math sums to the displayed `compositeZ`.
+
+2. **Latency**
+
+   * Cold `/api/etf/metrics` < 300 ms; warm (cache) < 100 ms.
+
+3. **UX**
+
+   * Preset chips filter/sort correctly; sparklines render consistently.
+   * ATR stop and position size numeric sanity (units correct).
+
+4. **Edge cases**
+
+   * New symbol with <200d history → composite still computed (z uses available window); beta/corr may be null → UI shows “—”.
+   * Market closed vs open: price/pct from last close; no crashes.
+
+---
+
+# Timeline (suggested)
+
+* **Day 1–2:** Migrations + feature builder + backfill; indexes; health check.
+* **Day 3:** `/api/etf/metrics` + caching + breadth; basic UI columns + presets.
+* **Day 4:** Contribution tooltip, ATR/R\:R helpers, liquidity badge; spark(composite-z).
+* **Day 5:** Side panel + conditional stats; QA & perf.
+* **Day 6:** Alerts/watcher (optional), polish, docs.
+
+---
+
+If you want, I can turn this into:
+
+* a migrations file,
+* a ready-to-run **feature builder** CLI,
+* and an Express controller PR with exact SQL and the React table update.

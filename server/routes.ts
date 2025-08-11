@@ -214,6 +214,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enhanced ETF routes with calculated technical indicators
+  app.use('/api/etf-enhanced', (await import('./routes/etf-enhanced-routes')).default);
+
   // Z-Score Technical Analysis API - Statistical normalized indicator analysis
   app.get('/api/zscore-technical', async (req, res) => {
     try {
