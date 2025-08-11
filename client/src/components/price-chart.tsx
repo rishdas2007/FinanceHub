@@ -14,20 +14,31 @@ interface ChartData {
   formattedDate: string;
 }
 
+interface SparklineData {
+  success: boolean;
+  symbol: string;
+  data: number[];
+  trend: 'up' | 'down' | 'flat';
+  change: number;
+  timestamp: string;
+}
+
 const timeframes = [
-  { label: '1W', value: '1W', limit: 7 },
-  { label: '1M', value: '1M', limit: 30 },
+  { label: '7D', value: '7D', days: 7 },
+  { label: '30D', value: '30D', days: 30 },
+  { label: '90D', value: '90D', days: 90 },
 ];
 
 export function PriceChart() {
   const { selectedETF } = useETF();
-  const [selectedTimeframe, setSelectedTimeframe] = useState('1W');
+  const [selectedTimeframe, setSelectedTimeframe] = useState('30D');
   
   const currentTimeframe = timeframes.find(t => t.value === selectedTimeframe) || timeframes[1];
 
-  const { data: stockHistory, isLoading: historyLoading } = useQuery<StockData[]>({
-    queryKey: [`/api/stocks/${selectedETF.symbol}/history?limit=${currentTimeframe.limit}`],
-    refetchInterval: false, // Disabled automatic refetching
+  // Use sparkline API which has actual working data
+  const { data: sparklineData, isLoading: historyLoading, error } = useQuery<SparklineData>({
+    queryKey: [`/api/stocks/${selectedETF.symbol}/sparkline`],
+    refetchInterval: false,
   });
 
   const { data: technical } = useQuery<TechnicalIndicators>({
@@ -64,47 +75,33 @@ export function PriceChart() {
     return rsiValues;
   };
 
-  const chartData: ChartData[] = (stockHistory || []).map((item, index) => {
-    // DEBUG: Log the raw timestamp data
-    console.log(`📊 Processing stock data:`, {
-      symbol: item.symbol,
-      timestamp: item.timestamp,
-      timestampType: typeof item.timestamp,
-      rawDate: new Date(item.timestamp)
-    });
+  // Convert sparkline data to chart format
+  const chartData: ChartData[] = (sparklineData?.data || []).map((price, index) => {
+    const totalPoints = sparklineData?.data.length || 0;
+    const daysAgo = totalPoints - 1 - index;
+    const dateObj = new Date();
+    dateObj.setDate(dateObj.getDate() - daysAgo);
 
-    // FIX: Handle multiple timestamp formats
-    let dateObj: Date;
-    if (item.timestamp instanceof Date) {
-      dateObj = item.timestamp;
-    } else if (typeof item.timestamp === 'string') {
-      dateObj = new Date(item.timestamp);
-    } else {
-      // Fallback for number timestamps
-      dateObj = new Date(item.timestamp);
-    }
-
-    // Validate the date
-    if (isNaN(dateObj.getTime())) {
-      console.warn(`Invalid date for ${item.symbol}:`, item.timestamp);
-      dateObj = new Date(); // Use current date as fallback
-    }
-
-    const prices = (stockHistory || []).map(h => parseFloat(h.price));
+    // Create chart data with actual sparkline prices
+    const prices = sparklineData?.data || [];
     const rsiValues = calculateRealRSI(prices);
 
     return {
-      price: parseFloat(item.price),
-      rsi: rsiValues[index] || 65,
-      date: dateObj.toISOString().split('T')[0], // YYYY-MM-DD format
+      price: price,
+      rsi: rsiValues[index] || 50,
+      date: dateObj.toISOString().split('T')[0],
       timestamp: dateObj.toISOString(),
-      // CRITICAL FIX: Format date properly for chart display
       formattedDate: dateObj.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric'
       }),
     };
-  }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // Sort chronologically
+  }).filter((_, index) => {
+    // Filter based on selected timeframe
+    const totalPoints = sparklineData?.data.length || 0;
+    const keepPoints = Math.min(currentTimeframe.days, totalPoints);
+    return index >= totalPoints - keepPoints;
+  });
 
   console.log(`📈 Final chart data sample:`, chartData.slice(0, 3));
 
@@ -223,7 +220,7 @@ export function PriceChart() {
               <div className="h-4 bg-gray-600 rounded w-3/4 mb-4"></div>
               <div className="h-64 bg-gray-700/50 rounded"></div>
             </div>
-          ) : !stockHistory || stockHistory.length === 0 ? (
+          ) : error || !sparklineData || !sparklineData.data || sparklineData.data.length === 0 ? (
             <div className="text-center text-gray-400 flex flex-col items-center justify-center h-full">
               <p className="mb-4">No price data available for {selectedETF.symbol}</p>
               <Button onClick={() => window.location.reload()} variant="outline" size="sm">
