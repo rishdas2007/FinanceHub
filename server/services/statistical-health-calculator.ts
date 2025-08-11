@@ -113,7 +113,7 @@ export class StatisticalHealthCalculator {
     for (const metric of keyIndicators) {
       try {
         const result = await db.execute(sql`
-          SELECT value, period_date
+          SELECT value_numeric as value, period_date
           FROM economic_indicators_current
           WHERE metric = ${metric}
             AND value IS NOT NULL
@@ -499,7 +499,7 @@ export class StatisticalHealthCalculator {
     for (const indicator of keyIndicators) {
       try {
         const result = await db.execute(sql`
-          SELECT period_date, value
+          SELECT period_date, value_numeric as value
           FROM economic_indicators_current
           WHERE metric = ${indicator}
           ORDER BY period_date DESC

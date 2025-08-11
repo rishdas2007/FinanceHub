@@ -52,7 +52,7 @@ export class DataConfidenceService {
       try {
         // Get latest data point
         const latestDataResult = await db.execute(sql`
-          SELECT metric, value, period_date, updated_at
+          SELECT metric, value_numeric as value, period_date, updated_at
           FROM economic_indicators_current 
           WHERE metric = ${indicator}
           ORDER BY period_date DESC
@@ -71,7 +71,7 @@ export class DataConfidenceService {
         
         // Get historical data for validation
         const historicalResult = await db.execute(sql`
-          SELECT value, period_date
+          SELECT value_numeric as value, period_date
           FROM economic_indicators_current
           WHERE metric = ${indicator}
           AND period_date >= ${new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)}

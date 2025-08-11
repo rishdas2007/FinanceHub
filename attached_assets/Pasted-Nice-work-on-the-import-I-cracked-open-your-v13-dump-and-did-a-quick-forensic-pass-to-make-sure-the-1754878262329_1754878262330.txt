@@ -1,0 +1,149 @@
+Nice work on the import. I cracked open your v13 dump and did a quick forensic pass to make sure the numbers you quoted actually line up with what’s in the database and to spot any wiring risks for the dashboard.
+
+## TL;DR (what I could verify from the dump)
+
+* **econ\_series\_features** (Gold) has **76,441** dated rows (period\_end up to **2025-08-01**). ✅ (matches your “76,441 observations”)
+* **economic\_indicators\_current** has **84** rows. ✅ (matches your “84 current indicators”)
+* **economic\_indicators\_history** has **958** rows, spanning **2015-10-01 → 2025-08-08**. (Your 1,338 number likely reflects a different env or a superset.)
+* **econ\_series\_def** currently has **33** series. ⚠️ (If your dashboard reads units/precision from defs, you’ll want defs for all “current” series.)
+* Equity tables exist and are populated:
+
+  * `equity_daily_bars`: 13,963 rows
+  * `equity_features_daily`: 1,343 rows
+
+> Note: The archive you shared is a DB backup + package files (no server/client source), so I can’t run the app. I did validate counts, schema, and date coverage directly from the SQL.
+
+---
+
+## “Did the new data load correctly?”
+
+**Yes**—the macro “Gold” table is thick with fresh rows, and your “current indicators” table has 84 entries. To be fully aligned with the Silver/Gold architecture, I recommend filling out **econ\_series\_def** for every series you expose in the UI (units, precision, default transform), otherwise formatting and labeling will be inconsistent.
+
+---
+
+## “Is the dashboard referencing it correctly?”
+
+I can’t hit your endpoints here, so below are **drop-in checks** that will confirm the wiring end-to-end in your environment (DB + API + UI).
+
+### A) SQL sanity checks (run in psql)
+
+**1) Counts you care about**
+
+```sql
+-- Gold count & recency
+select count(*) as gold_rows,
+       min(period_end) as min_date,
+       max(period_end) as max_date
+from econ_series_features;
+
+-- “Current indicators” count
+select count(*) as current_rows from economic_indicators_current;
+
+-- Legacy history table count (for reference)
+select count(*) as hist_rows,
+       min(period_date) as min_period,
+       max(period_date) as max_period
+from economic_indicators_history;
+```
+
+**2) Make sure each “current” series has a definition**
+
+```sql
+select i.series_id
+from economic_indicators_current i
+left join econ_series_def d on d.series_id = i.series_id
+where d.series_id is null
+order by 1;
+```
+
+> **Goal:** 0 rows. If you see IDs here, add defs for them so the UI gets units/precision/transform.
+
+**3) Verify the KPI trio you quoted (latest values)**
+(Use the series IDs your API actually persists. If you’ve mapped to FRED IDs, this will work; if you still use aliases like `UNRATE_CSV` adjust the `series_id`.)
+
+```sql
+-- CPI level (index)
+select series_id, metric, value_numeric, unit, period_date
+from economic_indicators_current
+where series_id in ('CPIAUCSL')
+order by period_date desc
+limit 1;
+
+-- Unemployment rate (percent)
+select series_id, metric, value_numeric, unit, period_date
+from economic_indicators_current
+where series_id in ('UNRATE','UNRATE_CSV')
+order by period_date desc
+limit 1;
+
+-- Fed funds rate (percent)
+select series_id, metric, value_numeric, unit, period_date
+from economic_indicators_current
+where series_id in ('DFF','EFFR','FEDFUNDS','FEDFUNDS_CSV')
+order by period_date desc
+limit 1;
+```
+
+> You should see values roughly in the ballpark you listed:
+> CPI ≈ **321.5** (index), Unemployment ≈ **4.2%**, Fed Rate ≈ **4.33%**.
+
+**4) “Gold” rows exist for each defined series**
+
+```sql
+select d.series_id,
+       count(f.*) as gold_points,
+       max(f.period_end) as last_point
+from econ_series_def d
+left join econ_series_features f
+  on f.series_id = d.series_id
+group by d.series_id
+order by gold_points desc;
+```
+
+> Watch for series with **0** gold points—those won’t populate “Critical Insights.”
+
+---
+
+### B) API smoke (copy/paste in your shell)
+
+```bash
+# Indicators table should return ~84 rows, all with units/precision populated
+curl -s "http://localhost:PORT/api/econ/indicators" | jq '.data | length, .data[0]'
+
+# Insights should return a non-empty list (unless your thresholds are high)
+curl -s "http://localhost:PORT/api/econ/insights?threshold=1.0" | jq '.data | length'
+
+# Econ chart route (compat) should not 404 and should have points
+curl -s "http://localhost:PORT/api/econ/metrics/CPIAUCSL/chart?range=12M" | jq '.data | length, .data[-1]'
+```
+
+If any of these return `0` or an empty `data`, the server is likely still reading a legacy table (e.g., `economic_indicators_history`) instead of Silver/Gold, or the `series_id` used by the UI doesn’t match the IDs you loaded.
+
+---
+
+## What I’d adjust now (quick wins)
+
+1. **Fill out `econ_series_def` for every dashboard series (target: \~84)**
+   This fixes unit/precision/transform presentation across both the indicators table and the insights/cards.
+
+2. **Confirm API reads Silver/Gold**
+
+   * `/api/econ/indicators` → Silver (`econ_series_observation`) + Gold (`econ_series_features`).
+     If you’re temporarily using `economic_indicators_current`, that’s OK as a bridge, but switch to Silver/Gold once your observation table is live.
+   * `/api/econ/metrics/:id/chart` → Silver observations by `series_id`. If Silver isn’t populated yet, map to the backfilled observations you’ve stored.
+
+3. **Standardize `series_id`s**
+   I saw a mix like `UNRATE`, `FEDFUNDS`, and legacy aliases like `UNRATE_CSV`. Pick one canonical ID per series (prefer the real FRED ID) and stick to it in:
+
+   * `econ_series_def.series_id`
+   * your API routes & queries
+   * the front-end calls (query params, chart modal)
+
+---
+
+## If you want me to go further
+
+* I can generate a **SQL diff** to upsert missing rows into `econ_series_def` from the set currently in `economic_indicators_current`.
+* If you have an observations table in another schema (or plan to use the consolidated CSV I made), I can spit out the exact `\copy` commands and a one-shot script to compute Gold (`level_z`, `change_z`, classes) for the last 60 months per series.
+
+Want me to prep that `econ_series_def` upsert for the 84 you’ve got now?

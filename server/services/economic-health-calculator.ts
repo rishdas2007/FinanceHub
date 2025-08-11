@@ -289,7 +289,7 @@ export class EconomicHealthCalculator {
   private async calculateGrowthMomentum(): Promise<number> {
     try {
       const result = await db.execute(sql`
-        SELECT metric, value, period_date,
+        SELECT metric, value_numeric as value, period_date,
                CAST(COALESCE(NULLIF(z_score, ''), '0') AS DECIMAL) as z_score
         FROM economic_indicators_current 
         WHERE metric IN ('GDP Growth Rate', 'Employment Population Ratio', 'Retail Sales')
@@ -336,7 +336,7 @@ export class EconomicHealthCalculator {
   private async calculateFinancialStress(): Promise<number> {
     try {
       const result = await db.execute(sql`
-        SELECT metric, value
+        SELECT metric, value_numeric as value
         FROM economic_indicators_current 
         WHERE metric IN ('Yield Curve (10yr-2yr)', 'VIX', '10-Year Treasury Yield (Δ-adjusted)')
         ORDER BY period_date DESC
@@ -374,7 +374,7 @@ export class EconomicHealthCalculator {
   private async calculateLaborHealth(): Promise<number> {
     try {
       const result = await db.execute(sql`
-        SELECT metric, value,
+        SELECT metric, value_numeric as value,
                CAST(COALESCE(NULLIF(z_score, ''), '0') AS DECIMAL) as z_score
         FROM economic_indicators_current 
         WHERE metric IN ('Unemployment Rate (Δ-adjusted)', 'Nonfarm Payrolls', 'Employment Population Ratio')
@@ -428,7 +428,7 @@ export class EconomicHealthCalculator {
   private async calculateInflationTrajectory(): Promise<number> {
     try {
       const result = await db.execute(sql`
-        SELECT metric, value,
+        SELECT metric, value_numeric as value,
                CAST(COALESCE(NULLIF(z_score, ''), '0') AS DECIMAL) as z_score
         FROM economic_indicators_current 
         WHERE metric IN ('Core CPI (Δ-adjusted)', 'Core PCE Price Index (Δ-adjusted)')
@@ -469,7 +469,7 @@ export class EconomicHealthCalculator {
   private async calculatePolicyEffectiveness(): Promise<number> {
     try {
       const result = await db.execute(sql`
-        SELECT metric, value
+        SELECT metric, value_numeric as value
         FROM economic_indicators_current 
         WHERE metric IN ('Federal Funds Rate (Δ-adjusted)', '10-Year Treasury Yield (Δ-adjusted)')
         ORDER BY period_date DESC
