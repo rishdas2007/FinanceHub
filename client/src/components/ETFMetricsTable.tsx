@@ -285,7 +285,8 @@ export default function ETFMetricsTable() {
     return [];
   }, [etfMetricsResponse]);
 
-  if (isLoading) {
+  // Show loading only if we truly have no data yet
+  if (isLoading && etfMetrics.length === 0) {
     return (
       <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6" data-testid="etf-metrics-loading">
         <div className="flex items-center gap-2 mb-4">
