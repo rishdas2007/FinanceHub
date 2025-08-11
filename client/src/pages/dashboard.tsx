@@ -29,7 +29,7 @@ import { QuickScanMetrics } from "@/components/NavigationHeader";
 
 import { TrendingUp, MessageSquare, Activity } from "lucide-react";
 import { useApiTracker } from "@/hooks/useApiTracker";
-import { ETFSignals, EconomicPulse } from "@/components/SimpleMarketSignals";
+
 
 export default function Dashboard() {
   const apiTracker = useApiTracker();
@@ -81,24 +81,7 @@ export default function Dashboard() {
         {/* 5-Second Market Scan */}
         <QuickScanMetrics />
 
-        {/* Market Signals - Simple, Fast, Reliable */}
-        <div className="grid lg:grid-cols-2 gap-6">
-          <div className="bg-financial-card rounded-xl p-6 border border-financial-border">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-              <TrendingUp className="h-5 w-5 mr-2 text-gain-green" />
-              ETF Signals
-            </h3>
-            <ETFSignals />
-          </div>
-          
-          <div className="bg-financial-card rounded-xl p-6 border border-financial-border">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-              <Activity className="h-5 w-5 mr-2 text-blue-400" />
-              Economic Pulse
-            </h3>
-            <EconomicPulse />
-          </div>
-        </div>
+
 
         {/* Breakout Analysis - Real-time squeeze and breakout monitoring */}
         <ETFMetricsTable />
