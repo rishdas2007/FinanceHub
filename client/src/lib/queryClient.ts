@@ -60,6 +60,12 @@ function validateAndUnwrap(response: any, url: string) {
     const indicators = response?.indicators ?? response?.data;
     return Array.isArray(indicators) ? indicators : [];
   }
+  
+  // Economic Pulse endpoint - return full response to preserve success flag
+  if (url.includes('/api/economic-pulse')) {
+    return response;
+  }
+  
   if (url.includes('/api/economic-health')) {
     return response;
   }

@@ -269,11 +269,28 @@ interface MacroIndicator {
 }
 
 export function EconomicPulse() {
-  const { data: pulseData, isLoading, error } = useQuery<{ data: MacroIndicator[] }>({
-    queryKey: ['/api/economic-pulse', { limit: 5 }],
+  const { data: pulseData, isLoading, error } = useQuery<{ success: boolean; data: MacroIndicator[] }>({
+    queryKey: ['/api/economic-pulse?limit=5'],
     refetchInterval: 30 * 60 * 1000,
-    staleTime: 25 * 60 * 1000
+    staleTime: 25 * 60 * 1000,
+    retry: 1
   });
+
+  console.log('🔍 Economic Pulse Query State:', { 
+    data: pulseData, 
+    isLoading, 
+    error: error?.message || error,
+    hasData: !!pulseData?.data,
+    dataLength: pulseData?.data?.length,
+    success: pulseData?.success
+  });
+
+  // Add debugging for the API response structure
+  if (pulseData) {
+    console.log('🔍 Economic Pulse API Response Keys:', Object.keys(pulseData));
+    console.log('🔍 Economic Pulse Success:', pulseData.success);
+    console.log('🔍 Economic Pulse Data Length:', pulseData.data?.length);
+  }
 
   if (isLoading) {
     return (
@@ -285,12 +302,18 @@ export function EconomicPulse() {
     );
   }
 
-  if (error || !pulseData?.data) {
+  if (error || !pulseData?.success || !pulseData?.data || pulseData.data.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
         <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
         <p className="font-medium">Unable to load economic data</p>
-        <p className="text-sm mt-1">Please try again later</p>
+        <p className="text-sm mt-1">
+          {error ? `Error: ${error.message}` : 
+           !pulseData ? 'No response from server' :
+           !pulseData.success ? 'API request failed' :
+           !pulseData.data ? 'No data in response' :
+           'No economic indicators available'}
+        </p>
       </div>
     );
   }
