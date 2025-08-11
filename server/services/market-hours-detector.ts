@@ -1,4 +1,5 @@
 import { logger } from '../middleware/logging';
+import { DateTime } from 'luxon';
 
 interface MarketStatus {
   isOpen: boolean;
@@ -97,37 +98,37 @@ export class MarketHoursDetector {
   }
 
   private getNextMarketOpen(from: Date): Date {
-    let nextOpen = new Date(from);
-    nextOpen.setHours(9, 30, 0, 0); // 9:30 AM
+    // Use Luxon for proper timezone handling
+    const nowEt = DateTime.fromJSDate(from).setZone("America/New_York");
+    let nextOpenEt = nowEt.set({ hour: 9, minute: 30, second: 0, millisecond: 0 });
 
     // If already past market open today, move to next business day
-    const currentHour = from.getHours() + from.getMinutes() / 60;
-    if (currentHour >= this.marketHours.regular.start) {
-      nextOpen.setDate(nextOpen.getDate() + 1);
+    if (nowEt >= nextOpenEt) {
+      nextOpenEt = nextOpenEt.plus({ days: 1 });
     }
 
     // Skip weekends and holidays
-    while (this.isNonTradingDay(nextOpen)) {
-      nextOpen.setDate(nextOpen.getDate() + 1);
+    while (this.isNonTradingDay(nextOpenEt.toJSDate())) {
+      nextOpenEt = nextOpenEt.plus({ days: 1 });
     }
 
-    return nextOpen;
+    return nextOpenEt.toJSDate();
   }
 
   private getNextMarketClose(from: Date): Date {
-    let nextClose = new Date(from);
-    nextClose.setHours(16, 0, 0, 0); // 4:00 PM
+    // Use Luxon for proper timezone handling
+    const nowEt = DateTime.fromJSDate(from).setZone("America/New_York");
+    let nextCloseEt = nowEt.set({ hour: 16, minute: 0, second: 0, millisecond: 0 });
 
     // If already past market close today, move to next business day
-    const currentHour = from.getHours() + from.getMinutes() / 60;
-    if (currentHour >= this.marketHours.regular.end) {
-      nextClose.setDate(nextClose.getDate() + 1);
-      while (this.isNonTradingDay(nextClose)) {
-        nextClose.setDate(nextClose.getDate() + 1);
+    if (nowEt >= nextCloseEt) {
+      nextCloseEt = nextCloseEt.plus({ days: 1 });
+      while (this.isNonTradingDay(nextCloseEt.toJSDate())) {
+        nextCloseEt = nextCloseEt.plus({ days: 1 });
       }
     }
 
-    return nextClose;
+    return nextCloseEt.toJSDate();
   }
 
   private isNonTradingDay(date: Date): boolean {

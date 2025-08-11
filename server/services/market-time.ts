@@ -117,13 +117,15 @@ export function computeMarketClock(): MarketClockData {
   const nextOpenUtc = nextOpenEt.toUTC().toISO() || new Date().toISOString();
   const nextCloseUtc = nextCloseEt ? nextCloseEt.toUTC().toISO() : null;
   
-  // Debug logging to identify the timezone issue
-  console.log('🕐 Market time debug:', {
-    nextCloseEt: nextCloseEt?.toString(),
-    nextCloseUtc,
-    shouldBe20: nextCloseEt?.hour === 16 ? '20:00 UTC' : 'not 4pm',
-    actualNextClose: nextCloseUtc
-  });
+  // Debug the close conversion issue
+  if (nextCloseEt) {
+    console.log('🔍 CLOSE CONVERSION DEBUG:', {
+      etTime: nextCloseEt.toString(),
+      etHour: nextCloseEt.hour,
+      utcTime: nextCloseUtc,
+      shouldBe20UTC: nextCloseEt.hour === 16 ? 'YES (20:00)' : 'NO'
+    });
+  }
 
   return {
     isOpen,
