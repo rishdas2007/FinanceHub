@@ -4,7 +4,7 @@ import path from 'path';
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node',
+    environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
     coverage: {
       reporter: ['text', 'json', 'html', 'lcov'],
@@ -14,6 +14,8 @@ export default defineConfig({
         'coverage/',
         '**/*.test.ts',
         '**/*.spec.ts',
+        '**/*.test.tsx',
+        '**/*.spec.tsx',
         'tests/',
         '*.config.ts',
         '*.config.js',
@@ -27,7 +29,7 @@ export default defineConfig({
         },
       },
     },
-    include: ['**/*.test.ts', '**/*.spec.ts'],
+    include: ['**/*.test.ts', '**/*.spec.ts', '**/*.test.tsx', '**/*.spec.tsx'],
     exclude: ['node_modules/', 'dist/', 'tests/e2e/'],
     timeout: 10000,
   },
