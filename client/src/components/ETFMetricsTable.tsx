@@ -252,28 +252,36 @@ export default function ETFMetricsTable() {
     refetchOnMount: true, // Always fetch fresh data on mount
   });
 
-  // Extract ETF metrics data with fail-soft handling
+  // Extract ETF metrics data with simplified handling for new response format
   const etfMetrics = useMemo(() => {
     if (!etfMetricsResponse) return [];
     
-    // Handle cached/fallback responses (skip warning check since property doesn't exist)
-    // Note: Warning property removed from interface to avoid TypeScript errors
+    console.log('🔍 ETF Data Extraction:', {
+      hasData: !!etfMetricsResponse.data,
+      dataLength: etfMetricsResponse.data?.length,
+      hasMetrics: !!etfMetricsResponse.metrics,
+      metricsLength: etfMetricsResponse.metrics?.length,
+      success: etfMetricsResponse.success
+    });
     
-    // Handle object responses with data/metrics fields
+    // Primary: Use data field if available
     if (etfMetricsResponse.data && Array.isArray(etfMetricsResponse.data)) {
+      console.log('✅ Using data field:', etfMetricsResponse.data.length, 'ETFs');
       return etfMetricsResponse.data;
     }
     
+    // Fallback: Use metrics field
     if (etfMetricsResponse.metrics && Array.isArray(etfMetricsResponse.metrics)) {
+      console.log('✅ Using metrics field:', etfMetricsResponse.metrics.length, 'ETFs');
       return etfMetricsResponse.metrics;
     }
     
-    // Handle direct array responses (legacy support)
-    if (Array.isArray(etfMetricsResponse)) {
-      return etfMetricsResponse;
-    }
-    
-    console.warn('⚠️ ETF metrics response format unexpected:', etfMetricsResponse);
+    // Debug for unexpected format
+    console.warn('⚠️ No valid ETF data found in response:', {
+      responseKeys: Object.keys(etfMetricsResponse),
+      dataType: typeof etfMetricsResponse.data,
+      metricsType: typeof etfMetricsResponse.metrics
+    });
     return [];
   }, [etfMetricsResponse]);
 
