@@ -49,6 +49,9 @@ import { resourceManager } from './utils/resource-manager';
 const environmentValidator = EnvironmentValidator.getInstance();
 const config = environmentValidator.validate();
 
+// Import and initialize database health check system - RCA Implementation
+import { validateDatabaseOnStartup, DatabaseHealthChecker } from './middleware/database-health-check.js';
+
 const app = express();
 
 // Trust proxy for rate limiting and security headers
@@ -146,8 +149,24 @@ app.use((req, res, next) => {
       }
     }
 
+    // RCA Implementation: Database Health Validation at Startup
+    try {
+      log('🔍 Performing startup database health validation...');
+      await validateDatabaseOnStartup();
+      
+      // Start periodic health checks
+      const healthChecker = DatabaseHealthChecker.getInstance();
+      await healthChecker.startPeriodicHealthChecks(300000); // Every 5 minutes
+      
+      log('✅ Database health validation completed - monitoring active');
+    } catch (dbError) {
+      log('⚠️ Database health validation encountered issues:', String(dbError));
+      log('📝 Application will continue with degraded functionality');
+      log('🔧 Check /health/db/detailed endpoint for comprehensive diagnostics');
+    }
+
     // Register health routes with proper isolation
-    app.use('/health', healthRoutes);
+    app.use('/api/health', healthRoutes);
     
     // Register enhanced routes with versioning
     app.use('/api/v1', v1Routes);

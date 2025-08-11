@@ -1,0 +1,195 @@
+Here’s a structured, methodical RCA for the **ETF Technical Metrics** outage, using your current FinanceHub stack (React + Express + Postgres/Neon + Drizzle), and the v14 changes you shipped.
+
+---
+
+# Issue Summary
+
+The **ETF Technical Metrics** panel renders a “**Database connection issue – ETF metrics temporarily unavailable**” banner. Other tiles continue to work, suggesting a **route-specific** failure rather than a global outage.
+
+# Initial Symptoms
+
+* Frontend shows the panel-level error state (your component sets this when the API call rejects/500s).
+* “5-Second Market Scan” partially loads; Macro tiles look alive → DB and cache are not entirely down.
+* Symptom is isolated to the **ETF metrics** path (likely `/api/etf-metrics` or the new **movers/etf** route if you swapped it in).
+
+# Environment / Context to capture (please confirm)
+
+* **Browser/OS**: (latest Chrome/Safari; both affected)
+* **Build**: v14 (“pro”) deployment with new tables: `equity_daily_bars`, `equity_features_daily`, and new movers controllers.
+* **Recent changes**:
+
+  * Switched ETF metrics to read **precomputed features** (z-scores) from `equity_features_daily`.
+  * Introduced `UNNEST(..::text[])` array filtering and sparkline helper for 30D history.
+  * CI/CD pushed app before/without verifying DB schema parity in prod.
+* **Server logs (needed)**: the exact SQL error code (e.g., `42P01`, `42501`, timeout) for the `/api/etf-metrics` (or `/api/movers/etf`) request.
+
+---
+
+# 5-Why Analysis
+
+### Why #1 — Why is the ETF panel showing “Database unavailable”?
+
+Because the client call to the ETF metrics endpoint **failed** (non-200 or exception). The frontend maps API failure → “Database Unavailable”.
+
+### Why #2 — Why did that endpoint fail?
+
+The server **threw during its DB query** for ETF features/prices (most likely inside the controller that joins `equity_features_daily` and `equity_daily_bars`). Common immediate causes in this code path:
+
+* **Relation not found** (`42P01`) for `equity_features_daily` (or a column like `z_close`/`asof_date`).
+* **Permission denied** (`42501`) for the app role on the new table(s).
+* **Invalid array binding** (array param not cast; fixed earlier by using `UNNEST`).
+* **Timeout/pool exhaustion** due to many concurrent per-row queries.
+
+### Why #3 — Why would the DB query error at runtime?
+
+Because **production DB schema and roles are not guaranteed in lockstep with code** after v14, and the route assumes the new tables/columns/permissions exist. Typical examples we see in this migration:
+
+* Migrations ran in **dev/staging** but not in **prod** (or ran on a different Neon branch).
+* The app connects with a **read-only** user that **lacks SELECT** on `equity_features_daily`.
+* The app connects to a **different schema** (e.g., `public` vs `analytics`) while the tables were created elsewhere.
+* N+1 queries for sparks/features cause **pool saturation** so the pool throws “connection” errors that the UI reads as “DB unavailable”.
+
+### Why #4 — Why are schema/permissions/pooling drifting across environments?
+
+Because there is **no startup gate** or **deployment guard** that verifies:
+
+* Required relations exist (tables, columns, indexes),
+* The active **DB URL** points to the intended branch/schema/user,
+* The pool settings are sane for Neon’s connection cap,
+  **before** serving traffic. The app starts with optimistic assumptions.
+
+### Why #5 — Why don’t we have those gates/guards?
+
+A **process/architecture gap**: migrations and schema checks are not a **first-class deployment step**. There’s no health check that asserts “features table present & readable” and aborts rollout or flips the route to a safe fallback when missing.
+
+---
+
+## Root Cause Identified
+
+**Environment drift + missing runtime schema/permission validation.**
+The ETF metrics route depends on newly introduced tables/columns (`equity_features_daily`, `equity_daily_bars`, fields like `z_close`, `asof_date`). In the deployed environment, at least one of:
+
+* the table/columns **don’t exist**,
+* the app **role cannot SELECT** them,
+* or the **pool** is mis-sized and the route does too many queries at once,
+  causing the route to throw and the UI to show “Database unavailable”.
+
+---
+
+# Recommended Investigation Areas (targeted checks)
+
+Run these in prod **right now** (psql or Neon console):
+
+1. **Do the tables exist where the app is connecting?**
+
+```sql
+select table_schema, table_name
+from information_schema.tables
+where table_name in ('equity_features_daily','equity_daily_bars');
+```
+
+2. **Do columns used by the route exist?** (e.g., `z_close`, `asof_date`)
+
+```sql
+select column_name, data_type
+from information_schema.columns
+where table_name = 'equity_features_daily';
+```
+
+3. **Does the app role have rights?**
+
+```sql
+-- Replace 'app_user' with your DB user
+select grantee, privilege_type
+from information_schema.role_table_grants
+where table_name in ('equity_features_daily','equity_daily_bars')
+order by table_name, grantee, privilege_type;
+
+-- Try a dry SELECT as app_user (or connect as that user)
+select symbol, asof_date, z_close from equity_features_daily limit 1;
+```
+
+4. **Is the endpoint’s array filter safe?**
+   If you still use `ANY($1::text[])`, replace with `UNNEST` (we already supplied a version). Confirm in logs that the SQL matches.
+
+5. **Pool/timeout**
+
+* Confirm `PGPOOL_MAX` (or `pg.Pool({ max })`) ≤ Neon plan limit, and `statement_timeout` \~ 5–10s, `idleTimeoutMillis` \~ 5–10s.
+* Check server logs for `timeout`, `too many clients`, or `ECONNRESET`.
+
+6. **Schema/branch**
+
+* Print the DB **current\_database**, **current\_schema**, and (for Neon) **branch** env. Ensure they match where migrations ran.
+
+7. **N+1 queries**
+
+* Inspect the controller: ensure it **batches** (one query for z-scores, one for last two closes, not per-row).
+
+Files to review:
+
+* `server/controllers/etf-metrics.controller.ts` (or new `movers-etf.controller.ts`)
+* `server/services/history/load-daily-closes.service.ts`
+* `server/db/index.ts` (pool config, SSL)
+* Drizzle migrations that introduced `equity_features_daily`
+* CI/CD step that runs migrations (and which DB URL it uses)
+
+---
+
+# Multiple Perspectives
+
+* **Tech implementation**: N+1 per-row queries or unsafe `ANY` binding can 500 the route. Indexes missing on `(symbol, asof_date)` will slow queries and cause timeouts.
+* **Configuration**: App connects with a user lacking `SELECT` on new tables; or `DATABASE_URL` points to the wrong Neon branch/schema.
+* **User workflow**: Not relevant; panel loads automatically at dashboard mount.
+* **System architecture**: Lack of **startup schema validation** and **runtime feature flags/fallback** for critical panels.
+* **External deps**: ETF table should be DB-only now; external quote providers shouldn’t block it. If you still compute spark from provider on cache miss, an upstream timeout may cascade—verify you’re using DB first.
+
+---
+
+# (After RCA) Recommended Fix Plan
+
+**A. Short-term (today)**
+
+1. **Run migrations on prod** (or confirm tables exist) and **GRANT SELECT** to the app role:
+
+```sql
+-- as admin
+grant select on table equity_features_daily, equity_daily_bars to app_user;
+```
+
+2. **Deploy the UNNEST-based controller** (you have it from earlier) to avoid array binding errors.
+3. **Reduce query fan-out**: fetch features & prices in two batched queries; no per-row DB calls for sparks (make spark optional or cached).
+4. **If table empty/missing**, return `{ success:true, data: { benchmark:null, signals: [] }, warning:'no_data' }` so the panel shows a gentle empty state instead of “DB unavailable”.
+
+**B. Medium-term (next deploy)**
+
+1. **Startup guard**: on boot, run a schema checklist:
+
+```sql
+select 1
+from information_schema.columns
+where table_name='equity_features_daily'
+  and column_name in ('symbol','asof_date','z_close');
+```
+
+Abort startup (or set a **feature flag OFF**) if check fails.
+2\) **/health/db** endpoint that asserts:
+
+* `select 1`
+* `select count(*) from equity_features_daily where asof_date >= current_date - interval '5 days'`
+
+3. **Pool tuning**: `max <= plan_limit`, `idleTimeoutMillis ~ 5_000`, `connectionTimeoutMillis ~ 5_000`.
+4. **Indexes** (if missing):
+
+```sql
+create index if not exists idx_efd_symbol_date on equity_features_daily (symbol, asof_date desc);
+create index if not exists idx_edb_symbol_date on equity_daily_bars (symbol, ts_utc desc);
+```
+
+**C. Long-term (process)**
+
+* Make **migrations a blocking CI step** for prod (writer connection) before app rollout.
+* Add a **canary route** that hits the ETF query on deploy and alerts if it 500s.
+
+---
+
+If you paste the exact server log line for the failing request (error code and message), I’ll map it to the precise fix (e.g., `42P01` → run migration or schema switch; `42501` → GRANT; timeout → index/pool).
