@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, AlertCircle, RefreshCw, Search, Filter, ChevronUp, ChevronDown, BarChart3 } from 'lucide-react';
 import { EconomicChartModal } from './EconomicChartModal';
+import { SparklineCell } from './SparklineCell';
 
 
 interface MacroIndicator {
@@ -18,6 +19,7 @@ interface MacroIndicator {
   deltaZScore?: number | null;
   frequency?: string;
   period_date?: string;
+  seriesId?: string; // For sparkline API
 }
 
 interface MacroData {
@@ -761,6 +763,11 @@ const MacroeconomicIndicators: React.FC = () => {
                       {getSortIcon('variance')}
                     </button>
                   </th>
+                  <th className="text-center py-3 px-2 w-32">
+                    <span className="text-gray-300 font-medium">
+                      12M Trend
+                    </span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="space-y-1">
@@ -817,6 +824,24 @@ const MacroeconomicIndicators: React.FC = () => {
                     </td>
                     <td className={`text-right py-3 px-2 font-medium ${getVarianceColor(indicator.varianceVsPrior)}`}>
                       {MacroFormatUtils.formatVariance(indicator.varianceVsPrior, indicator.metric)}
+                    </td>
+                    <td className="text-center py-3 px-2 w-32">
+                      {indicator.seriesId ? (
+                        <SparklineCell
+                          api="/api/econ/sparkline"
+                          params={{
+                            seriesId: indicator.seriesId,
+                            months: 12,
+                            transform: 'LEVEL'
+                          }}
+                          height={32}
+                          width={120}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center text-slate-400 text-xs h-8">
+                          —
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

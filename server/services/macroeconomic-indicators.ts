@@ -347,7 +347,8 @@ export class MacroeconomicService {
           zScore: zData.deltaAdjustedZScore, // Use delta-adjusted z-score instead of raw z-score
           deltaZScore: zData.deltaZScore, // Period-to-period change z-score
           frequency: zData.frequency, // Indicator frequency (daily, weekly, monthly, quarterly)
-          unit: zData.unit
+          unit: zData.unit,
+          seriesId: zData.seriesId // Add seriesId for sparkline charts
         };
       });
 

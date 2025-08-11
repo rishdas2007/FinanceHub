@@ -236,4 +236,98 @@ router.get('/series-definitions', asyncHandler(async (req, res) => {
   }
 }));
 
+/**
+ * GET /api/econ/sparkline
+ * Monthly resampled data for inline sparklines (12-month trends)
+ */
+router.get('/sparkline', asyncHandler(async (req, res) => {
+  const { seriesId, months = 12, transform = 'LEVEL' } = req.query;
+
+  if (!seriesId || typeof seriesId !== 'string') {
+    return res.json({
+      success: true,
+      data: [],
+      meta: { seriesId: seriesId || 'unknown', transform, months: parseInt(months as string), points: 0 },
+      warning: 'missing_series_id'
+    });
+  }
+
+  try {
+    // Get default transform from series definition if not provided
+    let finalTransform = transform;
+    if (transform === 'LEVEL') {
+      try {
+        const seriesDef = await db
+          .select({ defaultTransform: econSeriesDef.defaultTransform })
+          .from(econSeriesDef)
+          .where(eq(econSeriesDef.seriesId, seriesId))
+          .limit(1);
+        
+        if (seriesDef.length > 0) {
+          finalTransform = seriesDef[0].defaultTransform || 'LEVEL';
+        }
+      } catch (error) {
+        logger.warn(`Failed to get series definition for ${seriesId}:`, error);
+      }
+    }
+
+    // Query Silver layer with monthly resampling
+    const monthsInt = parseInt(months as string);
+    const cutoffDate = new Date();
+    cutoffDate.setMonth(cutoffDate.getMonth() - monthsInt);
+    
+    const observations = await db
+      .select({
+        periodEnd: econSeriesObservation.periodEnd,
+        valueStd: econSeriesObservation.valueStd
+      })
+      .from(econSeriesObservation)
+      .where(
+        and(
+          eq(econSeriesObservation.seriesId, seriesId),
+          gte(econSeriesObservation.periodEnd, cutoffDate.toISOString().split('T')[0])
+        )
+      )
+      .orderBy(desc(econSeriesObservation.periodEnd))
+      .limit(50);
+
+    // Transform data for client (latest points first, then reverse for chronological order)
+    const data = observations
+      .reverse() // Chronological order for sparkline
+      .map((row) => ({
+        t: Date.parse(row.periodEnd), // epoch milliseconds
+        date: row.periodEnd,
+        value: parseFloat(row.valueStd?.toString() || '0') || 0
+      }));
+
+    res.json({
+      success: true,
+      data,
+      meta: {
+        seriesId,
+        transform: finalTransform,
+        months: monthsInt,
+        points: data.length
+      },
+      cached: false
+    });
+
+  } catch (error) {
+    logger.error(`Failed to fetch sparkline for ${seriesId}:`, error);
+    
+    // Return empty data on error (never return error response)
+    res.json({
+      success: true,
+      data: [],
+      meta: {
+        seriesId,
+        transform: finalTransform,
+        months: parseInt(months as string),
+        points: 0
+      },
+      warning: 'data_unavailable'
+    });
+  }
+}));
+
 export { router as economicDataRoutes };
