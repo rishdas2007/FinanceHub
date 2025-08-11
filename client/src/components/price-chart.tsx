@@ -111,8 +111,19 @@ export function PriceChart() {
     chartDataLength: chartData.length,
     sampleChartData: chartData.slice(0, 2),
     selectedTimeframe,
-    currentTimeframe
+    currentTimeframe,
+    error: error?.message,
+    loading: historyLoading
   });
+
+  // Also log every individual data point for debugging
+  if (chartData.length > 0) {
+    console.log('📈 Chart Data Points:', chartData.map(d => ({
+      date: d.formattedDate,
+      price: d.price,
+      validPrice: !isNaN(d.price) && d.price > 0
+    })));
+  }
 
   console.log(`📈 Final chart data sample:`, chartData.slice(0, 3));
 
@@ -151,7 +162,7 @@ export function PriceChart() {
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
     console.log(`📈 Stock Chart Debug:`, {
-      stockHistoryLength: stockHistory?.length || 0,
+      sparklineDataLength: sparklineData?.data?.length || 0,
       chartDataLength: chartData?.length || 0,
       sampleDates: chartData?.slice(0, 3).map(d => d.formattedDate) || [],
       periodChange: stockPeriodChange
