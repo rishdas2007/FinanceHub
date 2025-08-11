@@ -53,7 +53,7 @@ function formatPercent(pct: number): string {
   return `${sign}${pct.toFixed(2)}%`;
 }
 
-function SimpleSparkline({ data, trend }: { data: Array<{ t: number; value: number }>; trend?: 'up' | 'down' | 'neutral' }) {
+function SimpleSparkline({ data, trend, size = 'small' }: { data: Array<{ t: number; value: number }>; trend?: 'up' | 'down' | 'neutral'; size?: 'small' | 'large' }) {
   if (!data || data.length < 2) return null;
   
   const values = data.map(d => d.value);
@@ -61,24 +61,57 @@ function SimpleSparkline({ data, trend }: { data: Array<{ t: number; value: numb
   const max = Math.max(...values);
   const range = max - min || 1;
   
+  const width = size === 'large' ? 80 : 42;
+  const height = size === 'large' ? 24 : 12;
+  const strokeWidth = size === 'large' ? 1.5 : 1;
+  
   const points = data.map((d, i) => {
-    const x = (i / (data.length - 1)) * 40;
-    const y = 10 - ((d.value - min) / range) * 8;
+    const x = (i / (data.length - 1)) * (width - 4) + 2;
+    const y = height - 2 - ((d.value - min) / range) * (height - 4);
     return `${x},${y}`;
   }).join(' ');
   
   const color = trend === 'up' ? '#10b981' : trend === 'down' ? '#ef4444' : '#6b7280';
   
   return (
-    <svg width="42" height="12" className="inline-block">
+    <svg width={width} height={height} className="inline-block">
       <polyline
         fill="none"
         stroke={color}
-        strokeWidth="1"
+        strokeWidth={strokeWidth}
         points={points}
       />
     </svg>
   );
+}
+
+// Map series IDs to human-readable names
+function getSeriesDisplayName(seriesId: string): string {
+  const seriesNames: Record<string, string> = {
+    'T10Y3M': '10Y-3M Treasury Spread',
+    'T10YIE': '10Y Breakeven Inflation',
+    'T10Y2Y': '10Y-2Y Treasury Spread',
+    'UNRATE': 'Unemployment Rate',
+    'CPIAUCSL': 'Consumer Price Index',
+    'GDP': 'Gross Domestic Product',
+    'PAYEMS': 'Nonfarm Payrolls',
+    'HOUST': 'Housing Starts',
+    'INDPRO': 'Industrial Production',
+    'RSAFS': 'Retail Sales',
+    'DEXUSEU': 'USD/EUR Exchange Rate',
+    'DGS10': '10-Year Treasury Rate',
+    'DGS2': '2-Year Treasury Rate',
+    'DGS3MO': '3-Month Treasury Rate',
+    'FEDFUNDS': 'Federal Funds Rate',
+    'MORTGAGE30US': '30Y Mortgage Rate',
+    'UMCSENT': 'Consumer Sentiment',
+    'PCEC96': 'Personal Consumption',
+    'GPDI': 'Gross Private Investment',
+    'EXPGSC1': 'Government Spending',
+    'NETEXP': 'Net Exports'
+  };
+  
+  return seriesNames[seriesId] || seriesId;
 }
 
 export function ETFSignals() {
@@ -264,22 +297,24 @@ export function EconomicPulse() {
         const isPositive = indicator.vsPrior >= 0;
         const trendDirection = isPositive ? 'up' : 'down';
         const vsPriorFormatted = isPositive ? `+${indicator.vsPrior.toFixed(2)}` : indicator.vsPrior.toFixed(2);
+        const displayName = getSeriesDisplayName(indicator.seriesId);
         
         return (
           <div key={`${indicator.seriesId}-${i}`} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex-1 pr-3">
-                <div className="font-medium text-white text-sm leading-tight">{indicator.displayName}</div>
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex-1 pr-4">
+                <div className="font-medium text-white text-sm leading-tight">{displayName}</div>
                 <div className="text-xs text-gray-400 mt-1">{indicator.period}</div>
               </div>
               <div className="flex-shrink-0">
                 <SimpleSparkline 
                   data={indicator.spark12m} 
                   trend={trendDirection}
+                  size="large"
                 />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="grid grid-cols-4 gap-3 text-xs">
               <div>
                 <div className="text-gray-400">Current</div>
                 <div className="text-white font-medium">{indicator.current.toFixed(2)}</div>
@@ -296,18 +331,18 @@ export function EconomicPulse() {
                   {vsPriorFormatted}
                 </div>
               </div>
+              {indicator.zScore !== null && (
+                <div>
+                  <div className="text-gray-400">Z-Score</div>
+                  <div className={cn("font-medium",
+                    indicator.zScore > 1.5 ? 'text-red-400' :
+                    indicator.zScore < -1.5 ? 'text-emerald-400' : 'text-gray-300'
+                  )}>
+                    {indicator.zScore.toFixed(2)}
+                  </div>
+                </div>
+              )}
             </div>
-            {indicator.zScore !== null && (
-              <div className="mt-2 text-xs">
-                <span className="text-gray-400">Z-Score: </span>
-                <span className={cn("font-medium",
-                  indicator.zScore > 1.5 ? 'text-red-400' :
-                  indicator.zScore < -1.5 ? 'text-emerald-400' : 'text-gray-300'
-                )}>
-                  {indicator.zScore.toFixed(2)}
-                </span>
-              </div>
-            )}
           </div>
         );
       })}
