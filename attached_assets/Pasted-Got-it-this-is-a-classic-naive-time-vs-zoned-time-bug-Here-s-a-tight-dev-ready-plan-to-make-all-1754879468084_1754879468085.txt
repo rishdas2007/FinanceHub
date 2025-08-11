@@ -1,0 +1,198 @@
+Got it—this is a classic “naive time vs. zoned time” bug. Here’s a tight, dev-ready plan to make all times correct, user-localized by default, and **ET (New York)** as the fallback. It also fixes the “Next open: Mon 5:30 AM” issue.
+
+---
+
+# What’s happening (root cause)
+
+* You’re constructing “9:30 AM” as a naive `Date` (no zone) and then formatting it in the user’s locale. JS assumes the timestamp is local/UTC, shifts it, and you end up with 5:30 AM or other oddities.
+* DST transitions + holidays make simple “weekday checks” wrong.
+
+---
+
+# The fix (overview)
+
+1. **Always compute market hours in ET** (America/New\_York) using a timezone-aware lib.
+2. **Return UTC ISO strings** from the API for `now`, `nextOpen`, `nextClose` (no ambiguous local times).
+3. **Client formats in the user’s zone** detected via the browser, **fallback to ET** if unknown.
+4. **Use a trading calendar** (NYSE holidays + half-days) to pick the correct open/close.
+
+---
+
+# Server changes (Express, Luxon)
+
+## 1) Install & wire Luxon (or date-fns-tz)
+
+```bash
+pnpm add luxon
+```
+
+### `server/services/market/time.service.ts`
+
+```ts
+import { DateTime } from "luxon";
+
+const ET = "America/New_York";
+const OPEN = { hour: 9, minute: 30 };
+const CLOSE = { hour: 16, minute: 0 };
+
+// Minimal holiday calendar (extend as needed or replace with a lib)
+// ISO dates in ET (yyyy-mm-dd)
+const HOLIDAYS_ET = new Set<string>([
+  // New Year’s Day (observed), MLK Day, Presidents Day, Good Friday, Memorial Day,
+  // Juneteenth, Independence Day (obs), Labor Day, Thanksgiving, Christmas (obs)
+  // Keep these refreshed yearly or back with an API/source of truth.
+]);
+
+// Optional: half-day (1:00 PM ET) list
+const HALF_DAYS_ET = new Set<string>([
+  // e.g., Day after Thanksgiving yyyy-mm-dd, Christmas Eve when applicable
+]);
+
+function isTradingDay(dtEt: DateTime) {
+  const iso = dtEt.toISODate(); // ET date
+  if (dtEt.weekday === 6 || dtEt.weekday === 7) return false; // Sat/Sun
+  if (HOLIDAYS_ET.has(iso)) return false;
+  return true;
+}
+
+function todaySessionBounds(dtEt: DateTime) {
+  const open = dtEt.set({ ...OPEN, second: 0, millisecond: 0 });
+  const isHalf = HALF_DAYS_ET.has(dtEt.toISODate());
+  const closeH = isHalf ? 13 : CLOSE.hour;
+  const closeM = isHalf ? 0 : CLOSE.minute;
+  const close = dtEt.set({ hour: closeH, minute: closeM, second: 0, millisecond: 0 });
+  return { open, close, isHalf };
+}
+
+function nextTradingDayEt(dtEt: DateTime) {
+  let d = dtEt.plus({ days: 1 }).startOf("day");
+  while (!isTradingDay(d)) d = d.plus({ days: 1 });
+  return d;
+}
+
+export function computeMarketClock(userTz?: string) {
+  const nowEt = DateTime.utc().setZone(ET);
+  const tradingToday = isTradingDay(nowEt);
+  const { open, close, isHalf } = todaySessionBounds(nowEt);
+
+  let isOpen = false;
+  let nextOpenEt: DateTime;
+  let nextCloseEt: DateTime | null = null;
+
+  if (tradingToday && nowEt >= open && nowEt < close) {
+    isOpen = true;
+    nextCloseEt = close;
+    nextOpenEt = nextTradingDayEt(nowEt).set({ ...OPEN, second: 0, millisecond: 0 });
+  } else if (tradingToday && nowEt < open) {
+    nextOpenEt = open;
+  } else {
+    const nd = tradingToday && nowEt >= close ? nextTradingDayEt(nowEt) : nextTradingDayEt(nowEt.startOf("day"));
+    nextOpenEt = nd.set({ ...OPEN, second: 0, millisecond: 0 });
+  }
+
+  // API returns UTC ISO (unambiguous)
+  const nowUtc = nowEt.toUTC().toISO();
+  const nextOpenUtc = nextOpenEt.toUTC().toISO();
+  const nextCloseUtc = nextCloseEt ? nextCloseEt.toUTC().toISO() : null;
+
+  // Also return ET labels (for debugging) and the zone we computed in
+  return {
+    isOpen,
+    isHalfDay: isHalf,
+    computedInZone: ET,
+    nowUtc,
+    nextOpenUtc,
+    nextCloseUtc,
+  };
+}
+```
+
+### `server/controllers/market-status.controller.ts`
+
+```ts
+import { computeMarketClock } from "../services/market/time.service";
+
+app.get("/api/market-status", (req, res) => {
+  // Optionally accept a user tz (header/query), but API returns UTC ISOs regardless
+  const data = computeMarketClock();
+  res.json({ success: true, data });
+});
+```
+
+> **Why:** All market math stays in ET. API returns UTC so the client can safely localize.
+
+---
+
+# Client changes (React)
+
+## 2) Detect user time zone with a fallback
+
+```ts
+const userTz =
+  Intl?.DateTimeFormat?.().resolvedOptions().timeZone ||
+  'America/New_York'; // fallback to ET
+```
+
+## 3) Format the UTC times for display
+
+Use `Intl.DateTimeFormat` (no additional deps) or your existing date lib.
+
+```ts
+function fmt(isoUtc: string | null, tz: string) {
+  if (!isoUtc) return '—';
+  const d = new Date(isoUtc); // UTC timestamp
+  return new Intl.DateTimeFormat(undefined, {
+    timeZone: tz,
+    weekday: 'short',
+    hour: 'numeric',
+    minute: '2-digit'
+  }).format(d);
+}
+
+// In MarketStatusTile:
+const { isOpen, nextOpenUtc, nextCloseUtc } = data;
+const nextLabel = isOpen ? `Closes: ${fmt(nextCloseUtc, userTz)}`
+                         : `Next open: ${fmt(nextOpenUtc, userTz)}`;
+```
+
+> **Why “Mon 5:30 AM” happened:** you likely created `new Date('2025-08-11T09:30:00')` (naive, no zone) and the browser shifted it. Now you receive **UTC** from the server and explicitly format in the user’s **timeZone**, so it’s correct everywhere and DST-proof.
+
+---
+
+# Optional: pass the user TZ to the API (for logging/AB tests)
+
+Have the client include `X-Timezone: ${userTz}`. The server can log it but **should still return UTC ISO**; the client controls display.
+
+---
+
+# Trading calendar (holidays & half-days)
+
+* For full accuracy, replace the simple sets with a real NYSE calendar (JSON or a tiny lib). Keep **5–10 years** ahead cached in memory.
+* Add early-close logic for: day after Thanksgiving, Christmas Eve (when applicable), etc.
+
+```ts
+// Example: load holidays JSON at boot and fill HOLIDAYS_ET / HALF_DAYS_ET sets.
+```
+
+---
+
+# Acceptance checks (manual)
+
+1. Change your machine/browser time zone to Pacific, Europe, Asia → header should show local times correctly.
+2. Night before a weekday: shows **Next open: 9:30 AM** local-localized time (should be e.g., 6:30 AM PT).
+3. During market hours ET: shows **Closes: 4:00 PM** localized.
+4. On a Saturday/Sunday/holiday ET: shows the next trading day’s 9:30 AM localized.
+5. On a known half-day (when configured): **Closes: 1:00 PM** localized.
+
+---
+
+# Common pitfalls to avoid (and how we avoided them)
+
+* **Using `.toISOString()` then parsing as local** → We ship UTC ISO, and **only** format at the edge with `timeZone`.
+* **Constructing ET times without a zone** → We construct times in **America/New\_York** with Luxon and then convert to UTC for transport.
+* **DST jumps** → Handled by zone-aware construction (`set({ hour: 9, minute: 30 })` in ET).
+* **Weekend “today” cases** → We loop to the next trading day.
+
+---
+
+If you want, I can also drop in a compact NYSE holiday JSON for 2025–2030 and wire the half-day rules so your status line reflects early closes automatically.

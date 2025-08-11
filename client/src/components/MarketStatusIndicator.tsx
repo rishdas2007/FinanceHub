@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Clock, CircleDot, Moon, Sun, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatMarketTime, getUserTimezone } from "@/utils/timezone";
 
 interface MarketStatus {
   isOpen: boolean;
@@ -50,6 +51,8 @@ export function MarketStatusIndicator() {
   const marketStatus = marketData?.marketStatus || marketData?.status;
   
   const getStatusConfig = () => {
+    const userTz = getUserTimezone();
+    
     switch (marketStatus?.session) {
       case 'open':
         return {
@@ -57,12 +60,7 @@ export function MarketStatusIndicator() {
           textColor: 'text-gain-green',
           icon: CircleDot,
           label: 'Market Open',
-          description: `Closes at ${new Date(marketStatus?.nextClose || new Date()).toLocaleTimeString('en-US', { 
-            timeZone: 'America/New_York',
-            hour: 'numeric',
-            minute: '2-digit',
-            timeZoneName: 'short'
-          })}`
+          description: `Closes: ${formatMarketTime(marketStatus?.nextClose, userTz)}`
         };
       case 'premarket':
         return {
@@ -70,12 +68,7 @@ export function MarketStatusIndicator() {
           textColor: 'text-blue-400',
           icon: Sun,
           label: 'Pre-Market',
-          description: `Opens at ${new Date(marketStatus?.nextOpen || new Date()).toLocaleTimeString('en-US', { 
-            timeZone: 'America/New_York',
-            hour: 'numeric',
-            minute: '2-digit',
-            timeZoneName: 'short'
-          })}`
+          description: `Opens: ${formatMarketTime(marketStatus?.nextOpen, userTz)}`
         };
       case 'afterhours':
         return {
@@ -83,12 +76,7 @@ export function MarketStatusIndicator() {
           textColor: 'text-yellow-400',
           icon: Moon,
           label: 'After Hours',
-          description: `Next open: ${new Date(marketStatus?.nextOpen || new Date()).toLocaleDateString('en-US', { 
-            timeZone: 'America/New_York',
-            weekday: 'short',
-            hour: 'numeric',
-            minute: '2-digit'
-          })}`
+          description: `Next open: ${formatMarketTime(marketStatus?.nextOpen, userTz)}`
         };
       default:
         return {
@@ -96,12 +84,7 @@ export function MarketStatusIndicator() {
           textColor: 'text-loss-red',
           icon: Calendar,
           label: 'Market Closed',
-          description: `Next open: ${new Date(marketStatus?.nextOpen || new Date()).toLocaleDateString('en-US', { 
-            timeZone: 'America/New_York',
-            weekday: 'short',
-            hour: 'numeric',
-            minute: '2-digit'
-          })}`
+          description: `Next open: ${formatMarketTime(marketStatus?.nextOpen, userTz)}`
         };
     }
   };

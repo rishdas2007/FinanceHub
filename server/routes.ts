@@ -313,22 +313,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Cache management endpoints removed (file deleted)
 
-  // Market status endpoint for UI/UX improvements
+  // Market status endpoint with timezone-aware implementation
   app.get("/api/market-status", async (req, res) => {
     try {
-      const { MarketHoursDetector } = await import('./services/market-hours-detector');
-      const detector = new MarketHoursDetector();
-      const marketStatus = detector.getCurrentMarketStatus();
+      const { computeMarketClock } = await import('./services/market-time');
+      const marketData = computeMarketClock();
       
       res.json({
         success: true,
-        marketStatus: {
-          isOpen: marketStatus.isOpen,
-          isPremarket: marketStatus.isPremarket,
-          isAfterHours: marketStatus.isAfterHours,
-          nextOpen: marketStatus.nextOpen.toISOString(),
-          nextClose: marketStatus.nextClose.toISOString(),
-          session: marketStatus.session
+        status: {
+          isOpen: marketData.isOpen,
+          isPremarket: marketData.isPremarket,
+          isAfterHours: marketData.isAfterHours,
+          nextOpen: marketData.nextOpenUtc,
+          nextClose: marketData.nextCloseUtc,
+          session: marketData.session
+        },
+        frequencies: {
+          momentum: 'Every 10 minutes',
+          etf: 'Every 5 minutes',
+          economic: 'Every 30 minutes'
         },
         timestamp: new Date().toISOString()
       });
