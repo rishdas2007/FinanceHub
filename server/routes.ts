@@ -56,6 +56,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // FRED Incremental Update System endpoints
   app.use('/api/fred-incremental', (await import('./routes/fred-incremental-routes')).default);
   
+  // Economic Pulse - Real FRED data with 12M sparklines
+  app.get('/api/economic-pulse', async (req, res) => {
+    console.log('🔍 Fast Dashboard Route: GET /api/economic-pulse');
+    const { getEconomicPulse } = await import('./controllers/economic-pulse.controller');
+    await getEconomicPulse(req, res);
+  });
+  
   // Gold Standard Data Quality & Pipeline endpoints
   app.use('/api/data-quality', (await import('./routes/data-quality-routes')).default);
   

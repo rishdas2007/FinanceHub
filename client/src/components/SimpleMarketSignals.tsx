@@ -269,8 +269,8 @@ interface MacroIndicator {
 }
 
 export function EconomicPulse() {
-  const { data: macroData, isLoading, error } = useQuery<{ indicators: MacroIndicator[] }>({
-    queryKey: ['/api/macroeconomic-indicators'],
+  const { data: pulseData, isLoading, error } = useQuery<{ data: MacroIndicator[] }>({
+    queryKey: ['/api/economic-pulse', { limit: 5 }],
     refetchInterval: 30 * 60 * 1000,
     staleTime: 25 * 60 * 1000
   });
@@ -285,7 +285,7 @@ export function EconomicPulse() {
     );
   }
 
-  if (error || !macroData?.indicators) {
+  if (error || !pulseData?.data) {
     return (
       <div className="text-center py-8 text-gray-500">
         <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -295,7 +295,7 @@ export function EconomicPulse() {
     );
   }
 
-  const data = macroData.indicators.slice(0, 5);
+  const data = pulseData.data;
 
   if (data.length === 0) {
     return (
@@ -316,20 +316,7 @@ export function EconomicPulse() {
         const zScore = parseFloat(indicator.zScore) || 0;
         const deltaZScore = parseFloat(indicator.deltaZScore) || 0;
         
-        // Extract numeric value for sparkline calculation
-        const numericCurrent = parseFloat(indicator.currentReading.replace(/[^0-9.-]/g, '')) || 0;
-        const numericPrior = parseFloat(indicator.priorReading.replace(/[^0-9.-]/g, '')) || 0;
-        
-        // Generate meaningful 12M trend based on actual data variance
-        const sparkData = Array.from({ length: 12 }, (_, idx) => {
-          const baseValue = numericCurrent;
-          const trendFactor = (idx / 11) * variance * 0.1; // Gradual trend
-          const noise = (Math.random() - 0.5) * Math.abs(variance) * 0.3; // Some variation
-          return {
-            t: Date.now() - (11 - idx) * 30 * 24 * 60 * 60 * 1000,
-            value: Math.max(0, baseValue + trendFactor + noise)
-          };
-        });
+        // Use real sparkline data from API if available
         
         return (
           <div key={`${indicator.metric}-${i}`} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700">
@@ -342,11 +329,17 @@ export function EconomicPulse() {
                 </div>
               </div>
               <div className="flex-shrink-0">
-                <SimpleSparkline 
-                  data={indicator.spark12m || sparkData} 
-                  trend={trendDirection}
-                  size="large"
-                />
+                {indicator.spark12m && indicator.spark12m.length > 0 ? (
+                  <SimpleSparkline 
+                    data={indicator.spark12m} 
+                    trend={trendDirection}
+                    size="large"
+                  />
+                ) : (
+                  <div className="w-20 h-6 bg-gray-700/50 rounded flex items-center justify-center">
+                    <span className="text-xs text-gray-500">No data</span>
+                  </div>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-4 gap-3 text-xs">
