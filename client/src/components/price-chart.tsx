@@ -87,7 +87,7 @@ export function PriceChart() {
     const rsiValues = calculateRealRSI(prices);
 
     return {
-      price: price,
+      price: Number(price),
       rsi: rsiValues[index] || 50,
       date: dateObj.toISOString().split('T')[0],
       timestamp: dateObj.toISOString(),
@@ -97,10 +97,21 @@ export function PriceChart() {
       }),
     };
   }).filter((_, index) => {
-    // Filter based on selected timeframe
+    // Filter based on selected timeframe - show most recent N points
     const totalPoints = sparklineData?.data.length || 0;
     const keepPoints = Math.min(currentTimeframe.days, totalPoints);
     return index >= totalPoints - keepPoints;
+  });
+
+  // Debug logging
+  console.log('🔍 Sparkline Data Debug:', {
+    sparklineData: sparklineData ? 'loaded' : 'missing',
+    dataLength: sparklineData?.data?.length || 0,
+    samplePrices: sparklineData?.data?.slice(0, 3) || [],
+    chartDataLength: chartData.length,
+    sampleChartData: chartData.slice(0, 2),
+    selectedTimeframe,
+    currentTimeframe
   });
 
   console.log(`📈 Final chart data sample:`, chartData.slice(0, 3));
@@ -220,96 +231,77 @@ export function PriceChart() {
               <div className="h-4 bg-gray-600 rounded w-3/4 mb-4"></div>
               <div className="h-64 bg-gray-700/50 rounded"></div>
             </div>
-          ) : error || !sparklineData || !sparklineData.data || sparklineData.data.length === 0 ? (
+          ) : error ? (
+            <div className="text-center text-red-400 flex flex-col items-center justify-center h-full">
+              <p className="mb-4">Error loading data: {error.message}</p>
+              <Button onClick={() => window.location.reload()} variant="outline" size="sm">
+                Retry
+              </Button>
+            </div>
+          ) : !sparklineData || !sparklineData.data || sparklineData.data.length === 0 ? (
             <div className="text-center text-gray-400 flex flex-col items-center justify-center h-full">
               <p className="mb-4">No price data available for {selectedETF.symbol}</p>
+              <p className="text-sm">Sparkline Data: {sparklineData ? 'loaded' : 'missing'}</p>
+              <p className="text-sm">Data Points: {sparklineData?.data?.length || 0}</p>
               <Button onClick={() => window.location.reload()} variant="outline" size="sm">
                 Retry
               </Button>
             </div>
           ) : chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#404040" />
-                <XAxis 
-                  dataKey="formattedDate" 
-                  stroke="#9CA3AF"
-                  fontSize={12}
-                  interval="preserveStartEnd"
-                />
-                <YAxis 
-                  yAxisId="price"
-                  orientation="left"
-                  stroke="#9CA3AF"
-                  fontSize={12}
-                  domain={[(dataMin: number) => Math.floor(dataMin * 0.998), (dataMax: number) => Math.ceil(dataMax * 1.002)]}
-                  tickFormatter={(value) => `$${value.toFixed(0)}`}
-                  scale="linear"
-                />
-                <YAxis 
-                  yAxisId="rsi"
-                  orientation="right"
-                  stroke="#9CA3AF"
-                  fontSize={12}
-                  domain={[0, 100]}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: '#2D2D2D',
-                    border: '1px solid #404040',
-                    borderRadius: '8px',
-                    color: '#fff'
-                  }}
-                  formatter={(value: number, name: string) => {
-                    if (name === 'price') return [`$${value.toFixed(2)}`, 'Price'];
-                    if (name === 'rsi') return [value.toFixed(1), 'RSI'];
-                    return [value, name];
-                  }}
-                />
-                {/* RSI Overbought/Oversold Lines */}
-                <Line 
-                  yAxisId="rsi"
-                  type="monotone" 
-                  dataKey={() => 70}
-                  stroke="#FF6B6B" 
-                  strokeWidth={1}
-                  strokeDasharray="5 5"
-                  dot={false}
-                  connectNulls={false}
-                />
-                <Line 
-                  yAxisId="rsi"
-                  type="monotone" 
-                  dataKey={() => 30}
-                  stroke="#4ECDC4" 
-                  strokeWidth={1}
-                  strokeDasharray="5 5"
-                  dot={false}
-                  connectNulls={false}
-                />
-                {/* RSI Bars */}
-                <Bar 
-                  yAxisId="rsi"
-                  dataKey="rsi" 
-                  fill="#3B82F6"
-                  opacity={0.7}
-                  barSize={8}
-                />
-                {/* Price Line */}
-                <Line 
-                  yAxisId="price"
-                  type="monotone" 
-                  dataKey="price" 
-                  stroke="#10B981" 
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 4, fill: '#10B981' }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
+            <div className="w-full h-full">
+              <div className="mb-2 text-xs text-gray-400">
+                Chart Data: {chartData.length} points | Range: ${Math.min(...chartData.map(d => d.price)).toFixed(2)} - ${Math.max(...chartData.map(d => d.price)).toFixed(2)}
+              </div>
+              <ResponsiveContainer width="100%" height={280}>
+                <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#404040" />
+                  <XAxis 
+                    dataKey="formattedDate" 
+                    stroke="#9CA3AF"
+                    fontSize={11}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis 
+                    yAxisId="price"
+                    orientation="left"
+                    stroke="#9CA3AF"
+                    fontSize={11}
+                    domain={['dataMin - 5', 'dataMax + 5']}
+                    tickFormatter={(value) => `$${Number(value).toFixed(0)}`}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: '#2D2D2D',
+                      border: '1px solid #404040',
+                      borderRadius: '8px',
+                      color: '#fff'
+                    }}
+                    formatter={(value: number, name: string) => {
+                      if (name === 'price') return [`$${value.toFixed(2)}`, 'Price'];
+                      return [value, name];
+                    }}
+                  />
+                  {/* Price Line */}
+                  <Line 
+                    yAxisId="price"
+                    type="monotone" 
+                    dataKey="price" 
+                    stroke="#10B981" 
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4, fill: '#10B981' }}
+                    isAnimationActive={false}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400">
-              No historical data available. Please check API connection.
+              <div className="text-center">
+                <p>Chart data length: {chartData.length}</p>
+                <p>Sparkline data: {sparklineData?.data?.length || 0} points</p>
+                <p>No chart data to display</p>
+              </div>
             </div>
           )}
         </div>
