@@ -264,43 +264,50 @@ function ETFRow({ etf }: { etf: ETFMetrics }) {
           <span className="text-xs text-gray-400 truncate max-w-[80px]">{etf.name}</span>
         </div>
       </td>
-      <td className="py-3 px-1 text-white font-medium">
-        {formatPrice(etf.price)}
-      </td>
       <td className="py-3 px-1">
-        <span className={`font-medium ${etf.changePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-          {formatPercent(etf.changePercent)}
-        </span>
+        <div className="flex flex-col">
+          <span className="text-white font-medium">{formatPrice(etf.price)}</span>
+          <span className={`text-xs font-medium ${etf.changePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {formatPercent(etf.changePercent)}
+          </span>
+        </div>
       </td>
 
-      <td className="py-3 px-1">
-        <span className={`px-2 py-1 rounded text-xs font-medium ${
-          (etf.zScoreData?.compositeZScore || 0) >= 0.75 ? 'bg-green-800/50 text-green-300' :
-          (etf.zScoreData?.compositeZScore || 0) <= -0.75 ? 'bg-red-800/50 text-red-300' :
-          'bg-gray-800/50 text-yellow-300'
-        }`}>
-          {(etf.zScoreData?.compositeZScore || 0) >= 0.75 ? 'BUY' :
-           (etf.zScoreData?.compositeZScore || 0) <= -0.75 ? 'SELL' : 'HOLD'}
-        </span>
-      </td>
-
-      {/* Composite Z-Score - Final weighted result (moved to front) */}
-      <td className="py-3 px-1 text-center bg-purple-900/30">
+      {/* Signal Column - Most important column with special styling */}
+      <td className="py-3 px-1 text-center bg-blue-900/40 border-2 border-blue-400/30">
         <div className="flex flex-col items-center">
-          <span className={`text-sm font-bold font-mono ${
+          <span className={`text-lg font-bold font-mono ${
             (etf.zScoreData?.compositeZScore || 0) >= 0.75 ? 'text-green-400' :
             (etf.zScoreData?.compositeZScore || 0) <= -0.75 ? 'text-red-400' : 
             'text-yellow-400'
           }`}>
             {safeFormatNumber(etf.zScoreData?.compositeZScore, 3)}
           </span>
-          <span className={`text-xs font-medium mt-1 px-2 py-1 rounded ${
-            (etf.zScoreData?.compositeZScore || 0) >= 0.75 ? 'bg-green-800/50 text-green-300' :
-            (etf.zScoreData?.compositeZScore || 0) <= -0.75 ? 'bg-red-800/50 text-red-300' :
-            'bg-gray-800/50 text-yellow-300'
+          <span className={`text-sm font-bold mt-1 px-3 py-1 rounded-md ${
+            (etf.zScoreData?.compositeZScore || 0) >= 0.75 ? 'bg-green-800/50 text-green-300 border border-green-600' :
+            (etf.zScoreData?.compositeZScore || 0) <= -0.75 ? 'bg-red-800/50 text-red-300 border border-red-600' :
+            'bg-gray-800/50 text-yellow-300 border border-yellow-600'
           }`}>
             {(etf.zScoreData?.compositeZScore || 0) >= 0.75 ? 'BUY' :
              (etf.zScoreData?.compositeZScore || 0) <= -0.75 ? 'SELL' : 'HOLD'}
+          </span>
+        </div>
+      </td>
+
+      {/* MACD with Z-Score (35%) - Highest weight */}
+      <td className="py-3 px-1 text-center bg-purple-900/20">
+        <div className="flex flex-col items-center">
+          <span className="text-sm font-medium text-white">
+            MACD
+          </span>
+          <span className="text-xs text-gray-400">
+            Signal
+          </span>
+          <span className={`text-xs font-mono mt-1 ${
+            (etf.zScoreData?.macdZScore || 0) > 0 ? 'text-green-300' :
+            (etf.zScoreData?.macdZScore || 0) < 0 ? 'text-red-300' : 'text-gray-300'
+          }`}>
+            Z: {safeFormatNumber(etf.zScoreData?.macdZScore, 3)}
           </span>
         </div>
       </td>
@@ -319,24 +326,6 @@ function ETFRow({ etf }: { etf: ETFMetrics }) {
             (etf.zScoreData?.rsiZScore || 0) < 0 ? 'text-green-300' : 'text-gray-300'
           }`}>
             Z: {safeFormatNumber(etf.zScoreData?.rsiZScore, 3)}
-          </span>
-        </div>
-      </td>
-
-      {/* MACD with Z-Score (35%) */}
-      <td className="py-3 px-1 text-center bg-purple-900/20">
-        <div className="flex flex-col items-center">
-          <span className="text-sm font-medium text-white">
-            MACD
-          </span>
-          <span className="text-xs text-gray-400">
-            Signal
-          </span>
-          <span className={`text-xs font-mono mt-1 ${
-            (etf.zScoreData?.macdZScore || 0) > 0 ? 'text-green-300' :
-            (etf.zScoreData?.macdZScore || 0) < 0 ? 'text-red-300' : 'text-gray-300'
-          }`}>
-            Z: {safeFormatNumber(etf.zScoreData?.macdZScore, 3)}
           </span>
         </div>
       </td>
@@ -539,13 +528,11 @@ export default function ETFMetricsTable() {
               <tr className="border-b border-gray-600">
                 <th className="text-left py-2 px-1 text-gray-300 font-medium">Symbol</th>
                 <th className="text-left py-2 px-1 text-gray-300 font-medium">Price</th>
-                <th className="text-left py-2 px-1 text-gray-300 font-medium">24h%</th>
-                <th className="text-left py-2 px-1 text-gray-300 font-medium">Signal</th>
-                <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/30">Composite Z</th>
-                <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">RSI (25%)</th>
+                <th className="text-center py-2 px-1 text-blue-300 font-bold bg-blue-900/40 border-2 border-blue-400">Signal</th>
                 <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">MACD (35%)</th>
-                <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">Bollinger (15%)</th>
+                <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">RSI (25%)</th>
                 <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">MA Trend (20%)</th>
+                <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">Bollinger (15%)</th>
                 <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">5-Day (5%)</th>
               </tr>
             </thead>
