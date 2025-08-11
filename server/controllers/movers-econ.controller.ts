@@ -2,8 +2,9 @@ import { Request, Response } from 'express';
 import { sql } from 'drizzle-orm';
 import { db } from '../db';
 import { MOVERS } from '../config/movers';
+import { getCache, setCache, getLastGood, setLastGood } from '../cache/unified-dashboard-cache';
 
-async function getSpark12m(seriesId: string, transform: string) {
+async function spark12m(seriesId: string, transform: string) {
   const q = await db.execute(sql`
     with raw as (
       select period_end::date as pe, value_std
@@ -24,45 +25,40 @@ async function getSpark12m(seriesId: string, transform: string) {
     from last_per_month
     order by period_end asc;
   `);
-  
-  return (q.rows as any[]).map(r => ({
-    t: Date.parse(r.period_end),
-    value: Number(r.value_std)
-  }));
+  return (q.rows as any[]).map(r => ({ t: Date.parse(r.period_end), value: Number(r.value_std) }));
 }
 
 export const getEconMovers = async (req: Request, res: Response) => {
-  const startTime = Date.now();
-  
-  try {
-    const limit = Math.max(1, Math.min(10, Number(req.query.limit) || 5));
-    
-    console.log(`📊 Economic Movers: Processing latest ${limit} non-daily series`);
+  const limit = Math.max(1, Math.min(10, Number(req.query.limit) || 5));
+  const cacheKey = `movers:econ:${limit}:v2`;
+  const cached = await getCache(cacheKey);
+  if (cached) return res.json({ success: true, data: cached, cached: true });
 
-    // 1) Find the latest updated NON-DAILY series using each series' default transform
+  try {
+    // Latest NON-DAILY series (default transform, coalesced)
     const latest = await db.execute(sql`
       with latest as (
-        select d.series_id, d.display_name, d.default_transform, d.standard_unit,
+        select d.series_id,
+               d.display_name,
+               coalesce(nullif(d.default_transform,''),'LEVEL') as default_transform,
+               d.standard_unit,
                max(o.period_end) as last_period
         from econ_series_def d
         join econ_series_observation o
           on o.series_id = d.series_id
-         and o.transform_code = d.default_transform
+         and o.transform_code = coalesce(nullif(d.default_transform,''),'LEVEL')
          and o.freq <> 'D'
         group by d.series_id, d.display_name, d.default_transform, d.standard_unit
       )
-      select *
-      from latest
+      select * from latest
       order by last_period desc
       limit ${limit};
     `);
 
     const out = [];
-    
-    for (const r of (latest.rows as any[])) {
+    for (const r of latest.rows as any[]) {
       const { series_id, display_name, default_transform, standard_unit, last_period } = r;
 
-      // 2) Fetch current & prior from Silver
       const cur = await db.execute(sql`
         select period_end, value_std
         from econ_series_observation
@@ -71,7 +67,6 @@ export const getEconMovers = async (req: Request, res: Response) => {
           and period_end = ${last_period}
         limit 1;
       `);
-      
       const prior = await db.execute(sql`
         select period_end, value_std
         from econ_series_observation
@@ -83,9 +78,8 @@ export const getEconMovers = async (req: Request, res: Response) => {
       `);
 
       const currentVal = cur.rows[0]?.value_std ?? null;
-      const priorVal = prior.rows[0]?.value_std ?? null;
+      const priorVal   = prior.rows[0]?.value_std ?? null;
 
-      // 3) z-score from Gold (level_z for same period/transform)
       const zq = await db.execute(sql`
         select level_z
         from econ_series_features
@@ -97,11 +91,11 @@ export const getEconMovers = async (req: Request, res: Response) => {
       `);
       const z = zq.rows[0]?.level_z ?? null;
 
-      // 4) vs prior (difference; if transform is YOY, it's percentage-point delta)
-      const vsPrior = (currentVal != null && priorVal != null) ? (Number(currentVal) - Number(priorVal)) : null;
+      const vsPrior = (currentVal != null && priorVal != null)
+        ? Number(currentVal) - Number(priorVal)
+        : null;
 
-      // 5) sparkline (12M monthly)
-      const spark = await getSpark12m(series_id, default_transform);
+      const spark = await spark12m(series_id, default_transform);
 
       out.push({
         seriesId: series_id,
@@ -117,24 +111,13 @@ export const getEconMovers = async (req: Request, res: Response) => {
       });
     }
 
-    const responseTime = Date.now() - startTime;
-    
-    console.log(`✅ Economic Movers completed in ${responseTime}ms: ${out.length} series`);
-    
-    res.json({
-      success: true,
-      data: out,
-      responseTime,
-      timestamp: new Date().toISOString()
-    });
-    
-  } catch (error) {
-    console.error('❌ Economic Movers error:', error);
-    res.status(500).json({
-      success: false,
-      data: [],
-      error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
-    });
+    await setCache(cacheKey, out, MOVERS.CACHE_TTL_ECON_MS);
+    await setLastGood(cacheKey, out);
+    return res.json({ success: true, data: out });
+  } catch (err) {
+    console.error('[movers/econ] error', err);
+    const last = await getLastGood(cacheKey);
+    if (last) return res.json({ success: true, data: last, warning: 'stale_lastGood' });
+    return res.json({ success: true, data: [], warning: 'data_unavailable' });
   }
 };

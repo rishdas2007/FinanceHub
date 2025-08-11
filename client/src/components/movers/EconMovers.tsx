@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { SimpleSparkline } from '../SimpleSparkline';
-import { Calendar } from 'lucide-react';
+import { Calendar, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface EconMover {
@@ -110,6 +110,16 @@ export default function EconMovers({ limit = 5 }: { limit?: number }) {
         <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
         <p>Unable to load economic indicators</p>
         <p className="text-sm mt-1">Please try again later</p>
+      </div>
+    );
+  }
+
+  if (!data.data || data.data.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+        <p className="font-medium">No economic updates</p>
+        <p className="text-sm mt-1">No recent economic data available</p>
       </div>
     );
   }

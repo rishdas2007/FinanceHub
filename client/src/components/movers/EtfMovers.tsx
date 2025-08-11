@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { SimpleSparkline } from '../SimpleSparkline';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface EtfMover {
@@ -86,6 +86,43 @@ export default function EtfMovers({ universe }: { universe?: string[] }) {
   }
 
   const { benchmark, signals } = data.data;
+
+  // Show "no signals" state when no BUY/SELL signals exist
+  if (!signals || signals.length === 0) {
+    return (
+      <div className="space-y-4" data-testid="etf-movers-section">
+        {/* Benchmark row */}
+        <div className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800">
+          <div className="flex items-center gap-4">
+            <div className="font-semibold text-lg">S&P 500 (SPY)</div>
+            <SignalBadge signal={benchmark?.signal || 'NEUTRAL'} zScore={benchmark?.zScore} />
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="text-right">
+              <div className="font-medium">{formatPrice(benchmark?.price)}</div>
+              <div className={cn("text-sm", 
+                benchmark?.pctChange && benchmark.pctChange > 0 ? 'text-emerald-600' : 'text-red-600'
+              )}>
+                {formatPct(benchmark?.pctChange)}
+              </div>
+            </div>
+            {benchmark?.spark && benchmark.spark.length > 0 && (
+              <div className="w-16 h-8">
+                <SimpleSparkline data={benchmark.spark} />
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* No signals message */}
+        <div className="text-center py-8 text-gray-500">
+          <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+          <p className="font-medium">No signals right now</p>
+          <p className="text-sm mt-1">All ETFs showing neutral signals</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4" data-testid="etf-movers-section">
