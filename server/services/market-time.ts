@@ -116,6 +116,14 @@ export function computeMarketClock(): MarketClockData {
   const nowUtc = nowEt.toUTC().toISO() || new Date().toISOString();
   const nextOpenUtc = nextOpenEt.toUTC().toISO() || new Date().toISOString();
   const nextCloseUtc = nextCloseEt ? nextCloseEt.toUTC().toISO() : null;
+  
+  // Debug logging to identify the timezone issue
+  console.log('🕐 Market time debug:', {
+    nextCloseEt: nextCloseEt?.toString(),
+    nextCloseUtc,
+    shouldBe20: nextCloseEt?.hour === 16 ? '20:00 UTC' : 'not 4pm',
+    actualNextClose: nextCloseUtc
+  });
 
   return {
     isOpen,

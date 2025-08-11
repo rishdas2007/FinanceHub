@@ -22,15 +22,8 @@ export function formatMarketTime(isoUtc: string | null, userTz?: string): string
   try {
     const date = new Date(isoUtc);
     
-    // Debug logging for timezone issues
-    console.log('🕐 formatMarketTime debug:', {
-      input: isoUtc,
-      timezone: tz,
-      parsedDate: date.toISOString(),
-      userTimezone: getUserTimezone(),
-      etTime: date.toLocaleString("en-US", { timeZone: "America/New_York" }),
-      userTime: date.toLocaleString("en-US", { timeZone: tz })
-    });
+    // Timezone conversion debug (remove after fix)
+    console.log('🕐 timezone debug:', { input: isoUtc, output: date.toLocaleString("en-US", { timeZone: tz }) });
     
     return new Intl.DateTimeFormat(undefined, {
       timeZone: tz,
