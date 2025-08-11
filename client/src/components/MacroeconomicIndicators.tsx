@@ -680,9 +680,9 @@ const MacroeconomicIndicators: React.FC = () => {
         <CardContent className="max-h-[600px] overflow-y-auto">
           <div className="overflow-x-auto">
             <table className="w-full table-auto">
-              <thead>
-                <tr className="border-b border-financial-border sticky top-0 bg-financial-card">
-                  <th className="text-left py-3 px-2 w-1/5">
+              <thead className="sticky top-0 z-10">
+                <tr className="border-b border-financial-border bg-financial-card">
+                  <th className="text-left py-3 px-2 w-1/5 bg-financial-card">
                     <button 
                       onClick={() => handleSort('metric')}
                       className="text-gray-300 font-medium hover:text-white transition-colors flex items-center group"
@@ -691,7 +691,7 @@ const MacroeconomicIndicators: React.FC = () => {
                       {getSortIcon('metric')}
                     </button>
                   </th>
-                  <th className="text-center py-3 px-2 w-16">
+                  <th className="text-center py-3 px-2 w-16 bg-financial-card">
                     <button 
                       onClick={() => handleSort('type')}
                       className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-center group"
@@ -700,7 +700,7 @@ const MacroeconomicIndicators: React.FC = () => {
                       {getSortIcon('type')}
                     </button>
                   </th>
-                  <th className="text-center py-3 px-2 w-20">
+                  <th className="text-center py-3 px-2 w-20 bg-financial-card">
                     <button 
                       onClick={() => handleSort('category')}
                       className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-center group"
@@ -709,12 +709,12 @@ const MacroeconomicIndicators: React.FC = () => {
                       {getSortIcon('category')}
                     </button>
                   </th>
-                  <th className="text-center py-3 px-2 w-32">
+                  <th className="text-center py-3 px-2 w-32 bg-financial-card">
                     <span className="text-gray-300 font-medium">
                       12M Trend
                     </span>
                   </th>
-                  <th className="text-center py-3 px-2 w-24">
+                  <th className="text-center py-3 px-2 w-24 bg-financial-card">
                     <button 
                       onClick={() => handleSort('period')}
                       className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-center group"
@@ -723,7 +723,7 @@ const MacroeconomicIndicators: React.FC = () => {
                       {getSortIcon('period')}
                     </button>
                   </th>
-                  <th className="text-right py-3 px-2">
+                  <th className="text-right py-3 px-2 bg-financial-card">
                     <button 
                       onClick={() => handleSort('current')}
                       className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-end group w-full"
@@ -732,7 +732,7 @@ const MacroeconomicIndicators: React.FC = () => {
                       {getSortIcon('current')}
                     </button>
                   </th>
-                  <th className="text-right py-3 px-2">
+                  <th className="text-right py-3 px-2 bg-financial-card">
                     <button 
                       onClick={() => handleSort('zscore')}
                       className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-end group w-full"
@@ -741,7 +741,7 @@ const MacroeconomicIndicators: React.FC = () => {
                       {getSortIcon('zscore')}
                     </button>
                   </th>
-                  <th className="text-right py-3 px-2">
+                  <th className="text-right py-3 px-2 bg-financial-card">
                     <button 
                       onClick={() => handleSort('deltazscore')}
                       className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-end group w-full"
@@ -750,7 +750,7 @@ const MacroeconomicIndicators: React.FC = () => {
                       {getSortIcon('deltazscore')}
                     </button>
                   </th>
-                  <th className="text-right py-3 px-2">
+                  <th className="text-right py-3 px-2 bg-financial-card">
                     <button 
                       onClick={() => handleSort('prior')}
                       className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-end group w-full"
@@ -759,7 +759,7 @@ const MacroeconomicIndicators: React.FC = () => {
                       {getSortIcon('prior')}
                     </button>
                   </th>
-                  <th className="text-right py-3 px-2">
+                  <th className="text-right py-3 px-2 bg-financial-card">
                     <button 
                       onClick={() => handleSort('variance')}
                       className="text-gray-300 font-medium hover:text-white transition-colors flex items-center justify-end group w-full"
