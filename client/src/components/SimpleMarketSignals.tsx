@@ -2,13 +2,28 @@ import { useQuery } from '@tanstack/react-query';
 import { TrendingUp, TrendingDown, Minus, Activity, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface MarketSignal {
+interface ETFSignal {
   symbol: string;
   price: number;
-  change: number;
-  changePercent: number;
+  pctChange: number;
+  zScore: number | null;
   signal: 'BUY' | 'SELL' | 'NEUTRAL';
-  strength?: number;
+  spark: Array<{ t: number; value: number }>;
+}
+
+interface ETFMoversData {
+  benchmark: ETFSignal;
+  signals: ETFSignal[];
+}
+
+interface EconomicIndicator {
+  metric: string;
+  period: string;
+  current: string;
+  prior: string;
+  change: string;
+  zScore: number | null;
+  spark: Array<{ t: number; value: number }>;
 }
 
 function SignalBadge({ signal }: { signal: string }) {
@@ -32,14 +47,42 @@ function formatPrice(price: number): string {
   return `$${price.toFixed(2)}`;
 }
 
-function formatChange(change: number, changePercent: number): string {
-  const sign = change >= 0 ? '+' : '';
-  return `${sign}${change.toFixed(2)} (${sign}${changePercent.toFixed(2)}%)`;
+function formatPercent(pct: number): string {
+  const sign = pct >= 0 ? '+' : '';
+  return `${sign}${pct.toFixed(2)}%`;
+}
+
+function SimpleSparkline({ data, trend }: { data: Array<{ t: number; value: number }>; trend?: 'up' | 'down' | 'neutral' }) {
+  if (!data || data.length < 2) return null;
+  
+  const values = data.map(d => d.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  
+  const points = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * 40;
+    const y = 10 - ((d.value - min) / range) * 8;
+    return `${x},${y}`;
+  }).join(' ');
+  
+  const color = trend === 'up' ? '#10b981' : trend === 'down' ? '#ef4444' : '#6b7280';
+  
+  return (
+    <svg width="42" height="12" className="inline-block">
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="1"
+        points={points}
+      />
+    </svg>
+  );
 }
 
 export function ETFSignals() {
-  const { data, isLoading, error } = useQuery<{ etfMovers: { gainers: MarketSignal[], losers: MarketSignal[] } }>({
-    queryKey: ['/api/top-movers'],
+  const { data, isLoading, error } = useQuery<ETFMoversData>({
+    queryKey: ['/api/movers/etf'],
     refetchInterval: 60000,
     staleTime: 50000
   });
@@ -47,61 +90,139 @@ export function ETFSignals() {
   if (isLoading) {
     return (
       <div className="space-y-3">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="h-16 bg-gray-800 rounded-lg animate-pulse" />
-        ))}
+        <div className="h-12 bg-gray-800 rounded-lg animate-pulse" />
+        <div className="space-y-2">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-16 bg-gray-800/50 rounded-lg animate-pulse" />
+          ))}
+        </div>
       </div>
     );
   }
 
-  if (error || !data?.etfMovers) {
+  if (error || !data) {
     return (
       <div className="text-center py-8 text-gray-500">
         <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-        <p className="font-medium">Unable to load signals</p>
+        <p className="font-medium">Unable to load ETF signals</p>
         <p className="text-sm mt-1">Please try again later</p>
       </div>
     );
   }
 
-  const topSignals = [...(data.etfMovers.gainers || []), ...(data.etfMovers.losers || [])]
-    .slice(0, 5);
-
-  if (topSignals.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
-        <p className="font-medium">No signals right now</p>
-        <p className="text-sm mt-1">Market in neutral territory</p>
-      </div>
-    );
-  }
+  const { benchmark, signals } = data;
+  const buySignals = signals.filter(s => s.signal === 'BUY');
+  const sellSignals = signals.filter(s => s.signal === 'SELL');
 
   return (
-    <div className="space-y-3" data-testid="etf-signals">
-      {topSignals.map((signal, i) => (
-        <div key={`${signal.symbol}-${i}`} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-          <div className="flex items-center gap-3">
-            <div className="font-medium text-white">{signal.symbol}</div>
-            <SignalBadge signal={signal.signal} />
-          </div>
-          <div className="text-right">
-            <div className="font-medium text-white">{formatPrice(signal.price)}</div>
-            <div className={cn("text-sm", 
-              signal.changePercent >= 0 ? 'text-emerald-400' : 'text-red-400'
-            )}>
-              {formatChange(signal.change, signal.changePercent)}
+    <div className="space-y-4" data-testid="etf-signals">
+      {/* SPY Benchmark */}
+      {benchmark && (
+        <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-blue-400">{benchmark.symbol}</span>
+              <span className="text-xs text-gray-400">BENCHMARK</span>
             </div>
+            <SimpleSparkline 
+              data={benchmark.spark} 
+              trend={benchmark.pctChange >= 0 ? 'up' : 'down'} 
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-white font-medium">{formatPrice(benchmark.price)}</span>
+            <span className={cn("text-sm font-medium", 
+              benchmark.pctChange >= 0 ? 'text-emerald-400' : 'text-red-400'
+            )}>
+              {formatPercent(benchmark.pctChange)}
+            </span>
           </div>
         </div>
-      ))}
+      )}
+
+      {/* BUY Signals */}
+      {buySignals.length > 0 && (
+        <div>
+          <h4 className="text-sm font-medium text-emerald-400 mb-2 flex items-center gap-1">
+            <TrendingUp className="h-3 w-3" />
+            BUY SIGNALS ({buySignals.length})
+          </h4>
+          <div className="space-y-2">
+            {buySignals.map((signal) => (
+              <div key={signal.symbol} className="flex items-center justify-between p-2 bg-emerald-500/10 rounded border border-emerald-500/20">
+                <div className="flex items-center gap-3">
+                  <span className="font-medium text-white text-sm">{signal.symbol}</span>
+                  <SimpleSparkline 
+                    data={signal.spark} 
+                    trend={signal.pctChange >= 0 ? 'up' : 'down'} 
+                  />
+                  {signal.zScore !== null && (
+                    <span className="text-xs text-emerald-400">Z: {signal.zScore.toFixed(1)}</span>
+                  )}
+                </div>
+                <div className="text-right">
+                  <div className="text-white text-sm">{formatPrice(signal.price)}</div>
+                  <div className={cn("text-xs", 
+                    signal.pctChange >= 0 ? 'text-emerald-400' : 'text-red-400'
+                  )}>
+                    {formatPercent(signal.pctChange)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* SELL Signals */}
+      {sellSignals.length > 0 && (
+        <div>
+          <h4 className="text-sm font-medium text-red-400 mb-2 flex items-center gap-1">
+            <TrendingDown className="h-3 w-3" />
+            SELL SIGNALS ({sellSignals.length})
+          </h4>
+          <div className="space-y-2">
+            {sellSignals.map((signal) => (
+              <div key={signal.symbol} className="flex items-center justify-between p-2 bg-red-500/10 rounded border border-red-500/20">
+                <div className="flex items-center gap-3">
+                  <span className="font-medium text-white text-sm">{signal.symbol}</span>
+                  <SimpleSparkline 
+                    data={signal.spark} 
+                    trend={signal.pctChange >= 0 ? 'up' : 'down'} 
+                  />
+                  {signal.zScore !== null && (
+                    <span className="text-xs text-red-400">Z: {signal.zScore.toFixed(1)}</span>
+                  )}
+                </div>
+                <div className="text-right">
+                  <div className="text-white text-sm">{formatPrice(signal.price)}</div>
+                  <div className={cn("text-xs", 
+                    signal.pctChange >= 0 ? 'text-emerald-400' : 'text-red-400'
+                  )}>
+                    {formatPercent(signal.pctChange)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* No Signals State */}
+      {buySignals.length === 0 && sellSignals.length === 0 && (
+        <div className="text-center py-6 text-gray-500">
+          <Activity className="h-6 w-6 mx-auto mb-2 opacity-50" />
+          <p className="text-sm font-medium">No signals right now</p>
+          <p className="text-xs mt-1">Market in neutral territory</p>
+        </div>
+      )}
     </div>
   );
 }
 
 export function EconomicPulse() {
-  const { data, isLoading, error } = useQuery<{ indicators: any[] }>({
-    queryKey: ['/api/macroeconomic-indicators'],
+  const { data, isLoading, error } = useQuery<EconomicIndicator[]>({
+    queryKey: ['/api/movers/econ', { limit: 5 }],
     refetchInterval: 30 * 60 * 1000,
     staleTime: 25 * 60 * 1000
   });
@@ -109,14 +230,14 @@ export function EconomicPulse() {
   if (isLoading) {
     return (
       <div className="space-y-3">
-        {[1, 2, 3].map(i => (
+        {[1, 2, 3, 4, 5].map(i => (
           <div key={i} className="h-16 bg-gray-800 rounded-lg animate-pulse" />
         ))}
       </div>
     );
   }
 
-  if (error || !data?.indicators) {
+  if (error || !data) {
     return (
       <div className="text-center py-8 text-gray-500">
         <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -126,9 +247,7 @@ export function EconomicPulse() {
     );
   }
 
-  const topIndicators = (data.indicators || []).slice(0, 5);
-
-  if (topIndicators.length === 0) {
+  if (data.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
         <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -140,23 +259,58 @@ export function EconomicPulse() {
 
   return (
     <div className="space-y-3" data-testid="economic-pulse">
-      {topIndicators.map((indicator, i) => (
-        <div key={`${indicator.metric}-${i}`} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-          <div className="flex-1">
-            <div className="font-medium text-white text-sm">{indicator.metric}</div>
-            <div className="text-xs text-gray-400">{indicator.period}</div>
-          </div>
-          <div className="text-right">
-            <div className="font-medium text-white">{indicator.value}</div>
-            <div className={cn("text-sm", 
-              indicator.trend === 'up' ? 'text-emerald-400' : 
-              indicator.trend === 'down' ? 'text-red-400' : 'text-gray-400'
-            )}>
-              {indicator.change || '—'}
+      {data.map((indicator, i) => {
+        const changeStr = indicator.change || '';
+        const changeNum = parseFloat(changeStr.replace(/[^\d.-]/g, '')) || 0;
+        const isPositive = changeNum >= 0;
+        const trendDirection = isPositive ? 'up' : 'down';
+        
+        return (
+          <div key={`${indicator.metric || 'unknown'}-${i}`} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex-1 pr-3">
+                <div className="font-medium text-white text-sm leading-tight">{indicator.metric || 'Economic Indicator'}</div>
+                <div className="text-xs text-gray-400 mt-1">{indicator.period || 'N/A'}</div>
+              </div>
+              <div className="flex-shrink-0">
+                <SimpleSparkline 
+                  data={indicator.spark} 
+                  trend={trendDirection}
+                />
+              </div>
             </div>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div>
+                <div className="text-gray-400">Current</div>
+                <div className="text-white font-medium">{indicator.current || '—'}</div>
+              </div>
+              <div>
+                <div className="text-gray-400">Prior</div>
+                <div className="text-gray-300">{indicator.prior || '—'}</div>
+              </div>
+              <div>
+                <div className="text-gray-400">vs Prior</div>
+                <div className={cn("font-medium", 
+                  isPositive ? 'text-emerald-400' : 'text-red-400'
+                )}>
+                  {indicator.change || '—'}
+                </div>
+              </div>
+            </div>
+            {indicator.zScore !== null && (
+              <div className="mt-2 text-xs">
+                <span className="text-gray-400">Z-Score: </span>
+                <span className={cn("font-medium",
+                  indicator.zScore > 1.5 ? 'text-red-400' :
+                  indicator.zScore < -1.5 ? 'text-emerald-400' : 'text-gray-300'
+                )}>
+                  {indicator.zScore.toFixed(2)}
+                </span>
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
