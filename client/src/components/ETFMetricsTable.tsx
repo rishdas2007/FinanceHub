@@ -4,7 +4,7 @@ import { TrendingUp, TrendingDown, Activity, BarChart3, Zap, Volume2, DollarSign
 import { TechnicalIndicatorLegend } from './TechnicalIndicatorLegend';
 import { Sparkline } from '@/components/ui/sparkline';
 import { formatNumber } from '@/lib/utils';
-import { getZScoreColor, formatZScore } from '@/lib/zscoreUtils';
+import { getZScoreColor, formatZScore } from '../lib/zscoreUtils';
 
 interface ETFData {
   symbol: string;
