@@ -1,0 +1,207 @@
+Awesome—here’s a tight, dev-ready plan to replace those sections exactly as you described. It’s split into API, DB queries, caching, and UI wiring, with clear payloads so your analyst can ship it without guesswork.
+
+---
+
+# ETF Movers (benchmark + only buy/sell signals)
+
+## 1) API: `GET /api/movers/etf?universe=SPY,XLK,XLF,...&horizon=60D&limit=12`
+
+**What it returns**
+
+```json
+{
+  "success": true,
+  "data": {
+    "benchmark": {
+      "symbol": "SPY",
+      "price": 527.13,
+      "pctChange": 0.0042,
+      "zScore": -0.35,       // from equity_features_daily for chosen horizon
+      "signal": "NEUTRAL",   // BUY if z <= -1.0, SELL if z >= +1.0
+      "spark": [{ "t": 1720828800000, "value": 519.2 }, ...]  // 30D daily closes
+    },
+    "signals": [
+      {
+        "symbol": "XLK",
+        "price": 263.9,
+        "pctChange": -0.006,
+        "zScore": -1.3,
+        "signal": "BUY",
+        "spark": [{ "t": 1720828800000, "value": 262.1 }, ...]
+      }
+    ]
+  },
+  "cached": true
+}
+```
+
+**Signal rule (configurable)**
+
+* `BUY`: `zScore <= -1.0`
+* `SELL`: `zScore >= +1.0`
+* else `NEUTRAL`. (Use `equity_features_daily.z_close` for `horizon` = `60D` (or `252D` if you prefer longer), same `pipeline_version` across all.)
+
+**Implementation**
+
+* Reuse your **sparkline** service for 30D closes (DB→provider fallback).
+* Price + pctChange: from your quotes cache or latest `equity_daily_bars`.
+* Z-score: from `equity_features_daily` at `asof_date = latest trading day` where `horizon = $horizon`.
+* Filter output list to only `BUY` or `SELL`. (Benchmark is always included as the first card/table row.)
+* **Cache**: key `movers:etf:<horizon>:<universeHash>:v1` (TTL 60s). Include a `lastGood` snapshot for 10 min.
+
+**SQL sketch**
+
+```sql
+-- z-scores for horizon
+select f.symbol, f.z_close
+from equity_features_daily f
+join (
+  select symbol, max(asof_date) as max_d
+  from equity_features_daily
+  where horizon = $1
+  group by symbol
+) mx on mx.symbol=f.symbol and mx.max_d=f.asof_date
+where f.horizon = $1 and f.symbol = any($2::text[]);
+```
+
+---
+
+# Economic Movers (latest 5 non-daily)
+
+## 2) API: `GET /api/movers/econ?limit=5`
+
+**What it returns**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "seriesId": "CPIAUCSL",
+      "displayName": "Consumer Price Index (All Items)",
+      "period": "2025-06-30",
+      "current": 321.5,                 // Silver: value_std (LEVEL or default_transform)
+      "prior": 320.9,                   // previous period same transform
+      "vsPrior": 0.6,                   // current - prior (or % if default is YOY)
+      "zScore": 0.83,                   // Gold: level_z for same transform/period
+      "transform": "LEVEL",             // or "YOY" from series_def.default_transform
+      "freq": "M",
+      "spark12m": [{ "t": 1719792000000, "value": 0.0331 }, ...]  // 1 point per month
+    }
+  ],
+  "cached": true
+}
+```
+
+**Rules**
+
+* **Exclude daily** series (`freq != 'D'`).
+* Sort by **latest available `period_end`** (using each series’ `default_transform` from `econ_series_def`).
+* Take **top 5** most recently updated series.
+* `current` & `prior`: from **Silver** (`econ_series_observation`) with `transform_code = default_transform`.
+* `zScore`: **Gold** (`econ_series_features.level_z`) for same series/period/transform.
+* `spark12m`: roll-up monthly (for W/D pick last-of-month), 12 months back. Reuse the SQL we used for the econ sparkline.
+
+**Implementation**
+
+* One batched query to find latest 5 non-daily series:
+
+```sql
+with latest as (
+  select d.series_id, d.display_name, d.default_transform, d.standard_unit,
+         max(o.period_end) as last_period
+  from econ_series_def d
+  join econ_series_observation o
+    on o.series_id = d.series_id
+   and o.transform_code = d.default_transform
+   and o.freq <> 'D'
+  group by d.series_id, d.display_name, d.default_transform, d.standard_unit
+)
+select *
+from latest
+order by last_period desc
+limit $1;
+```
+
+* For those 5, batch-fetch `current/prior` from **Silver**, `level_z` from **Gold**, and `spark12m` via a per-series 12-month monthly “last-of-month” roll-up (single SQL `UNION ALL` or run 5 parameterized calls).
+* **Cache**: key `movers:econ:limit5:v1` (TTL 15–60 min) + `lastGood`.
+
+**Sparkline SQL (per series)**
+
+```sql
+with raw as (
+  select period_end::date as pe, value_std
+  from econ_series_observation
+  where series_id = $1 and transform_code = $2
+    and period_end >= date_trunc('month', current_date) - interval '12 months'
+),
+bucket as (
+  select date_trunc('month', pe) as m_end, pe, value_std from raw
+),
+last_per_month as (
+  select distinct on (m_end) m_end::date as period_end, value_std
+  from bucket
+  order by m_end, pe desc
+)
+select period_end, value_std
+from last_per_month
+order by period_end asc;
+```
+
+---
+
+# UI wiring
+
+## 3) Replace “ETF Movers” section
+
+* **Remove** “Top Gainers/Decliners” cards.
+* **Add** a compact table or card row:
+
+  * First row: **SPY benchmark** (price, % change, 30D sparkline, z-score badge).
+  * Next rows: **only** ETFs with `signal ∈ {BUY, SELL}` from the API. You can group with tabs or badges (BUY / SELL).
+* **Sparkline**: reuse existing ETF spark cell (30D, numeric X-axis).
+* **Signal badge**:
+
+  * BUY: green, SELL: red, NEUTRAL: muted.
+  * Tooltip: “z = −1.3 (60-day)”
+
+## 4) Replace “Economic Movers” section
+
+* **List 5 rows** (latest updates; non-daily):
+
+  * Name (from `displayName`)
+  * **12M Trend** sparkline (mini)
+  * **Period** (format `YYYY-MM` or `YYYY-Qn` by freq)
+  * **Current** (use unit formatter)
+  * **Prior** (unit formatter)
+  * **vs Prior** (if transform = LEVEL → difference; if YOY → percentage point diff)
+  * **z-score** badge (`level_z`)
+* Use the **same sparkline component** as ETFs but fed with `spark12m`.
+
+---
+
+# Caching & resilience
+
+* All movers endpoints **never** return `{error:...}`. On failure, respond `{ success: true, data: [] , warning: 'data_unavailable' }`.
+* Movers endpoints get **short TTLs** (ETF 60s, Econ 15–60m) + `lastGood` for 10m.
+
+---
+
+# Config knobs (make these env or constants)
+
+* `Z_THRESH_BUY = -1.0`, `Z_THRESH_SELL = +1.0`.
+* `HORIZON = '60D'` (or `'252D'`).
+* `ETF_UNIVERSE = ['SPY','XLK','XLF','XLV','XLY','XLI','XLC','XLE','XLP','XLU','IYR','IWM']`.
+
+---
+
+# Acceptance criteria
+
+* ETF Movers: SPY row + only BUY/SELL ETFs; 30-day sparklines render; no “gainers/decliners”.
+* Economic Movers: exactly 5 rows (latest non-daily); 12M sparklines; correct current/prior/vs prior with units; z-score badges present.
+* No modals open on click; section renders instantly with cache warm (<150ms warm, <400ms cold).
+* Logs show source `{source:'db', cached:true/false}`; no provider calls for these sections.
+
+---
+
+Want me to draft the two controllers (`/api/movers/etf`, `/api/movers/econ`) and the minimal React column definitions you can paste in?

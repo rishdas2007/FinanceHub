@@ -21,7 +21,8 @@ const EconomicHealthScoreAppendix = lazy(() =>
 import { AAIISentiment } from "@/components/aaii-sentiment";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
 import { MarketStatusIndicator, MarketStatusIndicatorCompact } from "@/components/MarketStatusIndicator";
-import { TopMoversSection } from "@/components/TopMoversSection";
+import EtfMovers from "@/components/movers/EtfMovers";
+import EconMovers from "@/components/movers/EconMovers";
 import { QuickScanMetrics } from "@/components/NavigationHeader";
 
 
@@ -80,8 +81,24 @@ export default function Dashboard() {
         {/* 5-Second Market Scan */}
         <QuickScanMetrics />
 
-        {/* Top Movers Section */}
-        <TopMoversSection />
+        {/* ETF and Economic Movers */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          <div className="bg-financial-card rounded-xl p-6 border border-financial-border">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+              <TrendingUp className="h-5 w-5 mr-2 text-gain-green" />
+              ETF Movers
+            </h3>
+            <EtfMovers />
+          </div>
+          
+          <div className="bg-financial-card rounded-xl p-6 border border-financial-border">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+              <Activity className="h-5 w-5 mr-2 text-blue-400" />
+              Economic Indicators
+            </h3>
+            <EconMovers limit={5} />
+          </div>
+        </div>
 
         {/* Breakout Analysis - Real-time squeeze and breakout monitoring */}
         <ETFMetricsTable />

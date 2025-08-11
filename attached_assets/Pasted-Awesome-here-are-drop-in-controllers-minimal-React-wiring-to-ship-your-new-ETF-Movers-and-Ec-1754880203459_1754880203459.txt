@@ -1,0 +1,418 @@
+Awesome—here are drop-in controllers + minimal React wiring to ship your new **ETF Movers** and **Economic Movers**. I kept them small, fast, and aligned with your caching + Silver/Gold model.
+
+---
+
+# Server (Express + Drizzle/pg)
+
+## Config knobs (once)
+
+```ts
+// server/config/movers.ts
+export const MOVERS = {
+  Z_THRESH_BUY:  -1.0,
+  Z_THRESH_SELL:  +1.0,
+  ETF_DEFAULT_HORIZON: '60D' as const,   // or '252D'
+  ETF_SPARK_DAYS: 30,
+  ECON_TREND_MONTHS: 12,
+  CACHE_TTL_ETF_MS: 60_000,              // 60s
+  CACHE_TTL_ECON_MS: 30 * 60_000         // 30m
+};
+```
+
+## ETF Movers controller
+
+```ts
+// server/controllers/movers-etf.controller.ts
+import { sql } from 'drizzle-orm';
+import { db } from '../db';
+import { getCache, setCache, getLastGood, setLastGood } from '../cache/unified-dashboard-cache';
+import { MOVERS } from '../config/movers';
+import { loadDailyCloses } from '../services/history/load-daily-closes.service';
+
+type Spark = { t: number; value: number };
+
+function classify(z: number | null) {
+  if (z == null) return 'NEUTRAL' as const;
+  if (z <= MOVERS.Z_THRESH_BUY)  return 'BUY'  as const;
+  if (z >= MOVERS.Z_THRESH_SELL) return 'SELL' as const;
+  return 'NEUTRAL' as const;
+}
+
+export const getEtfMovers = async (req, res) => {
+  const horizon = String(req.query.horizon || MOVERS.ETF_DEFAULT_HORIZON).toUpperCase();
+  const limit   = Math.max(1, Math.min(24, Number(req.query.limit) || 12));
+
+  // universe parse + ensure SPY present
+  const universeRaw = String(req.query.universe || 'SPY,XLK,XLF,XLV,XLY,XLI,XLC,XLE,XLP,XLU,IYR,IWM');
+  const universe = Array.from(new Set(universeRaw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean)));
+  if (!universe.includes('SPY')) universe.unshift('SPY');
+
+  const cacheKey = `movers:etf:${horizon}:${universe.join('|')}:v1`;
+  const cached = await getCache(cacheKey);
+  if (cached) return res.json({ success: true, data: cached, cached: true });
+
+  try {
+    // Latest close & pct change from last two daily bars
+    const prices = await db.execute(sql`
+      with last2 as (
+        select symbol, ts_utc, close,
+               row_number() over (partition by symbol order by ts_utc desc) as rn
+        from equity_daily_bars
+        where symbol = any(${universe}::text[])
+      ),
+      last as (select symbol, close as c0 from last2 where rn=1),
+      prev as (select symbol, close as c1 from last2 where rn=2)
+      select l.symbol, l.c0 as price, (l.c0 - p.c1)/nullif(p.c1,0)::float as pct_change
+      from last l left join prev p using(symbol);
+    `);
+
+    const priceMap = new Map<string, {price:number|null; pctChange:number|null}>();
+    for (const r of prices.rows as any[]) {
+      priceMap.set(r.symbol, { price: r.price ?? null, pctChange: r.pct_change ?? null });
+    }
+
+    // Latest z-score per symbol/horizon
+    const zrows = await db.execute(sql`
+      with mx as (
+        select symbol, max(asof_date) as d
+        from equity_features_daily
+        where horizon = ${horizon}
+          and symbol = any(${universe}::text[])
+        group by symbol
+      )
+      select f.symbol, f.z_close
+      from equity_features_daily f
+      join mx on mx.symbol=f.symbol and mx.d=f.asof_date
+      where f.horizon = ${horizon};
+    `);
+    const zMap = new Map<string, number|null>();
+    for (const r of (zrows.rows as any[])) zMap.set(r.symbol, r.z_close ?? null);
+
+    // Build spark (30D closes) for benchmark + signaled ETFs
+    async function spark(symbol: string): Promise<Spark[]> {
+      const series = await loadDailyCloses(symbol, MOVERS.ETF_SPARK_DAYS); // returns [{date: Date, close:number}]
+      return series.map(p => ({ t: new Date(p.date).getTime(), value: Number(p.close) }));
+    }
+
+    // Assemble
+    const benchmarkSymbol = 'SPY';
+    const bench = {
+      symbol: benchmarkSymbol,
+      price: priceMap.get(benchmarkSymbol)?.price ?? null,
+      pctChange: priceMap.get(benchmarkSymbol)?.pctChange ?? null,
+      zScore: zMap.get(benchmarkSymbol) ?? null,
+      signal: classify(zMap.get(benchmarkSymbol) ?? null) as 'BUY'|'SELL'|'NEUTRAL',
+      spark: await spark(benchmarkSymbol)
+    };
+
+    // Filter only BUY/SELL (exclude NEUTRAL), limit N
+    const candidates = universe.filter(s => s !== benchmarkSymbol);
+    const rows: any[] = [];
+    for (const s of candidates) {
+      const z = zMap.get(s) ?? null;
+      const signal = classify(z);
+      if (signal === 'NEUTRAL') continue;
+      rows.push({
+        symbol: s,
+        price: priceMap.get(s)?.price ?? null,
+        pctChange: priceMap.get(s)?.pctChange ?? null,
+        zScore: z,
+        signal,
+        spark: await spark(s)
+      });
+      if (rows.length >= limit) break;
+    }
+
+    const payload = { benchmark: bench, signals: rows };
+    await setCache(cacheKey, payload, MOVERS.CACHE_TTL_ETF_MS);
+    await setLastGood(cacheKey, payload);
+    return res.json({ success: true, data: payload });
+  } catch (e) {
+    const last = await getLastGood(cacheKey);
+    if (last) return res.json({ success: true, data: last, warning: 'stale_lastGood' });
+    return res.json({ success: true, data: { benchmark: null, signals: [] }, warning: 'data_unavailable' });
+  }
+};
+```
+
+**Router**
+
+```ts
+// server/routes/index.ts
+router.get('/api/movers/etf', getEtfMovers);
+```
+
+---
+
+## Economic Movers controller
+
+```ts
+// server/controllers/movers-econ.controller.ts
+import { sql } from 'drizzle-orm';
+import { db } from '../db';
+import { getCache, setCache, getLastGood, setLastGood } from '../cache/unified-dashboard-cache';
+import { MOVERS } from '../config/movers';
+
+async function spark12m(seriesId: string, transform: string) {
+  const q = await db.execute(sql`
+    with raw as (
+      select period_end::date as pe, value_std
+      from econ_series_observation
+      where series_id = ${seriesId}
+        and transform_code = ${transform}
+        and period_end >= date_trunc('month', current_date) - interval '12 months'
+    ),
+    bucket as (
+      select date_trunc('month', pe) as m_end, pe, value_std from raw
+    ),
+    last_per_month as (
+      select distinct on (m_end) m_end::date as period_end, value_std
+      from bucket
+      order by m_end, pe desc
+    )
+    select period_end, value_std
+    from last_per_month
+    order by period_end asc;
+  `);
+  return (q.rows as any[]).map(r => ({
+    t: Date.parse(r.period_end),
+    value: Number(r.value_std)
+  }));
+}
+
+export const getEconMovers = async (req, res) => {
+  const limit = Math.max(1, Math.min(10, Number(req.query.limit) || 5));
+  const cacheKey = `movers:econ:${limit}:v1`;
+  const cached = await getCache(cacheKey);
+  if (cached) return res.json({ success: true, data: cached, cached: true });
+
+  try {
+    // 1) Find the latest updated NON-DAILY series using each series' default transform
+    const latest = await db.execute(sql`
+      with latest as (
+        select d.series_id, d.display_name, d.default_transform, d.standard_unit,
+               max(o.period_end) as last_period
+        from econ_series_def d
+        join econ_series_observation o
+          on o.series_id = d.series_id
+         and o.transform_code = d.default_transform
+         and o.freq <> 'D'
+        group by d.series_id, d.display_name, d.default_transform, d.standard_unit
+      )
+      select *
+      from latest
+      order by last_period desc
+      limit ${limit};
+    `);
+
+    const out = [];
+    for (const r of (latest.rows as any[])) {
+      const { series_id, display_name, default_transform, standard_unit, last_period } = r;
+
+      // 2) Fetch current & prior from Silver
+      const cur = await db.execute(sql`
+        select period_end, value_std
+        from econ_series_observation
+        where series_id = ${series_id}
+          and transform_code = ${default_transform}
+          and period_end = ${last_period}
+        limit 1;
+      `);
+      const prior = await db.execute(sql`
+        select period_end, value_std
+        from econ_series_observation
+        where series_id = ${series_id}
+          and transform_code = ${default_transform}
+          and period_end < ${last_period}
+        order by period_end desc
+        limit 1;
+      `);
+
+      const currentVal = cur.rows[0]?.value_std ?? null;
+      const priorVal   = prior.rows[0]?.value_std ?? null;
+
+      // 3) z-score from Gold (level_z for same period/transform)
+      const zq = await db.execute(sql`
+        select level_z
+        from econ_series_features
+        where series_id = ${series_id}
+          and transform_code = ${default_transform}
+          and period_end = ${last_period}
+        order by pipeline_version desc
+        limit 1;
+      `);
+      const z = zq.rows[0]?.level_z ?? null;
+
+      // 4) vs prior (difference; if transform is YOY, it's percentage-point delta)
+      const vsPrior = (currentVal != null && priorVal != null) ? (Number(currentVal) - Number(priorVal)) : null;
+
+      // 5) sparkline (12M monthly)
+      const spark = await spark12m(series_id, default_transform);
+
+      out.push({
+        seriesId: series_id,
+        displayName: display_name,
+        transform: default_transform,
+        unit: standard_unit,
+        period: String(last_period),
+        current: currentVal,
+        prior: priorVal,
+        vsPrior,
+        zScore: z,
+        spark12m: spark
+      });
+    }
+
+    await setCache(cacheKey, out, MOVERS.CACHE_TTL_ECON_MS);
+    await setLastGood(cacheKey, out);
+    return res.json({ success: true, data: out });
+  } catch (e) {
+    const last = await getLastGood(cacheKey);
+    if (last) return res.json({ success: true, data: last, warning: 'stale_lastGood' });
+    return res.json({ success: true, data: [], warning: 'data_unavailable' });
+  }
+};
+```
+
+**Router**
+
+```ts
+// server/routes/index.ts
+router.get('/api/movers/econ', getEconMovers);
+```
+
+---
+
+# Client (React + TanStack Query + your existing Sparkline)
+
+## ETF Movers UI
+
+```tsx
+// client/src/components/movers/EtfMovers.tsx
+import { useQuery } from '@tanstack/react-query';
+import { Sparkline } from '../shared/Sparkline'; // your tiny chart: expects [{t,value}]
+import { formatPct, formatPrice } from '../../lib/formatValue';
+
+export default function EtfMovers({ universe }: { universe?: string[] }) {
+  const params = new URLSearchParams({
+    universe: (universe?.length ? universe : ['SPY','XLK','XLF','XLV','XLY','XLI','XLC','XLE','XLP','XLU','IYR','IWM']).join(','),
+    horizon: '60D',
+    limit: '12'
+  }).toString();
+
+  const { data } = useQuery({
+    queryKey: ['/api/movers/etf', params],
+    queryFn: () => fetch(`/api/movers/etf?${params}`).then(r => r.json()).then(j => j.data),
+    staleTime: 60_000
+  });
+
+  if (!data) return null;
+  const b = data.benchmark;
+
+  return (
+    <div className="space-y-4">
+      {/* Benchmark row */}
+      <div className="flex items-center justify-between rounded-xl border p-3">
+        <div className="font-medium">S&P 500 (SPY)</div>
+        <div className="flex items-center gap-6">
+          <div>{formatPrice(b?.price)}</div>
+          <div className={b?.pctChange > 0 ? 'text-green-600' : 'text-red-600'}>
+            {formatPct(b?.pctChange)}
+          </div>
+          <div className="w-40 h-10"><Sparkline data={b?.spark ?? []} dataKey="value" /></div>
+          <div className={`text-xs px-2 py-1 rounded ${b?.signal==='BUY'?'bg-green-100 text-green-700':b?.signal==='SELL'?'bg-red-100 text-red-700':'bg-gray-100 text-gray-700'}`}>
+            {b?.signal} {Number.isFinite(b?.zScore) ? `(z=${b.zScore.toFixed(2)})` : ''}
+          </div>
+        </div>
+      </div>
+
+      {/* BUY / SELL list */}
+      <div className="grid md:grid-cols-2 gap-3">
+        {['BUY','SELL'].map(sig => (
+          <div key={sig} className="rounded-xl border p-3">
+            <div className="mb-2 text-sm font-semibold">{sig} Signals</div>
+            <div className="space-y-2">
+              {data.signals.filter((r:any)=>r.signal===sig).map((r:any)=>(
+                <div key={r.symbol} className="flex items-center justify-between">
+                  <div className="w-16 font-medium">{r.symbol}</div>
+                  <div className="w-20">{formatPrice(r.price)}</div>
+                  <div className={`w-20 ${r.pctChange>0?'text-green-600':'text-red-600'}`}>{formatPct(r.pctChange)}</div>
+                  <div className="w-36 h-8"><Sparkline data={r.spark} dataKey="value" /></div>
+                  <div className="w-20 text-right text-xs">{Number.isFinite(r.zScore)?`z=${r.zScore.toFixed(2)}`:'—'}</div>
+                </div>
+              ))}
+              {data.signals.filter((r:any)=>r.signal===sig).length===0 && (
+                <div className="text-sm text-gray-500">No {sig.toLowerCase()} signals</div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+## Economic Movers UI
+
+```tsx
+// client/src/components/movers/EconMovers.tsx
+import { useQuery } from '@tanstack/react-query';
+import { Sparkline } from '../shared/Sparkline';
+import { formatValue } from '../../lib/formatValue'; // (value, unit) → string
+
+export default function EconMovers() {
+  const { data } = useQuery({
+    queryKey: ['/api/movers/econ', { limit: 5 }],
+    queryFn: () => fetch('/api/movers/econ?limit=5').then(r=>r.json()).then(j=>j.data),
+    staleTime: 30*60_000
+  });
+
+  if (!data) return null;
+
+  return (
+    <div className="rounded-xl border">
+      <div className="grid grid-cols-7 gap-2 px-3 py-2 text-xs font-semibold text-gray-600">
+        <div>Metric</div><div>12M Trend</div><div>Period</div><div>Current</div><div>Prior</div><div>vs Prior</div><div>z-score</div>
+      </div>
+      <div className="divide-y">
+        {data.map((row:any) => (
+          <div key={row.seriesId} className="grid grid-cols-7 items-center gap-2 px-3 py-2">
+            <div className="truncate" title={row.displayName}>{row.displayName}</div>
+            <div className="w-44 h-8"><Sparkline data={row.spark12m} dataKey="value" /></div>
+            <div className="text-sm tabular-nums">{row.period}</div>
+            <div className="text-sm tabular-nums">{formatValue(row.current, row.unit)}</div>
+            <div className="text-sm tabular-nums text-gray-600">{formatValue(row.prior, row.unit)}</div>
+            <div className={`text-sm tabular-nums ${row.vsPrior>=0?'text-green-600':'text-red-600'}`}>
+              {formatValue(row.vsPrior, row.unit)}
+            </div>
+            <div className="text-xs tabular-nums">{Number.isFinite(row.zScore)?row.zScore.toFixed(2):'—'}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+> Both components assume you already have a tiny `<Sparkline data={[{t,value}]}/>` that uses a **numeric X-axis** and no modal on click.
+
+---
+
+# QA / Acceptance
+
+**ETF Movers**
+
+* Shows SPY benchmark + BUY/SELL lists only (no “Top Gainers/Decliners”).
+* Price/pct use latest two daily bars; spark shows 30D; z-score is from `equity_features_daily` (horizon param).
+* Endpoint warm response: <150 ms (cache); cold: DB only, no external calls.
+
+**Economic Movers**
+
+* Exactly 5 most recent **non-daily** series (by `period_end`).
+* Each row shows 12M spark (one point per month), Period, Current, Prior, vs Prior, z-score (Gold).
+* Endpoint warm response: <300 ms (cache); cold: 1–3 queries + 5 small spark queries.
+
+---
+
+If you want, I can also add a tiny **unit test** for each controller (mock DB + cache) and wire the routes into your Home dashboard layout.

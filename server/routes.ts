@@ -310,6 +310,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // FRED recent indicators routes
   const { fredRecentRoutes } = await import('./routes/fred-recent-routes');
   app.use('/api', fredRecentRoutes);
+
+  // ETF and Economic Movers endpoints
+  const { getEtfMovers } = await import('./controllers/movers-etf.controller');
+  const { getEconMovers } = await import('./controllers/movers-econ.controller');
+  
+  app.get('/api/movers/etf', getEtfMovers);
+  app.get('/api/movers/econ', getEconMovers);
   
   // Cache management endpoints removed (file deleted)
 
