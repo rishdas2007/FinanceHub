@@ -7,6 +7,9 @@ export interface SparklineData {
   trend: 'up' | 'down' | 'flat';
   change: number; // percentage change
   period: string;
+  isFallback?: boolean;
+  dataSource?: string;
+  reason?: string;
 }
 
 export class SparklineService {
@@ -15,7 +18,7 @@ export class SparklineService {
    */
   async getSparklineData(symbol: string): Promise<{ success: boolean; data?: number[]; trend?: 'up' | 'down' | 'flat'; change?: number; normalizedData?: number[]; error?: string }> {
     try {
-      // First try to get real historical data
+      // First try to get real historical data using exact same calculation as ETF Metrics API
       const realData = await this.getRealHistoricalData(symbol);
       if (realData) {
         return {
@@ -24,8 +27,8 @@ export class SparklineService {
           normalizedData: realData.normalizedData,
           trend: realData.trend,
           change: realData.change,
-          isFallback: false, // FIX 6: Add fallback transparency
-          dataSource: 'database' // ADD THIS
+          isFallback: false,
+          dataSource: 'database'
         };
       }
 
@@ -64,33 +67,39 @@ export class SparklineService {
     change: number;
   } | null> {
     try {
-      // Query historical sector data for the ETF - get recent 30 days for sparkline
+      // Calculate exactly 30 calendar days ago (same as ETF Metrics API)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      // Query historical sector data for the ETF - get data from exactly 30 days ago to today
       const result = await db.execute(sql`
         SELECT price, date
         FROM historical_sector_data 
         WHERE symbol = ${symbol} 
-        ORDER BY date DESC
-        LIMIT 30
+          AND date >= ${thirtyDaysAgo.toISOString().split('T')[0]}
+        ORDER BY date ASC
       `);
 
       if (!result.rows || result.rows.length < 10) {
         return null; // Not enough data points
       }
 
-      // Since we ordered by date DESC, reverse to get chronological order
       const prices = result.rows
         .map((row: any) => parseFloat(row.price || 0))
-        .filter(p => p > 0)
-        .reverse(); // Convert DESC to ASC for proper chronological order
+        .filter(p => p > 0);
       
       if (prices.length < 10) {
         return null;
       }
 
-      // Calculate 30-day trend: oldest price vs most recent price
-      const oldestPrice = prices[0]; // 30 days ago
-      const currentPrice = prices[prices.length - 1]; // Today
-      const changePercent = ((currentPrice - oldestPrice) / oldestPrice) * 100;
+      // Use the exact same ETFTrendCalculatorService as ETF Metrics API
+      const { ETFTrendCalculatorService } = await import('./etf-trend-calculator');
+      const trendCalculator = new ETFTrendCalculatorService();
+      const changePercent = await trendCalculator.calculate30DayTrend(symbol);
+
+      if (changePercent === null) {
+        return null;
+      }
 
       let trend: 'up' | 'down' | 'flat' = 'flat';
       if (changePercent > 1) trend = 'up';
