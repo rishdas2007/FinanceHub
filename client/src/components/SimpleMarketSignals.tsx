@@ -277,20 +277,14 @@ export function EconomicPulse() {
   });
 
   console.log('🔍 Economic Pulse Query State:', { 
-    data: pulseData, 
     isLoading, 
     error: error?.message || error,
-    hasData: !!pulseData?.data,
-    dataLength: pulseData?.data?.length,
-    success: pulseData?.success
+    hasResponse: !!pulseData,
+    isArray: Array.isArray(pulseData),
+    hasSuccessFlag: !!pulseData?.success,
+    hasDataArray: !!pulseData?.data,
+    dataLength: pulseData?.data?.length
   });
-
-  // Add debugging for the API response structure
-  if (pulseData) {
-    console.log('🔍 Economic Pulse API Response Keys:', Object.keys(pulseData));
-    console.log('🔍 Economic Pulse Success:', pulseData.success);
-    console.log('🔍 Economic Pulse Data Length:', pulseData.data?.length);
-  }
 
   if (isLoading) {
     return (

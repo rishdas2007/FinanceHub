@@ -33,8 +33,8 @@ function validateAndUnwrap(response: any, url: string) {
     keys: typeof response === 'object' ? Object.keys(response) : []
   });
 
-  // Skip universal unwrapping for ETF metrics - return full response object
-  if (url.includes('/api/etf-metrics')) {
+  // Skip universal unwrapping for specific endpoints - return full response object
+  if (url.includes('/api/etf-metrics') || url.includes('/api/economic-pulse')) {
     return response;
   }
   
@@ -59,11 +59,6 @@ function validateAndUnwrap(response: any, url: string) {
   if (url.includes('/api/macroeconomic-indicators')) {
     const indicators = response?.indicators ?? response?.data;
     return Array.isArray(indicators) ? indicators : [];
-  }
-  
-  // Economic Pulse endpoint - return full response to preserve success flag
-  if (url.includes('/api/economic-pulse')) {
-    return response;
   }
   
   if (url.includes('/api/economic-health')) {
