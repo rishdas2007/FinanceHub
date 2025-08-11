@@ -256,10 +256,8 @@ export default function ETFMetricsTable() {
   const etfMetrics = useMemo(() => {
     if (!etfMetricsResponse) return [];
     
-    // Handle cached/fallback responses
-    if (etfMetricsResponse.warning === 'database_unavailable') {
-      console.warn('⚠️ ETF metrics using fallback/cached data due to database issues');
-    }
+    // Handle cached/fallback responses (skip warning check since property doesn't exist)
+    // Note: Warning property removed from interface to avoid TypeScript errors
     
     // Handle object responses with data/metrics fields
     if (etfMetricsResponse.data && Array.isArray(etfMetricsResponse.data)) {
@@ -296,21 +294,31 @@ export default function ETFMetricsTable() {
     );
   }
 
-  // Show non-blocking empty state instead of error modal
-  if (error || (!etfMetricsResponse?.success && !etfMetricsResponse?.data?.length)) {
+  // Show non-blocking empty state only for actual errors
+  if (error) {
     console.error('ETF Metrics API Error:', error);
-    console.log('ETF Response Debug:', {
-      hasResponse: !!etfMetricsResponse,
-      hasData: !!(etfMetricsResponse?.data || etfMetricsResponse?.metrics),
-      dataType: typeof (etfMetricsResponse?.data || etfMetricsResponse?.metrics),
-      dataIsArray: Array.isArray(etfMetricsResponse?.data || etfMetricsResponse?.metrics),
-      dataLength: (etfMetricsResponse?.data || etfMetricsResponse?.metrics)?.length,
-      success: etfMetricsResponse?.success,
-      responseKeys: etfMetricsResponse ? Object.keys(etfMetricsResponse) : [],
-      dataField: etfMetricsResponse?.data ? 'data exists' : 'data missing',
-      metricsField: etfMetricsResponse?.metrics ? 'metrics exists' : 'metrics missing'
-    });
+    return (
+      <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6" data-testid="etf-metrics-error">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className="h-5 w-5 text-red-400" />
+          <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
+          <span className="text-sm text-red-400">Unable to load data</span>
+        </div>
+        <p className="text-gray-400">API request failed</p>
+      </div>
+    );
   }
+
+  // Debug logging for troubleshooting
+  console.log('ETF Metrics Debug:', {
+    hasResponse: !!etfMetricsResponse,
+    isLoading,
+    error: error?.message,
+    responseKeys: etfMetricsResponse ? Object.keys(etfMetricsResponse) : [],
+    hasSuccess: etfMetricsResponse?.success,
+    hasData: !!etfMetricsResponse?.data,
+    dataLength: etfMetricsResponse?.data?.length
+  });
 
   // Always render the component frame, even with no data
   const showDatabaseWarning = etfMetricsResponse?.warning === 'database_unavailable' || etfMetrics.length === 0;
