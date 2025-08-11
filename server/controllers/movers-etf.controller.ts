@@ -22,49 +22,66 @@ export const getEtfMovers = async (req: Request, res: Response) => {
   const universe = Array.from(new Set(raw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean)));
   if (!universe.includes('SPY')) universe.unshift('SPY');
 
-  const cacheKey = `movers:etf:${horizon}:${universe.join('|')}:v2`;
+  const cacheKey = `movers:etf:${horizon}:${universe.join('|')}:v3`;
   const cached = await getCache(cacheKey);
-  if (cached) return res.json({ success: true, data: cached, cached: true });
+  if (cached && !req.query.nocache) return res.json({ success: true, data: cached, cached: true });
 
   try {
-    // --- Prices & pct change (safe array param via UNNEST) ---
-    const pricesQ = await db.execute(sql`
-      with u as (select unnest(${universe}::text[]) as symbol),
-      last2 as (
-        select b.symbol, b.ts_utc, b.close,
-               row_number() over (partition by b.symbol order by b.ts_utc desc) rn
-        from equity_daily_bars b
-        join u using(symbol)
-      )
-      select l.symbol,
-             l.close as price,
-             (l.close - p.close) / nullif(p.close,0)::float as pct_change
-      from (select symbol, close from last2 where rn=1) l
-      left join (select symbol, close from last2 where rn=2) p using(symbol);
-    `);
-
+    // Get price data for each symbol individually
     const priceMap = new Map<string, {price:number|null; pctChange:number|null}>();
-    for (const r of pricesQ.rows as any[]) {
-      priceMap.set(r.symbol, { price: Number(r.price ?? null), pctChange: Number(r.pct_change ?? null) });
+    
+    for (const symbol of universe) {
+      try {
+        const priceData = await db.execute(sql`
+          select close,
+            lag(close) over (order by ts_utc) as prev_close
+          from equity_daily_bars 
+          where symbol = ${symbol}
+          order by ts_utc desc
+          limit 2
+        `);
+        
+        if (priceData.rows.length > 0) {
+          const latest = priceData.rows[0] as any;
+          const current = Number(latest.close);
+          const previous = latest.prev_close ? Number(latest.prev_close) : null;
+          const pctChange = (previous && previous > 0) ? (current - previous) / previous : null;
+          
+          priceMap.set(symbol, { price: current, pctChange });
+        } else {
+          priceMap.set(symbol, { price: null, pctChange: null });
+        }
+      } catch (error) {
+        console.warn(`Failed to get price data for ${symbol}:`, error);
+        priceMap.set(symbol, { price: null, pctChange: null });
+      }
     }
 
-    // --- Z-scores (safe array param via UNNEST) ---
-    const zQ = await db.execute(sql`
-      with u as (select unnest(${universe}::text[]) as symbol),
-      mx as (
-        select f.symbol, max(f.asof_date) as d
-        from equity_features_daily f
-        join u using(symbol)
-        where f.horizon = ${horizon}
-        group by f.symbol
-      )
-      select f.symbol, f.z_close
-      from equity_features_daily f
-      join mx on mx.symbol=f.symbol and mx.d=f.asof_date
-      where f.horizon = ${horizon};
-    `);
+    // Get z-scores for each symbol individually
     const zMap = new Map<string, number|null>();
-    for (const r of zQ.rows as any[]) zMap.set(r.symbol, r.z_close == null ? null : Number(r.z_close));
+    
+    for (const symbol of universe) {
+      try {
+        const zData = await db.execute(sql`
+          select z_close
+          from equity_features_daily
+          where symbol = ${symbol} 
+            and horizon = ${horizon}
+          order by asof_date desc
+          limit 1
+        `);
+        
+        if (zData.rows.length > 0) {
+          const z = (zData.rows[0] as any).z_close;
+          zMap.set(symbol, z ? Number(z) : null);
+        } else {
+          zMap.set(symbol, null);
+        }
+      } catch (error) {
+        console.warn(`Failed to get z-score for ${symbol}:`, error);
+        zMap.set(symbol, null);
+      }
+    }
 
     // --- Spark helper (30D daily closes) ---
     async function spark(symbol: string) {
