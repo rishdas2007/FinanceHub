@@ -29,6 +29,15 @@ export interface IStorage {
   // Cleanup operations
   cleanupOldMarketSentiment(): Promise<void>;
   cleanupOldStockData(): Promise<void>;
+  
+  // Additional methods used in routes
+  getAllSectorData(): Promise<any[]>;
+  getLatestSectorData(): Promise<any[]>;
+  createSectorData(data: any): Promise<any>;
+  getLatestMarketBreadth(): Promise<any>;
+  createMarketBreadth(data: any): Promise<any>;
+  getLatestVixData(): Promise<any>;
+  createVixData(data: any): Promise<any>;
 }
 
 export class MemStorage implements IStorage {
@@ -36,12 +45,18 @@ export class MemStorage implements IStorage {
   private marketSentimentList: MarketSentiment[];
   private technicalIndicatorsMap: Map<string, TechnicalIndicators[]>;
   private currentId: number;
+  private sectorDataList: any[];
+  private marketBreadthList: any[];
+  private vixDataList: any[];
 
   constructor() {
     this.stockDataMap = new Map();
     this.marketSentimentList = [];
     this.technicalIndicatorsMap = new Map();
     this.currentId = 1;
+    this.sectorDataList = [];
+    this.marketBreadthList = [];
+    this.vixDataList = [];
   }
 
   async getLatestStockData(symbol: string): Promise<StockData | undefined> {
@@ -173,6 +188,52 @@ export class MemStorage implements IStorage {
     for (const [symbol, data] of this.stockDataMap.entries()) {
       this.stockDataMap.set(symbol, data.filter(stock => stock.timestamp > oneDayAgo));
     }
+  }
+
+  async getAllSectorData(): Promise<any[]> {
+    return this.sectorDataList;
+  }
+
+  async getLatestSectorData(): Promise<any[]> {
+    return this.sectorDataList;
+  }
+
+  async createSectorData(data: any): Promise<any> {
+    const id = this.currentId++;
+    const sectorData = { id, ...data, timestamp: new Date() };
+    this.sectorDataList.push(sectorData);
+    if (this.sectorDataList.length > 20) {
+      this.sectorDataList.shift();
+    }
+    return sectorData;
+  }
+
+  async getLatestMarketBreadth(): Promise<any> {
+    return this.marketBreadthList.length > 0 ? this.marketBreadthList[this.marketBreadthList.length - 1] : undefined;
+  }
+
+  async createMarketBreadth(data: any): Promise<any> {
+    const id = this.currentId++;
+    const breadthData = { id, ...data, timestamp: new Date() };
+    this.marketBreadthList.push(breadthData);
+    if (this.marketBreadthList.length > 20) {
+      this.marketBreadthList.shift();
+    }
+    return breadthData;
+  }
+
+  async getLatestVixData(): Promise<any> {
+    return this.vixDataList.length > 0 ? this.vixDataList[this.vixDataList.length - 1] : undefined;
+  }
+
+  async createVixData(data: any): Promise<any> {
+    const id = this.currentId++;
+    const vixData = { id, ...data, timestamp: new Date() };
+    this.vixDataList.push(vixData);
+    if (this.vixDataList.length > 20) {
+      this.vixDataList.shift();
+    }
+    return vixData;
   }
 }
 
