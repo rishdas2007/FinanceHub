@@ -295,7 +295,7 @@ function ETFRow({ etf }: { etf: ETFMetrics }) {
         </span>
       </td>
       <td className="py-3 px-1">
-        <SparklineCell symbol={etf.symbol} />
+        <div className="text-xs text-gray-500">Chart</div>
       </td>
     </tr>
   );
