@@ -73,6 +73,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // V2 API routes with unified response envelope
   app.use('/api/v2', (await import('./routes/api-v2-routes')).default);
+
+  // Economic Data Backfill routes
+  app.use('/api/economic-backfill', (await import('./routes/economic-backfill')).default);
   
   // CRITICAL: Economic chart compatibility routes for 404 fixes
   const { EconCompatController } = await import('./controllers/EconCompatController');
