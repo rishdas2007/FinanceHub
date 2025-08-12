@@ -400,20 +400,7 @@ export default function ETFMetricsTable() {
     );
   }
 
-  // Show non-blocking empty state only for actual errors
-  if (error) {
-    console.error('ETF Metrics API Error:', error);
-    return (
-      <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6" data-testid="etf-metrics-error">
-        <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="h-5 w-5 text-red-400" />
-          <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
-          <span className="text-sm text-red-400">Unable to load data</span>
-        </div>
-        <p className="text-gray-400">API request failed</p>
-      </div>
-    );
-  }
+
 
   // Debug logging for troubleshooting
   console.log('🚨 FINAL RENDER DECISION:', {
