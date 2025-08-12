@@ -40,11 +40,14 @@ export function useBulkEtfMetrics() {
       return response.json();
     },
     retry: (failureCount, error: any) => {
-      // Don't retry on 304 Not Modified, but retry other errors once
-      return error?.message !== 'NOT_MODIFIED' && failureCount < 1;
+      // Don't retry on 304, but retry 502 with exponential backoff
+      if (error?.message === 'NOT_MODIFIED') return false;
+      if (error?.message?.includes('502')) return failureCount < 2;
+      return failureCount < 1;
     },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
     staleTime: 60_000, // 1 minute - aligned with server cache
     refetchOnWindowFocus: false,
-    keepPreviousData: true, // Retain previous data on 304 responses
+    refetchOnMount: false, // Prevent unnecessary refetches on component mount
   });
 }

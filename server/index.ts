@@ -171,12 +171,12 @@ app.use((req, res, next) => {
     // Register health routes with proper isolation
     app.use('/api/health', healthRoutes);
     
+    // CRITICAL: Mount bulk router FIRST to avoid route conflicts
+    app.use('/api/v2', etfMetricsBulkRouter);
+    
     // Register enhanced routes with versioning
     app.use('/api/v1', v1Routes);
     app.use('/api/v2', v2Routes);
-    
-    // Bulk ETF metrics endpoint with ETag + Server-Timing
-    app.use('/api/v2', etfMetricsBulkRouter);
 
     // Optional Enhancements - Monitoring and Docs
     app.use('/api/monitoring', monitoringRoutes);
