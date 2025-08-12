@@ -1,8 +1,12 @@
 import { pool } from '../db';
-import { FinancialDataService } from './financial-data';
 
-// Initialize the financial data service to access the same data as /api/sectors
-const financialDataService = new FinancialDataService();
+// Use a simpler approach to avoid API rate limit crashes
+async function getSectorETFsSimple() {
+  // Direct integration with the enhanced-market-data service used by /api/sectors
+  const { EnhancedMarketDataService } = await import('./enhanced-market-data');
+  const marketService = new EnhancedMarketDataService();
+  return await marketService.getSectorETFs();
+}
 
 /**
  * Returns real-time ETF metrics using the same data source as /api/sectors endpoint.
@@ -10,8 +14,8 @@ const financialDataService = new FinancialDataService();
  */
 export async function getEtfMetricsLatest() {
   try {
-    // Use the same service that provides real data to /api/sectors
-    const sectorData = await financialDataService.getSectorETFs();
+    // Use the same stable service that provides real data to /api/sectors
+    const sectorData = await getSectorETFsSimple();
     
     if (!sectorData || sectorData.length === 0) {
       console.warn('No sector ETF data available, using fallback');
