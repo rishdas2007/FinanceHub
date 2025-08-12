@@ -385,6 +385,32 @@ export default function ETFMetricsTable() {
     refetchOnWindowFocus: true,
   });
 
+  // ROBUST: Universal ETF data normalization (handles all server shapes)
+  function normalizeEtfMetrics(json: any): any[] {
+    // Accept multiple server shapes and unify to an array of rows
+    const d = json?.data ?? json;
+
+    if (Array.isArray(d)) return d;
+    if (Array.isArray(d?.rows)) return d.rows;
+    if (Array.isArray(d?.items)) return d.items;
+
+    // movers-style payload
+    if (d && (Array.isArray(d.signals) || d.benchmark)) {
+      const rows: any[] = [];
+      if (d.benchmark && d.benchmark.symbol) rows.push(d.benchmark);
+      if (Array.isArray(d.signals)) rows.push(...d.signals);
+      return rows;
+    }
+
+    // older payloads
+    if (Array.isArray(d?.data)) return d.data;
+
+    // legacy metrics field
+    if (Array.isArray(json?.metrics)) return json.metrics;
+
+    return [];
+  }
+
   // Extract ETF metrics data - simplified and robust
   const etfMetrics = useMemo(() => {
     console.log('🔍 Fresh ETF Data Extraction:', { 
@@ -392,26 +418,20 @@ export default function ETFMetricsTable() {
       response: etfMetricsResponse 
     });
     
-    if (!etfMetricsResponse?.success) {
-      console.log('❌ No successful response');
+    if (!etfMetricsResponse) {
+      console.log('❌ No response');
       return [];
     }
     
-    // Try data field first
-    const dataArray = etfMetricsResponse.data;
-    if (Array.isArray(dataArray) && dataArray.length > 0) {
-      console.log('✅ SUCCESS: Using data field with', dataArray.length, 'ETFs');
-      return dataArray;
+    // Use the universal normalizer
+    const normalized = normalizeEtfMetrics(etfMetricsResponse);
+    
+    if (Array.isArray(normalized) && normalized.length > 0) {
+      console.log('✅ SUCCESS: Using data field with', normalized.length, 'ETFs');
+      return normalized;
     }
     
-    // Try metrics field as fallback
-    const metricsArray = etfMetricsResponse.metrics;
-    if (Array.isArray(metricsArray) && metricsArray.length > 0) {
-      console.log('✅ SUCCESS: Using metrics field with', metricsArray.length, 'ETFs');
-      return metricsArray;
-    }
-    
-    console.warn('❌ FAILED: No valid ETF array found');
+    console.warn('❌ FAILED: No valid ETF array found', { keys: Object.keys(etfMetricsResponse?.data ?? etfMetricsResponse) });
     return [];
   }, [etfMetricsResponse]);
 
@@ -460,6 +480,21 @@ export default function ETFMetricsTable() {
 
   // Show table if we have data, loading if still fetching, empty state only if error or no data after loading
   const hasData = etfMetrics.length > 0;
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-red-500 p-6" data-testid="etf-metrics-error">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className="h-5 w-5 text-red-400" />
+          <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
+        </div>
+        <div className="text-center py-8">
+          <span className="text-red-400">Failed to load ETF data</span>
+        </div>
+      </div>
+    );
+  }
   
   // Show loading state if no data yet and still loading
   if (isLoading && !hasData) {
@@ -479,7 +514,7 @@ export default function ETFMetricsTable() {
     );
   }
 
-  // Show table if we have data
+  // CRITICAL FIX: Always show table if we have any data (ignore loading state once data exists)
   if (hasData) {
     return (
       <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6" data-testid="etf-metrics-table">

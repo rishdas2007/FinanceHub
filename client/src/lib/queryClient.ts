@@ -100,6 +100,11 @@ async function fetchWithTimeout(input: RequestInfo, init?: RequestInit) {
       return json; // Don't unwrap ETF metrics - need the full response structure
     }
 
+    // Enhanced ETF routes - handle specific structure
+    if (input.toString().includes('/api/etf-enhanced/') && json && typeof json === 'object') {
+      return json; // Keep enhanced ETF response structure intact
+    }
+
     // universal unwrapping; still return raw object if none match
     const unwrapped =
       Array.isArray(json) ? json :

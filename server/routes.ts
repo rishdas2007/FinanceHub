@@ -179,6 +179,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', fastDashboardRoutes);
   
   // OPTIMIZED: Fast ETF Metrics API with market-aware caching
+  // Support both routes to avoid subtle 404s / empty states
+  app.get('/api/etf/metrics', async (req, res) => {
+    const startTime = Date.now();
+    try {
+      console.log('⚡ Fast Dashboard Route: GET /api/etf/metrics (Market-Aware)');
+      const { etfMetricsService } = await import('./services/etf-metrics-service');
+      
+      const rawMetrics = await etfMetricsService.getConsolidatedETFMetrics();
+      
+      // FIX: Ensure metrics is always an array (never null)
+      const metrics = Array.isArray(rawMetrics) ? rawMetrics : [];
+      
+      const responseTime = Date.now() - startTime;
+      console.log(`⚡ ETF Metrics response time: ${responseTime}ms`);
+      
+      // CONSISTENT RESPONSE FORMAT: Always return data field for client unwrapping
+      res.json({
+        success: true,
+        data: { rows: metrics }, // Stable server shape
+        count: metrics.length,
+        timestamp: new Date().toISOString(),
+        source: 'fast-market-aware-pipeline',
+        responseTime: responseTime
+      });
+    } catch (error) {
+      console.error('❌ ETF metrics error:', error);
+      // Return 200 with graceful fallback instead of 500 error
+      res.status(200).json({
+        success: true,
+        data: { rows: [] }, // Always provide empty array on error
+        warning: "data_temporarily_unavailable",
+        message: "ETF metrics temporarily unavailable, please try again in a moment",
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   app.get('/api/etf-metrics', async (req, res) => {
     const startTime = Date.now();
     try {
@@ -196,7 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // CONSISTENT RESPONSE FORMAT: Always return data field for client unwrapping
       res.json({
         success: true,
-        data: metrics, // Primary field for consistent client unwrapping
+        data: { rows: metrics }, // Stable server shape
         metrics, // Keep legacy field for backward compatibility
         count: metrics.length,
         timestamp: new Date().toISOString(),
@@ -208,7 +245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Return 200 with graceful fallback instead of 500 error
       res.status(200).json({
         success: true,
-        data: [], // Always provide empty array on error
+        data: { rows: [] }, // Always provide empty array on error
         warning: "data_temporarily_unavailable",
         message: "ETF metrics temporarily unavailable, please try again in a moment",
         timestamp: new Date().toISOString()
