@@ -2,6 +2,7 @@ import React from 'react';
 import { useBulkEtfMetrics } from '../hooks/useBulkEtfMetrics';
 import { useDeferredInit } from '../hooks/useDeferredInit';
 import { ETFTableVirtualized } from './ETFTableVirtualized';
+import { ETFTechnicalMetricsTable } from './ETFTechnicalMetricsTable';
 
 export function ETFDashboard() {
   const { data: bulkData, isLoading, error } = useBulkEtfMetrics();
@@ -12,11 +13,19 @@ export function ETFDashboard() {
     // Initialize performance monitoring here if needed
   }, 500);
 
-  if (error) {
+  // Skip error state if we have fallback data (502 proxy errors)
+  if (error && !bulkData) {
+    console.error('ETF Dashboard Error:', error);
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <h3 className="text-red-800 font-medium">Failed to load ETF data</h3>
-        <p className="text-red-600 text-sm">{error.message}</p>
+      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+        <h3 className="text-red-800 dark:text-red-400 font-medium">Failed to load ETF data</h3>
+        <p className="text-red-600 dark:text-red-300 text-sm">{error.message}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="mt-2 px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -51,7 +60,7 @@ export function ETFDashboard() {
         </div>
         
         {items.length > 0 ? (
-          <ETFTableVirtualized items={items} />
+          <ETFTechnicalMetricsTable items={items} />
         ) : (
           <div className="text-center py-8 text-gray-500">
             No ETF data available

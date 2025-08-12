@@ -52,11 +52,19 @@ const areEqual = (prev: any, next: any) => {
 const MemoRow = memo(RowView, areEqual);
 
 export function ETFTableVirtualized({ items }: { items: Row[] }) {
+  if (!items || items.length === 0) {
+    return (
+      <div className="rounded-xl shadow-sm border p-8 text-center text-gray-500">
+        No ETF data available
+      </div>
+    );
+  }
+  
   const height = Math.min(600, Math.max(300, items.length * 40));
   return (
-    <div className="rounded-xl shadow-sm border">
-      <div className="grid grid-cols-8 px-3 py-2 bg-gray-50 text-xs uppercase tracking-wide">
-        <div>Symbol</div><div>Name</div><div>Price</div><div>1D %</div><div>5D</div><div>1M</div><div>Volume</div><div>RSI</div>
+    <div className="rounded-xl shadow-sm border bg-white dark:bg-financial-card">
+      <div className="grid grid-cols-8 px-3 py-2 bg-gray-50 dark:bg-financial-dark text-xs uppercase tracking-wide font-medium">
+        <div>Symbol</div><div>Name</div><div>Price</div><div>1D %</div><div>5D %</div><div>1M %</div><div>Volume</div><div>RSI</div>
       </div>
       <List
         height={height}
