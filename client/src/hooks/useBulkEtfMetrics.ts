@@ -24,9 +24,18 @@ export function useBulkEtfMetrics() {
   return useQuery({
     queryKey: ['etf-metrics-bulk'],
     queryFn: async (): Promise<EtfMetricsResponse> => {
+      console.log('📡 Fetching ETF bulk data from /api/v2/etf-metrics?bulk=true');
+      
       const response = await fetch('/api/v2/etf-metrics?bulk=true', { 
-        headers: { 'Accept': 'application/json' } 
+        method: 'GET',
+        headers: { 
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        } 
       });
+      
+      console.log('📡 Response status:', response.status, response.statusText);
+      console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
       
       // Handle 304 Not Modified - keep previous data by throwing special error
       if (response.status === 304) {
@@ -34,10 +43,13 @@ export function useBulkEtfMetrics() {
       }
       
       if (!response.ok) {
+        console.error('❌ ETF bulk request failed:', response.status, response.statusText);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
-      return response.json();
+      const data = await response.json();
+      console.log('✅ ETF bulk data received:', data.items?.length, 'items');
+      return data;
     },
     retry: (failureCount, error: any) => {
       // Don't retry on 304, but retry 502 with exponential backoff

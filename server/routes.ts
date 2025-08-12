@@ -78,8 +78,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 3-Layer Economic Data Model (Bronze → Silver → Gold)
   app.use('/api/econ', (await import('./routes/economic-data-routes')).economicDataRoutes);
   
-  // V2 API routes with unified response envelope
-  app.use('/api/v2', (await import('./routes/api-v2-routes')).default);
+  // V2 API routes with unified response envelope  
+  app.use('/api/v2', (await import('./routes/api/v2/index')).v2Routes);
 
   // Economic Data Backfill routes
   app.use('/api/economic-backfill', (await import('./routes/economic-backfill')).default);
