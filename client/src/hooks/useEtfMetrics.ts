@@ -18,6 +18,8 @@ export function useEtfMetrics(horizon = '60D') {
       }
       return { rows, meta };
     },
-    staleTime: 60_000,
+    staleTime: 60_000, // Consider data fresh for 1 minute (aligned with server cache)
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes  
+    refetchOnWindowFocus: false, // Prevent unnecessary refetches
   });
 }

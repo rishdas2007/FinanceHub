@@ -5,6 +5,7 @@ import { Sparkline } from '@/components/ui/sparkline';
 import { formatNumber } from '@/lib/utils';
 import { getZScoreColor, formatZScore } from '../lib/zscoreUtils';
 import { useEtfMetrics } from '../hooks/useEtfMetrics';
+import { PerformanceMonitor } from '../utils/performanceMonitor';
 
 interface ETFData {
   symbol: string;
@@ -200,10 +201,42 @@ const safeFormatNumber = (value: number | null | undefined, decimals: number = 2
   return formatNumber(value, decimals);
 };
 
-// Individual ETF Row Component - Memoized for performance
-const ETFRow = memo(function ETFRow({ etf }: { etf: any }) {
-  const rsiStatus = getRSIStatus(etf.rsi);
-  const bollingerStatus = getBollingerStatus(etf.bollingerPosition);
+// Individual ETF Row Component - Optimized with proper memoization
+const ETFRow = memo(function ETFRow({ 
+  symbol, 
+  name, 
+  price, 
+  changePercent, 
+  compositeZScore, 
+  macdZScore, 
+  rsiZScore, 
+  bollingerZScore, 
+  maTrendZScore, 
+  priceMomentumZScore,
+  rsi,
+  bollingerPosition,
+  maGap,
+  fiveDayReturn,
+  updatedAt 
+}: {
+  symbol: string;
+  name: string;
+  price: number;
+  changePercent: number;
+  compositeZScore: number | null;
+  macdZScore: number | null;
+  rsiZScore: number | null;
+  bollingerZScore: number | null;
+  maTrendZScore: number | null;
+  priceMomentumZScore: number | null;
+  rsi: number | null;
+  bollingerPosition: number | null;
+  maGap: number | null;
+  fiveDayReturn: number | null;
+  updatedAt?: string;
+}) {
+  const rsiStatus = getRSIStatus(rsi);
+  const bollingerStatus = getBollingerStatus(bollingerPosition);
   
   // Signal color mapping
   const getSignalColor = (signal: string) => {
@@ -218,11 +251,25 @@ const ETFRow = memo(function ETFRow({ etf }: { etf: any }) {
     return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
   };
 
-  // Format price
-  const formatPrice = (price: number) => {
+  // Memoized formatters to avoid recreation on every render
+  const formattedPrice = useMemo(() => {
     if (price >= 1000) return `$${(price/1000).toFixed(1)}k`;
     return `$${price.toFixed(2)}`;
-  };
+  }, [price]);
+
+  const formattedChangePercent = useMemo(() => {
+    return `${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%`;
+  }, [changePercent]);
+
+  const formattedFiveDayReturn = useMemo(() => {
+    if (fiveDayReturn === null || fiveDayReturn === undefined) return 'N/A';
+    return `${fiveDayReturn >= 0 ? '+' : ''}${fiveDayReturn.toFixed(2)}%`;
+  }, [fiveDayReturn]);
+
+  const formattedMaGap = useMemo(() => {
+    if (maGap === null || maGap === undefined) return 'N/A';
+    return `${maGap >= 0 ? '+' : ''}${maGap.toFixed(2)}%`;
+  }, [maGap]);
 
   // Safe format number function
   const safeFormatNumber = (value: number | null | undefined, decimals: number = 2): string => {
@@ -234,15 +281,15 @@ const ETFRow = memo(function ETFRow({ etf }: { etf: any }) {
     <tr className="border-b border-gray-700/50 hover:bg-gray-800/30 transition-colors">
       <td className="py-3 px-1">
         <div className="flex flex-col">
-          <span className="font-medium text-white">{etf.symbol}</span>
-          <span className="text-xs text-gray-400 truncate max-w-[80px]">{etf.name}</span>
+          <span className="font-medium text-white">{symbol}</span>
+          <span className="text-xs text-gray-400 truncate max-w-[80px]">{name}</span>
         </div>
       </td>
       <td className="py-3 px-1">
         <div className="flex flex-col">
-          <span className="text-white font-medium">{formatPrice(etf.price)}</span>
-          <span className={`text-xs font-medium ${etf.changePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {formatPercent(etf.changePercent)}
+          <span className="text-white font-medium">{formattedPrice}</span>
+          <span className={`text-xs font-medium ${changePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {formattedChangePercent}
           </span>
         </div>
       </td>
@@ -251,19 +298,19 @@ const ETFRow = memo(function ETFRow({ etf }: { etf: any }) {
       <td className="py-3 px-1 text-center bg-blue-900/40 border-2 border-blue-400/30">
         <div className="flex flex-col items-center">
           <span className={`text-lg font-bold font-mono ${
-            (etf.zScoreData?.compositeZScore || 0) >= 0.75 ? 'text-green-400' :
-            (etf.zScoreData?.compositeZScore || 0) <= -0.75 ? 'text-red-400' : 
+            (compositeZScore || 0) >= 0.75 ? 'text-green-400' :
+            (compositeZScore || 0) <= -0.75 ? 'text-red-400' : 
             'text-yellow-400'
           }`}>
-            {safeFormatNumber(etf.zScoreData?.compositeZScore, 3)}
+            {formatZScore(compositeZScore, 3)}
           </span>
           <span className={`text-sm font-bold mt-1 px-3 py-1 rounded-md ${
-            (etf.zScoreData?.compositeZScore || 0) >= 0.75 ? 'bg-green-800/50 text-green-300 border border-green-600' :
-            (etf.zScoreData?.compositeZScore || 0) <= -0.75 ? 'bg-red-800/50 text-red-300 border border-red-600' :
+            (compositeZScore || 0) >= 0.75 ? 'bg-green-800/50 text-green-300 border border-green-600' :
+            (compositeZScore || 0) <= -0.75 ? 'bg-red-800/50 text-red-300 border border-red-600' :
             'bg-gray-800/50 text-yellow-300 border border-yellow-600'
           }`}>
-            {(etf.zScoreData?.compositeZScore || 0) >= 0.75 ? 'BUY' :
-             (etf.zScoreData?.compositeZScore || 0) <= -0.75 ? 'SELL' : 'HOLD'}
+            {(compositeZScore || 0) >= 0.75 ? 'BUY' :
+             (compositeZScore || 0) <= -0.75 ? 'SELL' : 'HOLD'}
           </span>
         </div>
       </td>
@@ -277,8 +324,8 @@ const ETFRow = memo(function ETFRow({ etf }: { etf: any }) {
           <span className="text-xs text-gray-400">
             Signal
           </span>
-          <span className={`text-xs font-mono mt-1 ${getZScoreColor('macdZ', etf.zScoreData?.macdZScore)}`}>
-            Z: {formatZScore(etf.zScoreData?.macdZScore, 3)}
+          <span className={`text-xs font-mono mt-1 ${getZScoreColor('macdZ', macdZScore)}`}>
+            Z: {formatZScore(macdZScore, 3)}
           </span>
         </div>
       </td>
@@ -287,13 +334,13 @@ const ETFRow = memo(function ETFRow({ etf }: { etf: any }) {
       <td className="py-3 px-1 text-center bg-purple-900/20">
         <div className="flex flex-col items-center">
           <span className="text-sm font-medium text-white">
-            {etf.rsi ? etf.rsi.toFixed(1) : 'N/A'}
+            {rsi ? rsi.toFixed(1) : 'N/A'}
           </span>
           <span className={`text-xs ${rsiStatus.color}`}>
             RSI
           </span>
-          <span className={`text-xs font-mono mt-1 ${getZScoreColor('rsiZ', etf.zScoreData?.rsiZScore)}`}>
-            Z: {formatZScore(etf.zScoreData?.rsiZScore, 3)}
+          <span className={`text-xs font-mono mt-1 ${getZScoreColor('rsiZ', rsiZScore)}`}>
+            Z: {formatZScore(rsiZScore, 3)}
           </span>
         </div>
       </td>
@@ -305,10 +352,10 @@ const ETFRow = memo(function ETFRow({ etf }: { etf: any }) {
             Bollinger
           </span>
           <span className="text-xs text-gray-400">
-            %B: {etf.bollingerPosition ? (etf.bollingerPosition * 100).toFixed(0) + '%' : 'N/A'}
+            %B: {bollingerPosition ? (bollingerPosition * 100).toFixed(0) + '%' : 'N/A'}
           </span>
-          <span className={`text-xs font-mono mt-1 ${getZScoreColor('bollZ', etf.zScoreData?.bollingerZScore)}`}>
-            Z: {formatZScore(etf.zScoreData?.bollingerZScore, 3)}
+          <span className={`text-xs font-mono mt-1 ${getZScoreColor('bollZ', bollingerZScore)}`}>
+            Z: {formatZScore(bollingerZScore, 3)}
           </span>
         </div>
       </td>
@@ -316,14 +363,14 @@ const ETFRow = memo(function ETFRow({ etf }: { etf: any }) {
       {/* MA Trend with Z-Score (20%) */}
       <td className="py-3 px-1 text-center bg-purple-900/20">
         <div className="flex flex-col items-center">
-          <span className={`text-sm font-medium ${(etf.maGap || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          <span className={`text-sm font-medium ${(maGap || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
             MA Trend
           </span>
           <span className="text-xs text-gray-400">
-            Gap: {formatPercent(etf.maGap)}
+            Gap: {formattedMaGap}
           </span>
-          <span className={`text-xs font-mono mt-1 ${getZScoreColor('maGapZ', etf.zScoreData?.maTrendZScore)}`}>
-            Z: {formatZScore(etf.zScoreData?.maTrendZScore, 3)}
+          <span className={`text-xs font-mono mt-1 ${getZScoreColor('maGapZ', maTrendZScore)}`}>
+            Z: {formatZScore(maTrendZScore, 3)}
           </span>
         </div>
       </td>
@@ -335,25 +382,61 @@ const ETFRow = memo(function ETFRow({ etf }: { etf: any }) {
             5-Day
           </span>
           <span className={`text-xs ${
-            (etf.fiveDayReturn || 0) > 0 ? 'text-green-400' : 'text-red-400'
+            (fiveDayReturn || 0) > 0 ? 'text-green-400' : 'text-red-400'
           }`}>
-            {formatPercent(etf.fiveDayReturn)}
+            {formattedFiveDayReturn}
           </span>
-          <span className={`text-xs font-mono mt-1 ${getZScoreColor('mom5dZ', etf.zScoreData?.priceMomentumZScore)}`}>
-            Z: {formatZScore(etf.zScoreData?.priceMomentumZScore, 3)}
+          <span className={`text-xs font-mono mt-1 ${getZScoreColor('mom5dZ', priceMomentumZScore)}`}>
+            Z: {formatZScore(priceMomentumZScore, 3)}
           </span>
         </div>
       </td>
     </tr>
   );
+}, (prevProps, nextProps) => {
+  // Custom comparison for optimal memoization
+  return (
+    prevProps.symbol === nextProps.symbol &&
+    prevProps.price === nextProps.price &&
+    prevProps.changePercent === nextProps.changePercent &&
+    prevProps.compositeZScore === nextProps.compositeZScore &&
+    prevProps.macdZScore === nextProps.macdZScore &&
+    prevProps.rsiZScore === nextProps.rsiZScore &&
+    prevProps.bollingerZScore === nextProps.bollingerZScore &&
+    prevProps.maTrendZScore === nextProps.maTrendZScore &&
+    prevProps.priceMomentumZScore === nextProps.priceMomentumZScore &&
+    prevProps.rsi === nextProps.rsi &&
+    prevProps.bollingerPosition === nextProps.bollingerPosition &&
+    prevProps.maGap === nextProps.maGap &&
+    prevProps.fiveDayReturn === nextProps.fiveDayReturn &&
+    prevProps.updatedAt === nextProps.updatedAt
+  );
 });
 
 export default function ETFMetricsTable() {
+  // Performance monitoring
+  const perfMonitor = PerformanceMonitor.getInstance();
+  
   // Use the new defensive hook
   const { data, isLoading, isError } = useEtfMetrics('60D');
 
   // Extract rows defensively
   const etfMetrics = data?.rows ?? [];
+  
+  // Performance tracking for table rendering
+  const endTiming = useMemo(() => {
+    if (etfMetrics.length > 0) {
+      return perfMonitor.startTiming('etf-table-render');
+    }
+    return () => {};
+  }, [etfMetrics.length, perfMonitor]);
+  
+  // Complete timing measurement
+  useMemo(() => {
+    if (etfMetrics.length > 0) {
+      endTiming();
+    }
+  }, [etfMetrics, endTiming]);
 
   // Show loading only if we truly have no data yet
   if (isLoading && etfMetrics.length === 0) {
@@ -467,7 +550,24 @@ export default function ETFMetricsTable() {
             </thead>
             <tbody>
               {etfMetrics.map((etf) => (
-                <ETFRow key={etf.symbol} etf={etf} />
+                <ETFRow 
+                  key={etf.symbol}
+                  symbol={etf.symbol}
+                  name={etf.name}
+                  price={etf.price}
+                  changePercent={etf.changePercent}
+                  compositeZScore={etf.zScoreData?.compositeZScore || null}
+                  macdZScore={etf.zScoreData?.macdZScore || null}
+                  rsiZScore={etf.zScoreData?.rsiZScore || null}
+                  bollingerZScore={etf.zScoreData?.bollingerZScore || null}
+                  maTrendZScore={etf.zScoreData?.maTrendZScore || null}
+                  priceMomentumZScore={etf.zScoreData?.priceMomentumZScore || null}
+                  rsi={etf.rsi}
+                  bollingerPosition={etf.bollingerPosition}
+                  maGap={etf.maGap}
+                  fiveDayReturn={etf.fiveDayReturn}
+                  updatedAt={data?.meta?.updatedAt}
+                />
               ))}
             </tbody>
           </table>
@@ -618,9 +718,16 @@ export default function ETFMetricsTable() {
                     </div>
                   </td>
 
-                  {/* Sparkline Column */}
+                  {/* 30-Day Trend Column */}
                   <td className="p-3 text-center">
-                    <SparklineContainer symbol={etf.symbol} />
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs text-gray-400">30-Day Trend</span>
+                      <span className={`text-sm font-medium ${
+                        (etf.changePercent || 0) > 0 ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        {formatPercentage(etf.changePercent)}
+                      </span>
+                    </div>
                   </td>
 
                   {/* Weighted Signal Column - Dark and prominent */}
