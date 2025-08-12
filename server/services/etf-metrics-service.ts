@@ -1,10 +1,11 @@
 import { db } from '../db';
-import { technicalIndicators, zscoreTechnicalIndicators, historicalStockData } from '@shared/schema';
+import { technicalIndicators, zscoreTechnicalIndicators, historicalStockData, stockData } from '@shared/schema';
 import { desc, eq, and, gte, sql } from 'drizzle-orm';
 import { cacheService } from './cache-unified';
 import { logger } from '../middleware/logging';
 import { zscoreTechnicalService } from './zscore-technical-service';
 import { welfordStats, hasSufficientData, zScore, calculateRSI } from '@shared/utils/statistics';
+import { validateEtfPayload, createContentETag, validatePriceSanity, type PayloadMetadata } from './validatePayload';
 
 export interface ETFMetrics {
   symbol: string;
@@ -111,8 +112,8 @@ class ETFMetricsService {
   }
 
   /**
-   * OPTIMIZED: Market-aware fast loading for ETF metrics during market hours
-   * Pipeline: Fast Cache → Database → Standard Cache → API (if needed)
+   * OPTIMIZED: Market-aware fast loading with data integrity validation
+   * Pipeline: Fast Cache → Database → Validation → Standard Cache → API (if needed)
    */
   async getConsolidatedETFMetrics(): Promise<ETFMetrics[]> {
     const startTime = Date.now();
@@ -134,7 +135,40 @@ class ETFMetricsService {
         return cached as ETFMetrics[];
       }
 
-      // 3. OPTIMIZED: Parallel database fetching with timeout protection
+      // 3. CRITICAL: Get fresh price data first and validate
+      const latestPrices = await this.getLatestPricesFromDB();
+      if (latestPrices.size === 0) {
+        logger.error('🚨 No fresh price data available, using fallback');
+        return this.getFallbackMetrics();
+      }
+
+      // 4. CRITICAL: Validate data integrity before proceeding
+      const priceData = Array.from(latestPrices.entries()).map(([symbol, data]) => ({
+        symbol,
+        last_price: data.close,
+        asOf: data.ts.toISOString(),
+        provider: 'database'
+      }));
+
+      let metadata: PayloadMetadata;
+      try {
+        metadata = validateEtfPayload(priceData);
+        
+        if (metadata.dqStatus !== 'ok') {
+          logger.warn(`🚨 Data quality issue detected: ${metadata.dqStatus}, isStale: ${metadata.isStale}`);
+          
+          // If data is too stale or mixed, return warning metadata
+          if (metadata.dqStatus === 'mixed' || metadata.isStale) {
+            logger.error('📊 Data integrity check failed, using fallback data');
+            return this.getFallbackMetricsWithWarning(metadata);
+          }
+        }
+      } catch (validationError) {
+        logger.error('❌ Payload validation failed:', validationError);
+        return this.getFallbackMetrics();
+      }
+
+      // 5. OPTIMIZED: Parallel database fetching with timeout protection
       const fetchTimeout = 1500; // 1.5s timeout per operation
       const [dbTechnicals, dbZScoreData, momentumData] = await Promise.all([
         Promise.race([
@@ -154,10 +188,10 @@ class ETFMetricsService {
         this.getMomentumDataFromCache()
       ]);
 
-      // 4. OPTIMIZED: Parallel ETF metrics consolidation
+      // 6. OPTIMIZED: Parallel ETF metrics consolidation with validated prices
       const consolidationTimeout = 1000; // 1s timeout for consolidation
       const etfMetrics = await Promise.race([
-        this.consolidateETFMetricsParallel(dbTechnicals as Map<string, any>, dbZScoreData as Map<string, any>, momentumData),
+        this.consolidateETFMetricsParallel(dbTechnicals as Map<string, any>, dbZScoreData as Map<string, any>, momentumData, latestPrices),
         new Promise<ETFMetrics[]>((_, reject) => 
           setTimeout(() => reject(new Error('Consolidation timeout')), consolidationTimeout)
         )
@@ -166,11 +200,11 @@ class ETFMetricsService {
         return this.getFallbackMetrics();
       });
 
-      // 5. Cache results in both standard and fast cache
+      // 7. Cache results in both standard and fast cache with data provenance
       cacheService.set(this.CACHE_KEY, etfMetrics, this.CACHE_TTL);
       cacheService.set(this.FAST_CACHE_KEY, etfMetrics, this.FAST_CACHE_TTL);
       
-      logger.info(`⚡ ETF metrics consolidated from database and cached (${Date.now() - startTime}ms, ${etfMetrics.length} ETFs)`);
+      logger.info(`⚡ ETF metrics consolidated from database and cached (${Date.now() - startTime}ms, ${etfMetrics.length} ETFs) - Data Quality: ${metadata.dqStatus}`);
       return etfMetrics;
 
     } catch (error) {
@@ -180,12 +214,53 @@ class ETFMetricsService {
   }
 
   /**
+   * CRITICAL: Get fresh price data from database (last 48 hours only)
+   */
+  private async getLatestPricesFromDB() {
+    const results = new Map();
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 2); // Only get data from last 48 hours
+    
+    for (const symbol of this.ETF_SYMBOLS) {
+      try {
+        const latest = await db
+          .select()
+          .from(stockData)
+          .where(and(
+            eq(stockData.symbol, symbol),
+            gte(stockData.ts, cutoffDate)
+          ))
+          .orderBy(desc(stockData.ts))
+          .limit(1);
+
+        if (latest.length > 0) {
+          const priceData = latest[0];
+          
+          // Validate price sanity (basic checks)
+          if (priceData.close > 0 && isFinite(priceData.close)) {
+            results.set(symbol, priceData);
+            logger.info(`💰 Fresh price for ${symbol}: $${priceData.close} (${priceData.ts.toISOString()})`);
+          } else {
+            logger.warn(`🚨 Invalid price data for ${symbol}: $${priceData.close}`);
+          }
+        } else {
+          logger.error(`❌ No fresh price data for ${symbol} in last 48 hours`);
+        }
+      } catch (error) {
+        logger.warn(`No price data for ${symbol}:`, error);
+      }
+    }
+
+    return results;
+  }
+
+  /**
    * DATABASE-FIRST: Get latest technical indicators from database
    */
   private async getLatestTechnicalIndicatorsFromDB() {
     const results = new Map();
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 30); // Get data from last 30 days only
+    cutoffDate.setDate(cutoffDate.getDate() - 7); // Get data from last 7 days only
     
     for (const symbol of this.ETF_SYMBOLS) {
       try {
@@ -201,9 +276,9 @@ class ETFMetricsService {
 
         if (latest.length > 0) {
           results.set(symbol, latest[0]);
-          logger.warn(`🔧 FIXED ${symbol} Technical Data: ${latest[0].timestamp.toISOString()} (SMA20: ${latest[0].sma_20}, SMA50: ${latest[0].sma_50}, Gap: ${parseFloat(latest[0].sma_20 || '0') - parseFloat(latest[0].sma_50 || '0')})`);
+          logger.info(`🔧 Technical data for ${symbol}: ${latest[0].timestamp.toISOString()}`);
         } else {
-          logger.error(`❌ No recent technical data for ${symbol} in last 30 days`);
+          logger.error(`❌ No recent technical data for ${symbol} in last 7 days`);
         }
       } catch (error) {
         logger.warn(`No technical data for ${symbol}:`, error);
@@ -289,15 +364,54 @@ class ETFMetricsService {
   private async consolidateETFMetricsParallel(
     technicals: Map<string, any>,
     zscoreData: Map<string, any>,
-    momentum: MomentumData[]
+    momentum: MomentumData[],
+    prices?: Map<string, any>
   ): Promise<ETFMetrics[]> {
     // Process all ETFs in parallel instead of sequentially
     const processedMetrics = await Promise.all(
-      this.ETF_SYMBOLS.map(symbol => this.processETFMetricParallel(symbol, technicals, zscoreData, momentum))
+      this.ETF_SYMBOLS.map(symbol => this.processETFMetricParallel(symbol, technicals, zscoreData, momentum, prices))
     );
     
     logger.info(`⚡ Processed ${processedMetrics.length} ETFs in parallel`);
     return processedMetrics;
+  }
+
+  /**
+   * FALLBACK: Return safe fallback metrics with data quality warning
+   */
+  private getFallbackMetricsWithWarning(metadata: PayloadMetadata): ETFMetrics[] {
+    logger.warn(`⚠️ Using fallback ETF metrics due to data quality issue: ${metadata.dqStatus}`);
+    
+    return this.ETF_SYMBOLS.map(symbol => ({
+      symbol,
+      name: ETFMetricsService.ETF_NAMES[symbol as keyof typeof ETFMetricsService.ETF_NAMES] || symbol,
+      price: 0,
+      changePercent: 0,
+      change30Day: null,
+      
+      // Required Z-Score weighted fields
+      weightedScore: null,
+      weightedSignal: 'HOLD',
+      zScoreData: null,
+      
+      bollingerPosition: null,
+      bollingerSqueeze: false,
+      bollingerStatus: `Data Quality Issue: ${metadata.dqStatus}`,
+      atr: null,
+      volatility: null,
+      maSignal: `Data Quality Issue: ${metadata.dqStatus}`,
+      maTrend: 'neutral' as const,
+      maGap: null,
+      rsi: null,
+      rsiSignal: `Data Quality Issue: ${metadata.dqStatus}`,
+      rsiDivergence: false,
+      zScore: null,
+      sharpeRatio: null,
+      fiveDayReturn: null,
+      volumeRatio: null,
+      vwapSignal: `Data Quality Issue: ${metadata.dqStatus}`,
+      obvTrend: 'neutral' as const
+    }));
   }
 
   /**
@@ -307,7 +421,8 @@ class ETFMetricsService {
     symbol: string,
     technicals: Map<string, any>,
     zscoreData: Map<string, any>,
-    momentum: MomentumData[]
+    momentum: MomentumData[],
+    prices?: Map<string, any>
   ): Promise<ETFMetrics> {
     const technical = technicals.get(symbol);
     const zscore = zscoreData.get(symbol);
@@ -323,10 +438,14 @@ class ETFMetricsService {
       console.warn(`⚠️ Failed to calculate 30-day trend for ${symbol}:`, error);
     }
 
+    // Use validated price data if available, otherwise fall back to existing method
+    const validatedPrice = prices?.get(symbol);
+    const price = validatedPrice ? validatedPrice.close : this.getETFPrice(symbol, zscore, momentumETF);
+    
     return {
       symbol,
       name: ETFMetricsService.ETF_NAMES[symbol as keyof typeof ETFMetricsService.ETF_NAMES] || symbol,
-      price: this.getETFPrice(symbol, zscore, momentumETF),
+      price: price,
       changePercent: momentumETF?.oneDayChange ? parseFloat(momentumETF.oneDayChange.toString()) : 0,
       
       // Bollinger Bands & Position/Squeeze
