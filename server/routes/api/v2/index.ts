@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { ApiController } from '../../../controllers/ApiController';
 import { validate } from '../../../middleware/validation-middleware';
 import { paginationSchema, stockSymbolSchema } from '../../../../shared/validation';
+import { getEtfMetricsBulk } from '../../../controllers/EtfController';
 
 const router = Router();
 
@@ -34,6 +35,22 @@ router.get('/technical/:symbol',
 );
 
 router.get('/health', ApiController.getHealthCheck);
+
+// ETF Bulk Endpoint - High priority, mount first
+router.get('/etf-metrics', async (req, res, next) => {
+  try {
+    if (req.query.bulk === 'true') {
+      // Ensure proper content type for all responses
+      res.setHeader('Content-Type', 'application/json');
+      return await getEtfMetricsBulk(req, res);
+    }
+    // Fall back to individual ETF endpoint if needed
+    res.status(400).json({ error: 'Bulk parameter required' });
+  } catch (error) {
+    console.error('ETF Bulk endpoint error:', error);
+    res.status(502).json({ error: 'Failed to load ETF data', details: error.message });
+  }
+});
 
 // V2 specific endpoints can be added here
 // router.get('/enhanced-features', ...);
