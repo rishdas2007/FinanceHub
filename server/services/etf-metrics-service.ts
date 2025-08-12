@@ -79,8 +79,8 @@ interface MomentumData {
 
 class ETFMetricsService {
   private static instance: ETFMetricsService;
-  private readonly CACHE_KEY = 'etf-metrics-consolidated-v3-data-integrity';
-  private readonly FAST_CACHE_KEY = 'etf-metrics-fast-v3-data-integrity';
+  private readonly CACHE_KEY = 'etf-metrics-consolidated-v4-sector-fallback';
+  private readonly FAST_CACHE_KEY = 'etf-metrics-fast-v4-sector-fallback';
   private readonly CACHE_TTL = 300; // 5 minutes
   private readonly FAST_CACHE_TTL = 120; // 2 minutes during market hours
   
@@ -209,7 +209,7 @@ class ETFMetricsService {
 
       // 6. OPTIMIZED: Parallel ETF metrics consolidation with validated prices
       const consolidationTimeout = 1000; // 1s timeout for consolidation
-      const etfMetrics = await Promise.race([
+      let etfMetrics = await Promise.race([
         this.consolidateETFMetricsParallel(dbTechnicals as Map<string, any>, dbZScoreData as Map<string, any>, momentumData, latestPrices),
         new Promise<ETFMetrics[]>((_, reject) => 
           setTimeout(() => reject(new Error('Consolidation timeout')), consolidationTimeout)
@@ -219,11 +219,32 @@ class ETFMetricsService {
         return this.getFallbackMetrics();
       });
 
-      // 7. Cache results in both standard and fast cache with data provenance
+      // 7. CRITICAL: If prices are still 0, get sector data and update them
+      const hasZeroPrices = etfMetrics.some(etf => etf.price === 0);
+      if (hasZeroPrices) {
+        logger.warn('⚠️ Zero prices detected, fetching sector data fallback');
+        try {
+          const { enhancedMarketDataService } = await import('./enhanced-market-data');
+          const sectorData = await enhancedMarketDataService.getSectorETFData();
+          const sectorMap = new Map(sectorData.map(etf => [etf.symbol, etf.price]));
+          
+          etfMetrics = etfMetrics.map(etf => ({
+            ...etf,
+            price: etf.price > 0 ? etf.price : (sectorMap.get(etf.symbol) || 0)
+          }));
+          
+          logger.info(`💰 Updated ${etfMetrics.filter(e => e.price > 0).length} ETF prices from sector data`);
+        } catch (error) {
+          logger.warn('⚠️ Failed to fetch sector data fallback:', error);
+        }
+      }
+
+      // 8. Cache results in both standard and fast cache with data provenance
       cacheService.set(this.CACHE_KEY, etfMetrics, this.CACHE_TTL);
       cacheService.set(this.FAST_CACHE_KEY, etfMetrics, this.FAST_CACHE_TTL);
       
-      logger.info(`⚡ ETF metrics consolidated from database and cached (${Date.now() - startTime}ms, ${etfMetrics.length} ETFs) - Data Quality: ${metadata.dqStatus}`);
+      const priceInfo = etfMetrics.map(e => `${e.symbol}:$${e.price}`).join(', ');
+      logger.info(`⚡ ETF metrics consolidated from database and cached (${Date.now() - startTime}ms, ${etfMetrics.length} ETFs) - ${priceInfo}`);
       return etfMetrics;
 
     } catch (error) {
@@ -788,23 +809,7 @@ class ETFMetricsService {
    * Get ETF current price from multiple sources with fallbacks
    */
   private getETFPrice(symbol: string, sector: any, momentumETF: any): number {
-    // ETF price mapping based on common market values (fallback for missing data)
-    const FALLBACK_PRICES = {
-      'SPY': 630,
-      'XLK': 260,
-      'XLV': 133,
-      'XLF': 52,
-      'XLY': 195,
-      'XLI': 140,
-      'XLC': 100,
-      'XLP': 82,
-      'XLE': 95,
-      'XLU': 87,
-      'XLB': 88,
-      'XLRE': 42
-    };
-
-    // Try multiple data sources
+    // Try multiple data sources in priority order
     if (sector?.price && parseFloat(sector.price) > 0) {
       return parseFloat(sector.price);
     }
@@ -817,8 +822,9 @@ class ETFMetricsService {
       return parseFloat(momentumETF.price);
     }
 
-    // Use realistic fallback price for the ETF
-    return FALLBACK_PRICES[symbol as keyof typeof FALLBACK_PRICES] || 100;
+    // Log warning for missing price data
+    logger.warn(`⚠️ No valid price found for ${symbol}, using 0 (will be replaced by sector data fallback)`);
+    return 0;
   }
 
   /**
