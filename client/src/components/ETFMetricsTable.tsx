@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 import { TrendingUp, TrendingDown, Activity, BarChart3, Zap, Volume2, DollarSign } from "lucide-react";
 import { TechnicalIndicatorLegend } from './TechnicalIndicatorLegend';
 import { Sparkline } from '@/components/ui/sparkline';
@@ -121,47 +121,20 @@ const formatPercentage = (value: number | null | undefined): string => {
   return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
 };
 
-// Sparkline container component with harmonized scaling
-function SparklineContainer({ symbol }: { symbol: string }) {
-  const { data: sparklineData, isLoading } = useQuery({
-    queryKey: ['sparkline', symbol],
-    queryFn: async () => {
-      const response = await fetch(`/api/stocks/${symbol}/sparkline`);
-      if (!response.ok) throw new Error('Failed to fetch sparkline data');
-      return response.json();
-    },
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
-  });
-
-  if (isLoading) {
-    return (
-      <div className="h-8 w-24 bg-gray-700 rounded animate-pulse" />
-    );
+// Simple 30-day trend display (no additional API calls)
+function Simple30DayTrend({ change30Day }: { change30Day: number | null }) {
+  if (change30Day === null || change30Day === undefined) {
+    return <div className="text-xs text-gray-500">No data</div>;
   }
-
-  if (!sparklineData?.success || !sparklineData.data?.length) {
-    return (
-      <div className="text-xs text-gray-500">No data</div>
-    );
-  }
-
-  // Use normalized data if available, otherwise use raw data
-  const chartData = sparklineData.normalizedData || sparklineData.data;
 
   return (
     <div className="flex flex-col items-center">
-      <Sparkline 
-        data={chartData}
-        trend={sparklineData.trend}
-        height={32}
-        width="80px"
-        className="mb-1"
-      />
       <div className={`text-xs font-medium ${
-        sparklineData.change >= 0 ? 'text-green-400' : 'text-red-400'
+        change30Day >= 0 ? 'text-green-400' : 'text-red-400'
       }`}>
-        {sparklineData.change >= 0 ? '+' : ''}{sparklineData.change?.toFixed(1)}%
+        {change30Day >= 0 ? '+' : ''}{change30Day.toFixed(2)}%
       </div>
+      <div className="text-xs text-gray-500">30-day</div>
     </div>
   );
 }
@@ -227,8 +200,8 @@ const safeFormatNumber = (value: number | null | undefined, decimals: number = 2
   return formatNumber(value, decimals);
 };
 
-// Individual ETF Row Component
-function ETFRow({ etf }: { etf: ETFMetrics }) {
+// Individual ETF Row Component - Memoized for performance
+const ETFRow = memo(function ETFRow({ etf }: { etf: any }) {
   const rsiStatus = getRSIStatus(etf.rsi);
   const bollingerStatus = getBollingerStatus(etf.bollingerPosition);
   
@@ -373,7 +346,7 @@ function ETFRow({ etf }: { etf: ETFMetrics }) {
       </td>
     </tr>
   );
-}
+});
 
 export default function ETFMetricsTable() {
   // Use the new defensive hook
