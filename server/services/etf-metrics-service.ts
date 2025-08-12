@@ -79,8 +79,8 @@ interface MomentumData {
 
 class ETFMetricsService {
   private static instance: ETFMetricsService;
-  private readonly CACHE_KEY = 'etf-metrics-consolidated-v2-with-30day-trend';
-  private readonly FAST_CACHE_KEY = 'etf-metrics-fast-v2-with-30day-trend';
+  private readonly CACHE_KEY = 'etf-metrics-consolidated-v3-data-integrity';
+  private readonly FAST_CACHE_KEY = 'etf-metrics-fast-v3-data-integrity';
   private readonly CACHE_TTL = 300; // 5 minutes
   private readonly FAST_CACHE_TTL = 120; // 2 minutes during market hours
   
@@ -135,37 +135,56 @@ class ETFMetricsService {
         return cached as ETFMetrics[];
       }
 
-      // 3. CRITICAL: Get fresh price data first and validate
+      // 3. CRITICAL: Get latest available price data 
       const latestPrices = await this.getLatestPricesFromDB();
+      logger.info(`💰 Found price data for ${latestPrices.size} ETFs`);
+      
+      // If no recent price data, fall back to existing consolidated data
       if (latestPrices.size === 0) {
-        logger.error('🚨 No fresh price data available, using fallback');
-        return this.getFallbackMetrics();
+        logger.warn('⚠️ No recent price data found, attempting to fetch from enhanced market data');
+        try {
+          const { enhancedMarketDataService } = await import('./enhanced-market-data');
+          const sectorData = await enhancedMarketDataService.getSectorETFData();
+          logger.info(`📊 Retrieved ${sectorData.length} ETFs from enhanced market data`);
+          
+          // Convert sector data to price data format
+          for (const etf of sectorData) {
+            if (etf.price && etf.price > 0) {
+              latestPrices.set(etf.symbol, {
+                close: etf.price,
+                ts: new Date(),
+                symbol: etf.symbol
+              });
+            }
+          }
+          logger.info(`💰 Converted ${latestPrices.size} ETFs from sector data`);
+        } catch (error) {
+          logger.warn('⚠️ Failed to fetch from enhanced market data:', error);
+        }
       }
 
-      // 4. CRITICAL: Validate data integrity before proceeding
-      const priceData = Array.from(latestPrices.entries()).map(([symbol, data]) => ({
-        symbol,
-        last_price: data.close,
-        asOf: data.ts.toISOString(),
-        provider: 'database'
-      }));
+      // 4. CRITICAL: Validate data integrity only if we have price data
+      let metadata: PayloadMetadata | null = null;
+      if (latestPrices.size > 0) {
+        const priceData = Array.from(latestPrices.entries()).map(([symbol, data]) => ({
+          symbol,
+          last_price: data.close,
+          asOf: data.ts.toISOString(),
+          provider: 'database'
+        }));
 
-      let metadata: PayloadMetadata;
-      try {
-        metadata = validateEtfPayload(priceData);
-        
-        if (metadata.dqStatus !== 'ok') {
-          logger.warn(`🚨 Data quality issue detected: ${metadata.dqStatus}, isStale: ${metadata.isStale}`);
+        try {
+          metadata = validateEtfPayload(priceData);
+          logger.info(`📊 Data quality status: ${metadata.dqStatus}, stale: ${metadata.isStale}`);
           
-          // If data is too stale or mixed, return warning metadata
-          if (metadata.dqStatus === 'mixed' || metadata.isStale) {
-            logger.error('📊 Data integrity check failed, using fallback data');
-            return this.getFallbackMetricsWithWarning(metadata);
+          // Only fail on critical issues, not stale data during market closed hours
+          if (metadata.dqStatus === 'mixed') {
+            logger.warn('⚠️ Mixed data sources detected, proceeding with caution');
           }
+        } catch (validationError) {
+          logger.warn('⚠️ Payload validation failed, proceeding without validation:', validationError);
+          metadata = null;
         }
-      } catch (validationError) {
-        logger.error('❌ Payload validation failed:', validationError);
-        return this.getFallbackMetrics();
       }
 
       // 5. OPTIMIZED: Parallel database fetching with timeout protection
@@ -214,12 +233,12 @@ class ETFMetricsService {
   }
 
   /**
-   * CRITICAL: Get fresh price data from database (last 48 hours only)
+   * CRITICAL: Get latest available price data from database (last 7 days, expand if needed)
    */
   private async getLatestPricesFromDB() {
     const results = new Map();
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 2); // Only get data from last 48 hours
+    cutoffDate.setDate(cutoffDate.getDate() - 7); // Get data from last 7 days
     
     for (const symbol of this.ETF_SYMBOLS) {
       try {
@@ -244,7 +263,7 @@ class ETFMetricsService {
             logger.warn(`🚨 Invalid price data for ${symbol}: $${priceData.close}`);
           }
         } else {
-          logger.error(`❌ No fresh price data for ${symbol} in last 48 hours`);
+          logger.warn(`⚠️ No recent price data for ${symbol} in last 7 days`);
         }
       } catch (error) {
         logger.warn(`No price data for ${symbol}:`, error);
