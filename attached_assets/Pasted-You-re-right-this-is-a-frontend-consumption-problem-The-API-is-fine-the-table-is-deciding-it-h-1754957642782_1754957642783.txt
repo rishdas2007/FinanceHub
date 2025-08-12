@@ -1,0 +1,121 @@
+You’re right—this is a **frontend consumption** problem. The API is fine; the table is deciding it has “no rows.” Let’s make the client accept *any* of the payload shapes you might return and stop tripping the empty state.
+
+Here’s a **surgical, copy-paste fix**:
+
+---
+
+# 1) Add a normalizer (one file)
+
+`client/src/adapters/etfMetricsAdapter.ts`
+
+```ts
+// Accepts all server shapes and returns a flat array of row objects.
+export type EtfRow = Record<string, any>;
+
+export function normalizeEtfMetrics(json: any): { rows: EtfRow[]; meta?: any } {
+  const root = json?.data ?? json;
+
+  // Common shapes
+  if (Array.isArray(root)) return { rows: root, meta: json?.meta ?? root?.meta };
+  if (Array.isArray(root?.rows)) return { rows: root.rows, meta: root.meta };
+  if (Array.isArray(root?.items)) return { rows: root.items, meta: root.meta };
+
+  // Movers-style: { benchmark, signals: [...] }
+  if (root && (Array.isArray(root.signals) || root.benchmark)) {
+    const rows: EtfRow[] = [];
+    if (root.benchmark?.symbol) rows.push(root.benchmark);
+    if (Array.isArray(root.signals)) rows.push(...root.signals);
+    return { rows, meta: root.meta };
+  }
+
+  // Legacy: { data: [...] }
+  if (Array.isArray(root?.data)) return { rows: root.data, meta: root.meta };
+
+  return { rows: [] };
+}
+```
+
+---
+
+# 2) Use it in the hook (and support both routes)
+
+`client/src/hooks/useEtfMetrics.ts`
+
+```ts
+import { useQuery } from '@tanstack/react-query';
+import { normalizeEtfMetrics } from '../adapters/etfMetricsAdapter';
+
+export function useEtfMetrics(horizon = '60D') {
+  return useQuery({
+    queryKey: ['etf-metrics', horizon],
+    queryFn: async () => {
+      // dash route works in prod; alias exists for both
+      const res = await fetch(`/api/etf-metrics?horizon=${encodeURIComponent(horizon)}`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      const json = await res.json();
+      const { rows, meta } = normalizeEtfMetrics(json);
+
+      // tiny prod-safe debug
+      if (!rows.length && (json?.warning || json?.data?.warning)) {
+        console.info('[etf-metrics] empty with warning:', json?.warning ?? json?.data?.warning);
+      }
+      return { rows, meta };
+    },
+    staleTime: 60_000,
+  });
+}
+```
+
+---
+
+# 3) Render defensively
+
+`client/src/components/EtfTechnicalMetrics.tsx`
+
+```tsx
+const { data, isLoading, isError } = useEtfMetrics('60D');
+
+if (isError)   return <ErrorTile title="ETF Technical Metrics" subtitle="Failed to load" />;
+if (isLoading) return <Skeleton />;
+
+const rows = data?.rows ?? [];
+if (rows.length === 0) {
+  return <EmptyTile title="ETF Technical Metrics" subtitle="No ETF data available" />;
+}
+
+// ...render the table using `rows`
+```
+
+---
+
+# 4) (Optional) Make server response stable going forward
+
+In `/api/etf-metrics` controller, always return:
+
+```ts
+return res.json({ success: true, data: { rows, meta: { count: rows.length, horizon } } });
+```
+
+…and in fallback:
+
+```ts
+return res.json({ success: true, data: { rows: [], meta: { count: 0, horizon } }, warning: 'data_unavailable' });
+```
+
+---
+
+# 5) Quick verification
+
+* In prod browser console run:
+
+```js
+fetch('/api/etf-metrics?horizon=60D').then(r=>r.json()).then(j=>{
+  const { rows } = window.normalize ? window.normalize(j) : (console.log(j), j.data?.rows ?? j.data?.signals ?? j.data ?? []);
+  console.log('rows:', Array.isArray(rows)?rows.length:rows?.length);
+});
+```
+
+* You should now see **12 rows** and the table populated.
+
+If it’s still empty after this patch, paste the exact JSON body of `/api/etf-metrics` and I’ll tune the normalizer in one line to match it.

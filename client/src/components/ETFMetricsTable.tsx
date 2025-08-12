@@ -1,10 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { TrendingUp, TrendingDown, Activity, BarChart3, Zap, Volume2, DollarSign } from "lucide-react";
 import { TechnicalIndicatorLegend } from './TechnicalIndicatorLegend';
 import { Sparkline } from '@/components/ui/sparkline';
 import { formatNumber } from '@/lib/utils';
 import { getZScoreColor, formatZScore } from '../lib/zscoreUtils';
+import { useEtfMetrics } from '../hooks/useEtfMetrics';
 
 interface ETFData {
   symbol: string;
@@ -376,64 +376,11 @@ function ETFRow({ etf }: { etf: ETFMetrics }) {
 }
 
 export default function ETFMetricsTable() {
-  // Database-first ETF metrics API call
-  const { data: etfMetricsResponse, isLoading, error } = useQuery<any>({
-    queryKey: ['/api/etf-metrics'],
-    staleTime: 30000, // 30 seconds
-    refetchInterval: 120000, // 2 minutes  
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-  });
+  // Use the new defensive hook
+  const { data, isLoading, isError } = useEtfMetrics('60D');
 
-  // ROBUST: Universal ETF data normalization (handles all server shapes)
-  function normalizeEtfMetrics(json: any): any[] {
-    // Accept multiple server shapes and unify to an array of rows
-    const d = json?.data ?? json;
-
-    if (Array.isArray(d)) return d;
-    if (Array.isArray(d?.rows)) return d.rows;
-    if (Array.isArray(d?.items)) return d.items;
-
-    // movers-style payload
-    if (d && (Array.isArray(d.signals) || d.benchmark)) {
-      const rows: any[] = [];
-      if (d.benchmark && d.benchmark.symbol) rows.push(d.benchmark);
-      if (Array.isArray(d.signals)) rows.push(...d.signals);
-      return rows;
-    }
-
-    // older payloads
-    if (Array.isArray(d?.data)) return d.data;
-
-    // legacy metrics field
-    if (Array.isArray(json?.metrics)) return json.metrics;
-
-    return [];
-  }
-
-  // Extract ETF metrics data - simplified and robust
-  const etfMetrics = useMemo(() => {
-    console.log('🔍 Fresh ETF Data Extraction:', { 
-      hasResponse: !!etfMetricsResponse,
-      response: etfMetricsResponse 
-    });
-    
-    if (!etfMetricsResponse) {
-      console.log('❌ No response');
-      return [];
-    }
-    
-    // Use the universal normalizer
-    const normalized = normalizeEtfMetrics(etfMetricsResponse);
-    
-    if (Array.isArray(normalized) && normalized.length > 0) {
-      console.log('✅ SUCCESS: Using data field with', normalized.length, 'ETFs');
-      return normalized;
-    }
-    
-    console.warn('❌ FAILED: No valid ETF array found', { keys: Object.keys(etfMetricsResponse?.data ?? etfMetricsResponse) });
-    return [];
-  }, [etfMetricsResponse]);
+  // Extract rows defensively
+  const etfMetrics = data?.rows ?? [];
 
   // Show loading only if we truly have no data yet
   if (isLoading && etfMetrics.length === 0) {
@@ -474,7 +421,7 @@ export default function ETFMetricsTable() {
     etfMetricsType: typeof etfMetrics,
     etfMetricsIsArray: Array.isArray(etfMetrics),
     isLoading,
-    hasError: !!error,
+    hasError: !!isError,
     firstETF: etfMetrics[0]?.symbol || 'none'
   });
 
@@ -482,15 +429,16 @@ export default function ETFMetricsTable() {
   const hasData = etfMetrics.length > 0;
 
   // Show error state
-  if (error) {
+  if (isError) {
     return (
       <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-red-500 p-6" data-testid="etf-metrics-error">
         <div className="flex items-center gap-2 mb-4">
           <BarChart3 className="h-5 w-5 text-red-400" />
           <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
+          <span className="text-sm text-red-400">Failed to load</span>
         </div>
         <div className="text-center py-8">
-          <span className="text-red-400">Failed to load ETF data</span>
+          <span className="text-red-400">API request failed</span>
         </div>
       </div>
     );

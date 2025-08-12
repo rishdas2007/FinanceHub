@@ -230,10 +230,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const responseTime = Date.now() - startTime;
       console.log(`⚡ ETF Metrics response time: ${responseTime}ms`);
       
-      // CONSISTENT RESPONSE FORMAT: Always return data field for client unwrapping
+      // STABLE RESPONSE FORMAT: Always return consistent data shape
       res.json({
         success: true,
-        data: { rows: metrics }, // Stable server shape
+        data: { rows: metrics, meta: { count: metrics.length, horizon: req.query.horizon || '60D' } },
         metrics, // Keep legacy field for backward compatibility
         count: metrics.length,
         timestamp: new Date().toISOString(),

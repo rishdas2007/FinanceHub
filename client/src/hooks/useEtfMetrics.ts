@@ -1,46 +1,23 @@
 import { useQuery } from '@tanstack/react-query';
+import { normalizeEtfMetrics } from '../adapters/etfMetricsAdapter';
 
-type EtfRow = Record<string, any>;
-
-function normalizeEtfMetrics(json: any): EtfRow[] {
-  // Accept multiple server shapes and unify to an array of rows
-  const d = json?.data ?? json;
-
-  if (Array.isArray(d)) return d as EtfRow[];
-  if (Array.isArray(d?.rows)) return d.rows as EtfRow[];
-  if (Array.isArray(d?.items)) return d.items as EtfRow[];
-
-  // movers-style payload
-  if (d && (Array.isArray(d.signals) || d.benchmark)) {
-    const rows: EtfRow[] = [];
-    if (d.benchmark && d.benchmark.symbol) rows.push(d.benchmark);
-    if (Array.isArray(d.signals)) rows.push(...d.signals);
-    return rows;
-  }
-
-  // older payloads
-  if (Array.isArray(d?.data)) return d.data as EtfRow[];
-
-  // legacy metrics field
-  if (Array.isArray(json?.metrics)) return json.metrics as EtfRow[];
-
-  return [];
-}
-
-export function useEtfMetrics() {
+export function useEtfMetrics(horizon = '60D') {
   return useQuery({
-    queryKey: ['etf-metrics','60D'],
+    queryKey: ['etf-metrics', horizon],
     queryFn: async () => {
-      // Use the dashed route (since your log shows /api/etf-metrics). The alias above makes both valid.
-      const res = await fetch('/api/etf-metrics?horizon=60D', { headers: { 'Accept': 'application/json' }});
+      // dash route works in prod; alias exists for both
+      const res = await fetch(`/api/etf-metrics?horizon=${encodeURIComponent(horizon)}`, {
+        headers: { 'Accept': 'application/json' }
+      });
       const json = await res.json();
+      const { rows, meta } = normalizeEtfMetrics(json);
 
-      // Optional debug to surface shape in prod if empty
-      const rows = normalizeEtfMetrics(json);
-      if (!rows.length && json?.warning) console.info('[etf-metrics] warning:', json.warning, json);
-      if (!rows.length && process.env.NODE_ENV !== 'production') console.warn('[etf-metrics] empty, keys=', Object.keys(json?.data ?? json));
-      return rows;
+      // tiny prod-safe debug
+      if (!rows.length && (json?.warning || json?.data?.warning)) {
+        console.info('[etf-metrics] empty with warning:', json?.warning ?? json?.data?.warning);
+      }
+      return { rows, meta };
     },
-    staleTime: 60_000
+    staleTime: 60_000,
   });
 }
