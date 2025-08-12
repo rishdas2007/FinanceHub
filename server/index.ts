@@ -43,9 +43,6 @@ import { ServiceStartupOrchestrator, ServiceConfig } from './utils/ServiceStartu
 
 // Performance optimization imports
 import { performanceOptimizer } from './utils/performance-optimizer';
-
-// Bulk ETF endpoint
-import etfMetricsBulkRouter from './routes/api/v2/etfMetricsBulk';
 import { resourceManager } from './utils/resource-manager';
 
 // Validate environment at startup
@@ -170,9 +167,6 @@ app.use((req, res, next) => {
 
     // Register health routes with proper isolation
     app.use('/api/health', healthRoutes);
-    
-    // CRITICAL: Mount bulk router FIRST to avoid route conflicts
-    app.use('/api/v2', etfMetricsBulkRouter);
     
     // Register enhanced routes with versioning
     app.use('/api/v1', v1Routes);

@@ -247,11 +247,11 @@ export class DataScheduler {
       timezone: "America/New_York"
     });
 
-    // Initial data load DISABLED to prevent API rate limit crashes
-    // setTimeout(async () => {
-    //   console.log('🎯 Performing initial data load...');
-    //   await this.updateAllData();
-    // }, 5000); // 5 second delay to allow server to fully start
+    // Initial data load
+    setTimeout(async () => {
+      console.log('🎯 Performing initial data load...');
+      await this.updateAllData();
+    }, 5000); // 5 second delay to allow server to fully start
 
     // Enhanced logging for email schedule
     const estNow = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });

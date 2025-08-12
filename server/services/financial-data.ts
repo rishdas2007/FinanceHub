@@ -309,28 +309,7 @@ export class FinancialDataService {
       return indicators;
     } catch (error) {
       console.error(`Error fetching enhanced technical indicators for ${symbol}:`, error);
-      // Return basic structure with null values instead of crashing
-      return {
-        symbol,
-        rsi: null,
-        macd: null,
-        macdSignal: null,
-        macdHistogram: null,
-        bb_upper: null,
-        bb_middle: null,
-        bb_lower: null,
-        percent_b: null,
-        adx: null,
-        stoch_k: null,
-        stoch_d: null,
-        vwap: null,
-        atr: null,
-        willr: null,
-        sma_20: null,
-        sma_50: null,
-        ema_12: null,
-        ema_26: null
-      };
+      return this.getFallbackTechnicalIndicators(symbol);
     }
   }
 

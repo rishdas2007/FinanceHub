@@ -1,44 +1,25 @@
 import { useQuery } from '@tanstack/react-query';
 import { normalizeEtfMetrics } from '../adapters/etfMetricsAdapter';
 
-// DEPRECATED: This hook has been replaced by useBulkEtfMetrics for performance
-// Redirecting to bulk endpoint to maintain compatibility
 export function useEtfMetrics(horizon = '60D') {
-  console.warn('⚠️ useEtfMetrics is deprecated. Use useBulkEtfMetrics for better performance.');
-  
   return useQuery({
-    queryKey: ['etf-metrics-legacy', horizon],
+    queryKey: ['etf-metrics', horizon],
     queryFn: async () => {
-      // Use bulk endpoint instead of legacy per-row calls
-      const res = await fetch('/api/v2/etf-metrics?bulk=true', {
+      // dash route works in prod; alias exists for both
+      const res = await fetch(`/api/etf-metrics?horizon=${encodeURIComponent(horizon)}`, {
         headers: { 'Accept': 'application/json' }
       });
-      
-      if (res.status === 304) {
-        throw new Error('NOT_MODIFIED');
-      }
-      
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
-      
       const json = await res.json();
-      
-      // Transform bulk response to match legacy format
-      const rows = json.items || [];
-      const meta = {
-        count: rows.length,
-        horizon,
-        updatedAt: json.updatedAt,
-        version: json.version || 1
-      };
+      const { rows, meta } = normalizeEtfMetrics(json);
 
+      // tiny prod-safe debug
+      if (!rows.length && (json?.warning || json?.data?.warning)) {
+        console.info('[etf-metrics] empty with warning:', json?.warning ?? json?.data?.warning);
+      }
       return { rows, meta };
     },
-    retry: (failureCount, error: any) => {
-      return error?.message !== 'NOT_MODIFIED' && failureCount < 1;
-    },
-    staleTime: 60_000,
-    refetchOnWindowFocus: false,
+    staleTime: 60_000, // Consider data fresh for 1 minute (aligned with server cache)
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes  
+    refetchOnWindowFocus: false, // Prevent unnecessary refetches
   });
 }
