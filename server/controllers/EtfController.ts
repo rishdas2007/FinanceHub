@@ -5,12 +5,15 @@ import { getCache, setCache } from '../services/cache';
 import { withServerTiming } from '../middleware/serverTiming';
 
 const CACHE_KEY = 'etf:metrics:latest';
-const TTL_SECONDS = parseInt(process.env.CACHE_TTL_SECONDS || '60', 10);
+const TTL_SECONDS = parseInt(process.env.CACHE_TTL_SECONDS || '30', 10); // Reduced cache time for more real-time data
 
 export const getEtfMetricsBulk = withServerTiming(async (req: Request, res: Response) => {
-  // Try cache first
+  // Skip cache for real-time data if requested
+  const bypassCache = req.query.nocache === 'true' || req.headers['cache-control'] === 'no-cache';
+  
+  // Try cache first (unless bypassed)
   const cacheStart = performance.now();
-  let payload = await getCache(CACHE_KEY);
+  let payload = bypassCache ? null : await getCache(CACHE_KEY);
   const cacheMs = performance.now() - cacheStart;
 
   if (!payload) {

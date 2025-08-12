@@ -13,8 +13,7 @@ export function ETFDashboard() {
     // Initialize performance monitoring here if needed
   }, 500);
 
-  // Skip error state if we have fallback data (502 proxy errors)
-  if (error && !bulkData) {
+  if (error) {
     console.error('ETF Dashboard Error:', error);
     return (
       <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">

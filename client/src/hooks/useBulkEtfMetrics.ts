@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { mockEtfData } from './useMockEtfData';
 
 interface EtfMetricsResponse {
   updatedAt: string;
@@ -45,13 +44,6 @@ export function useBulkEtfMetrics() {
       
       if (!response.ok) {
         console.error('❌ ETF bulk request failed:', response.status, response.statusText);
-        
-        // If it's a 502 proxy error, use fallback data to show the dashboard
-        if (response.status === 502) {
-          console.log('🔄 Using fallback data due to Replit proxy issue');
-          return mockEtfData;
-        }
-        
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
