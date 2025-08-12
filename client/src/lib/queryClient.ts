@@ -71,8 +71,19 @@ async function fetchWithTimeout(input: RequestInfo, init?: RequestInit) {
     const res = await fetch(input, { 
       ...init, 
       credentials: "include",
+      headers: { 
+        Accept: 'application/json', 
+        ...(init?.headers || {}) 
+      },
       signal: controller.signal 
     });
+
+    // Handle 304 Not Modified - keep existing data
+    if (res.status === 304) {
+      const err = new Error('NOT_MODIFIED');
+      (err as any).__notModified = true;
+      throw err;
+    }
 
     // accept non-2xx; try to parse body anyway for error info
     const text = await res.text();
@@ -140,10 +151,11 @@ export const queryClient = new QueryClient({
         const url = buildUrlFromQueryKey(queryKey as any);
         return fetchWithTimeout(url);
       },
-      retry: 1,
+      retry: (count, err: any) => !(err?.__notModified) && count < 2, // Don't retry 304s
       staleTime: 30_000,
       refetchOnWindowFocus: false,
       refetchInterval: false,
+      placeholderData: (previousData: any) => previousData, // Keep previous data on 304
     },
     mutations: {
       retry: false,

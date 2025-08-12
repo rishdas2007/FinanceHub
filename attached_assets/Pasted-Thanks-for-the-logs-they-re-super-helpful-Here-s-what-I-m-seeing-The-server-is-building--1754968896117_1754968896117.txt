@@ -1,0 +1,92 @@
+Thanks for the logs — they’re super helpful.
+
+Here’s what I’m seeing:
+
+* The server **is** building the ETF payload successfully: “ETF metrics consolidated… (585ms, 12 ETFs)”.
+* Requests like `/api/econ/sparkline` are returning **304 Not Modified**.
+* `/market-status` returns 200 (body logged as a Buffer is fine), so the app is responsive.
+* The UI panel shows a generic “API request failed”, which usually happens when the client tries to `r.json()` a **304** (there’s no body), throwing “Unexpected end of JSON input” and bubbling to your error UI.
+
+In short: the backend is fine; the client isn’t handling **304** correctly.
+
+### Quick fix (client)
+
+Swap your fetcher to gracefully handle 304 and keep the previous data.
+
+```ts
+// lib/fetchJson.ts
+export async function fetchJsonWith304(input: RequestInfo, init?: RequestInit) {
+  const res = await fetch(input, {
+    headers: { Accept: 'application/json', ...(init?.headers || {}) },
+    ...init,
+  });
+  if (res.status === 304) {
+    // Signal React Query to keep existing data
+    const err = new Error('NOT_MODIFIED');
+    (err as any).__notModified = true;
+    throw err;
+  }
+  if (!res.ok) {
+    const err = new Error(`HTTP_${res.status}`);
+    (err as any).status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+```
+
+Use it in your ETF hook / dashboard query:
+
+```ts
+import { useQuery } from '@tanstack/react-query';
+import { fetchJsonWith304 } from '../lib/fetchJson';
+
+export function useEtfBulk() {
+  return useQuery({
+    queryKey: ['etf-metrics-bulk'],
+    queryFn: () => fetchJsonWith304('/api/v2/etf-metrics?bulk=true'),
+    staleTime: 60_000,
+    keepPreviousData: true,
+    refetchOnWindowFocus: false,
+    retry: (count, err: any) => !(err?.__notModified) && count < 1,
+  });
+}
+```
+
+Do the same for any other endpoints that might return 304 (e.g., `/api/econ/sparkline`).
+
+### If you want to confirm it’s 304-related
+
+Temporarily disable ETag handling on the server for that route and test:
+
+```ts
+// in bulk handler, comment the 304 branch just to test
+// if (req.headers['if-none-match'] === etag) {
+//   res.status(304).end(); return;
+// }
+```
+
+If the UI loads fine, it’s definitely the 304 parse path.
+
+### Server-side sanity checks (optional)
+
+* Ensure 304 responses **do not** include a body and still set `Content-Type` only on 200s. Your logs suggest you’re doing `res.status(304).end()` already — good.
+* Set helpful cache headers on 200:
+
+  ```
+  Cache-Control: public, max-age=60, stale-while-revalidate=120
+  ETag: "<hash>"
+  Vary: Accept-Encoding
+  ```
+* At the proxy (Nginx/CDN), pass through `If-None-Match` and don’t strip `ETag`.
+
+### About the “CRITICAL: Z-Score performance is severely degraded”
+
+Those look like internal warnings when system load spikes (you also log load averages). They’re not breaking the ETF endpoint (it still consolidated 12 ETFs). If they persist:
+
+* drop the Z‑score job’s concurrency during market‑closed hours,
+* or run it inside the scheduler and cache the result, not inline with API requests.
+
+---
+
+If you paste the failing request’s **status** and **response headers** from DevTools for the ETF call, I can tailor the exact guard you need. But nine times out of ten, handling **304** as above fixes the “API request failed” you’re seeing.

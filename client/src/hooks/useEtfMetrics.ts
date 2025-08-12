@@ -1,15 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { normalizeEtfMetrics } from '../adapters/etfMetricsAdapter';
+import { fetchJsonWith304 } from '../lib/fetchJson';
 
 export function useEtfMetrics(horizon = '60D') {
   return useQuery({
     queryKey: ['etf-metrics', horizon],
     queryFn: async () => {
-      // dash route works in prod; alias exists for both
-      const res = await fetch(`/api/etf-metrics?horizon=${encodeURIComponent(horizon)}`, {
-        headers: { 'Accept': 'application/json' }
-      });
-      const json = await res.json();
+      // Use enhanced fetch to handle 304 Not Modified responses
+      const json = await fetchJsonWith304(`/api/etf-metrics?horizon=${encodeURIComponent(horizon)}`);
       const { rows, meta } = normalizeEtfMetrics(json);
 
       // tiny prod-safe debug
@@ -21,5 +19,7 @@ export function useEtfMetrics(horizon = '60D') {
     staleTime: 60_000, // Consider data fresh for 1 minute (aligned with server cache)
     refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes  
     refetchOnWindowFocus: false, // Prevent unnecessary refetches
+    placeholderData: (previousData) => previousData, // Keep previous data when getting 304 (v5 replacement for keepPreviousData)
+    retry: (count, err: any) => !(err?.__notModified) && count < 2, // Don't retry 304s
   });
 }
