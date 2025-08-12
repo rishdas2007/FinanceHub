@@ -1,0 +1,148 @@
+Got it—HTTP 502 means the browser reached your reverse proxy (e.g., Nginx), but the proxy couldn’t get a good response from the app upstream. Let’s triage fast and fix the usual culprits.
+
+# Quick triage (2 minutes)
+
+1. Hit the health + bulk endpoints directly
+
+* App (bypass proxy): `curl -i http://127.0.0.1:5000/health`
+* Bulk: `curl -i "http://127.0.0.1:5000/api/v2/etf-metrics?bulk=true"`
+* Through proxy: `curl -i "http://<your-host>/api/v2/etf-metrics?bulk=true"`
+
+✅ If direct app calls are 200 but proxy is 502 → proxy config/order/timeout issue.
+❌ If direct app is failing → app/router/import error.
+
+2. Check logs side‑by‑side (time‑correlated)
+
+* Nginx: `error.log` (look for `upstream prematurely closed connection`, `no live upstreams`, `connect() failed`)
+* App: server logs around the same second (look for stack traces from `EtfController`, `cache.ts`, DB calls)
+
+# Most common root causes (and the fix)
+
+1. **Router order / mount path mismatch**
+
+* Ensure the bulk router is mounted *before* any catch‑all/404 middleware.
+
+```ts
+// server/index.ts
+app.use('/api/v2', etfMetricsBulkRouter);
+// ... other v2 routes
+app.use('/api', /* anything else */);
+// finally: 404/error handlers
+```
+
+If a catch‑all runs first, Nginx may surface it as a 502 depending on how errors propagate.
+
+2. **Crash inside handler (unhandled promise rejection)**
+
+* A thrown error in `getEtfMetricsBulk` (e.g., DB/Redis null reference) can terminate the request without a response.
+  Fix: wrap the handler with your error middleware or add a `try/catch` and `next(err)`:
+
+```ts
+router.get('/etf-metrics', async (req, res, next) => {
+  try {
+    if (req.query.bulk === 'true') return await getEtfMetricsBulk(req, res);
+    res.status(400).json({ ok: false, error: 'Set ?bulk=true' });
+  } catch (e) { next(e); }
+});
+```
+
+3. **ETag + proxy interaction**
+
+* If the proxy strips `ETag` or buffers a 304 incorrectly, you can see intermittent 502s.
+  Nginx fixes:
+
+```
+etag on;
+proxy_buffering on;
+proxy_set_header If-None-Match $http_if_none_match;
+proxy_ignore_headers X-Accel-Expires Expires;
+```
+
+Also ensure your app always sets `Content-Type: application/json` for 200 responses and **does not** set a body for 304.
+
+4. **Upstream timeouts or connection reuse**
+
+* If your app is fast locally but 502s in front of Nginx, set:
+
+```
+proxy_connect_timeout 5s;
+proxy_read_timeout 30s;
+proxy_send_timeout 30s;
+proxy_http_version 1.1;
+proxy_set_header Connection "";
+```
+
+You already have most of these; confirm they’re on the *same* `location /` block that forwards to the app.
+
+5. **Redis/DB hiccup in the bulk path**
+
+* If Redis is configured but unreachable, `getCache/setCache` might hang/error. Temporarily disable Redis by unsetting `REDIS_URL` and retry. If fixed → check Redis URL/firewall.
+* For DB: verify `etf_metrics_latest` exists and the service query matches your driver (`db.query(...)` vs Drizzle). Add a guard:
+
+```ts
+const rows = await getEtfMetricsLatest();
+if (!Array.isArray(rows)) throw new Error('Bad DB payload');
+```
+
+6. **Import mismatch for Server‑Timing middleware**
+
+* If you imported `serverTiming` as default but exported a named function (or vice‑versa), the app boots with an exception that only appears when the route is hit. Ensure:
+
+```ts
+// export
+export function withServerTiming(...) { ... }
+// import
+import { withServerTiming } from '../middleware/serverTiming';
+```
+
+# Client-side hardening (so the UI doesn’t brick on a 502)
+
+Make sure your bulk query keeps previous data and shows a soft warning, not a fatal error:
+
+```ts
+const q = useQuery({
+  queryKey: ['etf-metrics-bulk'],
+  queryFn: async () => {
+    const r = await fetch('/api/v2/etf-metrics?bulk=true', { headers: { Accept: 'application/json' } });
+    if (r.status === 304) throw new Error('NOT_MODIFIED'); // keep cache
+    if (!r.ok) throw new Error(`HTTP_${r.status}`);
+    return r.json();
+  },
+  staleTime: 60_000,
+  keepPreviousData: true,
+  retry: (count, err: any) => err?.message === 'HTTP_502' ? count < 0 : count < 1,
+  refetchOnWindowFocus: false,
+});
+```
+
+Optionally, persist the last good payload:
+
+```ts
+useEffect(() => {
+  if (q.data?.items) localStorage.setItem('etf_bulk_cache', JSON.stringify(q.data));
+}, [q.data]);
+
+const cached = useMemo(() => {
+  if (q.isError && !q.data) {
+    const raw = localStorage.getItem('etf_bulk_cache');
+    return raw ? JSON.parse(raw) : null;
+  }
+  return null;
+}, [q.isError, q.data]);
+```
+
+Render `cached` when `q.isError` as a graceful fallback.
+
+# A/B test a quick isolation
+
+* Temporarily point the frontend directly at the app port (5000) to verify it’s strictly a proxy issue.
+* Temporarily disable Redis to isolate cache‑layer errors.
+* Toggle the ETag branch off for a minute (always send 200) to see if 304 handling is the trigger.
+
+# If you want, I can generate a tiny patch set:
+
+* Ensures router order + try/catch on the `/etf-metrics` route.
+* Adds explicit JSON content-type and bullet‑proof 304 logic.
+* Drops an Nginx snippet with the timeout/etag headers above.
+
+Tell me which stack you’re running behind (plain Nginx? Cloudflare? ALB → Nginx → Node?) and I’ll tailor the exact diff.
