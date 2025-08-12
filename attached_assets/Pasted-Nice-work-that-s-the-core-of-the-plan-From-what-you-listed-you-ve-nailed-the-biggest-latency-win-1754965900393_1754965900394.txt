@@ -1,0 +1,81 @@
+Nice work — that’s the core of the plan. From what you listed, you’ve nailed the biggest latency wins. A few quick checks/tweaks I’d still do to make sure the bulk flow is truly end‑to‑end and future‑proof:
+
+# Must‑do (wire-up + correctness)
+
+1. Use the bulk endpoint **exclusively** on the dashboard
+
+   * Confirm you removed any legacy per‑row/per‑metric calls.
+   * In the Network tab you should see **one** `/api/v2/etf-metrics?bulk=true` on load (plus static assets).
+
+2. Handle 304 + cache coherently in the client
+
+   * Fetch will sometimes return 304 (no body) when the browser uses your ETag. Make sure your React Query `queryFn` turns a 304 into “keep the previous data”.
+   * Example pattern:
+
+     ```ts
+     const q = useQuery({
+       queryKey: ['etf-metrics-bulk'],
+       queryFn: async () => {
+         const r = await fetch('/api/v2/etf-metrics?bulk=true', { headers: { Accept: 'application/json' } });
+         if (r.status === 304) throw new Error('NOT_MODIFIED'); // forces React Query to retain data
+         return r.json();
+       },
+       retry: (count, err:any) => err?.message !== 'NOT_MODIFIED' && count < 1,
+       staleTime: 60_000,
+       refetchOnWindowFocus: false,
+       keepPreviousData: true,
+     });
+     ```
+
+     (Alternative: if you prefer no thrown error, detect 304 and just `return qState.data` in a custom hook.)
+
+3. Trim payload to what the table actually renders
+
+   * If there are unused fields, remove them server‑side to keep the gzipped payload as small as possible. Target <200KB gzipped.
+
+# High‑impact “probably missing” items
+
+4. **Edge/proxy caching** of the bulk endpoint (30–60s)
+
+   * If you’re behind Nginx/CDN, cache `/api/v2/etf-metrics?bulk=true` at the edge with `Cache-Control: public, max-age=60, stale-while-revalidate=120`. This makes first‑viewer latency great too (not just warmed app).
+
+5. **Scheduler pre‑warm** the cache on every refresh cycle
+
+   * You added Server‑Timing; also confirm your scheduler calls the “warm bulk payload” function right after it refreshes DB tables so users never hit a cold query.
+
+6. **Response schema versioning**
+
+   * Add a top‑level `version` and `updatedAt` to the bulk JSON (sounds like you have `updatedAt`; include `version: 1` too). This lets the client safely evolve without breaking.
+
+7. **Server‑Timing details**
+
+   * Populate granular timings: `db`, `cache`, `serialize`, `total`. You’ll immediately see if you regress (e.g., DB time creeps up).
+
+8. **Nginx compression & ETag passthrough**
+
+   * Ensure brotli/gzip are on for `application/json`, and `etag on;` at the proxy. (If compression is proxy‑side, don’t also double‑compress in Express.)
+
+9. **Frontend: virtualize + stable props**
+
+   * You added react‑window — great. Double‑check that row props are memoized (formatters/selectors) so virtualization isn’t undone by prop churn.
+
+10. **Kill waterfalls triggered by “nice‑to‑haves”**
+
+* Defer WebSocket connect, AI summary, tooltips/menus (Radix) and any chart libs until `requestIdleCallback` or user interaction.
+
+# Optional robustness (nice‑to‑have)
+
+* Circuit‑breaker/backoff if upstream refresh jobs fail; keep serving last good bulk cache.
+* Feature flag to flip back to legacy per‑row (debug only).
+* Add `ETag` weak vs strong as needed (weak is fine if only small diffs).
+* 429/5xx semantics: return `age` and `cache-status: hit|miss|stale` headers for quick ops insight.
+
+# So… should you integrate the bulk endpoint into the dashboard?
+
+**Yes.** That’s the point of the work: make the dashboard fetch a single, cacheable payload. If you haven’t already switched the dashboard to call only `/api/v2/etf-metrics?bulk=true`, do that now and delete the old calls. After integrating, verify:
+
+* One API request on first paint; subsequent focuses show **0** requests while within `staleTime`.
+* `Server-Timing` shows `cache` most of the time (<5ms), `db` near 0 unless you’re warming.
+* LCP/TTI improve (check your Web Vitals beacons).
+
+If you want, I can generate a tiny PR‑style snippet that removes legacy calls and sets up the 304 handling exactly where your hook lives.

@@ -9,25 +9,63 @@ const TTL_SECONDS = parseInt(process.env.CACHE_TTL_SECONDS || '60', 10);
 
 export const getEtfMetricsBulk = withServerTiming(async (req: Request, res: Response) => {
   // Try cache first
-  const start = performance.now();
+  const cacheStart = performance.now();
   let payload = await getCache(CACHE_KEY);
-  const cacheMs = performance.now() - start;
+  const cacheMs = performance.now() - cacheStart;
 
   if (!payload) {
     const dbStart = performance.now();
-    const data = await getEtfMetricsLatest(); // returns a flat array of rows
+    const data = await getEtfMetricsLatest();
     const dbMs = performance.now() - dbStart;
-    payload = JSON.stringify({ updatedAt: new Date().toISOString(), items: data });
+    
+    const serializeStart = performance.now();
+    // Optimized payload with only essential fields
+    const optimizedData = data.map(row => ({
+      symbol: row.symbol,
+      name: row.name,
+      last_price: Number(row.last_price),
+      pct_change_1d: Number(row.pct_change_1d),
+      perf_5d: Number(row.perf_5d) || 0,
+      perf_1m: Number(row.perf_1m) || 0,
+      volume: Number(row.volume) || 0,
+      rsi: Number(row.rsi) || 0,
+      macd: Number(row.macd) || 0,
+      bb_percent_b: Number(row.bb_percent_b) || 0,
+      sma_50: Number(row.sma_50) || 0,
+      sma_200: Number(row.sma_200) || 0,
+      ema_21: Number(row.ema_21) || 0,
+      mini_trend_30d: Array.isArray(row.mini_trend_30d) ? row.mini_trend_30d : []
+    }));
+    
+    payload = JSON.stringify({ 
+      version: 1,
+      updatedAt: new Date().toISOString(), 
+      items: optimizedData 
+    });
+    const serializeMs = performance.now() - serializeStart;
+    
     await setCache(CACHE_KEY, payload, TTL_SECONDS);
-    res.locals.serverTiming = { ...(res.locals.serverTiming || {}), db: dbMs.toFixed(1) };
+    
+    res.locals.serverTiming = { 
+      ...res.locals.serverTiming,
+      db: dbMs.toFixed(1),
+      serialize: serializeMs.toFixed(1),
+      cache_status: 'miss'
+    };
   } else {
-    res.locals.serverTiming = { ...(res.locals.serverTiming || {}), cache: cacheMs.toFixed(1) };
+    res.locals.serverTiming = { 
+      ...res.locals.serverTiming,
+      cache: cacheMs.toFixed(1),
+      cache_status: 'hit'
+    };
   }
 
-  // ETag + conditional
-  const etag = crypto.createHash('sha1').update(payload).digest('hex');
+  // ETag + conditional with weak validation
+  const etag = `W/"${crypto.createHash('sha1').update(payload).digest('hex')}"`;
   res.setHeader('ETag', etag);
   res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
+  res.setHeader('X-Cache-Status', payload ? 'hit' : 'miss');
+  
   if (req.headers['if-none-match'] === etag) {
     res.status(304).end();
     return;

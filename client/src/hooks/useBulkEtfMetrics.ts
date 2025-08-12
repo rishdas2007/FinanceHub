@@ -23,13 +23,14 @@ interface EtfMetricsResponse {
 export function useBulkEtfMetrics() {
   return useQuery({
     queryKey: ['etf-metrics-bulk'],
-    queryFn: async (): Promise<EtfMetricsResponse | null> => {
+    queryFn: async (): Promise<EtfMetricsResponse> => {
       const response = await fetch('/api/v2/etf-metrics?bulk=true', { 
         headers: { 'Accept': 'application/json' } 
       });
       
+      // Handle 304 Not Modified - keep previous data by throwing special error
       if (response.status === 304) {
-        return null; // cache still valid
+        throw new Error('NOT_MODIFIED');
       }
       
       if (!response.ok) {
@@ -38,8 +39,12 @@ export function useBulkEtfMetrics() {
       
       return response.json();
     },
+    retry: (failureCount, error: any) => {
+      // Don't retry on 304 Not Modified, but retry other errors once
+      return error?.message !== 'NOT_MODIFIED' && failureCount < 1;
+    },
     staleTime: 60_000, // 1 minute - aligned with server cache
-    retry: 1,
     refetchOnWindowFocus: false,
+    keepPreviousData: true, // Retain previous data on 304 responses
   });
 }
