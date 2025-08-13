@@ -1,0 +1,84 @@
+  What's Working Now:
+
+  - All 12 ETF rows are displaying (vs only 1 before)
+  - RSI values are showing (SPY: 66.3, XLK: 65.7, etc.)
+  - Bollinger %B values are showing (mostly around 50%, XLV at 24.9%)
+  - Price changes are working for most symbols
+  - XLV still has complete data (Z-Score: 0.1702, MACD: 0.018, MA Gap:
+  9.78%)
+
+  Remaining Issues:
+
+  1. Z-Score: N/A for all except XLV
+  2. MACD: N/A for all except XLV
+  3. MA Gap: N/A for all except XLV
+  4. Some price changes: N/A for XLB, XLC, XLP, XLRE, XLU, XLY
+
+  Root Cause Analysis
+
+  The field mapping is working (RSI, %B are now showing), but XLV is the 
+  only symbol with complete technical indicator data in your database.
+  This suggests:
+
+  1. Database Issue: Technical indicators only calculated/stored for XLV
+  2. Data Pipeline Issue: ETF data collection only working for one symbol
+  3. API Response Inconsistency: Different symbols returning different
+  field structures
+
+  Immediate Action Plan
+
+  Step 1: Verify Field Mapping (5 minutes)
+
+  Check if the missing fields have different names in the API response by
+   adding more detailed logging:
+
+  // Add to processedMetrics logging:
+  const processed = metricsArray.map(metric => {
+    console.log(`🔍 ${metric.symbol} fields:`, {
+      compositeZScore: metric.compositeZScore,
+      compositeZ: metric.compositeZ,
+      macdHistogram: metric.macdHistogram,
+      macdZ: metric.components?.macdZ,
+      maGap: metric.maGap,
+      maGapPct: metric.ma?.gapPct,
+      allKeys: Object.keys(metric)
+    });
+    return { /* mapping logic */ };
+  });
+
+  Step 2: Check Database Data Coverage (5 minutes)
+
+  The issue might be that only XLV has complete data in your database:
+
+  -- Check which symbols have complete technical indicator data
+  SELECT
+    symbol,
+    COUNT(CASE WHEN rsi IS NOT NULL THEN 1 END) as rsi_count,
+    COUNT(CASE WHEN macd IS NOT NULL THEN 1 END) as macd_count,
+    COUNT(CASE WHEN percent_b IS NOT NULL THEN 1 END) as bb_count,
+    MAX(timestamp) as latest_update
+  FROM technical_indicators
+  WHERE symbol IN ('SPY', 'XLK', 'XLF', 'XLI', 'XLE', 'XLV', 'XLP',
+  'XLU', 'XLY', 'XLC', 'XLB', 'XLRE')
+  GROUP BY symbol
+  ORDER BY rsi_count DESC;
+
+  Step 3: Quick Fix - Use Enhanced API
+
+  Since your enhanced API (/api/etf-enhanced/metrics) might have more
+  complete data, try switching to it:
+
+  // Change in useQuery:
+  queryFn: () => fetch('/api/etf-enhanced/metrics?horizon=60D').then(res 
+  => res.json())
+
+  Next Steps Decision
+
+  The field mapping fix worked well (RSI and %B now showing). For the
+  remaining N/A values, we need to determine if it's:
+  - A: More field mapping issues (different field names)
+  - B: Database missing data (only XLV has complete records)
+  - C: API endpoint issue (wrong endpoint being used)
+
+  Which step would you like to try first? Step 3 (enhanced API) would be
+  the quickest test to see if a different endpoint has complete data.

@@ -104,10 +104,10 @@ const ETFMetricsTableOptimized = () => {
 
   // Memoize sorted and processed metrics with comprehensive validation
   const processedMetrics = useMemo(() => {
-    console.log('🔍 Raw API data:', { data, hasMetrics: !!data?.metrics, hasData: !!data?.data });
+    console.log('🔍 Raw API data:', { data, hasData: !!data?.data });
 
     // Handle different API response structures
-    const metricsArray = data?.metrics || data?.data || [];
+    const metricsArray = data?.data || [];
     console.log('🔍 Metrics array:', { type: typeof metricsArray, length: metricsArray?.length, first: metricsArray?.[0] });
 
     if (!Array.isArray(metricsArray)) {
@@ -127,7 +127,15 @@ const ETFMetricsTableOptimized = () => {
         return null;
       }
 
-      console.log('🔍 Processing metric:', metric?.symbol, Object.keys(metric || {}));
+      console.log(`🔍 ${metric.symbol} fields:`, {
+        compositeZScore: metric.compositeZScore,
+        compositeZ: metric.compositeZ,
+        macdHistogram: metric.macdHistogram,
+        macdZ: metric.components?.macdZ,
+        maGap: metric.maGap,
+        maGapPct: metric.ma?.gapPct,
+        allKeys: Object.keys(metric)
+      });
 
       return {
         ...metric,
