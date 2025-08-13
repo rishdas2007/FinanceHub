@@ -2,8 +2,7 @@ import { db } from '../db';
 import { 
   technicalIndicators, 
   historicalStockData,
-  zscoreTechnicalIndicators,
-  rollingStatistics 
+  zscoreTechnicalIndicators
 } from '@shared/schema';
 import { eq, and, gte, desc, sql } from 'drizzle-orm';
 import { logger } from '../middleware/logging';
@@ -103,8 +102,9 @@ class DataConversionServiceImpl implements DataConversionService {
             symbol: symbol,
             timestamp: currentData.date,
             rsi: technicalData.rsi,
-            macd: technicalData.macd,
+            macd_line: technicalData.macd,
             macdSignal: technicalData.macdSignal,
+            macdHistogram: technicalData.macdHistogram,
             bb_upper: technicalData.bb_upper,
             bb_middle: technicalData.bb_middle,
             bb_lower: technicalData.bb_lower,
@@ -147,7 +147,7 @@ class DataConversionServiceImpl implements DataConversionService {
     const rsi = this.calculateRSI(closes, 14);
     
     // MACD (12, 26, 9) - Fixed periods for accurate calculation
-    const { macd, signal } = this.calculateMACD(closes);
+    const { macd, signal, histogram } = this.calculateMACD(closes);
     
     // Bollinger Bands (20-period) - Standard period
     const { upper, middle, lower, percent_b } = this.calculateBollingerBands(closes, 20, 2);
@@ -168,6 +168,7 @@ class DataConversionServiceImpl implements DataConversionService {
       rsi: rsi ? rsi.toFixed(2) : null,
       macd: macd ? macd.toFixed(4) : null,
       macdSignal: signal ? signal.toFixed(4) : null,
+      macdHistogram: histogram ? histogram.toFixed(4) : null,
       bb_upper: upper ? upper.toFixed(2) : null,
       bb_middle: middle ? middle.toFixed(2) : null,
       bb_lower: lower ? lower.toFixed(2) : null,
@@ -193,36 +194,75 @@ class DataConversionServiceImpl implements DataConversionService {
   private calculateRSI(closes: number[], period: number = 14): number | null {
     if (closes.length < period + 1) return null;
     
-    let gains = 0;
-    let losses = 0;
+    // First, calculate initial gains and losses for the first period
+    let avgGain = 0;
+    let avgLoss = 0;
     
-    for (let i = closes.length - period; i < closes.length; i++) {
+    // Calculate initial averages using simple average for first period
+    for (let i = 1; i <= period; i++) {
       const change = closes[i] - closes[i - 1];
-      if (change > 0) gains += change;
-      else losses += Math.abs(change);
+      if (change > 0) {
+        avgGain += change;
+      } else {
+        avgLoss += Math.abs(change);
+      }
     }
     
-    const avgGain = gains / period;
-    const avgLoss = losses / period;
+    avgGain = avgGain / period;
+    avgLoss = avgLoss / period;
+    
+    // If we have enough data, use Wilder's exponential smoothing for remaining periods
+    if (closes.length > period + 1) {
+      for (let i = period + 1; i < closes.length; i++) {
+        const change = closes[i] - closes[i - 1];
+        const gain = change > 0 ? change : 0;
+        const loss = change < 0 ? Math.abs(change) : 0;
+        
+        // Wilder's exponential smoothing: avgGain = (prevAvgGain * 13 + gain) / 14
+        avgGain = (avgGain * (period - 1) + gain) / period;
+        avgLoss = (avgLoss * (period - 1) + loss) / period;
+      }
+    }
     
     if (avgLoss === 0) return 100;
     const rs = avgGain / avgLoss;
     return 100 - (100 / (1 + rs));
   }
 
-  private calculateMACD(closes: number[]): { macd: number | null; signal: number | null } {
-    // Need at least 52 data points for proper MACD (26*2 for EMA seeding)
-    if (closes.length < 52) return { macd: null, signal: null };
+  private calculateMACD(closes: number[]): { macd: number | null; signal: number | null; histogram: number | null } {
+    // Need at least 52 data points for proper MACD (26*2 for EMA seeding + 9 for signal)
+    if (closes.length < 61) return { macd: null, signal: null, histogram: null };
     
-    const ema12 = this.calculateEMA(closes, 12);
-    const ema26 = this.calculateEMA(closes, 26);
+    // Calculate MACD line values for the entire period
+    const macdValues: number[] = [];
     
-    if (!ema12 || !ema26) return { macd: null, signal: null };
+    // Calculate MACD for each period to build history for signal line
+    for (let i = 52; i <= closes.length; i++) {
+      const periodCloses = closes.slice(0, i);
+      const ema12 = this.calculateEMA(periodCloses, 12);
+      const ema26 = this.calculateEMA(periodCloses, 26);
+      
+      if (ema12 !== null && ema26 !== null) {
+        macdValues.push(ema12 - ema26);
+      }
+    }
     
-    const macd = ema12 - ema26;
+    if (macdValues.length < 9) return { macd: null, signal: null, histogram: null };
     
-    // For signal line, we'd need MACD history - simplified here
-    return { macd, signal: null };
+    // Current MACD value
+    const currentMacd = macdValues[macdValues.length - 1];
+    
+    // Calculate signal line (9-period EMA of MACD values)
+    const signal = this.calculateEMA(macdValues, 9);
+    
+    // Calculate histogram (MACD - Signal)
+    const histogram = signal !== null ? currentMacd - signal : null;
+    
+    return { 
+      macd: currentMacd, 
+      signal: signal,
+      histogram: histogram
+    };
   }
 
   private calculateEMA(values: number[], period: number): number | null {
@@ -254,7 +294,8 @@ class DataConversionServiceImpl implements DataConversionService {
     
     const slice = closes.slice(-period);
     const sma = slice.reduce((sum, val) => sum + val, 0) / period;
-    const variance = slice.reduce((sum, val) => sum + Math.pow(val - sma, 2), 0) / period;
+    // Use sample variance (n-1) instead of population variance (n) for better accuracy
+    const variance = slice.reduce((sum, val) => sum + Math.pow(val - sma, 2), 0) / (period - 1);
     const stdDev = Math.sqrt(variance);
     
     const upper = sma + (multiplier * stdDev);

@@ -54,6 +54,7 @@ The application uses a monorepo architecture with `client/` (React frontend), `s
 - **ETF Technical Metrics API Implementation**: Comprehensive enhanced ETF routes including `/api/etf-enhanced/metrics`, `/api/etf-enhanced/breadth`, `/api/etf-enhanced/features/:symbol`, and `/api/etf-enhanced/conditional-stats`.
 - **Polarity-Aware Z-Score Color Coding**: Sophisticated color coding system with proper technical indicator polarity handling (e.g., RSI/Bollinger Band Z-scores inverted polarity).
 - **Circuit Breaker Pattern**: Implemented for robust API call management.
+- **Critical Technical Indicator Fixes (August 13, 2025)**: Comprehensive root cause analysis fixes including proper MACD signal line calculation with histogram, industry-standard Wilder's RSI implementation, Bollinger Bands sample variance correction, standardized Z-Score calculation windows aligned with indicator periods, and enhanced data freshness with 2-day lookback optimization.
 
 ### Database Design
 The schema includes key tables for: `users`, `stock_data`, `market_sentiment`, `technical_indicators`, `ai_analysis`, `economic_events`, `fredUpdateLog`, `economicIndicatorsCurrent`, `historical_sector_data`, `historical_technical_indicators`, `historical_market_sentiment`, `historical_economic_data`, `economic_data_audit`, `data_collection_audit`. Also includes `etf_metrics_latest` materialized view for performance.

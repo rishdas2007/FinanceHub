@@ -1,4 +1,4 @@
-# FinanceHub Pro v22 - Ready for Download
+# FinanceHub Pro v22 - Critical ETF Fixes Applied & Ready for Download
 
 ## 📦 Your Complete Package is Ready
 
@@ -8,11 +8,14 @@ Located in the root directory of this project - you should see it in the file ex
 
 ### What's Included:
 
-✅ **Complete Data Quality-First Architecture**
+✅ **Complete Data Quality-First Architecture + Critical ETF Fixes**
 - Runtime validation system with quality gates
 - Circuit breaker patterns for failure prevention
 - Data sufficiency gates and enhanced validation
 - Cross-system consistency checks
+- **NEW:** Fixed MACD, RSI, and Bollinger Band calculations
+- **NEW:** Standardized Z-Score calculation windows
+- **NEW:** Enhanced data freshness (2-day vs 7-day lookback)
 
 ✅ **Full Source Code**
 - React TypeScript frontend

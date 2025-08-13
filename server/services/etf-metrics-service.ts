@@ -274,7 +274,7 @@ class ETFMetricsService {
   private async getLatestPricesFromDB() {
     const results = new Map();
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 7); // Get data from last 7 days
+    cutoffDate.setDate(cutoffDate.getDate() - 2); // Reduced lookback to 2 days for fresher data
     
     for (const symbol of this.ETF_SYMBOLS) {
       try {
@@ -316,7 +316,7 @@ class ETFMetricsService {
   private async getLatestTechnicalIndicatorsFromDB() {
     const results = new Map();
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 7); // Get data from last 7 days only
+    cutoffDate.setDate(cutoffDate.getDate() - 2); // Reduced lookback to 2 days for fresher data
     
     for (const symbol of this.ETF_SYMBOLS) {
       try {

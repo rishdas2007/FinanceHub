@@ -63,10 +63,10 @@ class ZScoreTechnicalService {
     atr: 0.00            // Used as volatility modifier only
   };
   
-  // Multi-horizon analysis windows (leveraging 10-year dataset - 2,610 days available)
+  // Standardized Z-Score calculation windows aligned with technical indicator periods
   private readonly ZSCORE_WINDOWS = {
-    shortTerm: 63,     // 3 months (current)
-    mediumTerm: 252,   // 1 year (improved stability)
+    shortTerm: 26,     // MACD long period for consistency
+    mediumTerm: 252,   // 1 year (improved stability) 
     longTerm: 756,     // 3 years (regime-aware)
     ultraLong: 1260,   // 5 years (ultra-stable)
     maximum: 2520      // 10 years (full dataset)
