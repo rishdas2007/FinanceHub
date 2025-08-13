@@ -6,6 +6,7 @@ import { logger } from '../middleware/logging';
 import { zscoreTechnicalService } from './zscore-technical-service';
 import { etfMetricsCircuitBreaker } from '../middleware/circuit-breaker';
 import { performanceBudgetMonitor } from '../middleware/performance-budget';
+import { StandardTechnicalIndicatorsService } from './standard-technical-indicators';
 import { welfordStats, hasSufficientData, zScore, calculateRSI } from '@shared/utils/statistics';
 import { validateEtfPayload, createContentETag, validatePriceSanity, type PayloadMetadata } from './validatePayload';
 
@@ -193,9 +194,11 @@ class ETFMetricsService {
         }
       }
 
-      // 5. OPTIMIZED: Parallel database fetching with timeout protection
+      // 5. OPTIMIZED: Use standard technical indicators instead of database fallbacks
+      const standardTechService = StandardTechnicalIndicatorsService.getInstance();
       const fetchTimeout = 1500; // 1.5s timeout per operation
-      const [dbTechnicals, dbZScoreData, momentumData] = await Promise.all([
+      
+      const [dbTechnicals, dbZScoreData, momentumData, standardIndicators] = await Promise.all([
         Promise.race([
           this.getLatestTechnicalIndicatorsFromDB(),
           new Promise((_, reject) => setTimeout(() => reject(new Error('Technical indicators timeout')), fetchTimeout))
@@ -210,13 +213,25 @@ class ETFMetricsService {
           logger.warn(`⚠️ Z-score data fetch failed: ${error.message}`);
           return new Map();
         }),
-        this.getMomentumDataFromCache()
+        this.getMomentumDataFromCache(),
+        // Get standard technical indicators for all ETFs
+        Promise.all(
+          this.ETF_SYMBOLS.map(async (symbol) => {
+            try {
+              const indicators = await standardTechService.calculateStandardIndicators(symbol);
+              return [symbol, indicators];
+            } catch (error) {
+              logger.warn(`Failed to calculate standard indicators for ${symbol}:`, error);
+              return [symbol, null];
+            }
+          })
+        ).then(results => new Map(results.filter(([_, indicators]) => indicators !== null)))
       ]);
 
-      // 6. OPTIMIZED: Parallel ETF metrics consolidation with validated prices
+      // 6. OPTIMIZED: Parallel ETF metrics consolidation with validated prices and standard indicators
       const consolidationTimeout = 1000; // 1s timeout for consolidation
       let etfMetrics = await Promise.race([
-        this.consolidateETFMetricsParallel(dbTechnicals as Map<string, any>, dbZScoreData as Map<string, any>, momentumData, latestPrices),
+        this.consolidateETFMetricsParallel(dbTechnicals as Map<string, any>, dbZScoreData as Map<string, any>, momentumData, latestPrices, standardIndicators as Map<string, any>),
         new Promise<ETFMetrics[]>((_, reject) => 
           setTimeout(() => reject(new Error('Consolidation timeout')), consolidationTimeout)
         )
@@ -421,11 +436,12 @@ class ETFMetricsService {
     technicals: Map<string, any>,
     zscoreData: Map<string, any>,
     momentum: MomentumData[],
-    prices?: Map<string, any>
+    prices?: Map<string, any>,
+    standardIndicators?: Map<string, any>
   ): Promise<ETFMetrics[]> {
     // Process all ETFs in parallel instead of sequentially
     const processedMetrics = await Promise.all(
-      this.ETF_SYMBOLS.map(symbol => this.processETFMetricParallel(symbol, technicals, zscoreData, momentum, prices))
+      this.ETF_SYMBOLS.map(symbol => this.processETFMetricParallel(symbol, technicals, zscoreData, momentum, prices, standardIndicators))
     );
     
     logger.info(`⚡ Processed ${processedMetrics.length} ETFs in parallel`);
@@ -478,11 +494,14 @@ class ETFMetricsService {
     technicals: Map<string, any>,
     zscoreData: Map<string, any>,
     momentum: MomentumData[],
-    prices?: Map<string, any>
+    prices?: Map<string, any>,
+    standardIndicators?: Map<string, any>
   ): Promise<ETFMetrics> {
     const technical = technicals.get(symbol);
     const zscore = zscoreData.get(symbol);
     const momentumETF = momentum.find(m => m.ticker === symbol);
+    const priceData = prices?.get(symbol);
+    const standardIndicator = standardIndicators?.get(symbol);
 
     // Calculate 30-day trend from database historical prices
     let change30Day = null;
@@ -504,8 +523,8 @@ class ETFMetricsService {
       price: price,
       changePercent: momentumETF?.oneDayChange ? parseFloat(momentumETF.oneDayChange.toString()) : 0,
       
-      // Bollinger Bands & Position/Squeeze
-      bollingerPosition: technical?.percent_b ? parseFloat(technical.percent_b) : null,
+      // Bollinger Bands & Position/Squeeze - Prioritize standard indicators
+      bollingerPosition: standardIndicator?.bollingerPercentB || (technical?.percent_b ? parseFloat(technical.percent_b) : null),
       bollingerSqueeze: this.calculateBollingerSqueeze(technical),
       bollingerStatus: this.getBollingerStatus(technical),
       
@@ -520,9 +539,9 @@ class ETFMetricsService {
       maTrend: this.getMATrend(technical),
       maGap: this.getMAGap(technical),
       
-      // RSI (Momentum)
-      rsi: momentumETF?.rsi ? parseFloat(momentumETF.rsi.toString()) : (technical?.rsi ? parseFloat(technical.rsi) : null),
-      rsiSignal: this.getRSISignal(momentumETF?.rsi || technical?.rsi),
+      // RSI (Momentum) - Prioritize standard indicators for accuracy
+      rsi: standardIndicator?.rsi || (momentumETF?.rsi ? parseFloat(momentumETF.rsi.toString()) : (technical?.rsi ? parseFloat(technical.rsi) : null)),
+      rsiSignal: this.getRSISignal(standardIndicator?.rsi || momentumETF?.rsi || technical?.rsi),
       rsiDivergence: false,
       
       // Z-Score calculations
