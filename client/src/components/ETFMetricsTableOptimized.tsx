@@ -133,6 +133,7 @@ const ETFMetricsTableOptimized = () => {
 
       console.log(`🔍 ${metric.symbol} Z-Score debug:`, {
         compositeZ: metric.compositeZ,
+        macdValue: metric.components?.macdZ,
         macdZ: metric.components?.macdZ,
         allNumericFields: Object.entries(metric).filter(([k,v]) => typeof v === 'number')
       });
@@ -144,6 +145,7 @@ const ETFMetricsTableOptimized = () => {
         compositeZScore: metric.compositeZ || null,
         rsi: metric.components?.rsi14 || null,
         rsiZ: metric.components?.rsiZ || null, // Use real RSI Z-score from API
+        macdValue: metric.components?.macdZ || null, // Use macdZ as the actual MACD display value
         macdZ: metric.components?.macdZ || null,
         bbPctB: metric.components?.bbPctB || null,
         bbZ: metric.components?.bbZ || null, // Use real Bollinger Z-score from API
@@ -304,10 +306,10 @@ const ETFMetricsTableOptimized = () => {
                   
                   <td className="p-3 text-center" data-testid={`macd-${metric.symbol}`}>
                     <div className="flex flex-col items-center">
-                      <div className={`font-mono text-xs ${
-                        safeComparison(metric.macdZ) > 0 ? 'text-green-400' : 'text-red-400'
+                      <div className={`font-mono text-sm ${
+                        safeComparison(metric.macdValue) > 0 ? 'text-green-400' : 'text-red-400'
                       }`}>
-                        MACD
+                        {safeToFixed(metric.macdValue, 3)}
                       </div>
                       <div className="text-xs text-gray-500 font-mono">
                         Z: {safeToFixed(metric.macdZ, 2)}
