@@ -150,7 +150,7 @@ class ETFMetricsService {
         logger.warn('⚠️ No recent price data found, attempting to fetch from enhanced market data');
         try {
           const { enhancedMarketDataService } = await import('./enhanced-market-data');
-          const sectorData = await enhancedMarketDataService.getSectorETFData();
+          const sectorData = await enhancedMarketDataService.getSectorETFs();
           logger.info(`📊 Retrieved ${sectorData.length} ETFs from enhanced market data`);
           
           // Convert sector data to price data format
@@ -258,11 +258,12 @@ class ETFMetricsService {
         return etfMetrics;
       }); // Close circuit breaker execution
 
-    } catch (circuitBreakerError) {
-      logger.error('🚨 Circuit breaker triggered for ETF metrics:', circuitBreakerError);
-      return this.getFallbackMetrics();
-    } catch (error) {
-      logger.error('❌ ETF metrics service error:', error);
+    } catch (error: any) {
+      if (error?.name === 'CircuitBreakerError') {
+        logger.error('🚨 Circuit breaker triggered for ETF metrics:', error);
+      } else {
+        logger.error('❌ ETF metrics service error:', error);
+      }
       return this.getFallbackMetrics();
     }
   }
@@ -512,8 +513,10 @@ class ETFMetricsService {
       atr: technical?.atr ? parseFloat(technical.atr) : null,
       volatility: momentumETF?.volatility || null,
       
-      // Moving Average (Trend)
-      maSignal: this.getMASignal(technical),
+      // Moving Average (Trend) - prioritize momentum data over technical
+      maSignal: momentumETF?.momentum === 'bullish' ? 'BULLISH' : 
+              momentumETF?.momentum === 'bearish' ? 'BEARISH' : 
+              this.getMASignal(technical),
       maTrend: this.getMATrend(technical),
       maGap: this.getMAGap(technical),
       
@@ -521,10 +524,6 @@ class ETFMetricsService {
       rsi: momentumETF?.rsi ? parseFloat(momentumETF.rsi.toString()) : (technical?.rsi ? parseFloat(technical.rsi) : null),
       rsiSignal: this.getRSISignal(momentumETF?.rsi || technical?.rsi),
       rsiDivergence: false,
-      
-      // Technical Signal Analysis - from momentum data  
-      maSignal: momentumETF?.momentum === 'bullish' ? 'BULLISH' : 
-              momentumETF?.momentum === 'bearish' ? 'BEARISH' : 'NEUTRAL',
       
       // Z-Score calculations
       zScore: momentumETF?.zScore || null,
@@ -577,10 +576,8 @@ class ETFMetricsService {
         return {
           symbol,
           name: ETFMetricsService.ETF_NAMES[symbol as keyof typeof ETFMetricsService.ETF_NAMES] || symbol,
-          fallback: true,
-          reason: `insufficient_data: ${sufficientData.bars} bars (need ${MIN_OBS})`,
-          price: null,
-          changePercent: null,
+          price: 0,
+          changePercent: 0,
           bollingerPosition: null,
           bollingerSqueeze: false,
           bollingerStatus: 'insufficient_data',
@@ -600,9 +597,8 @@ class ETFMetricsService {
           vwapSignal: 'insufficient_data',
           obvTrend: 'insufficient_data',
           zScoreData: null,
-          weightedScore: null,
-          weightedSignal: null,
-          lastUpdated: null
+          weightedScore: 0,
+          weightedSignal: 'HOLD'
         };
       }
 
@@ -644,7 +640,7 @@ class ETFMetricsService {
         sharpeRatio: momentumETF?.sharpeRatio || null,
         fiveDayReturn: momentumETF?.fiveDayChange || null,
         // 30-Day Trend (Fixed calculation from database)
-        change30Day: null, // Will be calculated from historical price data
+        change30Day: null as number | null, // Will be calculated from historical price data
         
         // Volume, VWAP, OBV - Enhanced VWAP integration
         volumeRatio: null, // Will be calculated from Z-score data if available
@@ -695,7 +691,7 @@ class ETFMetricsService {
         console.log(`📦 Successfully imported ETFTrendCalculatorService for ${symbol}`);
         const trendCalculator = new ETFTrendCalculatorService();
         const trend30Day = await trendCalculator.calculate30DayTrend(symbol);
-        metrics.change30Day = trend30Day !== null ? trend30Day : null;
+        metrics.change30Day = trend30Day;
         console.log(`✅ 30-day trend calculated for ${symbol}: ${trend30Day}%`);
       } catch (error) {
         console.warn(`⚠️ Failed to calculate 30-day trend for ${symbol}:`, error);
