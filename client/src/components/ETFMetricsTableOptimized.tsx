@@ -32,8 +32,11 @@ interface ETFMetric {
   components: {
     macdZ: number | null;
     rsi14: number | null;
+    rsiZ?: number | null;  // Add optional Z-score fields
     bbPctB: number | null;
+    bbZ?: number | null;
     maGapPct: number | null;
+    maGapZ?: number | null;
     mom5dZ: number | null;
   };
   ma: {

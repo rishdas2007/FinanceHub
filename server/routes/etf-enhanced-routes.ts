@@ -46,16 +46,52 @@ router.get('/metrics', async (req, res) => {
     
     console.log(`📊 Fetching enhanced ETF metrics for horizon: ${horizon}`);
     
-    // Get latest features for each symbol
+    // Get latest features for each symbol with fallback to technical_indicators for realistic %B values
     const featuresResult = await db.execute(sql`
       WITH latest_features AS (
-        SELECT DISTINCT ON (symbol) *
+        SELECT DISTINCT ON (symbol) 
+               symbol, composite_z_60d, dz1_60d, dz5_60d, macd_z_60d, 
+               rsi14, bb_pctb_20, ma_gap_pct, atr14,
+               rs_spy_30d, rs_spy_90d, beta_spy_252d, corr_spy_252d, vol_dollar_20d,
+               ma50, ma200,
+               rsi_z_60d, bb_z_60d, ma_gap_z_60d, mom5d_z_60d,
+               asof_date
         FROM equity_features_daily
         WHERE horizon = ${horizon}
           AND symbol IN ('SPY', 'XLK', 'XLF', 'XLI', 'XLE', 'XLV', 'XLP', 'XLU', 'XLY', 'XLC', 'XLB', 'XLRE')
         ORDER BY symbol, asof_date DESC
+      ),
+      technical_fallback AS (
+        SELECT DISTINCT ON (symbol)
+               symbol,
+               percent_b as fallback_bb_pctb
+        FROM technical_indicators 
+        WHERE symbol IN ('SPY', 'XLK', 'XLF', 'XLI', 'XLE', 'XLV', 'XLP', 'XLU', 'XLY', 'XLC', 'XLB', 'XLRE')
+          AND percent_b IS NOT NULL
+          AND percent_b != 0.5
+        ORDER BY symbol, timestamp DESC
       )
-      SELECT * FROM latest_features
+      SELECT lf.symbol, 
+             lf.composite_z_60d, lf.dz1_60d, lf.dz5_60d, lf.macd_z_60d, 
+             lf.rsi14, 
+             -- Use fallback %B if equity_features value is exactly 0.5 (fake)
+             CASE 
+               WHEN lf.bb_pctb_20 = 0.5 AND tf.fallback_bb_pctb IS NOT NULL 
+               THEN tf.fallback_bb_pctb 
+               ELSE lf.bb_pctb_20 
+             END as bb_pctb_20,
+             lf.ma_gap_pct, lf.atr14,
+             lf.rs_spy_30d, lf.rs_spy_90d, lf.beta_spy_252d, lf.corr_spy_252d, lf.vol_dollar_20d,
+             lf.ma50, lf.ma200,
+             lf.rsi_z_60d, 
+             CASE 
+               WHEN lf.bb_pctb_20 = 0.5 AND tf.fallback_bb_pctb IS NOT NULL 
+               THEN (tf.fallback_bb_pctb - 0.5) / 0.3
+               ELSE lf.bb_z_60d 
+             END as bb_z_60d, 
+             lf.ma_gap_z_60d, lf.mom5d_z_60d
+      FROM latest_features lf
+      LEFT JOIN technical_fallback tf ON lf.symbol = tf.symbol
     `);
     
     // Get latest prices for each symbol (last two bars for price change)
