@@ -18,15 +18,15 @@ export function GlobalRefreshButton() {
         apiRequest('POST', '/api/refresh'),
         // Invalidate specific caches for faster refresh
         fetch('/api/cache/invalidate?key=financial-mood'),
-        fetch('/api/cache/invalidate?key=recent-economic-openai')
+
       ]);
     },
     onSuccess: () => {
       // Invalidate all queries to refresh all dashboard sections
       queryClient.invalidateQueries({ queryKey: ['/api/momentum-analysis'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/recent-economic-openai'] });
+
       queryClient.invalidateQueries({ queryKey: ['/api/technical-indicators/SPY'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/ai-summary'] });
+
       
       setRefreshCount(prev => prev + 1);
       setLastRefresh(Date.now());

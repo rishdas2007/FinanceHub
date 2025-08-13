@@ -1,0 +1,182 @@
+Complete OpenAI Removal - Implementation Plan
+
+  Phase 1: Frontend Component Removal (15 minutes)
+
+  Step 1.1: Remove AIEconomicAnalysis from Dashboard
+
+  File: client/src/pages/dashboard.tsx
+
+  Remove Import:
+  // DELETE this line:
+  import { AIEconomicAnalysis } from "@/components/AIEconomicAnalysis";
+
+  Find and Remove JSX Usage:
+  # Search for where it's used in the dashboard
+  grep -n "AIEconomicAnalysis" /Users/rishabhdas/Downloads/financehub_v19
+  /client/src/pages/dashboard.tsx
+  Remove the <AIEconomicAnalysis /> component from the JSX.
+
+  Step 1.2: Update Data Sources Footer
+
+  File: client/src/pages/dashboard.tsx (around line with OpenAI
+  reference)
+
+  Remove:
+  // DELETE this line:
+  <div><a href="https://openai.com/" target="_blank" rel="noopener 
+  noreferrer" className="hover:text-gain-green">OpenAI GPT-4o</a></div>
+
+  Step 1.3: Clean Global Refresh Component
+
+  File: client/src/components/global-refresh-button.tsx
+
+  Remove OpenAI cache invalidation:
+  // DELETE:
+  fetch('/api/cache/invalidate?key=recent-economic-openai')
+
+  // DELETE:
+  queryClient.invalidateQueries({ queryKey:
+  ['/api/recent-economic-openai'] });
+
+  Step 1.4: Fix MoodDataSources Component
+
+  File: client/src/components/MoodDataSources.tsx
+
+  Replace OpenAI query:
+  // CHANGE FROM:
+  queryKey: ['/api/recent-economic-openai'],
+
+  // CHANGE TO:
+  queryKey: ['/api/recent-economic'], // Use non-AI endpoint
+
+  Phase 2: Remove AI Components (5 minutes)
+
+  Step 2.1: Delete AI Components
+
+  # Delete these component files:
+  rm /Users/rishabhdas/Downloads/financehub_v19/client/src/components/AIE
+  conomicAnalysis.tsx
+  rm /Users/rishabhdas/Downloads/financehub_v19/client/src/components/AIS
+  ummaryOptimized.tsx
+  rm /Users/rishabhdas/Downloads/financehub_v19/client/src/components/ai-
+  summary.tsx
+
+  Step 2.2: Check for Other AI Imports
+
+  # Find any other components importing deleted AI components
+  grep -r "AIEconomicAnalysis\|AISummaryOptimized"
+  /Users/rishabhdas/Downloads/financehub_v19/client/src/
+  Remove any found imports.
+
+  Phase 3: Backend Service Cleanup (10 minutes)
+
+  Step 3.1: Disable OpenAI Services in Server Index
+
+  File: server/index.ts
+
+  Comment out OpenAI service initializations:
+  // Find and comment out lines like:
+  // import { openaiEconomicIndicators } from 
+  './services/openai-economic-indicators';
+  // import { aiSummaryService } from './services/ai-summary';
+
+  Step 3.2: Disable OpenAI API Routes
+
+  File: server/routes.ts
+
+  Comment out OpenAI routes:
+  // Comment out routes like:
+  // app.get('/api/recent-economic-openai', ...);
+  // app.get('/api/ai-summary', ...);
+
+  Step 3.3: Update Package.json (Optional)
+
+  File: package.json
+
+  Remove OpenAI dependency (if you want to save space):
+  npm uninstall openai
+
+  Phase 4: Database Cleanup (Optional - 5 minutes)
+
+  Step 4.1: Remove OpenAI Tables/Data
+
+  -- If there are OpenAI-specific tables, you can drop them:
+  -- DROP TABLE IF EXISTS ai_summaries;
+  -- DROP TABLE IF EXISTS openai_economic_analysis;
+
+  Step-by-Step Execution Order
+
+  Step 1: Search and Document Current Usage (5 min)
+
+  # Find all current OpenAI usage
+  grep -r "openai\|OpenAI\|AIEconomic"
+  /Users/rishabhdas/Downloads/financehub_v19/client/src/
+  --include="*.tsx" --include="*.ts"
+
+  Step 2: Remove Frontend Components (10 min)
+
+  1. Edit dashboard.tsx - remove import and JSX usage
+  2. Edit global-refresh-button.tsx - remove OpenAI queries
+  3. Edit MoodDataSources.tsx - change to non-AI endpoint
+  4. Delete AI component files
+
+  Step 3: Update Data Sources Footer (2 min)
+
+  Remove OpenAI reference from footer
+
+  Step 4: Backend Cleanup (10 min)
+
+  1. Comment out OpenAI imports in server/index.ts
+  2. Comment out OpenAI routes in server/routes.ts
+  3. Optional: Remove OpenAI npm package
+
+  Step 5: Test and Verify (5 min)
+
+  1. Start the application
+  2. Check dashboard loads without errors
+  3. Verify no OpenAI references in UI
+  4. Check browser console for broken API calls
+
+  Files to Modify Summary
+
+  Frontend Files:
+
+  - client/src/pages/dashboard.tsx ✏️
+  - client/src/components/global-refresh-button.tsx ✏️
+  - client/src/components/MoodDataSources.tsx ✏️
+  - client/src/components/AIEconomicAnalysis.tsx 🗑️ (delete)
+  - client/src/components/AISummaryOptimized.tsx 🗑️ (delete)
+  - client/src/components/ai-summary.tsx 🗑️ (delete)
+
+  Backend Files:
+
+  - server/index.ts ✏️
+  - server/routes.ts ✏️
+  - package.json ✏️ (optional)
+
+  Verification Commands:
+
+  # After completion, verify no references remain:
+  grep -r "openai\|OpenAI"
+  /Users/rishabhdas/Downloads/financehub_v19/client/src/
+  --include="*.tsx" --include="*.ts"
+  grep -r "AIEconomic"
+  /Users/rishabhdas/Downloads/financehub_v19/client/src/
+  --include="*.tsx" --include="*.ts"
+
+  Risk Assessment
+
+  Low Risk: Frontend component removal
+  Medium Risk: Backend route changes (might break dependent features)
+  High Risk: Database changes (backup first)
+
+  Expected Results
+
+  ✅ Dashboard loads without OpenAI components✅ No "OpenAI GPT-4o"
+  references in UI✅ No broken API calls to OpenAI endpoints✅ Reduced
+  bundle size and dependencies✅ Faster loading without AI processing
+  delays
+
+  Total Time: ~32 minutes
+  Recommended Approach: Start with Steps 1-3 (frontend), test, then
+  proceed with backend cleanup if needed.

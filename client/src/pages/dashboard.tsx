@@ -3,7 +3,7 @@
 
 import { SPYBaseline } from "@/components/SPYBaseline";
 import MacroeconomicIndicators from "@/components/MacroeconomicIndicators";
-import { AIEconomicAnalysis } from "@/components/AIEconomicAnalysis";
+
 import { StatisticalAlertSystem } from "@/components/StatisticalAlertSystem";
 import { EconomicPulseCheck } from "@/components/EconomicPulseCheck";
 import ETFMetricsTableOptimized from "@/components/ETFMetricsTableOptimized";
@@ -126,7 +126,7 @@ export default function Dashboard() {
               <h3 className="text-white font-semibold mb-3">Data Sources</h3>
               <div className="space-y-2 text-sm text-gray-400">
                 <div><a href="https://www.twelvedata.com/" target="_blank" rel="noopener noreferrer" className="hover:text-gain-green">Twelve Data API</a></div>
-                <div><a href="https://openai.com/" target="_blank" rel="noopener noreferrer" className="hover:text-gain-green">OpenAI GPT-4o</a></div>
+
                 <div><a href="https://www.aaii.com/sentimentsurvey" target="_blank" rel="noopener noreferrer" className="hover:text-gain-green">AAII Sentiment Survey</a></div>
                 <div><a href="https://www.cboe.com/tradable_products/vix/" target="_blank" rel="noopener noreferrer" className="hover:text-gain-green">CBOE VIX Index</a></div>
                 <div><a href="https://www.marketwatch.com/economy-politics/calendar" target="_blank" rel="noopener noreferrer" className="hover:text-gain-green">MarketWatch Economic Calendar</a></div>

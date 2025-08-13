@@ -8,22 +8,22 @@ const router = Router();
 
 // Standardized route handlers with consistent error handling
 export const createStandardRoutes = () => {
-  // AI Summary endpoint with standardized error handling
-  router.get('/ai-summary', asyncHandler(async (req: Request, res: Response) => {
-    const { default: aiSummaryService } = await import('../services/ai-summary');
-    
-    try {
-      const summary = await aiSummaryService.generateMarketSummary();
-      ResponseUtils.success(res, summary);
-    } catch (error: any) {
-      logger.error('AI summary generation failed', { error: error.message, stack: error.stack });
-      throw new HttpError(503, 'AI analysis temporarily unavailable');
-    }
-  }));
+  // AI Summary endpoint disabled - OpenAI dependency removed
+  // router.get('/ai-summary', asyncHandler(async (req: Request, res: Response) => {
+  //   const { default: aiSummaryService } = await import('../services/ai-summary');
+  //   
+  //   try {
+  //     const summary = await aiSummaryService.generateMarketSummary();
+  //     ResponseUtils.success(res, summary);
+  //   } catch (error: any) {
+  //     logger.error('AI summary generation failed', { error: error.message, stack: error.stack });
+  //     throw new HttpError(503, 'AI analysis temporarily unavailable');
+  //   }
+  // }));
 
   // Sectors endpoint with pagination
   router.get('/sectors', asyncHandler(async (req: Request, res: Response) => {
-    const { default: financialDataService } = await import('../services/financial-data');
+    const { financialDataService } = await import('../services/financial-data');
     
     try {
       const sectors = await financialDataService.getSectorETFs();
@@ -42,7 +42,7 @@ export const createStandardRoutes = () => {
       throw new HttpError(400, 'Invalid stock symbol format');
     }
 
-    const { default: financialDataService } = await import('../services/financial-data');
+    const { financialDataService } = await import('../services/financial-data');
     
     try {
       const quote = await financialDataService.getStockQuote(symbol);
@@ -62,7 +62,7 @@ export const createStandardRoutes = () => {
       throw new HttpError(400, 'Invalid stock symbol format');
     }
 
-    const { default: financialDataService } = await import('../services/financial-data');
+    const { financialDataService } = await import('../services/financial-data');
     
     try {
       const indicators = await financialDataService.getTechnicalIndicators(symbol);

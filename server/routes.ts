@@ -848,49 +848,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // FRED routes removed - using OpenAI only
 
-  // Calculated Summary Optimized endpoint (NO AI)
-  app.get("/api/ai-summary-optimized", async (req, res) => {
-    try {
-      console.log('📊 Generating optimized calculated summary (no AI)...');
-      const { macroeconomicService } = await import('./services/macroeconomic-indicators');
-      const economicData = await macroeconomicService.getAuthenticEconomicData();
-      
-      const summary = {
-        success: true,
-        summary: `Economic analysis based on ${economicData?.indicators?.length || 0} Federal Reserve indicators showing current market conditions.`,
-        confidence: 95,
-        timestamp: new Date(),
-        dataSource: 'FRED Database - Authentic Data Only'
-      };
-      
-      console.log(`✅ Calculated Summary generated: Success`);
-      res.json(summary);
-    } catch (error) {
-      console.error('❌ Calculated Summary error:', error);
-      res.status(500).json({ 
-        error: 'Economic analysis temporarily updating',
-        message: 'Please refresh in a moment'
-      });
-    }
-  });
+  // OpenAI routes disabled - AI features removed from dashboard
 
 
 
-  // Economic Indicators Cache Management
-  app.post('/api/economic-indicators/refresh', async (req, res) => {
-    try {
-      const { openaiEconomicIndicatorsService } = await import('./services/openai-economic-indicators');
-      await openaiEconomicIndicatorsService.invalidateCache();
-      
-      const { cacheService } = await import('./services/cache-unified');
-      cacheService.delete("economic-indicators-openai-daily-v1");
-      
-      res.json({ message: 'Economic indicators cache refreshed' });
-    } catch (error) {
-      console.error('Error refreshing economic indicators cache:', error);
-      res.status(500).json({ error: 'Failed to refresh cache' });
-    }
-  });
+  // OpenAI cache management disabled - AI features removed
 
   // Economic Indicators endpoint removed per user request
 
@@ -1724,7 +1686,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const momentumData = await momentumResponse.json();
         
         // Fetch economic data (matches dashboard exactly)
-        const economicResponse = await fetch('http://localhost:5000/api/recent-economic-openai');
+        const economicResponse = await fetch('http://localhost:5000/api/fred-economic-data');
         const economicData = await economicResponse.json();
 
         // Process momentum data for AI Summary
@@ -2612,75 +2574,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Recent Economic Readings using FRED data only (NO OPENAI)
-  app.get("/api/recent-economic-openai", async (req, res) => {
-    try {
-      console.log('📊 Fetching recent economic readings from FRED database...');
-      const { macroeconomicService } = await import('./services/macroeconomic-indicators');
-      
-      // Get authentic FRED data only - no AI generation
-      const fredData = await macroeconomicService.getAuthenticEconomicData();
-      
-      // Transform to match expected format
-      const readings = fredData?.indicators?.slice(0, 6).map((indicator: any) => ({
-        metric: indicator.metric,
-        current: indicator.current,
-        type: indicator.type || 'Lagging',
-        lastUpdated: indicator.lastUpdated || new Date().toISOString(),
-        change: indicator.change || 'Latest Reading',
-        category: indicator.category || 'Economic'
-      })) || [];
-      
-      console.log(`✅ Retrieved ${readings.length} economic readings from FRED database`);
-      res.json(readings);
-    } catch (error) {
-      console.error('❌ FRED economic readings error:', error);
-      res.status(500).json({ 
-        error: 'Failed to fetch economic readings from FRED',
-        message: 'Authentic economic data temporarily unavailable'
-      });
-    }
-  });
+  // OpenAI recent economic route disabled - AI features removed
 
-  // Calculated Market Summary endpoint (NO AI)
-  app.get("/api/ai-summary", async (req, res) => {
-    try {
-      const { cacheService } = await import('./services/cache-unified');
-      const cacheKey = "calculated-market-summary";
-      
-      // Check cache first (5 minute TTL)
-      const cachedSummary = cacheService.get(cacheKey);
-      if (cachedSummary) {
-        console.log('📊 Serving calculated market summary from cache');
-        return res.json(cachedSummary);
-      }
-
-      console.log('📊 Generating calculated market summary (no AI)...');
-      const { macroeconomicService } = await import('./services/macroeconomic-indicators');
-      const economicData = await macroeconomicService.getAuthenticEconomicData();
-      
-      // Create calculated summary based on real data
-      const summary = {
-        summary: `Market analysis based on ${economicData?.indicators?.length || 0} authentic economic indicators from Federal Reserve data. Recent readings show mixed economic signals with inflation metrics trending at moderate levels.`,
-        confidence: 95, // High confidence since using real data
-        economicReadings: economicData?.indicators?.slice(0, 6) || [],
-        timestamp: new Date(),
-        dataSource: 'Federal Reserve Economic Data (FRED)'
-      };
-      
-      // Cache for 5 minutes
-      cacheService.set(cacheKey, summary, 300);
-      console.log('📊 Calculated market summary cached for 5 minutes');
-      
-      res.json(summary);
-    } catch (error) {
-      console.error('❌ Error generating calculated summary:', error);
-      res.status(500).json({ 
-        error: 'Failed to generate calculated market summary',
-        message: 'Economic data analysis temporarily unavailable'
-      });
-    }
-  });
+  // OpenAI ai-summary route disabled - AI features removed
 
   // Financial mood endpoint
   app.get('/api/financial-mood', async (req, res) => {

@@ -388,9 +388,10 @@ app.use((req, res, next) => {
       // Start all services with proper dependency management
       setTimeout(async () => {
         // Skip OpenAI-dependent services if API key is not available
-        if (!config.OPENAI_API_KEY) {
-          log('⚠️ OpenAI API key not available - disabling AI-dependent features');
-        }
+        // OpenAI dependency completely removed - no longer needed
+        // if (!config.OPENAI_API_KEY) {
+        //   log('⚠️ OpenAI API key not available - disabling AI-dependent features');
+        // }
         try {
           await orchestrator.startAll();
           

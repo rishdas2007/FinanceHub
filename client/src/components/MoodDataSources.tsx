@@ -19,7 +19,7 @@ export function MoodDataSources() {
 
   // Fetch economic data
   const { data: economicData, isLoading: economicLoading, refetch: refetchEconomic } = useQuery({
-    queryKey: ['/api/recent-economic-openai'],
+    queryKey: ['/api/recent-economic'],
     staleTime: 5 * 60 * 1000,
   });
 
