@@ -193,75 +193,82 @@ class DataConversionServiceImpl implements DataConversionService {
 
   private calculateRSI(closes: number[], period: number = 14): number | null {
     if (closes.length < period + 1) return null;
-    
-    // First, calculate initial gains and losses for the first period
+
+    // Build changes array first (more accurate method per your plan)
+    const changes: number[] = [];
+    for (let i = 1; i < closes.length; i++) {
+      changes.push(closes[i] - closes[i - 1]);
+    }
+
+    if (changes.length < period) return null;
+
+    // Initial averages for first period
     let avgGain = 0;
     let avgLoss = 0;
-    
-    // Calculate initial averages using simple average for first period
-    for (let i = 1; i <= period; i++) {
-      const change = closes[i] - closes[i - 1];
+
+    for (let i = 0; i < period; i++) {
+      const change = changes[i];
       if (change > 0) {
         avgGain += change;
       } else {
         avgLoss += Math.abs(change);
       }
     }
-    
-    avgGain = avgGain / period;
-    avgLoss = avgLoss / period;
-    
-    // If we have enough data, use Wilder's exponential smoothing for remaining periods
-    if (closes.length > period + 1) {
-      for (let i = period + 1; i < closes.length; i++) {
-        const change = closes[i] - closes[i - 1];
-        const gain = change > 0 ? change : 0;
-        const loss = change < 0 ? Math.abs(change) : 0;
-        
-        // Wilder's exponential smoothing: avgGain = (prevAvgGain * 13 + gain) / 14
-        avgGain = (avgGain * (period - 1) + gain) / period;
-        avgLoss = (avgLoss * (period - 1) + loss) / period;
-      }
+
+    avgGain /= period;
+    avgLoss /= period;
+
+    // Apply Wilder's smoothing for remaining periods
+    for (let i = period; i < changes.length; i++) {
+      const change = changes[i];
+      const gain = change > 0 ? change : 0;
+      const loss = change < 0 ? Math.abs(change) : 0;
+
+      // Wilder's smoothing: ((previous avg * (period-1)) + current value) / period
+      avgGain = (avgGain * (period - 1) + gain) / period;
+      avgLoss = (avgLoss * (period - 1) + loss) / period;
     }
-    
+
     if (avgLoss === 0) return 100;
+
     const rs = avgGain / avgLoss;
-    return 100 - (100 / (1 + rs));
+    const rsi = 100 - (100 / (1 + rs));
+
+    // Ensure bounds [0, 100]
+    return Math.max(0, Math.min(100, rsi));
   }
 
   private calculateMACD(closes: number[]): { macd: number | null; signal: number | null; histogram: number | null } {
     // Need at least 52 data points for proper MACD (26*2 for EMA seeding + 9 for signal)
     if (closes.length < 61) return { macd: null, signal: null, histogram: null };
-    
-    // Calculate MACD line values for the entire period
-    const macdValues: number[] = [];
-    
-    // Calculate MACD for each period to build history for signal line
-    for (let i = 52; i <= closes.length; i++) {
-      const periodCloses = closes.slice(0, i);
-      const ema12 = this.calculateEMA(periodCloses, 12);
-      const ema26 = this.calculateEMA(periodCloses, 26);
-      
-      if (ema12 !== null && ema26 !== null) {
-        macdValues.push(ema12 - ema26);
+
+    // Calculate EMAs for each data point to build MACD history (per your plan)
+    const macdHistory: number[] = [];
+
+    // Start from index 26 to have sufficient EMA history (as per your plan)
+    for (let i = 26; i < closes.length; i++) {
+      const windowData = closes.slice(0, i + 1);
+      const ema12 = this.calculateEMA(windowData, 12);
+      const ema26 = this.calculateEMA(windowData, 26);
+
+      if (ema12 && ema26) {
+        macdHistory.push(ema12 - ema26);
       }
     }
-    
-    if (macdValues.length < 9) return { macd: null, signal: null, histogram: null };
-    
-    // Current MACD value
-    const currentMacd = macdValues[macdValues.length - 1];
-    
-    // Calculate signal line (9-period EMA of MACD values)
-    const signal = this.calculateEMA(macdValues, 9);
-    
-    // Calculate histogram (MACD - Signal)
-    const histogram = signal !== null ? currentMacd - signal : null;
-    
-    return { 
-      macd: currentMacd, 
-      signal: signal,
-      histogram: histogram
+
+    if (macdHistory.length < 9) return { macd: null, signal: null, histogram: null };
+
+    const currentMacd = macdHistory[macdHistory.length - 1];
+
+    // Calculate 9-period EMA of MACD line for signal
+    const signal = this.calculateEMA(macdHistory, 9);
+
+    const histogram = signal ? currentMacd - signal : null;
+
+    return {
+      macd: currentMacd,
+      signal,
+      histogram
     };
   }
 
