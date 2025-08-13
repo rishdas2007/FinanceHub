@@ -19,6 +19,7 @@ import { performanceTrackingMiddleware } from './middleware/performance-tracking
 
 // Import enhanced statistical demo routes
 import enhancedZScoreRoutes from './routes/enhanced-zscore-demo';
+import adminMigrationRoutes from './routes/admin-migration-routes';
 import { setupVite, serveStatic, log } from "./vite";
 import healthRoutes from "./routes/health";
 
@@ -181,6 +182,9 @@ app.use((req, res, next) => {
     
     // Enhanced Statistical Demo Routes (10-Year Data Showcase)
     app.use('/api/statistical', enhancedZScoreRoutes);
+    
+    // Admin Migration Routes for Economic Data Unit Fix
+    app.use('/api/admin', adminMigrationRoutes);
     
     // Performance monitoring routes
     const { performanceMonitoringRoutes } = await import('./routes/performance-monitoring');

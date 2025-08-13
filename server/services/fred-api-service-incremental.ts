@@ -5,6 +5,7 @@ import { economicIndicatorsHistory } from '../../shared/schema';
 import { eq, desc, max, sql, and } from 'drizzle-orm';
 import { dataQualityValidator } from './data-quality-validator';
 import { dataLineageTracker } from './data-lineage-tracker';
+import { economicDataTransformer } from './economic-data-transformer';
 
 // FRED API Configuration
 const FRED_API_KEY = process.env.FRED_API_KEY || 'afa2c5a53a8116fe3a6c6fb339101ca1';
@@ -354,7 +355,11 @@ export class FredApiServiceIncremental {
         let numericValue = parseFloat(obs.value);
         if (isNaN(numericValue)) continue;
 
-        // For PAYEMS, calculate month-over-month change in thousands
+        // NEW: Apply economic data transformer for index-to-YoY conversion
+        const transformedObs = await economicDataTransformer.processFredObservation(seriesId, obs);
+        numericValue = transformedObs.value;
+
+        // For PAYEMS, calculate month-over-month change in thousands (legacy processing)
         if (seriesConfig.processAsChange && seriesId === 'PAYEMS') {
           if (i === 0) {
             // Skip first observation for change-based metrics (no prior value to compare)
@@ -393,7 +398,8 @@ export class FredApiServiceIncremental {
             value: numericValue,
             periodDate: new Date(obs.date),
             releaseDate: new Date(obs.realtime_start || obs.date),
-            unit: seriesConfig.processAsChange && seriesId === 'PAYEMS' ? 'Thousands' : 'Percent' // Use thousands for PAYEMS changes
+            unit: transformedObs.dataType === 'yoy_percentage' ? 'Percent YoY' : 
+                  (seriesConfig.processAsChange && seriesId === 'PAYEMS' ? 'Thousands' : 'Percent')
           });
 
           newDataPoints++;
