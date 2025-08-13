@@ -52,7 +52,7 @@ export const technicalIndicators = pgTable("technical_indicators", {
   id: serial("id").primaryKey(),
   symbol: text("symbol").notNull(),
   rsi: decimal("rsi", { precision: 5, scale: 2 }),
-  macd: decimal("macd", { precision: 10, scale: 4 }),
+  macd_line: decimal("macd_line", { precision: 10, scale: 4 }),
   macdSignal: decimal("macd_signal", { precision: 10, scale: 4 }),
   macdHistogram: decimal("macd_histogram", { precision: 10, scale: 4 }),
   bb_upper: decimal("bb_upper", { precision: 10, scale: 2 }),

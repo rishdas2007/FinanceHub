@@ -52,7 +52,7 @@ const ETFMetricsTableOptimized = () => {
     
     return data.metrics.map(metric => ({
       ...metric,
-      maGapNumeric: parseFloat((metric.maGap || '0').replace('%', '')) || 0,
+      maGapNumeric: metric.maGap ? parseFloat(metric.maGap.replace('%', '')) || 0 : 0,
       signalColor: 
         metric.signal === 'BUY' ? 'text-green-400' :
         metric.signal === 'SELL' ? 'text-red-400' : 

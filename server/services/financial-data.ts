@@ -378,9 +378,9 @@ export class FinancialDataService {
       await db.insert(technicalIndicators).values({
         symbol: indicators.symbol,
         rsi: indicators.rsi?.toString(),
-        macd: indicators.macd?.toString(),
-        macdSignal: indicators.macdSignal?.toString(),
-        macdHistogram: indicators.macdHistogram?.toString(),
+        macd_line: indicators.macd?.toString(),
+        macd_signal: indicators.macdSignal?.toString(),
+        macd_histogram: indicators.macdHistogram?.toString(),
         bb_upper: indicators.bb_upper?.toString(),
         bb_middle: indicators.bb_middle?.toString(),
         bb_lower: indicators.bb_lower?.toString(),

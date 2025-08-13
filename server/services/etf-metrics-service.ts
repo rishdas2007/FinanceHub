@@ -231,8 +231,8 @@ class ETFMetricsService {
         logger.warn('⚠️ Zero prices detected, fetching sector data fallback');
         try {
           const { enhancedMarketDataService } = await import('./enhanced-market-data');
-          const sectorData = await enhancedMarketDataService.getSectorETFData();
-          const sectorMap = new Map(sectorData.map(etf => [etf.symbol, etf.price]));
+          const sectorData = await enhancedMarketDataService.getSectorETFs();
+          const sectorMap = new Map(sectorData.map((etf: any) => [etf.symbol, etf.price]));
           
           etfMetrics = etfMetrics.map(etf => ({
             ...etf,
@@ -282,20 +282,21 @@ class ETFMetricsService {
           .from(stockData)
           .where(and(
             eq(stockData.symbol, symbol),
-            gte(stockData.ts, cutoffDate)
+            gte(stockData.timestamp, cutoffDate)
           ))
-          .orderBy(desc(stockData.ts))
+          .orderBy(desc(stockData.timestamp))
           .limit(1);
 
         if (latest.length > 0) {
           const priceData = latest[0];
           
           // Validate price sanity (basic checks)
-          if (priceData.close > 0 && isFinite(priceData.close)) {
-            results.set(symbol, priceData);
-            logger.info(`💰 Fresh price for ${symbol}: $${priceData.close} (${priceData.ts.toISOString()})`);
+          const price = parseFloat(priceData.price);
+          if (price > 0 && isFinite(price)) {
+            results.set(symbol, { ...priceData, close: price, ts: priceData.timestamp });
+            logger.info(`💰 Fresh price for ${symbol}: $${price} (${priceData.timestamp.toISOString()})`);
           } else {
-            logger.warn(`🚨 Invalid price data for ${symbol}: $${priceData.close}`);
+            logger.warn(`🚨 Invalid price data for ${symbol}: $${price}`);
           }
         } else {
           logger.warn(`⚠️ No recent price data for ${symbol} in last 7 days`);
@@ -522,9 +523,8 @@ class ETFMetricsService {
       rsiDivergence: false,
       
       // Technical Signal Analysis - from momentum data  
-      signal: momentumETF?.momentum === 'bullish' ? 'BULLISH' : 
+      maSignal: momentumETF?.momentum === 'bullish' ? 'BULLISH' : 
               momentumETF?.momentum === 'bearish' ? 'BEARISH' : 'NEUTRAL',
-      strength: momentumETF?.strength ? Math.round(momentumETF.strength * 10) : null,
       
       // Z-Score calculations
       zScore: momentumETF?.zScore || null,
@@ -665,7 +665,7 @@ class ETFMetricsService {
       if (momentumETF) {
         (metrics as any).signal = momentumETF.momentum === 'bullish' ? 'BULLISH' : 
                                    momentumETF.momentum === 'bearish' ? 'BEARISH' : 'NEUTRAL';
-        (metrics as any).strength = momentumETF.strength ? Math.round(momentumETF.strength * 10) : null;
+        (metrics as any).strength = momentumETF.zScore ? Math.round(Math.abs(momentumETF.zScore) * 10) : null;
         (metrics as any).zScore = momentumETF.zScore || null;
         console.log(`✅ Momentum signals mapped for ${symbol}: ${(metrics as any).signal}, strength: ${(metrics as any).strength}, zScore: ${(metrics as any).zScore}`);
       }
@@ -695,7 +695,7 @@ class ETFMetricsService {
         console.log(`📦 Successfully imported ETFTrendCalculatorService for ${symbol}`);
         const trendCalculator = new ETFTrendCalculatorService();
         const trend30Day = await trendCalculator.calculate30DayTrend(symbol);
-        metrics.change30Day = trend30Day;
+        metrics.change30Day = trend30Day !== null ? trend30Day : null;
         console.log(`✅ 30-day trend calculated for ${symbol}: ${trend30Day}%`);
       } catch (error) {
         console.warn(`⚠️ Failed to calculate 30-day trend for ${symbol}:`, error);
