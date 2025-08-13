@@ -12,6 +12,8 @@ interface BollingerBandData {
 export class BollingerBandsService {
   private readonly apiKey: string;
   private readonly baseUrl = 'https://api.twelvedata.com';
+  private cache = new Map<string, { data: BollingerBandData; timestamp: number }>();
+  private cacheTimeout = 5 * 60 * 1000; // 5 minutes
 
   constructor() {
     this.apiKey = process.env.TWELVE_DATA_API_KEY || '';
@@ -29,10 +31,16 @@ export class BollingerBandsService {
       return null;
     }
 
+    // Check cache first
+    const cached = this.cache.get(symbol);
+    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+      return cached.data;
+    }
+
     try {
-      // Fetch Bollinger Bands
+      // Fetch Bollinger Bands with timeout
       const bandsUrl = `${this.baseUrl}/bbands?symbol=${symbol}&interval=1day&apikey=${this.apiKey}&outputsize=1`;
-      const bandsResponse = await fetch(bandsUrl);
+      const bandsResponse = await fetch(bandsUrl, { signal: AbortSignal.timeout(2000) });
       const bandsData = await bandsResponse.json();
 
       if (bandsData.status === 'error') {
@@ -40,9 +48,9 @@ export class BollingerBandsService {
         return null;
       }
 
-      // Fetch current price for %B calculation
+      // Fetch current price for %B calculation with timeout
       const priceUrl = `${this.baseUrl}/price?symbol=${symbol}&apikey=${this.apiKey}`;
-      const priceResponse = await fetch(priceUrl);
+      const priceResponse = await fetch(priceUrl, { signal: AbortSignal.timeout(2000) });
       const priceData = await priceResponse.json();
 
       if (priceData.status === 'error') {
@@ -65,7 +73,7 @@ export class BollingerBandsService {
       // Calculate %B: (Price - Lower Band) / (Upper Band - Lower Band)
       const percentB = (currentPrice - lower) / (upper - lower);
 
-      return {
+      const result = {
         symbol,
         upper,
         middle,
@@ -74,6 +82,10 @@ export class BollingerBandsService {
         lastPrice: currentPrice
       };
 
+      // Cache the result
+      this.cache.set(symbol, { data: result, timestamp: Date.now() });
+      return result;
+
     } catch (error) {
       logger.error(`Failed to fetch Bollinger Bands for ${symbol}:`, error);
       return null;
@@ -81,33 +93,25 @@ export class BollingerBandsService {
   }
 
   /**
-   * Fetch Bollinger Bands for multiple ETF symbols
+   * Fetch Bollinger Bands for multiple ETF symbols with aggressive parallel processing
    */
   async getBollingerBandsBatch(symbols: string[]): Promise<Map<string, BollingerBandData>> {
     const results = new Map<string, BollingerBandData>();
     
-    // Process symbols in batches to respect rate limits
-    const batchSize = 5;
-    for (let i = 0; i < symbols.length; i += batchSize) {
-      const batch = symbols.slice(i, i + batchSize);
-      
-      const promises = batch.map(async (symbol) => {
+    // Process all symbols in parallel - no artificial delays
+    const promises = symbols.map(async (symbol) => {
+      try {
         const data = await this.getBollingerBands(symbol);
         if (data) {
           results.set(symbol, data);
         }
-        
-        // Add delay between requests to respect rate limits
-        await new Promise(resolve => setTimeout(resolve, 100));
-      });
-
-      await Promise.all(promises);
-      
-      // Longer delay between batches
-      if (i + batchSize < symbols.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (error) {
+        logger.warn(`Bollinger Bands failed for ${symbol}, will use database fallback`);
       }
-    }
+    });
+
+    // Execute all requests in parallel with timeout
+    await Promise.allSettled(promises);
 
     return results;
   }
