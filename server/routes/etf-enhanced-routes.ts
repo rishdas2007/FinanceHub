@@ -98,11 +98,11 @@ router.get('/metrics', async (req, res) => {
       
       const compositeZ = features?.composite_z_60d ? Number(features.composite_z_60d) : null;
       
-      // Determine signal based on composite Z-score
+      // Determine signal based on composite Z-score with 0.75 thresholds
       let signal: 'BUY' | 'SELL' | 'HOLD' = 'HOLD';
       if (compositeZ !== null) {
-        if (compositeZ <= -1.0) signal = 'BUY';
-        else if (compositeZ >= 1.0) signal = 'SELL';
+        if (compositeZ <= -0.75) signal = 'BUY';
+        else if (compositeZ >= 0.75) signal = 'SELL';
       }
       
       return {
