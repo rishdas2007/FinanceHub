@@ -245,17 +245,17 @@ class ETFMetricsService {
         }
       }
 
-        // 8. Cache results in both standard and fast cache with data provenance
-        cacheService.set(this.CACHE_KEY, etfMetrics, this.CACHE_TTL);
-        cacheService.set(this.FAST_CACHE_KEY, etfMetrics, this.FAST_CACHE_TTL);
-        
-        const priceInfo = etfMetrics.map(e => `${e.symbol}:$${e.price}`).join(', ');
-        logger.info(`⚡ ETF metrics consolidated from database and cached (${Date.now() - startTime}ms, ${etfMetrics.length} ETFs) - ${priceInfo}`);
-        
-        // Record performance metrics
-        performanceBudgetMonitor.recordMetric('etf-metrics', Date.now() - startTime, process.memoryUsage().heapUsed / 1024 / 1024);
-        
-        return etfMetrics;
+      // 8. Cache results in both standard and fast cache with data provenance
+      cacheService.set(this.CACHE_KEY, etfMetrics, this.CACHE_TTL);
+      cacheService.set(this.FAST_CACHE_KEY, etfMetrics, this.FAST_CACHE_TTL);
+      
+      const priceInfo = etfMetrics.map(e => `${e.symbol}:$${e.price}`).join(', ');
+      logger.info(`⚡ ETF metrics consolidated from database and cached (${Date.now() - startTime}ms, ${etfMetrics.length} ETFs) - ${priceInfo}`);
+      
+      // Record performance metrics
+      performanceBudgetMonitor.recordMetric('etf-metrics', Date.now() - startTime, process.memoryUsage().heapUsed / 1024 / 1024);
+      
+      return etfMetrics;
       }); // Close circuit breaker execution
 
     } catch (error: any) {
