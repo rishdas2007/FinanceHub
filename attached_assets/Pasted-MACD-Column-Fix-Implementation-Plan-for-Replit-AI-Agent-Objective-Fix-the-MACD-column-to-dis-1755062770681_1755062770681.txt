@@ -1,0 +1,133 @@
+MACD Column Fix - Implementation Plan for Replit AI Agent
+
+  Objective
+
+  Fix the MACD column to display actual MACD line values (e.g., 1.200,
+  0.500, -0.200) instead of MACD Z-scores, matching what's used in the
+  composite z-score calculation.
+
+  Root Cause
+
+  The MACD column currently displays macdZ (MACD Z-score) instead of the
+  actual MACD line values that feed into the z-score calculation.
+
+  Files to Modify
+
+  Single file: client/src/components/ETFMetricsTableOptimized.tsx
+
+  Step-by-Step Implementation
+
+  Step 1: Fix Field Mapping (Line ~142)
+
+  LOCATE: Around line 142 in the processedMetrics mapping section
+
+  FIND THIS CODE:
+  macdZ: metric.components?.macdZ || null,
+
+  REPLACE WITH:
+  macdValue: metric.components?.macd || metric.macd || null,
+
+  PURPOSE: Map to actual MACD line values instead of MACD Z-score
+
+  Step 2: Update Display Logic (Line ~284)
+
+  LOCATE: Around line 284 in the MACD column table cell
+
+  FIND THIS CODE:
+  <td className="p-3 text-center" data-testid={`macd-${metric.symbol}`}>
+    <div className={`font-mono text-xs ${
+      safeComparison(metric.macdZ) > 0 ? 'text-green-400' :
+  'text-red-400'
+    }`}>
+      {safeToFixed(metric.macdZ, 3)}
+    </div>
+  </td>
+
+  REPLACE WITH:
+  <td className="p-3 text-center" data-testid={`macd-${metric.symbol}`}>
+    <div className={`font-mono text-xs ${
+      safeComparison(metric.macdValue) > 0 ? 'text-green-400' :
+  'text-red-400'
+    }`}>
+      {safeToFixed(metric.macdValue, 3)}
+    </div>
+  </td>
+
+  PURPOSE: Display the actual MACD values instead of Z-scores
+
+  Step 3: Update Debug Logging (Line ~132)
+
+  LOCATE: Around line 132 in the debug logging section
+
+  FIND THIS CODE:
+  console.log(`🔍 ${metric.symbol} Z-Score debug:`, {
+    compositeZ: metric.compositeZ,
+    macdZ: metric.components?.macdZ,
+    allNumericFields: Object.entries(metric).filter(([k,v]) => typeof v
+  === 'number')
+  });
+
+  REPLACE WITH:
+  console.log(`🔍 ${metric.symbol} Z-Score debug:`, {
+    compositeZ: metric.compositeZ,
+    macdValue: metric.components?.macd || metric.macd,
+    macdZ: metric.components?.macdZ,
+    allNumericFields: Object.entries(metric).filter(([k,v]) => typeof v
+  === 'number')
+  });
+
+  PURPOSE: Add logging for both MACD value and Z-score for debugging
+
+  Expected Changes Summary
+
+  | Change         | Before                   | After
+                |
+  |----------------|--------------------------|--------------------------
+  --------------|
+  | Field Name     | macdZ                    | macdValue
+                |
+  | Data Source    | metric.components?.macdZ | metric.components?.macd 
+  || metric.macd |
+  | Display Values | Z-scores (0.123, -0.456) | MACD values (1.200,
+  0.500, -0.200)     |
+
+  Expected Visual Result
+
+  Before (Current - Wrong):
+
+  MACD Column shows: Z: 0.123, Z: -0.456, Z: 0.789
+
+  After (Fixed - Correct):
+
+  MACD Column shows: 1.200, 0.500, -0.200
+
+  Verification Steps
+
+  1. Check the table renders without errors
+  2. Confirm MACD column shows numeric values (not "MACD" text or
+  Z-scores)
+  3. Verify color coding works (green for positive, red for negative)
+  4. Check console logs show both macdValue and macdZ in debug output
+
+  Technical Context
+
+  - MACD in z-score calculation: Uses latest.macd (35% weight in
+  composite score)
+  - Current API data structure: metric.components?.macd contains actual
+  MACD line values
+  - Table goal: Display the same MACD values that feed into z-score
+  calculation
+
+  Fallback Data Sources
+
+  The mapping metric.components?.macd || metric.macd handles both:
+  - Primary: metric.components.macd (enhanced API structure)
+  - Fallback: metric.macd (direct API structure)
+
+  This ensures the fix works regardless of API response format.
+
+  ---
+  This implementation will make the MACD column display actual MACD line 
+  values that match what's used in your composite z-score calculation, 
+  providing meaningful technical analysis data instead of normalized 
+  Z-scores.

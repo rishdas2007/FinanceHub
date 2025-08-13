@@ -10,7 +10,7 @@ interface MacroeconomicData {
 }
 
 export class MacroeconomicService {
-  private readonly CACHE_KEY = `fred-delta-adjusted-v${Math.floor(Date.now() / 100)}`;
+  private readonly CACHE_KEY = `fred-delta-adjusted-v${Date.now()}`;
   
   /**
    * Get historical data for economic indicators (for charts)
