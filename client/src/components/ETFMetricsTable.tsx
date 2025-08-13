@@ -57,6 +57,26 @@ interface ETFMetrics {
   price: number;
   changePercent: number;
   
+  // CLEAR SEPARATION: Raw technical indicators for main display
+  technicalIndicators?: {
+    rsi: number | null;                    // Actual RSI value (0-100)
+    macd: number | null;                   // Actual MACD line value
+    macdSignal: number | null;             // MACD signal line
+    macdHistogram: number | null;          // MACD histogram
+    bollingerPercentB: number | null;      // Actual %B value (0-1)
+    bollingerUpper: number | null;
+    bollingerLower: number | null;
+  };
+
+  // SEPARATE: Z-Score analysis (advanced metrics)
+  zScoreAnalysis?: {
+    rsiZScore: number | null;
+    macdZScore: number | null;
+    bollingerZScore: number | null;
+    compositeZScore: number | null;
+    signal: 'BUY' | 'SELL' | 'HOLD' | null;
+  };
+  
   // Weighted Technical Indicator Scoring System
   weightedScore: number | null;
   weightedSignal: string | null;
@@ -203,38 +223,37 @@ const safeFormatNumber = (value: number | null | undefined, decimals: number = 2
 
 // Individual ETF Row Component - Optimized with proper memoization
 const ETFRow = memo(function ETFRow({ 
-  symbol, 
-  name, 
-  price, 
-  changePercent, 
-  compositeZScore, 
-  macdZScore, 
-  rsiZScore, 
-  bollingerZScore, 
-  maTrendZScore, 
-  priceMomentumZScore,
-  rsi,
-  bollingerPosition,
-  maGap,
-  fiveDayReturn,
-  updatedAt 
+  etf
 }: {
-  symbol: string;
-  name: string;
-  price: number;
-  changePercent: number;
-  compositeZScore: number | null;
-  macdZScore: number | null;
-  rsiZScore: number | null;
-  bollingerZScore: number | null;
-  maTrendZScore: number | null;
-  priceMomentumZScore: number | null;
-  rsi: number | null;
-  bollingerPosition: number | null;
-  maGap: number | null;
-  fiveDayReturn: number | null;
-  updatedAt?: string;
+  etf: ETFMetrics;
 }) {
+  const { 
+    symbol, 
+    name, 
+    price, 
+    changePercent, 
+    technicalIndicators,
+    zScoreAnalysis,
+    zScoreData,
+    rsi,
+    bollingerPosition,
+    maGap,
+    fiveDayReturn
+  } = etf;
+  
+  const compositeZScore = zScoreAnalysis?.compositeZScore || zScoreData?.compositeZScore;
+  const macdZScore = zScoreAnalysis?.macdZScore || zScoreData?.macdZScore;
+  const rsiZScore = zScoreAnalysis?.rsiZScore || zScoreData?.rsiZScore;
+  const bollingerZScore = zScoreAnalysis?.bollingerZScore || zScoreData?.bollingerZScore;
+  const maTrendZScore = zScoreData?.maTrendZScore;
+  const priceMomentumZScore = zScoreData?.priceMomentumZScore;
+
+  // Props interface for TypeScript compatibility  
+  interface ETFRowProps {
+    etf: ETFMetrics;
+  }
+  
+  const props: ETFRowProps = { etf };
   const rsiStatus = getRSIStatus(rsi);
   const bollingerStatus = getBollingerStatus(bollingerPosition);
   
@@ -315,47 +334,64 @@ const ETFRow = memo(function ETFRow({
         </div>
       </td>
 
-      {/* MACD with Z-Score (35%) - Highest weight */}
+      {/* MACD Column - Show actual MACD value, not Z-score */}
       <td className="py-3 px-1 text-center bg-purple-900/20">
         <div className="flex flex-col items-center">
-          <span className="text-sm font-medium text-white">
-            MACD
+          <span className={`text-sm font-medium ${
+            (etf.technicalIndicators?.macd || macdZScore) && (etf.technicalIndicators?.macd || macdZScore || 0) > 0 
+              ? 'text-green-400' : 'text-red-400'
+          }`}>
+            {etf.technicalIndicators?.macd?.toFixed(3) || macdZScore?.toFixed(3) || 'N/A'}
           </span>
           <span className="text-xs text-gray-400">
-            Signal
+            MACD
           </span>
           <span className={`text-xs font-mono mt-1 ${getZScoreColor('macdZ', macdZScore)}`}>
-            Z: {formatZScore(macdZScore, 3)}
+            Z: {formatZScore(macdZScore, 2)}
           </span>
         </div>
       </td>
 
-      {/* RSI with Z-Score (25%) */}
+      {/* RSI Column - Show actual RSI value (0-100) */}
       <td className="py-3 px-1 text-center bg-purple-900/20">
         <div className="flex flex-col items-center">
-          <span className="text-sm font-medium text-white">
-            {rsi ? rsi.toFixed(1) : 'N/A'}
+          <span className={`text-sm font-medium ${
+            (etf.technicalIndicators?.rsi || rsi) 
+              ? (etf.technicalIndicators?.rsi || rsi || 0) > 70 ? 'text-red-400'
+                : (etf.technicalIndicators?.rsi || rsi || 0) < 30 ? 'text-green-400'
+                : 'text-blue-400'
+              : 'text-gray-400'
+          }`}>
+            {(etf.technicalIndicators?.rsi || rsi)?.toFixed(1) || 'N/A'}
           </span>
-          <span className={`text-xs ${rsiStatus.color}`}>
+          <span className="text-xs text-gray-400">
             RSI
           </span>
           <span className={`text-xs font-mono mt-1 ${getZScoreColor('rsiZ', rsiZScore)}`}>
-            Z: {formatZScore(rsiZScore, 3)}
+            Z: {formatZScore(rsiZScore, 2)}
           </span>
         </div>
       </td>
 
-      {/* Bollinger with Z-Score (15%) */}
+      {/* %B Column - Show actual %B percentage */}
       <td className="py-3 px-1 text-center bg-purple-900/20">
         <div className="flex flex-col items-center">
-          <span className={`text-sm font-medium ${bollingerStatus.color}`}>
-            Bollinger
+          <span className={`text-sm font-medium ${
+            (etf.technicalIndicators?.bollingerPercentB || bollingerPosition) 
+              ? (etf.technicalIndicators?.bollingerPercentB || bollingerPosition || 0) > 0.8 ? 'text-red-400'
+                : (etf.technicalIndicators?.bollingerPercentB || bollingerPosition || 0) < 0.2 ? 'text-green-400'
+                : 'text-blue-400'
+              : 'text-gray-400'
+          }`}>
+            {(etf.technicalIndicators?.bollingerPercentB || bollingerPosition) 
+              ? `${((etf.technicalIndicators?.bollingerPercentB || bollingerPosition || 0) * 100).toFixed(1)}%` 
+              : 'N/A'}
           </span>
           <span className="text-xs text-gray-400">
-            %B: {bollingerPosition ? (bollingerPosition * 100).toFixed(0) + '%' : 'N/A'}
+            %B
           </span>
           <span className={`text-xs font-mono mt-1 ${getZScoreColor('bollZ', bollingerZScore)}`}>
-            Z: {formatZScore(bollingerZScore, 3)}
+            Z: {formatZScore(bollingerZScore, 2)}
           </span>
         </div>
       </td>
@@ -396,20 +432,10 @@ const ETFRow = memo(function ETFRow({
 }, (prevProps, nextProps) => {
   // Custom comparison for optimal memoization
   return (
-    prevProps.symbol === nextProps.symbol &&
-    prevProps.price === nextProps.price &&
-    prevProps.changePercent === nextProps.changePercent &&
-    prevProps.compositeZScore === nextProps.compositeZScore &&
-    prevProps.macdZScore === nextProps.macdZScore &&
-    prevProps.rsiZScore === nextProps.rsiZScore &&
-    prevProps.bollingerZScore === nextProps.bollingerZScore &&
-    prevProps.maTrendZScore === nextProps.maTrendZScore &&
-    prevProps.priceMomentumZScore === nextProps.priceMomentumZScore &&
-    prevProps.rsi === nextProps.rsi &&
-    prevProps.bollingerPosition === nextProps.bollingerPosition &&
-    prevProps.maGap === nextProps.maGap &&
-    prevProps.fiveDayReturn === nextProps.fiveDayReturn &&
-    prevProps.updatedAt === nextProps.updatedAt
+    prevProps.etf.symbol === nextProps.etf.symbol &&
+    prevProps.etf.price === nextProps.etf.price &&
+    prevProps.etf.changePercent === nextProps.etf.changePercent &&
+    prevProps.etf.zScoreData?.compositeZScore === nextProps.etf.zScoreData?.compositeZScore
   );
 });
 
@@ -534,21 +560,7 @@ export default function ETFMetricsTable() {
               {etfMetrics.map((etf) => (
                 <ETFRow 
                   key={etf.symbol}
-                  symbol={etf.symbol}
-                  name={etf.name}
-                  price={etf.price}
-                  changePercent={etf.changePercent}
-                  compositeZScore={etf.zScoreData?.compositeZScore || null}
-                  macdZScore={etf.zScoreData?.macdZScore || null}
-                  rsiZScore={etf.zScoreData?.rsiZScore || null}
-                  bollingerZScore={etf.zScoreData?.bollingerZScore || null}
-                  maTrendZScore={etf.zScoreData?.maTrendZScore || null}
-                  priceMomentumZScore={etf.zScoreData?.priceMomentumZScore || null}
-                  rsi={etf.rsi}
-                  bollingerPosition={etf.bollingerPosition}
-                  maGap={etf.maGap}
-                  fiveDayReturn={etf.fiveDayReturn}
-                  updatedAt={data?.meta?.updatedAt}
+                  etf={etf}
                 />
               ))}
             </tbody>

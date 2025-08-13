@@ -559,7 +559,30 @@ class ETFMetricsService {
       // Z-Score system results
       weightedScore: 0,
       weightedSignal: 'HOLD',
-      zScoreData: zscore ? this.buildZScoreDataOptimized(zscore) : null
+      zScoreData: zscore ? this.buildZScoreDataOptimized(zscore) : null,
+      
+      // PHASE 3: Add raw technical indicators for display
+      technicalIndicators: standardIndicator ? {
+        rsi: standardIndicator.rsi,
+        macd: standardIndicator.macd,
+        macdSignal: standardIndicator.macdSignal,
+        macdHistogram: standardIndicator.macdHistogram,
+        bollingerPercentB: standardIndicator.bollingerPercentB,
+        bollingerUpper: standardIndicator.bollingerUpper,
+        bollingerLower: standardIndicator.bollingerLower,
+      } : null,
+      
+      // Z-Score analysis separate from raw values
+      zScoreAnalysis: zscore ? {
+        rsiZScore: zscore.rsi_zscore || null,
+        macdZScore: zscore.macd_zscore || null,
+        bollingerZScore: zscore.bollinger_zscore || null,
+        compositeZScore: zscore.composite_zscore || null,
+        signal: zscore.composite_zscore ? (
+          zscore.composite_zscore >= 0.75 ? 'BUY' :
+          zscore.composite_zscore <= -0.75 ? 'SELL' : 'HOLD'
+        ) : null,
+      } : null
     };
   }
 
