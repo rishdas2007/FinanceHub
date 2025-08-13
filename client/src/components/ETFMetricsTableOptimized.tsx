@@ -8,22 +8,30 @@ import { Loader2, RefreshCw, TrendingUp, TrendingDown, Minus, AlertCircle } from
 
 interface ETFMetric {
   symbol: string;
-  compositeZScore: number;
+  price: number;
+  pctChange: number;
+  compositeZ: number | null;
   signal: string;
-  rsi: number;
-  macdLine: number;
-  macdSignal: number;
-  macdHistogram: number;
-  bollingerB: number;
-  maGap: string;
-  priceChange: number;
-  volume: number;
-  lastUpdated: string;
+  components: {
+    macdZ: number | null;
+    rsi14: number | null;
+    bbPctB: number | null;
+    maGapPct: number | null;
+    mom5dZ: number | null;
+  };
+  ma: {
+    ma50: number | null;
+    ma200: number | null;
+    gapPct: number | null;
+  };
+  atr14: number | null;
+  volume?: number;
+  lastUpdated?: string;
 }
 
 interface ETFMetricsResponse {
   success: boolean;
-  metrics: ETFMetric[];
+  data: ETFMetric[];
   timestamp: string;
 }
 
@@ -31,8 +39,8 @@ const ETFMetricsTableOptimized = () => {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const { data, isLoading, error, refetch } = useQuery<ETFMetricsResponse>({
-    queryKey: ['/api/etf-metrics', refreshKey],
-    queryFn: () => fetch('/api/etf-metrics').then(res => {
+    queryKey: ['/api/etf-enhanced/metrics', refreshKey],
+    queryFn: () => fetch('/api/etf-enhanced/metrics').then(res => {
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       return res.json();
     }),
@@ -48,11 +56,14 @@ const ETFMetricsTableOptimized = () => {
 
   // Memoize sorted and processed metrics
   const processedMetrics = useMemo(() => {
-    if (!data?.metrics) return [];
+    if (!data?.data) return [];
     
-    return data.metrics.map(metric => ({
+    return data.data.map(metric => ({
       ...metric,
-      maGapNumeric: metric.maGap ? parseFloat(metric.maGap.replace('%', '')) || 0 : 0,
+      compositeZScore: metric.compositeZ || 0,
+      maGap: metric.ma?.gapPct ? `${(metric.ma.gapPct * 100).toFixed(2)}%` : null,
+      maGapNumeric: metric.ma?.gapPct ? metric.ma.gapPct * 100 : 0,
+      rsi: metric.components?.rsi14 || null,
       signalColor: 
         metric.signal === 'BUY' ? 'text-green-400' :
         metric.signal === 'SELL' ? 'text-red-400' : 
@@ -62,8 +73,8 @@ const ETFMetricsTableOptimized = () => {
         metric.signal === 'SELL' ? 'bg-red-900/20 border-red-700' : 
         'bg-yellow-900/20 border-yellow-700'
     }))
-    .sort((a, b) => Math.abs(b.compositeZScore) - Math.abs(a.compositeZScore));
-  }, [data?.metrics]);
+    .sort((a, b) => Math.abs(b.compositeZScore || 0) - Math.abs(a.compositeZScore || 0));
+  }, [data?.data]);
 
   if (isLoading) {
     return <LoadingSkeleton variant="table" rows={8} className="min-h-[400px]" />;
@@ -147,11 +158,11 @@ const ETFMetricsTableOptimized = () => {
                   
                   <td className="p-3 text-center" data-testid={`zscore-${metric.symbol}`}>
                     <div className={`font-mono text-sm ${
-                      Math.abs(metric.compositeZScore) >= 1.5 ? 'text-red-400 font-bold' :
-                      Math.abs(metric.compositeZScore) >= 0.75 ? 'text-yellow-400' :
+                      Math.abs(metric.compositeZScore || 0) >= 1.5 ? 'text-red-400 font-bold' :
+                      Math.abs(metric.compositeZScore || 0) >= 0.75 ? 'text-yellow-400' :
                       'text-gray-300'
                     }`}>
-                      {metric.compositeZScore.toFixed(4)}
+                      {metric.compositeZScore ? metric.compositeZScore.toFixed(4) : 'N/A'}
                     </div>
                   </td>
                   
@@ -168,49 +179,52 @@ const ETFMetricsTableOptimized = () => {
                   
                   <td className="p-3 text-center" data-testid={`rsi-${metric.symbol}`}>
                     <div className={`font-mono text-sm ${
-                      metric.rsi >= 70 ? 'text-red-400' :
-                      metric.rsi <= 30 ? 'text-green-400' :
+                      (metric.rsi || 0) >= 70 ? 'text-red-400' :
+                      (metric.rsi || 0) <= 30 ? 'text-green-400' :
                       'text-gray-300'
                     }`}>
-                      {metric.rsi.toFixed(1)}
+                      {metric.rsi ? metric.rsi.toFixed(1) : 'N/A'}
                     </div>
                   </td>
                   
                   <td className="p-3 text-center" data-testid={`macd-${metric.symbol}`}>
                     <div className={`font-mono text-xs ${
-                      metric.macdHistogram > 0 ? 'text-green-400' : 'text-red-400'
+                      (metric.components?.macdZ || 0) > 0 ? 'text-green-400' : 'text-red-400'
                     }`}>
-                      {metric.macdHistogram.toFixed(3)}
+                      {metric.components?.macdZ ? metric.components.macdZ.toFixed(3) : 'N/A'}
                     </div>
                   </td>
                   
                   <td className="p-3 text-center" data-testid={`bollinger-${metric.symbol}`}>
                     <div className={`font-mono text-sm ${
-                      metric.bollingerB >= 0.8 ? 'text-red-400' :
-                      metric.bollingerB <= 0.2 ? 'text-green-400' :
+                      (metric.components?.bbPctB || 0) >= 0.8 ? 'text-red-400' :
+                      (metric.components?.bbPctB || 0) <= 0.2 ? 'text-green-400' :
                       'text-gray-300'
                     }`}>
-                      {(metric.bollingerB * 100).toFixed(1)}%
+                      {metric.components?.bbPctB ? (metric.components.bbPctB * 100).toFixed(1) + '%' : 'N/A'}
                     </div>
                   </td>
                   
                   <td className="p-3 text-center" data-testid={`ma-gap-${metric.symbol}`}>
                     <div className={`font-mono text-sm ${
-                      metric.maGapNumeric >= 2 ? 'text-green-400' :
-                      metric.maGapNumeric <= -2 ? 'text-red-400' :
+                      (metric.maGapNumeric || 0) >= 2 ? 'text-green-400' :
+                      (metric.maGapNumeric || 0) <= -2 ? 'text-red-400' :
                       'text-gray-300'
                     }`}>
-                      {metric.maGap}
+                      {metric.maGap || 'N/A'}
                     </div>
                   </td>
                   
                   <td className="p-3 text-center" data-testid={`price-change-${metric.symbol}`}>
                     <div className={`font-mono text-sm ${
-                      metric.priceChange > 0 ? 'text-green-400' : 
-                      metric.priceChange < 0 ? 'text-red-400' : 
+                      (metric.pctChange || 0) > 0 ? 'text-green-400' : 
+                      (metric.pctChange || 0) < 0 ? 'text-red-400' : 
                       'text-gray-300'
                     }`}>
-                      {metric.priceChange > 0 ? '+' : ''}{metric.priceChange.toFixed(2)}%
+                      {metric.pctChange ? 
+                        `${(metric.pctChange || 0) > 0 ? '+' : ''}${(metric.pctChange * 100).toFixed(2)}%` : 
+                        'N/A'
+                      }
                     </div>
                   </td>
                 </tr>

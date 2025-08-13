@@ -1,0 +1,88 @@
+ ETF "No Data Available" Issue - Root Cause Found
+
+  Problem Identified
+
+  You have 2 different ETF API endpoints with different response formats:
+
+  1. Enhanced Route (etf-enhanced-routes.ts:43)
+
+  - URL: /api/etf-enhanced/metrics
+  - Response Format: { success: true, data: [...], horizon, timestamp }
+  - Data Source: equity_features_daily + equity_daily_bars tables
+
+  2. Legacy Route (routes.ts - from grep results)
+
+  - URL: /api/etf-metrics
+  - Response Format: Different structure (via etf-metrics-service.ts)
+  - Data Source: technical_indicators, zscoreTechnicalIndicators,
+  stockData tables
+
+  3. Frontend Issue (ETFMetricsTableOptimized.tsx:33)
+
+  queryFn: () => fetch('/api/etf-metrics').then(res => res.json())
+  Problem: Frontend calls /api/etf-metrics but expects { metrics: [...] }
+   format
+
+  Missing Database Tables
+
+  The enhanced route queries these tables:
+  - equity_features_daily ✓ (mentioned in replit.md)
+  - equity_daily_bars ❌ (NOT found in schema.ts)
+
+  Quick Fixes
+
+  Option 1: Use Enhanced Route (Recommended)
+
+  Change frontend to use the working enhanced endpoint:
+
+  // File: client/src/components/ETFMetricsTableOptimized.tsx:34
+  queryFn: () => fetch('/api/etf-enhanced/metrics').then(res => {
+    if (!res.ok) throw new Error(`HTTP ${res.status}: 
+  ${res.statusText}`);
+    return res.json();
+  }),
+
+  // Update response handling:
+  const processedMetrics = useMemo(() => {
+    if (!data?.data) return []; // Changed from data?.metrics to 
+  data?.data
+
+    return data.data.map(metric => ({ // Process enhanced response format
+      ...metric,
+      signal: metric.signal,
+      compositeZScore: metric.compositeZ,
+      maGap: metric.ma?.gapPct ? `${(metric.ma.gapPct * 
+  100).toFixed(2)}%` : null
+    }))
+  }, [data?.data]);
+
+  Option 2: Fix Database Tables
+
+  Add missing equity_daily_bars table to schema:
+
+  CREATE TABLE IF NOT EXISTS equity_daily_bars (
+    symbol VARCHAR(10) NOT NULL,
+    ts_utc TIMESTAMP NOT NULL,
+    close DECIMAL(10,4),
+    PRIMARY KEY (symbol, ts_utc)
+  );
+
+  Option 3: Debug Current Route
+
+  Add logging to see what's actually returned:
+
+  // Temporary debug in ETFMetricsTableOptimized.tsx:35
+  queryFn: () => fetch('/api/etf-metrics').then(res => {
+    console.log('🔍 ETF API Response Status:', res.status);
+    return res.json();
+  }).then(data => {
+    console.log('🔍 ETF API Response Data:', data);
+    return data;
+  }),
+
+  Immediate Action Plan
+
+  1. Check if equity_daily_bars table exists in your database
+  2. Try Option 1 (use enhanced route) - quickest fix
+  3. If enhanced route fails, try Option 3 (add debug logging)
+  4. Create missing tables if needed
