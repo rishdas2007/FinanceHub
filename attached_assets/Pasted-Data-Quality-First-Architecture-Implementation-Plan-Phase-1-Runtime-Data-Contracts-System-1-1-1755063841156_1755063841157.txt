@@ -1,0 +1,353 @@
+Data Quality-First Architecture Implementation Plan
+
+  Phase 1: Runtime Data Contracts System
+
+  1.1 Create Shared Data Validation Layer
+
+  // File: shared/validation/data-contracts.ts
+  interface DataContract<T> {
+    schema: ZodSchema<T>;
+    businessRules: ValidationRule<T>[];
+    qualityGates: QualityGate<T>[];
+  }
+
+  interface ValidationRule<T> {
+    name: string;
+    validate: (data: T) => ValidationResult;
+    severity: 'ERROR' | 'WARNING' | 'INFO';
+  }
+
+  interface QualityGate<T> {
+    name: string;
+    check: (data: T) => boolean;
+    errorMessage: string;
+    failureAction: 'REJECT' | 'DEGRADE' | 'LOG';
+  }
+
+  Files to Create:
+  - shared/validation/data-contracts.ts - Core validation framework
+  - shared/validation/etf-contracts.ts - ETF-specific data contracts
+  - shared/validation/economic-contracts.ts - Economic data contracts
+  - shared/validation/contract-registry.ts - Central contract registry
+
+  1.2 ETF Metrics Data Contract
+
+  // File: shared/validation/etf-contracts.ts
+  export const ETF_METRICS_CONTRACT: DataContract<ETFMetric> = {
+    schema: z.object({
+      symbol: z.string().min(1).max(5),
+      compositeZ: z.number().finite().nullable(),
+      components: z.object({
+        macdZ: z.number().finite().nullable(),
+        rsi14: z.number().min(0).max(100).nullable(),
+        bbPctB: z.number().min(0).max(2).nullable() // Real %B, not fake 
+  50%
+      })
+    }),
+    businessRules: [
+      {
+        name: 'composite-z-score-range',
+        validate: (data) => data.compositeZ === null ||
+  Math.abs(data.compositeZ) <= 5,
+        severity: 'ERROR'
+      }
+    ],
+    qualityGates: [
+      {
+        name: 'sufficient-components',
+        check: (data) => {
+          const components = [data.components.macdZ,
+  data.components.rsi14, data.components.bbPctB];
+          return components.filter(c => c !== null).length >= 2;
+        },
+        errorMessage: 'ETF metric requires at least 2 valid technical 
+  components',
+        failureAction: 'REJECT'
+      }
+    ]
+  };
+
+  Phase 2: Cross-Layer Consistency Validation
+
+  2.1 Bronze-Silver-Gold Pipeline Validators
+
+  // File: server/services/data-quality/pipeline-validator.ts
+  class DataPipelineValidator {
+    async validateBronzeToSilver(bronzeData: any, silverData: any):
+  Promise<ValidationResult> {
+      // Validate data transformation consistency
+      // Check for data loss during transformation
+      // Verify unit conversions
+    }
+
+    async validateSilverToGold(silverData: any, goldData: any):
+  Promise<ValidationResult> {
+      // Validate aggregation accuracy
+      // Check statistical calculations
+      // Verify Z-score computations
+    }
+  }
+
+  Files to Create:
+  - server/services/data-quality/pipeline-validator.ts - Pipeline
+  validation service
+  - server/services/data-quality/transformation-auditor.ts - Data
+  transformation auditing
+  - server/middleware/pipeline-validation.ts - Express middleware for
+  pipeline checks
+
+  2.2 Cross-System Consistency Checks
+
+  // File: server/services/data-quality/consistency-checker.ts
+  class ConsistencyChecker {
+    async validateETFEconomicCorrelation(etfData: ETFMetric[],
+  economicData: EconomicIndicator[]): Promise<void> {
+      // Ensure ETF metrics align with economic context
+      // Check for temporal consistency
+      // Validate cross-asset relationships
+    }
+  }
+
+  Phase 3: Data Sufficiency Gates
+
+  3.1 Pre-Calculation Validation
+
+  // File: server/services/data-quality/sufficiency-gates.ts
+  interface DataSufficiencyResult {
+    sufficient: boolean;
+    missingComponents: string[];
+    confidence: number; // 0-1 scale
+    recommendation: 'PROCEED' | 'DEGRADE' | 'SKIP';
+  }
+
+  class DataSufficiencyGates {
+    async checkZScoreCalculationReadiness(symbol: string):
+  Promise<DataSufficiencyResult> {
+      // Check historical data availability (minimum 252 days for 1-year 
+  Z-score)
+      // Verify all technical indicators are present
+      // Calculate data confidence score
+    }
+  }
+
+  Files to Create:
+  - server/services/data-quality/sufficiency-gates.ts - Data sufficiency
+  validation
+  - server/middleware/sufficiency-check.ts - Pre-calculation middleware
+  - client/src/components/DataSufficiencyBadge.tsx - UI confidence
+  indicator
+
+  3.2 Modified Z-Score Service with Gates
+
+  // File: server/services/zscore-technical-service-v2.ts
+  class ZScoreTechnicalServiceV2 extends ZScoreTechnicalService {
+    async calculateCompositeZScore(symbol: string): Promise<ZScoreResult>
+   {
+      // Step 1: Data sufficiency gate
+      const sufficiency = await
+  this.sufficiencyGates.checkZScoreCalculationReadiness(symbol);
+      if (!sufficiency.sufficient) {
+        return this.handleInsufficientData(symbol, sufficiency);
+      }
+
+      // Step 2: Runtime data contract validation
+      const rawData = await this.fetchTechnicalIndicators(symbol);
+      const validation = await this.validateDataContract(rawData,
+  ETF_METRICS_CONTRACT);
+      if (!validation.valid) {
+        throw new DataQualityError('Technical indicators failed 
+  validation', validation.errors);
+      }
+
+      // Step 3: Proceed with calculation
+      return super.calculateCompositeZScore(symbol);
+    }
+  }
+
+  Phase 4: Economic Unit Transformation Architecture
+
+  4.1 Economic Data Transformation Layer
+
+  // File: server/services/economic-data/unit-transformer.ts
+  interface EconomicDataPoint {
+    seriesId: string;
+    value: number;
+    originalUnit: string;
+    targetUnit: string;
+    transformationType: 'INDEX_TO_YOY' | 'LEVEL_TO_CHANGE' |
+  'SEASONAL_ADJUST';
+  }
+
+  class EconomicUnitTransformer {
+    private transformationRules: Map<string, TransformationRule> = new
+  Map([
+      ['CPIENGSL', { from: 'INDEX', to: 'PERCENT_YOY', method:
+  'INDEX_TO_YOY' }],
+      ['UNRATE', { from: 'PERCENT', to: 'PERCENT', method: 'PASSTHROUGH'
+  }]
+    ]);
+
+    async transformEconomicData(dataPoint: EconomicDataPoint):
+  Promise<EconomicDataPoint> {
+      const rule = this.transformationRules.get(dataPoint.seriesId);
+      if (!rule) throw new Error(`No transformation rule for 
+  ${dataPoint.seriesId}`);
+
+      return this.applyTransformation(dataPoint, rule);
+    }
+  }
+
+  Files to Create:
+  - server/services/economic-data/unit-transformer.ts - Unit
+  transformation service
+  - server/services/economic-data/transformation-rules.ts - FRED series
+  transformation rules
+  - server/middleware/economic-transform.ts - Automatic transformation
+  middleware
+
+  4.2 Updated Economic Pipeline
+
+  // File: server/services/economic-data-pipeline-v2.ts
+  class EconomicDataPipelineV2 {
+    constructor(
+      private transformer: EconomicUnitTransformer,
+      private validator: DataContractValidator
+    ) {}
+
+    async processEconomicUpdate(fredData: FREDResponse): Promise<void> {
+      // Step 1: Transform units to consistent format
+      const transformedData = await
+  this.transformer.transformEconomicData(fredData);
+
+      // Step 2: Validate against economic data contract
+      const validation = await this.validator.validate(transformedData,
+  ECONOMIC_DATA_CONTRACT);
+      if (!validation.valid) {
+        throw new DataQualityError('Economic data failed validation',
+  validation.errors);
+      }
+
+      // Step 3: Store with quality metadata
+      await this.storeWithQualityMetadata(transformedData,
+  validation.confidence);
+    }
+  }
+
+  Phase 5: Fail-Fast Performance SLA System
+
+  5.1 Data Quality Performance Gates
+
+  // File: server/middleware/quality-performance-sla.ts
+  interface PerformanceSLA {
+    maxResponseTime: number;
+    minDataQuality: number; // 0-1 confidence score
+    action: 'FAIL_FAST' | 'DEGRADE' | 'CACHE_FALLBACK';
+  }
+
+  class QualityPerformanceSLA {
+    private slas: Map<string, PerformanceSLA> = new Map([
+      ['etf-metrics', { maxResponseTime: 2000, minDataQuality: 0.8,
+  action: 'FAIL_FAST' }],
+      ['economic-data', { maxResponseTime: 1000, minDataQuality: 0.9,
+  action: 'DEGRADE' }]
+    ]);
+
+    async enforceSLA(endpoint: string, dataQuality: number):
+  Promise<SLAResult> {
+      const sla = this.slas.get(endpoint);
+      if (!sla) return { action: 'PROCEED' };
+
+      if (dataQuality < sla.minDataQuality) {
+        switch (sla.action) {
+          case 'FAIL_FAST':
+            throw new DataQualityError(`Data quality ${dataQuality} below
+   SLA ${sla.minDataQuality}`);
+          case 'DEGRADE':
+            return { action: 'DEGRADE', message: 'Serving degraded data 
+  due to quality issues' };
+          case 'CACHE_FALLBACK':
+            return { action: 'CACHE_FALLBACK' };
+        }
+      }
+
+      return { action: 'PROCEED' };
+    }
+  }
+
+  Files to Create:
+  - server/middleware/quality-performance-sla.ts - SLA enforcement
+  middleware
+  - server/services/performance/quality-metrics.ts - Data quality
+  performance tracking
+  - client/src/components/QualityStatusIndicator.tsx - User-facing
+  quality status
+
+  Phase 6: Frontend Data Quality Integration
+
+  6.1 Enhanced ETF Metrics Component
+
+  // File: client/src/components/ETFMetricsTableV2.tsx
+  const ETFMetricsTableV2: React.FC = () => {
+    const { data, error, dataQuality } = useQuery({
+      queryKey: ['etf-metrics-v2'],
+      queryFn: async () => {
+        const response = await
+  fetchWithQualityValidation('/api/v2/etf-metrics');
+        return response;
+      },
+      staleTime: dataQuality?.confidence > 0.9 ? 60000 : 30000, // 
+  Dynamic cache based on quality
+    });
+
+    if (dataQuality?.confidence < 0.8) {
+      return <DataQualityWarning quality={dataQuality} />;
+    }
+
+    return (
+      <div>
+        <QualityStatusBadge confidence={dataQuality?.confidence} />
+        {/* Existing table implementation */}
+      </div>
+    );
+  };
+
+  Files to Create:
+  - client/src/components/ETFMetricsTableV2.tsx - Quality-aware ETF table
+  - client/src/components/DataQualityWarning.tsx - Data quality warning
+  component
+  - client/src/hooks/useQualityAwareQuery.ts - Quality-aware React Query
+  hook
+
+  Phase 7: Monitoring and Observability
+
+  7.1 Data Quality Monitoring Dashboard
+
+  // File: server/routes/data-quality-monitoring.ts
+  router.get('/api/monitoring/data-quality', async (req, res) => {
+    const qualityMetrics = await dataQualityMonitor.getMetrics();
+    res.json({
+      overall: qualityMetrics.overallScore,
+      etfMetrics: qualityMetrics.etfQuality,
+      economicData: qualityMetrics.economicQuality,
+      pipelineHealth: qualityMetrics.pipelineStatus,
+      recentFailures: qualityMetrics.recentFailures
+    });
+  });
+
+  Files to Create:
+  - server/routes/data-quality-monitoring.ts - Quality monitoring API
+  - client/src/pages/DataQualityDashboard.tsx - Admin quality dashboard
+  - server/services/monitoring/quality-monitor.ts - Quality metrics
+  collector
+
+  Implementation Priority Order:
+
+  1. Phase 1 (Data Contracts) - Immediate validation foundation
+  2. Phase 3 (Sufficiency Gates) - Prevent bad calculations
+  3. Phase 4 (Unit Transformation) - Fix economic data issues
+  4. Phase 2 (Pipeline Validation) - Systematic quality checks
+  5. Phase 5 (Performance SLA) - Fail-fast implementation
+  6. Phase 6 (Frontend Integration) - User experience
+  7. Phase 7 (Monitoring) - Long-term observability
+
+  Estimated Implementation: 2-3 weeks with proper testing and validation.

@@ -72,6 +72,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // FRED Incremental Update System endpoints
   app.use('/api/fred-incremental', (await import('./routes/fred-incremental-routes')).default);
+
+  // Enhanced ETF Metrics with Data Quality-First Architecture
+  app.get('/api/etf-metrics-v2', async (req, res) => {
+    try {
+      console.log('🔍 ETF Metrics V2 request with Data Quality validation');
+      
+      const { ETFMetricsServiceV2 } = await import('./services/etf-metrics-service-v2');
+      const etfService = new ETFMetricsServiceV2();
+      const result = await etfService.getETFMetricsWithValidation();
+      
+      res.json(result);
+    } catch (error) {
+      console.error('❌ ETF Metrics V2 error:', error);
+      res.status(500).json({ 
+        error: 'ETF Metrics V2 service error', 
+        message: error.message,
+        success: false 
+      });
+    }
+  });
+
+  // Data Quality Management and Monitoring routes
+  app.use('/api/data-quality', (await import('./routes/data-quality')).default);
   
   // Economic Pulse - Real FRED data with 12M sparklines
   app.get('/api/economic-pulse', async (req, res) => {
