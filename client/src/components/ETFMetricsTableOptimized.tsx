@@ -232,14 +232,13 @@ const ETFMetricsTableOptimized = () => {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-700">
-                <th className="text-left p-3 text-gray-300 font-medium">Symbol</th>
-                <th className="text-center p-3 text-gray-300 font-medium">Z-Score</th>
-                <th className="text-center p-3 text-gray-300 font-medium">Signal</th>
-                <th className="text-center p-3 text-gray-300 font-medium">RSI</th>
-                <th className="text-center p-3 text-gray-300 font-medium">MACD</th>
-                <th className="text-center p-3 text-gray-300 font-medium">%B</th>
-                <th className="text-center p-3 text-gray-300 font-medium">MA Gap</th>
-                <th className="text-center p-3 text-gray-300 font-medium">Change</th>
+                <th className="text-left p-3 text-gray-300 font-medium w-20">Symbol</th>
+                <th className="text-center p-3 text-gray-300 font-medium w-24">Z-Score</th>
+                <th className="text-center p-3 text-gray-300 font-medium w-20">Signal</th>
+                <th className="text-center p-3 text-gray-300 font-medium w-16">RSI</th>
+                <th className="text-center p-3 text-gray-300 font-medium w-20">MACD</th>
+                <th className="text-center p-3 text-gray-300 font-medium w-16">%B</th>
+                <th className="text-center p-3 text-gray-300 font-medium w-20">MA Gap</th>
               </tr>
             </thead>
             <tbody>
@@ -249,8 +248,22 @@ const ETFMetricsTableOptimized = () => {
                   className="border-b border-gray-800 hover:bg-gray-800/30 transition-colors"
                   data-testid={`etf-row-${metric.symbol}`}
                 >
-                  <td className="p-3">
-                    <div className="font-medium text-white">{metric.symbol}</div>
+                  <td className="p-3 font-mono w-20">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-bold text-white text-sm leading-tight">
+                        {metric.symbol}
+                      </span>
+                      <span className={`text-xs font-mono leading-tight ${
+                        safeComparison(metric.pctChangeFormatted) > 0 ? 'text-green-400' : 
+                        safeComparison(metric.pctChangeFormatted) < 0 ? 'text-red-400' : 
+                        'text-gray-300'
+                      }`}>
+                        {metric.pctChangeFormatted !== null ? 
+                          `${safeComparison(metric.pctChangeFormatted) > 0 ? '+' : ''}${safePercent(metric.pctChangeFormatted, 2)}` : 
+                          'N/A'
+                        }
+                      </span>
+                    </div>
                   </td>
                   
                   <td className="p-3 text-center" data-testid={`zscore-${metric.symbol}`}>
@@ -329,19 +342,6 @@ const ETFMetricsTableOptimized = () => {
                       <div className="text-xs text-gray-500 font-mono">
                         Z: {safeToFixed(metric.maGapZ, 2)}
                       </div>
-                    </div>
-                  </td>
-                  
-                  <td className="p-3 text-center" data-testid={`price-change-${metric.symbol}`}>
-                    <div className={`font-mono text-sm ${
-                      safeComparison(metric.pctChangeFormatted) > 0 ? 'text-green-400' : 
-                      safeComparison(metric.pctChangeFormatted) < 0 ? 'text-red-400' : 
-                      'text-gray-300'
-                    }`}>
-                      {metric.pctChangeFormatted !== null ? 
-                        `${safeComparison(metric.pctChangeFormatted) > 0 ? '+' : ''}${safePercent(metric.pctChangeFormatted, 2)}` : 
-                        'N/A'
-                      }
                     </div>
                   </td>
                 </tr>
