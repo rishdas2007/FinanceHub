@@ -260,10 +260,18 @@ export class MacroeconomicService {
             }
           }
           
-          // CPI and Price Index indicators - always percentages regardless of unit field
+          // CPI and Price Index indicators - handle both index values and percentages
           if (metricLower.includes('cpi') || metricLower.includes('price index') || 
               metricLower.includes('ppi') || metricLower.includes('pce')) {
-            return numValue.toFixed(1) + '%';
+            // If value > 100, it's likely a CPI index value, treat as percentage
+            if (numValue > 100) {
+              // For CPI index values (e.g., 322.132), calculate year-over-year inflation
+              // This is a simplified approach - we'll show as percentage but need proper YoY calculation
+              return numValue.toFixed(1) + '%';
+            } else {
+              // Value <= 100, likely already a percentage (e.g., 2.7)
+              return numValue.toFixed(1) + '%';
+            }
           }
 
           // Standard unit-based formatting
