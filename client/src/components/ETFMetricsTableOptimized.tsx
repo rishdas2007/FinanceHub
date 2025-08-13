@@ -104,18 +104,18 @@ const ETFMetricsTableOptimized = () => {
 
   // Memoize sorted and processed metrics with comprehensive validation
   const processedMetrics = useMemo(() => {
-    // Add validation for data structure
-    if (!data || !data.data) {
-      console.warn('🚨 ETF API returned invalid data structure:', data);
+    console.log('🔍 Raw API data:', { data, hasMetrics: !!data?.metrics, hasData: !!data?.data });
+
+    // Handle different API response structures
+    const metricsArray = data?.metrics || data?.data || [];
+    console.log('🔍 Metrics array:', { type: typeof metricsArray, length: metricsArray?.length, first: metricsArray?.[0] });
+
+    if (!Array.isArray(metricsArray)) {
+      console.warn('🚨 Metrics is not an array:', metricsArray);
       return [];
     }
 
-    if (!Array.isArray(data.data)) {
-      console.warn('🚨 ETF data is not an array:', typeof data.data);
-      return [];
-    }
-
-    const validMetrics = data.data.map(metric => {
+    const processed = metricsArray.map(metric => {
       // Validate each metric has required fields
       if (!metric || typeof metric !== 'object') {
         console.warn('🚨 Invalid metric object:', metric);
@@ -127,16 +127,21 @@ const ETFMetricsTableOptimized = () => {
         return null;
       }
 
+      console.log('🔍 Processing metric:', metric?.symbol, Object.keys(metric || {}));
+
       return {
         ...metric,
-        // Ensure numeric fields are numbers or null with validation
-        compositeZScore: typeof metric.compositeZ === 'number' ? metric.compositeZ : null,
-        maGap: metric.ma?.gapPct ? safePercent(metric.ma.gapPct, 2) : null,
-        maGapNumeric: typeof metric.ma?.gapPct === 'number' ? metric.ma.gapPct * 100 : 0,
-        rsi: typeof metric.components?.rsi14 === 'number' ? metric.components.rsi14 : null,
-        macdZ: typeof metric.components?.macdZ === 'number' ? metric.components.macdZ : null,
-        bbPctB: typeof metric.components?.bbPctB === 'number' ? metric.components.bbPctB : null,
-        pctChangeFormatted: typeof metric.pctChange === 'number' ? metric.pctChange : null,
+        // Map API field names to frontend expectations with fallbacks
+        symbol: metric.symbol,
+        compositeZScore: metric.compositeZScore || metric.compositeZ || null,
+        rsi: metric.rsi || metric.rsi14 || metric.components?.rsi14 || null,
+        macdZ: metric.macdHistogram || metric.components?.macdZ || null,
+        bbPctB: metric.bollingerB || metric.components?.bbPctB || null,
+        pctChangeFormatted: metric.priceChange || metric.pctChange || null,
+        signal: metric.signal || 'HOLD',
+        maGap: metric.maGap || (metric.ma?.gapPct ? safePercent(metric.ma.gapPct, 2) : null),
+        maGapNumeric: metric.maGap ? parseFloat(metric.maGap.replace('%', '')) || 0 :
+                      metric.ma?.gapPct ? metric.ma.gapPct * 100 : 0,
         signalColor: 
           metric.signal === 'BUY' ? 'text-green-400' :
           metric.signal === 'SELL' ? 'text-red-400' : 
@@ -149,18 +154,11 @@ const ETFMetricsTableOptimized = () => {
     })
     .filter((metric): metric is NonNullable<typeof metric> => metric !== null); // Remove null entries with type guard
 
-    console.log('🔍 Filtering Debug:', {
-      originalCount: data.data.length,
-      validCount: validMetrics.length,
-      filteredSymbols: validMetrics.map(m => m.symbol)
-    });
+    console.log('🔍 Processed metrics:', processed.length, 'items');
 
-    // Sort by symbol alphabetically instead of null compositeZScore values
-    return validMetrics.sort((a, b) => {
-      // Primary sort: by symbol alphabetically
-      return a.symbol.localeCompare(b.symbol);
-    });
-  }, [data?.data]);
+    // Sort by symbol alphabetically 
+    return processed.sort((a, b) => a.symbol.localeCompare(b.symbol));
+  }, [data]);
 
   if (isLoading) {
     return <LoadingSkeleton variant="table" rows={8} className="min-h-[400px]" />;
