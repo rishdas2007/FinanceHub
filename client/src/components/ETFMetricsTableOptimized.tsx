@@ -115,10 +115,15 @@ const ETFMetricsTableOptimized = () => {
       return [];
     }
 
-    return data.data.map(metric => {
+    const validMetrics = data.data.map(metric => {
       // Validate each metric has required fields
       if (!metric || typeof metric !== 'object') {
         console.warn('🚨 Invalid metric object:', metric);
+        return null;
+      }
+
+      if (!metric.symbol) {
+        console.warn('🚨 Metric missing symbol:', metric);
         return null;
       }
 
@@ -142,8 +147,19 @@ const ETFMetricsTableOptimized = () => {
           'bg-yellow-900/20 border-yellow-700'
       };
     })
-    .filter((metric): metric is NonNullable<typeof metric> => metric !== null) // Remove null entries with type guard
-    .sort((a, b) => Math.abs(safeComparison(b.compositeZScore)) - Math.abs(safeComparison(a.compositeZScore)));
+    .filter((metric): metric is NonNullable<typeof metric> => metric !== null); // Remove null entries with type guard
+
+    console.log('🔍 Filtering Debug:', {
+      originalCount: data.data.length,
+      validCount: validMetrics.length,
+      filteredSymbols: validMetrics.map(m => m.symbol)
+    });
+
+    // Sort by symbol alphabetically instead of null compositeZScore values
+    return validMetrics.sort((a, b) => {
+      // Primary sort: by symbol alphabetically
+      return a.symbol.localeCompare(b.symbol);
+    });
   }, [data?.data]);
 
   if (isLoading) {

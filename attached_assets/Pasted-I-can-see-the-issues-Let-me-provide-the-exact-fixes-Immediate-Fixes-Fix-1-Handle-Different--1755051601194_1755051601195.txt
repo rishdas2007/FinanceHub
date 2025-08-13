@@ -1,0 +1,74 @@
+I can see the issues! Let me provide the exact fixes:
+
+  Immediate Fixes
+
+  Fix 1: Handle Different API Response Structures
+
+  The issue is on line 51: if (!data?.metrics) return [];
+
+  // CURRENT (BROKEN):
+  if (!data?.metrics) return [];
+
+  // FIXED (handles both response formats):
+  const metricsArray = data?.metrics || data?.data || [];
+  if (!Array.isArray(metricsArray)) return [];
+
+  Fix 2: Map API Field Names to Frontend Expectations
+
+  // Add field mapping inside the .map() function:
+  return metricsArray.map(metric => ({
+    ...metric,
+    // Map API field names to frontend expectations
+    symbol: metric.symbol,
+    compositeZScore: metric.compositeZScore || metric.compositeZ || null,
+    rsi: metric.rsi || metric.rsi14 || metric.components?.rsi14 || null,
+    macdHistogram: metric.macdHistogram || metric.components?.macdZ ||
+  null,
+    bollingerB: metric.bollingerB || metric.components?.bbPctB || null,
+    priceChange: metric.priceChange || metric.pctChange || null,
+    signal: metric.signal || 'HOLD',
+    maGap: metric.maGap || (metric.ma?.gapPct ? `${(metric.ma.gapPct * 
+  100).toFixed(2)}%` : null),
+    maGapNumeric: metric.maGap ? parseFloat(metric.maGap.replace('%',
+  '')) || 0 :
+                  metric.ma?.gapPct ? metric.ma.gapPct * 100 : 0,
+    // ... rest of the mapping
+  }))
+
+  Fix 3: Add Debug Logging
+
+  const processedMetrics = useMemo(() => {
+    console.log('🔍 Raw API data:', { data, hasMetrics: !!data?.metrics,
+  hasData: !!data?.data });
+
+    const metricsArray = data?.metrics || data?.data || [];
+    console.log('🔍 Metrics array:', { type: typeof metricsArray, length:
+   metricsArray?.length, first: metricsArray?.[0] });
+
+    if (!Array.isArray(metricsArray)) {
+      console.warn('🚨 Metrics is not an array:', metricsArray);
+      return [];
+    }
+
+    const processed = metricsArray.map(metric => {
+      console.log('🔍 Processing metric:', metric?.symbol,
+  Object.keys(metric || {}));
+      return {
+        // ... mapping logic
+      };
+    });
+
+    console.log('🔍 Processed metrics:', processed.length, 'items');
+    return processed;
+  }, [data]);
+
+  Complete Fixed Code Block
+
+  Would you like me to provide the complete fixed processedMetrics
+  function, or would you prefer to implement these changes step by step
+  to see which one solves the issue?
+
+  The key insight is that your API is returning rsi14 but your frontend
+  is looking for rsi, and the response might be in data.data instead of
+  data.metrics.
+
