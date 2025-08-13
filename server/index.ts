@@ -322,35 +322,33 @@ app.use((req, res, next) => {
             }
           }
         },
-        // FRED scheduler disabled - not needed for z-score calculations
-        // {
-        //   name: 'fred-incremental-scheduler',
-        //   dependencies: ['data-scheduler'],
-        //   timeout: 5000,
-        //   initializer: async () => {
-        //     try {
-        //       fredSchedulerIncremental.start();
-        //       log('✅ FRED incremental scheduler started');
-        //     } catch (error) {
-        //       log('⚠️ FRED incremental scheduler failed to start:', String(error));
-        //     }
-        //   }
-        // },
-        // Economic data scheduler disabled - not needed for z-score calculations  
-        // {
-        //   name: 'economic-data-scheduler',
-        //   dependencies: ['fred-incremental-scheduler'],
-        //   timeout: 5000,
-        //   initializer: async () => {
-        //     try {
-        //       const { economicDataScheduler } = await import('./services/economic-data-scheduler');
-        //       economicDataScheduler.initialize();
-        //       log('🕐 Economic data release scheduler initialized for 10:15am weekday updates');
-        //     } catch (error) {
-        //       log('⚠️ Economic data scheduler failed to initialize:', String(error));
-        //     }
-        //   }
-        // },
+        {
+          name: 'fred-incremental-scheduler',
+          dependencies: ['data-scheduler'],
+          timeout: 5000,
+          initializer: async () => {
+            try {
+              fredSchedulerIncremental.start();
+              log('✅ FRED incremental scheduler started');
+            } catch (error) {
+              log('⚠️ FRED incremental scheduler failed to start:', String(error));
+            }
+          }
+        },
+        {
+          name: 'economic-data-scheduler',
+          dependencies: ['fred-incremental-scheduler'],
+          timeout: 5000,
+          initializer: async () => {
+            try {
+              const { economicDataScheduler } = await import('./services/economic-data-scheduler');
+              economicDataScheduler.initialize();
+              log('🕐 Economic data release scheduler initialized for 10:15am weekday updates');
+            } catch (error) {
+              log('⚠️ Economic data scheduler failed to initialize:', String(error));
+            }
+          }
+        },
         {
           name: 'historical-data-system',
           dependencies: ['data-scheduler'],

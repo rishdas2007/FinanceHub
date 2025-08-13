@@ -50,6 +50,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Health monitoring endpoints
   app.use('/api/health', (await import('./routes/health')).default);
   
+  // Phase 3: Manual Economic Data Refresh Endpoint
+  app.post('/api/admin/refresh-economic-data', async (req, res) => {
+    try {
+      console.log('🔄 Manual economic data refresh triggered');
+      
+      // Trigger immediate FRED data fetch
+      const { fredSchedulerIncremental } = await import('./services/fred-scheduler-incremental');
+      const result = await fredSchedulerIncremental.executeManualUpdate();
+      
+      console.log('✅ Economic data refresh completed');
+      res.json({ success: true, message: 'Economic data refresh triggered and completed' });
+    } catch (error) {
+      console.error('❌ Economic data refresh failed:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+  
   // FRED Cache Management endpoints
   // FRED cache routes removed - using unified cache system instead
   
