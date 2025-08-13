@@ -174,8 +174,8 @@ export class LiveZScoreCalculator {
       // Build SQL query with series ID restriction and deduplicate by metric_name 
       const seriesIdFilter = validSeriesIds.map(id => `'${id}'`).join(',');
       const sqlQuery = `
-        WITH latest_per_metric AS (
-          SELECT DISTINCT
+        WITH enriched_data AS (
+          SELECT 
             series_id,
             metric_name,
             -- Use monthly_change for employment metrics, value for others
@@ -188,91 +188,84 @@ export class LiveZScoreCalculator {
             category,
             type,
             unit,
-            ROW_NUMBER() OVER (
-              PARTITION BY metric_name 
-              ORDER BY period_date DESC, series_id ASC
-            ) as rn
+            -- Calculate prior values using LAG functions
+            LAG(
+              CASE 
+                WHEN metric_name ILIKE '%nonfarm%' OR metric_name ILIKE '%payroll%' OR metric_name ILIKE '%employment change%'
+                THEN COALESCE(monthly_change, value)
+                ELSE value 
+              END
+            ) OVER (PARTITION BY metric_name ORDER BY period_date) as prior_month_value,
+            -- Year-over-year calculation using LAG with frame
+            LAG(
+              CASE 
+                WHEN metric_name ILIKE '%nonfarm%' OR metric_name ILIKE '%payroll%' OR metric_name ILIKE '%employment change%'
+                THEN COALESCE(monthly_change, value)
+                ELSE value 
+              END,
+              12  -- 12 months back for annual comparison
+            ) OVER (PARTITION BY metric_name ORDER BY period_date) as prior_year_value
           FROM economic_indicators_history
           WHERE series_id IN (${seriesIdFilter})
             AND period_date IS NOT NULL
         ),
         
-        -- Calculate period-to-period changes for delta z-score
+        latest_per_metric AS (
+          SELECT 
+            *,
+            ROW_NUMBER() OVER (
+              PARTITION BY metric_name 
+              ORDER BY period_date DESC, series_id ASC
+            ) as rn
+          FROM enriched_data
+        ),
+        
+        -- Calculate period-to-period changes for delta z-score 
         period_changes AS (
           SELECT 
-            series_id,
             metric_name,
-            value,
+            current_value as value,
             period_date,
-            LAG(value) OVER (PARTITION BY metric_name ORDER BY period_date) as prev_value,
-            value - LAG(value) OVER (PARTITION BY metric_name ORDER BY period_date) as period_change
-          FROM economic_indicators_history
-          WHERE series_id IN (${seriesIdFilter})
-            AND period_date IS NOT NULL
+            prior_month_value as prev_value,
+            current_value - COALESCE(prior_month_value, 0) as period_change
+          FROM enriched_data
         )
         SELECT 
-          series_id,
-          metric_name,
-          current_value,
-          period_date,
-          category,
-          type,
-          unit,
-          (
-            SELECT 
-              CASE 
-                WHEN lpm.metric_name ILIKE '%nonfarm%' OR lpm.metric_name ILIKE '%payroll%' OR lpm.metric_name ILIKE '%employment change%'
-                THEN COALESCE(e2.monthly_change, e2.value)
-                -- For CPI inflation indicators, use year-over-year comparison
-                WHEN lpm.metric_name ILIKE '%cpi%' OR lpm.metric_name ILIKE '%inflation%'
-                THEN (
-                  SELECT e_yoy.value 
-                  FROM economic_indicators_history e_yoy 
-                  WHERE e_yoy.metric_name = lpm.metric_name 
-                    AND e_yoy.unit = lpm.unit
-                    AND e_yoy.period_date = lpm.period_date - INTERVAL '1 year'
-                  LIMIT 1
-                )
-                ELSE e2.value 
-              END
-            FROM economic_indicators_history e2 
-            WHERE e2.metric_name = lpm.metric_name 
-              AND e2.unit = lpm.unit
-              AND e2.period_date < lpm.period_date 
-            ORDER BY e2.period_date DESC 
-            LIMIT 1
-          ) as prior_value,
+          lpm.series_id,
+          lpm.metric_name,
+          lpm.current_value,
+          lpm.period_date,
+          lpm.category,
+          lpm.type,
+          lpm.unit,
+          -- Use LAG-calculated prior values with proper logic  
+          CASE 
+            WHEN lpm.metric_name ILIKE '%nonfarm%' OR lpm.metric_name ILIKE '%payroll%' OR lpm.metric_name ILIKE '%employment change%'
+            THEN lpm.prior_month_value
+            -- For CPI inflation indicators, use year-over-year comparison
+            WHEN lpm.metric_name ILIKE '%cpi%' OR lpm.metric_name ILIKE '%inflation%'
+            THEN COALESCE(lpm.prior_year_value, lpm.prior_month_value)
+            ELSE lpm.prior_month_value 
+          END as prior_value,
           
-          -- Calculate historical mean from last 12 months (same metric and unit type)
+          -- Calculate historical mean from last 12 months using enriched_data
           (
-            SELECT AVG(
-              CASE 
-                WHEN lpm.metric_name ILIKE '%nonfarm%' OR lpm.metric_name ILIKE '%payroll%' OR lpm.metric_name ILIKE '%employment change%'
-                THEN COALESCE(e3.monthly_change, e3.value)
-                ELSE e3.value 
-              END
-            ) 
-            FROM economic_indicators_history e3 
-            WHERE e3.metric_name = lpm.metric_name 
-              AND e3.unit = lpm.unit
-              AND e3.period_date < lpm.period_date 
-              AND e3.period_date >= lpm.period_date - INTERVAL '12 months'
+            SELECT AVG(ed_hist.current_value) 
+            FROM enriched_data ed_hist 
+            WHERE ed_hist.metric_name = lpm.metric_name 
+              AND ed_hist.unit = lpm.unit
+              AND ed_hist.period_date < lpm.period_date 
+              AND ed_hist.period_date >= lpm.period_date - INTERVAL '12 months'
           ) as historical_mean,
           
-          -- Calculate historical standard deviation from last 12 months (same metric and unit type)
+          -- Calculate historical standard deviation from last 12 months using enriched_data
           (
-            SELECT STDDEV(
-              CASE 
-                WHEN lpm.metric_name ILIKE '%nonfarm%' OR lpm.metric_name ILIKE '%payroll%' OR lpm.metric_name ILIKE '%employment change%'
-                THEN COALESCE(e4.monthly_change, e4.value)
-                ELSE e4.value 
-              END
-            ) 
-            FROM economic_indicators_history e4 
-            WHERE e4.metric_name = lpm.metric_name 
-              AND e4.unit = lpm.unit
-              AND e4.period_date < lpm.period_date 
-              AND e4.period_date >= lpm.period_date - INTERVAL '12 months'
+            SELECT STDDEV(ed_hist.current_value) 
+            FROM enriched_data ed_hist 
+            WHERE ed_hist.metric_name = lpm.metric_name 
+              AND ed_hist.unit = lpm.unit
+              AND ed_hist.period_date < lpm.period_date 
+              AND ed_hist.period_date >= lpm.period_date - INTERVAL '12 months'
           ) as historical_std,
           
           -- Calculate current period change (for delta z-score)
@@ -314,8 +307,8 @@ export class LiveZScoreCalculator {
           ) as delta_historical_std
           
         FROM latest_per_metric lpm
-        WHERE rn = 1
-        ORDER BY metric_name
+        WHERE lpm.rn = 1
+        ORDER BY lpm.metric_name
       `;
       
       const zScoreData = await db.execute(sql.raw(sqlQuery));

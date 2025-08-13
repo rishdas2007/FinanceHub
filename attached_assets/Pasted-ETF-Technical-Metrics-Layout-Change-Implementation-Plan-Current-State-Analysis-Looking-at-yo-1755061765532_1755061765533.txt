@@ -1,0 +1,175 @@
+ETF Technical Metrics Layout Change - Implementation Plan
+
+  Current State Analysis
+
+  Looking at your ETF table, you currently have:
+  Symbol | Z-Score | Signal | RSI | MACD | %B | MA Gap | Change
+  SPY    | 1.3400  | SELL   | 66.3| 1.200| 50.0%| 16.32%| +0.78%
+
+  Desired State
+
+  Symbol     | Z-Score | Signal | RSI | MACD | %B | MA Gap
+  SPY        | 1.3400  | SELL   | 66.3| 1.200| 50.0%| 16.32%
+  +0.78%     |         |        |     |      |     |
+
+  Implementation Plan
+
+  Phase 1: Frontend Component Update (10 minutes)
+
+  Step 1.1: Modify Table Header
+
+  File: client/src/components/ETFMetricsTableOptimized.tsx (header
+  section)
+
+  REMOVE the Change column header:
+  // REMOVE this <th>:
+  <th className="px-3 py-2 text-left text-xs font-medium text-gray-300 
+  uppercase tracking-wider">
+    Change
+  </th>
+
+  Step 1.2: Update Symbol Cell Layout
+
+  File: client/src/components/ETFMetricsTableOptimized.tsx (table body)
+
+  CHANGE FROM (current single-line symbol):
+  <td className="p-3 font-mono font-bold text-white">
+    {metric.symbol}
+  </td>
+
+  CHANGE TO (symbol + change in same cell):
+  <td className="p-3 font-mono">
+    <div className="flex flex-col">
+      <span className="font-bold text-white text-sm">
+        {metric.symbol}
+      </span>
+      <span className={`text-xs font-mono ${
+        (metric.priceChange || 0) >= 0
+          ? 'text-gain-green'
+          : 'text-loss-red'
+      }`}>
+        {metric.priceChange !== null
+          ? `${(metric.priceChange || 0) >= 0 ? '+' :
+  ''}${safeToFixed(metric.priceChange, 2)}%`
+          : 'N/A'
+        }
+      </span>
+    </div>
+  </td>
+
+  Step 1.3: Remove Change Column Cell
+
+  REMOVE the entire change column cell:
+  // DELETE this entire <td> block:
+  <td className="p-3 text-right">
+    <span className={`font-mono text-sm ${
+      (metric.priceChange || 0) >= 0 ? 'text-gain-green' :
+  'text-loss-red'
+    }`}>
+      {metric.priceChange !== null ? `${(metric.priceChange || 0) >= 0 ?
+  '+' : ''}${safeToFixed(metric.priceChange, 2)}%` : 'N/A'}
+    </span>
+  </td>
+
+  Phase 2: CSS/Styling Adjustments (5 minutes)
+
+  Step 2.1: Adjust Table Column Widths
+
+  Since we're removing a column, we may need to adjust the remaining
+  column widths:
+
+  File: client/src/components/ETFMetricsTableOptimized.tsx
+
+  Add CSS classes to redistribute space:
+  <table className="min-w-full divide-y divide-financial-border">
+    <thead className="bg-financial-dark">
+      <tr>
+        <th className="w-20 px-3 py-2...">Symbol</th>  {/* Slightly wider
+   for symbol+change */}
+        <th className="w-24 px-3 py-2...">Z-Score</th>
+        <th className="w-20 px-3 py-2...">Signal</th>
+        <th className="w-16 px-3 py-2...">RSI</th>
+        <th className="w-20 px-3 py-2...">MACD</th>
+        <th className="w-16 px-3 py-2...">%B</th>
+        <th className="w-20 px-3 py-2...">MA Gap</th>
+      </tr>
+    </thead>
+  </table>
+
+  Step 2.2: Adjust Symbol Cell Spacing
+
+  Make sure the symbol + change layout looks good:
+
+  <td className="p-3 font-mono w-20"> {/* Add width constraint */}
+    <div className="flex flex-col gap-0.5"> {/* Add small gap between 
+  symbol and change */}
+      <span className="font-bold text-white text-sm leading-tight">
+        {metric.symbol}
+      </span>
+      <span className={`text-xs font-mono leading-tight ${
+        (metric.priceChange || 0) >= 0
+          ? 'text-gain-green'
+          : 'text-loss-red'
+      }`}>
+        {/* Price change display */}
+      </span>
+    </div>
+  </td>
+
+  Phase 3: Footer/Summary Update (2 minutes)
+
+  Step 3.1: Update Signals Summary
+
+  The footer currently shows:
+  Signals: 2 BUY, 4 SELL, 6 HOLD                Total: 12 ETFs
+
+  Since we're not changing the data, just the layout, the footer stays
+  the same.
+
+  Phase 4: Testing & Validation (5 minutes)
+
+  Step 4.1: Visual Verification Checklist
+
+  - Symbol column shows both symbol and change
+  - Change column is completely removed
+  - Color coding works (green for positive, red for negative)
+  - Table alignment looks good
+  - All other columns remain functional
+
+  Step 4.2: Responsive Design Check
+
+  - Layout works on mobile devices
+  - Text doesn't overflow in symbol column
+  - Table scrolls properly if needed
+
+  Code Changes Summary
+
+  File: client/src/components/ETFMetricsTableOptimized.tsx
+
+  Lines to Modify:
+  1. Header row: Remove <th>Change</th>
+  2. Symbol cell: Change from single span to div with two spans
+  3. Remove: Entire change column <td> block
+  4. Optional: Adjust table column widths
+
+  Expected Visual Result:
+
+  ┌─────────┬─────────┬────────┬─────┬──────┬─────┬────────┐
+  │ Symbol  │ Z-Score │ Signal │ RSI │ MACD │ %B  │ MA Gap │
+  ├─────────┼─────────┼────────┼─────┼──────┼─────┼────────┤
+  │ SPY     │ 1.3400  │ SELL   │66.3 │1.200 │50.0%│16.32% │
+  │ +0.78%  │         │        │     │      │     │        │
+  ├─────────┼─────────┼────────┼─────┼──────┼─────┼────────┤
+  │ XLB     │ -0.3400 │ HOLD   │51.0 │0.200 │50.1%│ 0.96% │
+  │ +1.36%  │         │        │     │      │     │        │
+  └─────────┴─────────┴────────┴─────┴──────┴─────┴────────┘
+
+  Advantages of This Approach:
+
+  - ✅ More compact table (one less column)
+  - ✅ Better space utilization
+  - ✅ Keeps all important data visible
+  - ✅ Logical grouping (symbol with its change)
+  - ✅ Maintains color coding for quick identification
+
+  Implementation Time: ~22 minutes total
