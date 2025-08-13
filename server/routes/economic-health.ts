@@ -1,13 +1,68 @@
 import { Router } from 'express';
 import { EconomicHealthCalculator } from '../services/economic-health-calculator.js';
 import { StatisticalHealthCalculator } from '../services/statistical-health-calculator.js';
-import { EconomicInsightsSynthesizer } from '../services/economic-insights-synthesizer.js';
 import { logger } from '../utils/logger.js';
+import type { EconomicHealthScore } from '../services/economic-health-calculator.js';
 
 const router = Router();
 const healthCalculator = new EconomicHealthCalculator();
 const statisticalHealthCalculator = new StatisticalHealthCalculator();
-const insightsSynthesizer = new EconomicInsightsSynthesizer();
+// Static insights generation (no AI required)
+function generateStaticInsights(healthScore: EconomicHealthScore) {
+  const { overallScore, healthGrade, trendDirection } = healthScore;
+  
+  const insights = {
+    narrative: `Economic conditions show ${healthGrade.toLowerCase()} performance with an overall score of ${overallScore}. Core indicators reveal ${
+      overallScore >= 70 ? 'strong fundamentals' :
+      overallScore >= 55 ? 'mixed signals' :
+      'challenging conditions'
+    } across key metrics. Market relationships ${
+      overallScore >= 65 ? 'remain well-coordinated' : 'show some volatility'
+    }.`,
+    
+    recommendations: overallScore >= 70 ? [
+      'Consider growth-oriented strategies',
+      'Monitor for potential cycle peaks',
+      'Maintain balanced allocation'
+    ] : overallScore >= 55 ? [
+      'Adopt defensive positioning',
+      'Increase diversification',
+      'Monitor key indicators closely'
+    ] : [
+      'Implement risk-off strategies',
+      'Focus on capital preservation',
+      'Prepare for potential downturn'
+    ],
+    
+    nextKeyEvent: {
+      date: '2025-08-15',
+      event: 'Consumer Price Index',
+      expectedImpact: 'HIGH' as const
+    },
+    
+    alertLevel: overallScore < 35 ? 'CRITICAL' as const :
+                overallScore < 50 ? 'HIGH' as const :
+                overallScore < 65 ? 'MEDIUM' as const :
+                'LOW' as const,
+    
+    sectorGuidance: {
+      opportunities: overallScore >= 70 ? 
+        ['Technology growth potential', 'Financial sector strength'] :
+        ['Defensive healthcare', 'Utility stability'],
+      risks: overallScore >= 70 ? 
+        ['Interest rate sensitivity'] :
+        ['Cyclical sector exposure', 'Credit risks']
+    },
+    
+    riskFactors: overallScore < 50 ? 
+      ['Economic weakness across indicators', 'Elevated market stress'] :
+      ['Normal market volatility'],
+    
+    confidence: Math.max(60, Math.min(90, 70 + (overallScore - 50) * 0.4))
+  };
+  
+  return insights;
+}
 
 // Get comprehensive economic health score (original method)
 router.get('/health-score', async (req, res) => {
@@ -45,13 +100,13 @@ router.get('/statistical-score', async (req, res) => {
   }
 });
 
-// Get economic insights and recommendations
+// Get economic insights and recommendations (static version)
 router.get('/insights', async (req, res) => {
   try {
-    logger.info('🧠 Economic insights request');
+    logger.info('📊 Economic insights request');
     
     const healthScore = await healthCalculator.calculateEconomicHealthScore();
-    const insights = await insightsSynthesizer.generateInsights(healthScore);
+    const insights = generateStaticInsights(healthScore);
     
     res.json({
       insights,
@@ -69,12 +124,10 @@ router.get('/dashboard', async (req, res) => {
   try {
     logger.info('📊 Economic health dashboard request');
     
-    const [healthScore, insights] = await Promise.all([
-      healthCalculator.calculateEconomicHealthScore(),
-      healthCalculator.calculateEconomicHealthScore().then(score => 
-        insightsSynthesizer.generateInsights(score)
-      )
-    ]);
+    const healthScore = await healthCalculator.calculateEconomicHealthScore();
+    
+    // Generate static insights based on health score (no AI required)
+    const insights = generateStaticInsights(healthScore);
     
     res.json({
       economicHealthScore: healthScore.overallScore,

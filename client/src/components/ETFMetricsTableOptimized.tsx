@@ -14,8 +14,9 @@ const safeToFixed = (value: number | null | undefined, digits: number = 2): stri
 };
 
 const safePercent = (value: number | null | undefined, digits: number = 1): string => {
-  if (value === null || value === undefined || isNaN(value)) return 'N/A';
-  return `${Number(value * 100).toFixed(digits)}%`;
+  if (value === null || value === undefined || isNaN(Number(value))) return 'N/A';
+  const numValue = Number(value);
+  return `${(numValue * 100).toFixed(digits)}%`;
 };
 
 const safeComparison = (value: number | null | undefined, defaultValue: number = 0): number => {
@@ -146,7 +147,7 @@ const ETFMetricsTableOptimized = () => {
           const zScore = metric.compositeZ || 0;
           return zScore >= 0.75 ? 'SELL' : zScore <= -0.75 ? 'BUY' : 'HOLD';
         })(),
-        maGap: (metric.ma?.gapPct ? safePercent(metric.ma.gapPct, 2) : null),
+        maGap: (metric.ma?.gapPct !== null && metric.ma?.gapPct !== undefined) ? safePercent(metric.ma.gapPct, 2) : 'N/A',
         maGapNumeric: metric.ma?.gapPct ? metric.ma.gapPct * 100 : 0,
         signalColor: 
           metric.signal === 'BUY' ? 'text-green-400' :
@@ -301,7 +302,7 @@ const ETFMetricsTableOptimized = () => {
                       safeComparison(metric.maGapNumeric) <= -2 ? 'text-red-400' :
                       'text-gray-300'
                     }`}>
-                      {metric.maGap || 'N/A'}
+                      {metric.maGap !== null && metric.maGap !== undefined ? metric.maGap : 'N/A'}
                     </div>
                   </td>
                   
