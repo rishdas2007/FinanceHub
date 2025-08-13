@@ -140,9 +140,12 @@ const ETFMetricsTableOptimized = () => {
         symbol: metric.symbol,
         compositeZScore: metric.compositeZ || null,
         rsi: metric.components?.rsi14 || null,
+        rsiZ: metric.components?.rsi14 ? ((metric.components.rsi14 - 50) / 15) : null, // Calculate RSI Z-score
         macdZ: metric.components?.macdZ || null,
         bbPctB: metric.components?.bbPctB || null,
+        bbZ: metric.components?.bbPctB ? ((metric.components.bbPctB - 0.5) / 0.3) : null, // Calculate Bollinger %B Z-score
         pctChangeFormatted: metric.pctChange || null,
+        maGapZ: metric.ma?.gapPct ? (metric.ma.gapPct * 100 / 5) : null, // Calculate MA Gap Z-score
         signal: (() => {
           const zScore = metric.compositeZ || 0;
           return zScore >= 0.75 ? 'SELL' : zScore <= -0.75 ? 'BUY' : 'HOLD';
@@ -269,40 +272,60 @@ const ETFMetricsTableOptimized = () => {
                   </td>
                   
                   <td className="p-3 text-center" data-testid={`rsi-${metric.symbol}`}>
-                    <div className={`font-mono text-sm ${
-                      safeComparison(metric.rsi) >= 70 ? 'text-red-400' :
-                      safeComparison(metric.rsi) <= 30 ? 'text-green-400' :
-                      'text-gray-300'
-                    }`}>
-                      {safeToFixed(metric.rsi, 1)}
+                    <div className="flex flex-col items-center">
+                      <div className={`font-mono text-sm ${
+                        safeComparison(metric.rsi) >= 70 ? 'text-red-400' :
+                        safeComparison(metric.rsi) <= 30 ? 'text-green-400' :
+                        'text-gray-300'
+                      }`}>
+                        {safeToFixed(metric.rsi, 1)}
+                      </div>
+                      <div className="text-xs text-gray-500 font-mono">
+                        Z: {safeToFixed(metric.rsiZ, 2)}
+                      </div>
                     </div>
                   </td>
                   
                   <td className="p-3 text-center" data-testid={`macd-${metric.symbol}`}>
-                    <div className={`font-mono text-xs ${
-                      safeComparison(metric.macdZ) > 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {safeToFixed(metric.macdZ, 3)}
+                    <div className="flex flex-col items-center">
+                      <div className={`font-mono text-xs ${
+                        safeComparison(metric.macdZ) > 0 ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        MACD
+                      </div>
+                      <div className="text-xs text-gray-500 font-mono">
+                        Z: {safeToFixed(metric.macdZ, 2)}
+                      </div>
                     </div>
                   </td>
                   
                   <td className="p-3 text-center" data-testid={`bollinger-${metric.symbol}`}>
-                    <div className={`font-mono text-sm ${
-                      safeComparison(metric.bbPctB) >= 0.8 ? 'text-red-400' :
-                      safeComparison(metric.bbPctB) <= 0.2 ? 'text-green-400' :
-                      'text-gray-300'
-                    }`}>
-                      {safePercent(metric.bbPctB, 1)}
+                    <div className="flex flex-col items-center">
+                      <div className={`font-mono text-sm ${
+                        safeComparison(metric.bbPctB) >= 0.8 ? 'text-red-400' :
+                        safeComparison(metric.bbPctB) <= 0.2 ? 'text-green-400' :
+                        'text-gray-300'
+                      }`}>
+                        {safePercent(metric.bbPctB, 1)}
+                      </div>
+                      <div className="text-xs text-gray-500 font-mono">
+                        Z: {safeToFixed(metric.bbZ, 2)}
+                      </div>
                     </div>
                   </td>
                   
                   <td className="p-3 text-center" data-testid={`ma-gap-${metric.symbol}`}>
-                    <div className={`font-mono text-sm ${
-                      safeComparison(metric.maGapNumeric) >= 2 ? 'text-green-400' :
-                      safeComparison(metric.maGapNumeric) <= -2 ? 'text-red-400' :
-                      'text-gray-300'
-                    }`}>
-                      {metric.maGap !== null && metric.maGap !== undefined ? metric.maGap : 'N/A'}
+                    <div className="flex flex-col items-center">
+                      <div className={`font-mono text-sm ${
+                        safeComparison(metric.maGapNumeric) >= 2 ? 'text-green-400' :
+                        safeComparison(metric.maGapNumeric) <= -2 ? 'text-red-400' :
+                        'text-gray-300'
+                      }`}>
+                        {metric.maGap !== null && metric.maGap !== undefined ? metric.maGap : 'N/A'}
+                      </div>
+                      <div className="text-xs text-gray-500 font-mono">
+                        Z: {safeToFixed(metric.maGapZ, 2)}
+                      </div>
                     </div>
                   </td>
                   
