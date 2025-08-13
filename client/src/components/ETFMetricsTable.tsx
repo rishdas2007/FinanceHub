@@ -414,29 +414,11 @@ const ETFRow = memo(function ETFRow({
 });
 
 export default function ETFMetricsTable() {
-  // Performance monitoring
-  const perfMonitor = PerformanceMonitor.getInstance();
-  
   // Use the new defensive hook
   const { data, isLoading, isError } = useEtfMetrics('60D');
 
   // Extract rows defensively
   const etfMetrics = data?.rows ?? [];
-  
-  // Performance tracking for table rendering
-  const endTiming = useMemo(() => {
-    if (etfMetrics.length > 0) {
-      return perfMonitor.startTiming('etf-table-render');
-    }
-    return () => {};
-  }, [etfMetrics.length, perfMonitor]);
-  
-  // Complete timing measurement
-  useMemo(() => {
-    if (etfMetrics.length > 0) {
-      endTiming();
-    }
-  }, [etfMetrics, endTiming]);
 
   // Show loading only if we truly have no data yet
   if (isLoading && etfMetrics.length === 0) {

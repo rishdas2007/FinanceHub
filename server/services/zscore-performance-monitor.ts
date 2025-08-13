@@ -44,13 +44,14 @@ export class ZScorePerformanceMonitor {
    * Start continuous performance monitoring
    */
   private startMonitoring(): void {
-    // Monitor system resources every 30 seconds
+    // Reduce monitoring frequency during high load - was causing performance feedback loop
+    const intervalMs = process.env.HIGH_LOAD_MODE === 'true' ? 120000 : 60000; // 2min vs 1min (was 30s)
     this.monitoringInterval = setInterval(() => {
       this.collectSystemMetrics();
       this.analyzePerformanceTrends();
-    }, 30000);
+    }, intervalMs);
 
-    logger.info('🔍 Performance monitoring started');
+    logger.info(`🔍 Performance monitoring started (${intervalMs/1000}s intervals)`);
   }
 
   /**
@@ -251,13 +252,13 @@ export class ZScorePerformanceMonitor {
     const errorCount = Array.from(this.metrics.errorRates.values()).reduce((sum, count) => sum + count, 0);
     const errorRate = this.totalCalculations > 0 ? (errorCount / this.totalCalculations) * 100 : 0;
 
-    // Critical conditions
-    if (avgTime > 5000 || errorRate > 10 || cacheHitRate < 30) {
+    // Critical conditions - increased thresholds for production
+    if (avgTime > 10000 || errorRate > 15 || cacheHitRate < 20) {
       return 'critical';
     }
 
-    // Warning conditions
-    if (avgTime > 2000 || errorRate > 5 || cacheHitRate < 60) {
+    // Warning conditions - adjusted for production
+    if (avgTime > 5000 || errorRate > 8 || cacheHitRate < 40) {
       return 'warning';
     }
 

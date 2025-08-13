@@ -21,7 +21,7 @@ class PerformanceOptimizer {
     maxMemoryMB: 1024, // 1GB threshold
     maxResponseTimeMs: 500, // 500ms max response time
     maxCpuUsage: 80, // 80% CPU usage threshold
-    maxLoadAverage: 4.0 // Load average threshold
+    maxLoadAverage: 8.0 // Load average threshold - increased for production
   };
 
   private metricsHistory: SystemMetrics[] = [];

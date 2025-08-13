@@ -4,6 +4,8 @@ import { desc, eq, and, gte, sql } from 'drizzle-orm';
 import { cacheService } from './cache-unified';
 import { logger } from '../middleware/logging';
 import { zscoreTechnicalService } from './zscore-technical-service';
+import { etfMetricsCircuitBreaker } from '../middleware/circuit-breaker';
+import { performanceBudgetMonitor } from '../middleware/performance-budget';
 import { welfordStats, hasSufficientData, zScore, calculateRSI } from '@shared/utils/statistics';
 import { validateEtfPayload, createContentETag, validatePriceSanity, type PayloadMetadata } from './validatePayload';
 
@@ -119,21 +121,25 @@ class ETFMetricsService {
     const startTime = Date.now();
     
     try {
-      // 1. Check fast cache first (market hours optimization)
-      const fastCached = cacheService.get(this.FAST_CACHE_KEY);
-      if (fastCached) {
-        logger.info(`⚡ ETF metrics served from FAST cache (${Date.now() - startTime}ms)`);
-        return fastCached as ETFMetrics[];
-      }
+      // Phase 4: Circuit breaker protection
+      return await etfMetricsCircuitBreaker.execute(async () => {
+        // 1. Check fast cache first (market hours optimization)
+        const fastCached = cacheService.get(this.FAST_CACHE_KEY);
+        if (fastCached) {
+          logger.info(`⚡ ETF metrics served from FAST cache (${Date.now() - startTime}ms)`);
+          performanceBudgetMonitor.recordMetric('etf-metrics', Date.now() - startTime, process.memoryUsage().heapUsed / 1024 / 1024);
+          return fastCached as ETFMetrics[];
+        }
 
-      // 2. Check standard cache
-      const cached = cacheService.get(this.CACHE_KEY);
-      if (cached) {
-        // Store in fast cache for next request
-        cacheService.set(this.FAST_CACHE_KEY, cached, this.FAST_CACHE_TTL);
-        logger.info(`📊 ETF metrics served from cache (${Date.now() - startTime}ms)`);
-        return cached as ETFMetrics[];
-      }
+        // 2. Check standard cache
+        const cached = cacheService.get(this.CACHE_KEY);
+        if (cached) {
+          // Store in fast cache for next request
+          cacheService.set(this.FAST_CACHE_KEY, cached, this.FAST_CACHE_TTL);
+          logger.info(`📊 ETF metrics served from cache (${Date.now() - startTime}ms)`);
+          performanceBudgetMonitor.recordMetric('etf-metrics', Date.now() - startTime, process.memoryUsage().heapUsed / 1024 / 1024);
+          return cached as ETFMetrics[];
+        }
 
       // 3. CRITICAL: Get latest available price data 
       const latestPrices = await this.getLatestPricesFromDB();
@@ -239,14 +245,22 @@ class ETFMetricsService {
         }
       }
 
-      // 8. Cache results in both standard and fast cache with data provenance
-      cacheService.set(this.CACHE_KEY, etfMetrics, this.CACHE_TTL);
-      cacheService.set(this.FAST_CACHE_KEY, etfMetrics, this.FAST_CACHE_TTL);
-      
-      const priceInfo = etfMetrics.map(e => `${e.symbol}:$${e.price}`).join(', ');
-      logger.info(`⚡ ETF metrics consolidated from database and cached (${Date.now() - startTime}ms, ${etfMetrics.length} ETFs) - ${priceInfo}`);
-      return etfMetrics;
+        // 8. Cache results in both standard and fast cache with data provenance
+        cacheService.set(this.CACHE_KEY, etfMetrics, this.CACHE_TTL);
+        cacheService.set(this.FAST_CACHE_KEY, etfMetrics, this.FAST_CACHE_TTL);
+        
+        const priceInfo = etfMetrics.map(e => `${e.symbol}:$${e.price}`).join(', ');
+        logger.info(`⚡ ETF metrics consolidated from database and cached (${Date.now() - startTime}ms, ${etfMetrics.length} ETFs) - ${priceInfo}`);
+        
+        // Record performance metrics
+        performanceBudgetMonitor.recordMetric('etf-metrics', Date.now() - startTime, process.memoryUsage().heapUsed / 1024 / 1024);
+        
+        return etfMetrics;
+      }); // Close circuit breaker execution
 
+    } catch (circuitBreakerError) {
+      logger.error('🚨 Circuit breaker triggered for ETF metrics:', circuitBreakerError);
+      return this.getFallbackMetrics();
     } catch (error) {
       logger.error('❌ ETF metrics service error:', error);
       return this.getFallbackMetrics();

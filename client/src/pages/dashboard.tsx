@@ -6,7 +6,7 @@ import MacroeconomicIndicators from "@/components/MacroeconomicIndicators";
 import { AIEconomicAnalysis } from "@/components/AIEconomicAnalysis";
 import { StatisticalAlertSystem } from "@/components/StatisticalAlertSystem";
 import { EconomicPulseCheck } from "@/components/EconomicPulseCheck";
-import ETFMetricsTable from "@/components/ETFMetricsTable";
+import ETFMetricsTableOptimized from "@/components/ETFMetricsTableOptimized";
 
 import { lazy, Suspense } from "react";
 
@@ -84,7 +84,7 @@ export default function Dashboard() {
 
 
         {/* Breakout Analysis - Real-time squeeze and breakout monitoring */}
-        <ETFMetricsTable />
+        <ETFMetricsTableOptimized />
 
         {/* Enhanced Economic Health Dashboard - Original + Statistical Methods */}
 

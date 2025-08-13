@@ -36,9 +36,9 @@ const ETFMetricsTableOptimized = () => {
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       return res.json();
     }),
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 0, // Disable automatic refetch
+    staleTime: 60 * 1000, // 1 minute (align with server cache)
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchInterval: 10 * 60 * 1000, // 10 minutes (reduced from frequent refreshes)
   });
 
   const handleRefresh = () => {
@@ -52,7 +52,7 @@ const ETFMetricsTableOptimized = () => {
     
     return data.metrics.map(metric => ({
       ...metric,
-      maGapNumeric: parseFloat(metric.maGap.replace('%', '')) || 0,
+      maGapNumeric: parseFloat((metric.maGap || '0').replace('%', '')) || 0,
       signalColor: 
         metric.signal === 'BUY' ? 'text-green-400' :
         metric.signal === 'SELL' ? 'text-red-400' : 

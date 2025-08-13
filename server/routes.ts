@@ -220,8 +220,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const startTime = Date.now();
     try {
       console.log('⚡ Fast Dashboard Route: GET /api/etf-metrics (Market-Aware)');
-      const { etfMetricsService } = await import('./services/etf-metrics-service');
       
+      // Phase 3: Aggressive caching - check cache first
+      const cacheKey = `etf-metrics-consolidated-${req.query.horizon || '60D'}`;
+      const cached = await cacheService.get(cacheKey);
+      
+      if (cached) {
+        console.log(`🚀 Cache hit for ETF metrics (${Date.now() - startTime}ms)`);
+        const cachedData = JSON.parse(cached);
+        return res.json({
+          ...cachedData,
+          cached: true,
+          cacheHit: true,
+          responseTime: Date.now() - startTime
+        });
+      }
+      
+      const { etfMetricsService } = await import('./services/etf-metrics-service');
       const rawMetrics = await etfMetricsService.getConsolidatedETFMetrics();
       
       // FIX: Ensure metrics is always an array (never null)
@@ -230,8 +245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const responseTime = Date.now() - startTime;
       console.log(`⚡ ETF Metrics response time: ${responseTime}ms`);
       
-      // STABLE RESPONSE FORMAT: Always return consistent data shape
-      res.json({
+      const responseData = {
         success: true,
         data: { rows: metrics, meta: { count: metrics.length, horizon: req.query.horizon || '60D' } },
         metrics, // Keep legacy field for backward compatibility
@@ -239,7 +253,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString(),
         source: 'fast-market-aware-pipeline',
         responseTime: responseTime
-      });
+      };
+      
+      // Cache for 2 minutes (aggressive caching for performance)
+      await cacheService.set(cacheKey, JSON.stringify(responseData), 120);
+      
+      res.json(responseData);
     } catch (error) {
       console.error('❌ ETF metrics error:', error);
       // Return 200 with graceful fallback instead of 500 error
@@ -248,6 +267,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data: { rows: [] }, // Always provide empty array on error
         warning: "data_temporarily_unavailable",
         message: "ETF metrics temporarily unavailable, please try again in a moment",
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Performance monitoring endpoint
+  app.get('/api/performance/status', async (req, res) => {
+    try {
+      const { performanceBudgetMonitor } = await import('./middleware/performance-budget');
+      const { etfMetricsCircuitBreaker } = await import('./middleware/circuit-breaker');
+      
+      res.json({
+        success: true,
+        performance: {
+          budgets: performanceBudgetMonitor.getAllBudgetStatuses(),
+          circuitBreakers: {
+            etfMetrics: etfMetricsCircuitBreaker.getStatus()
+          }
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get performance status',
         timestamp: new Date().toISOString()
       });
     }
