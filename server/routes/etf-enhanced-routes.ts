@@ -91,6 +91,13 @@ router.get('/metrics', async (req, res) => {
     const featuresMap = new Map(featuresArray.map(f => [f.symbol as string, f]));
     const pricesMap = new Map(pricesArray.map(p => [p.symbol as string, p]));
     
+    // Add debug logging before processing
+    console.log('🔍 ETF API Debug - Raw features data:', {
+      SPY: featuresMap.get('SPY'),
+      XLV: featuresMap.get('XLV'), 
+      XLB: featuresMap.get('XLB')
+    });
+
     // Build response
     const metrics: ETFMetricsResponse[] = ETF_UNIVERSE.map(symbol => {
       const features = featuresMap.get(symbol);
@@ -116,9 +123,12 @@ router.get('/metrics', async (req, res) => {
         components: {
           macdZ: features?.macd_z_60d ? Number(features.macd_z_60d) : null,
           rsi14: features?.rsi14 ? Number(features.rsi14) : null,
+          rsiZ: features?.rsi_z_60d ? Number(features.rsi_z_60d) : null, // Use real RSI Z-score from DB
           bbPctB: features?.bb_pctb_20 ? Number(features.bb_pctb_20) : null,
+          bbZ: features?.bb_z_60d ? Number(features.bb_z_60d) : null, // Use real Bollinger Z-score from DB
           maGapPct: features?.ma_gap_pct ? Number(features.ma_gap_pct) : null,
-          mom5dZ: null // Calculated from price momentum z-score
+          maGapZ: features?.ma_gap_z_60d ? Number(features.ma_gap_z_60d) : null, // Use real MA Gap Z-score from DB
+          mom5dZ: features?.mom5d_z_60d ? Number(features.mom5d_z_60d) : null // Use real momentum Z-score from DB
         },
         ma: {
           ma50: features?.ma50 ? Number(features.ma50) : null,
@@ -136,6 +146,11 @@ router.get('/metrics', async (req, res) => {
           avgDollarVol20d: features?.vol_dollar_20d ? Number(features.vol_dollar_20d) : null
         }
       };
+    });
+
+    console.log('🔍 ETF API Debug - Processed metrics:', {
+      totalSymbols: metrics.length,
+      sampleMetrics: metrics.slice(0, 3)
     });
     
     res.json({

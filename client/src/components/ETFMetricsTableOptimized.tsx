@@ -140,12 +140,12 @@ const ETFMetricsTableOptimized = () => {
         symbol: metric.symbol,
         compositeZScore: metric.compositeZ || null,
         rsi: metric.components?.rsi14 || null,
-        rsiZ: metric.components?.rsi14 ? ((metric.components.rsi14 - 50) / 15) : null, // Calculate RSI Z-score
+        rsiZ: metric.components?.rsiZ || null, // Use real RSI Z-score from API
         macdZ: metric.components?.macdZ || null,
         bbPctB: metric.components?.bbPctB || null,
-        bbZ: metric.components?.bbPctB ? ((metric.components.bbPctB - 0.5) / 0.3) : null, // Calculate Bollinger %B Z-score
+        bbZ: metric.components?.bbZ || null, // Use real Bollinger Z-score from API
         pctChangeFormatted: metric.pctChange || null,
-        maGapZ: metric.ma?.gapPct ? (metric.ma.gapPct * 100 / 5) : null, // Calculate MA Gap Z-score
+        maGapZ: metric.components?.maGapZ || null, // Use real MA Gap Z-score from API
         signal: (() => {
           const zScore = metric.compositeZ || 0;
           return zScore >= 0.75 ? 'SELL' : zScore <= -0.75 ? 'BUY' : 'HOLD';
