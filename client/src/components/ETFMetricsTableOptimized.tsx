@@ -127,29 +127,27 @@ const ETFMetricsTableOptimized = () => {
         return null;
       }
 
-      console.log(`🔍 ${metric.symbol} fields:`, {
-        compositeZScore: metric.compositeZScore,
+      console.log(`🔍 ${metric.symbol} Z-Score debug:`, {
         compositeZ: metric.compositeZ,
-        macdHistogram: metric.macdHistogram,
         macdZ: metric.components?.macdZ,
-        maGap: metric.maGap,
-        maGapPct: metric.ma?.gapPct,
-        allKeys: Object.keys(metric)
+        allNumericFields: Object.entries(metric).filter(([k,v]) => typeof v === 'number')
       });
 
       return {
         ...metric,
-        // Map API field names to frontend expectations with fallbacks
+        // Map API field names to frontend expectations with comprehensive fallbacks
         symbol: metric.symbol,
-        compositeZScore: metric.compositeZScore || metric.compositeZ || null,
-        rsi: metric.rsi || metric.rsi14 || metric.components?.rsi14 || null,
-        macdZ: metric.macdHistogram || metric.components?.macdZ || null,
-        bbPctB: metric.bollingerB || metric.components?.bbPctB || null,
-        pctChangeFormatted: metric.priceChange || metric.pctChange || null,
-        signal: metric.signal || 'HOLD',
-        maGap: metric.maGap || (metric.ma?.gapPct ? safePercent(metric.ma.gapPct, 2) : null),
-        maGapNumeric: metric.maGap ? parseFloat(metric.maGap.replace('%', '')) || 0 :
-                      metric.ma?.gapPct ? metric.ma.gapPct * 100 : 0,
+        compositeZScore: metric.compositeZ || null,
+        rsi: metric.components?.rsi14 || null,
+        macdZ: metric.components?.macdZ || null,
+        bbPctB: metric.components?.bbPctB || null,
+        pctChangeFormatted: metric.pctChange || null,
+        signal: (() => {
+          const zScore = metric.compositeZ || 0;
+          return zScore >= 0.75 ? 'SELL' : zScore <= -0.75 ? 'BUY' : 'HOLD';
+        })(),
+        maGap: (metric.ma?.gapPct ? safePercent(metric.ma.gapPct, 2) : null),
+        maGapNumeric: metric.ma?.gapPct ? metric.ma.gapPct * 100 : 0,
         signalColor: 
           metric.signal === 'BUY' ? 'text-green-400' :
           metric.signal === 'SELL' ? 'text-red-400' : 

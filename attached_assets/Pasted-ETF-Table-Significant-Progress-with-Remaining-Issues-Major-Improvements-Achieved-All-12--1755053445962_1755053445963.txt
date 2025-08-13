@@ -1,0 +1,101 @@
+ETF Table - Significant Progress with Remaining Issues
+
+  ✅ Major Improvements Achieved
+
+  - All 12 ETF symbols displaying with complete rows
+  - RSI values working for all symbols (SPY: 66.3, XLK: 65.7, etc.)
+  - MACD values mostly working (SPY: 1.200, XLC: 0.500, XLI: 0.500, etc.)
+  - Bollinger %B working for all symbols (mostly ~50%, XLV at 24.9%)
+  - MA Gap working for all symbols with varying values
+
+  🔍 Remaining Issues Identified
+
+  1. Z-Score Display Issue (Most Critical)
+
+  Problem: Most symbols showing 0.8000 (SPY, XLC, XLK, XLP, XLU, XLY)
+  - This looks like a default/fallback value rather than calculated
+  Z-scores
+  - Only XLV shows a realistic Z-score: 0.1702
+  - Suggests Z-score calculation or field mapping issue
+
+  2. Missing Price Change Data (Medium Priority)
+
+  Symbols with N/A price changes: XLB, XLC, XLF, XLP, XLRE, XLU, XLY
+  - About 6 out of 12 symbols missing price change data
+  - Others show proper percentage changes (+0.78%, +0.10%, etc.)
+
+  3. Signal Logic Issue (Low Priority)
+
+  Problem: All signals showing "HOLD" (12/12 symbols)
+  - With Z-scores like 0.8000, some should trigger BUY/SELL signals
+  - Signal thresholds might be set too high, or signal calculation is
+  broken
+
+  4. Some MACD Missing (Minor)
+
+  Symbols with N/A MACD: XLB, XLF, XLRE
+  - Most symbols now have MACD values, only 3 remaining
+
+  Root Cause Analysis
+
+  Z-Score Issue (Priority 1)
+
+  The 0.8000 value appearing for multiple symbols suggests:
+  - Fallback/default value in the API or database
+  - Field mapping issue - maybe getting a different field that defaults
+  to 0.8
+  - Data processing bug in Z-score calculations
+
+  Missing Data Pattern
+
+  - XLV has the most complete data (original working symbol)
+  - Other symbols have partial data suggesting incremental data pipeline 
+  issues
+
+  Immediate Fix Strategy
+
+  Step 1: Debug Z-Score Field Mapping (5 minutes)
+
+  Add specific logging for Z-score fields:
+
+  console.log(`🔍 ${metric.symbol} Z-Score debug:`, {
+    compositeZScore: metric.compositeZScore,
+    compositeZ: metric.compositeZ,
+    composite_z_60d: metric.composite_z_60d,
+    allNumericFields: Object.entries(metric).filter(([k,v]) => typeof v
+  === 'number')
+  });
+
+  Step 2: Check Signal Calculation (5 minutes)
+
+  The signal logic might need different thresholds:
+
+  // Current logic might be:
+  signal: compositeZ >= 1.0 ? 'SELL' : compositeZ <= -1.0 ? 'BUY' :
+  'HOLD'
+
+  // Try more sensitive thresholds:
+  signal: compositeZ >= 0.75 ? 'SELL' : compositeZ <= -0.75 ? 'BUY' :
+  'HOLD'
+
+  Step 3: Fix Price Change Field Mapping
+
+  Missing price changes suggest another field mapping issue:
+
+  priceChange: metric.priceChange || metric.pctChange ||
+  metric.change_percent || null
+
+  Quick Wins Available
+
+  1. Signal Fix: Lower thresholds from 1.0 to 0.75 (would turn several
+  HOLDs into BUY/SELL)
+  2. Price Change: Add more field mapping options
+  3. Z-Score Debug: Identify if 0.8000 is coming from wrong field
+
+  Since the Z-Score issue affects the core functionality (signals depend
+  on Z-scores), that should be the top priority.
+
+  Recommendation: Start with Step 1 (Z-Score debugging) to identify why
+  most symbols show 0.8000 instead of calculated values.
+
+  Which issue would you like to tackle first?
