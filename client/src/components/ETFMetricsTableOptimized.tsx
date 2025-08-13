@@ -1,10 +1,26 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSkeleton } from '@/components/ui/loading-skeleton';
 import { Loader2, RefreshCw, TrendingUp, TrendingDown, Minus, AlertCircle } from 'lucide-react';
+import { ErrorBoundary } from 'react-error-boundary';
+
+// Utility functions for safe number formatting
+const safeToFixed = (value: number | null | undefined, digits: number = 2): string => {
+  if (value === null || value === undefined || isNaN(value)) return 'N/A';
+  return Number(value).toFixed(digits);
+};
+
+const safePercent = (value: number | null | undefined, digits: number = 1): string => {
+  if (value === null || value === undefined || isNaN(value)) return 'N/A';
+  return `${Number(value * 100).toFixed(digits)}%`;
+};
+
+const safeComparison = (value: number | null | undefined, defaultValue: number = 0): number => {
+  return value ?? defaultValue;
+};
 
 interface ETFMetric {
   symbol: string;
@@ -41,8 +57,24 @@ const ETFMetricsTableOptimized = () => {
   const { data, isLoading, error, refetch } = useQuery<ETFMetricsResponse>({
     queryKey: ['/api/etf-enhanced/metrics', refreshKey],
     queryFn: () => fetch('/api/etf-enhanced/metrics').then(res => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      console.log('🔍 ETF API Response Status:', res.status, res.statusText);
+      if (!res.ok) {
+        console.error('🚨 ETF API Error Response:', res.status);
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
       return res.json();
+    }).then(data => {
+      console.log('🔍 ETF API Raw Data:', {
+        success: data?.success,
+        dataType: typeof data?.data,
+        dataLength: data?.data?.length,
+        firstMetric: data?.data?.[0],
+        dataKeys: Object.keys(data || {})
+      });
+      return data;
+    }).catch(error => {
+      console.error('🚨 ETF API Fetch Error:', error);
+      throw error;
     }),
     staleTime: 60 * 1000, // 1 minute (align with server cache)
     gcTime: 10 * 60 * 1000, // 10 minutes
@@ -54,26 +86,64 @@ const ETFMetricsTableOptimized = () => {
     refetch();
   };
 
-  // Memoize sorted and processed metrics
+  // Debug logging for data analysis
+  useEffect(() => {
+    if (data && !isLoading) {
+      console.log('📊 ETF Data Analysis:', {
+        hasData: !!data,
+        dataShape: Object.keys(data || {}),
+        metricsCount: data?.data?.length || 0,
+        sampleMetric: data?.data?.[0] ? Object.keys(data.data[0]) : 'none',
+        nullFields: data?.data?.[0] ?
+          Object.entries(data.data[0])
+            .filter(([, value]) => value === null || value === undefined)
+            .map(([key]) => key) : []
+      });
+    }
+  }, [data, isLoading]);
+
+  // Memoize sorted and processed metrics with comprehensive validation
   const processedMetrics = useMemo(() => {
-    if (!data?.data) return [];
-    
-    return data.data.map(metric => ({
-      ...metric,
-      compositeZScore: metric.compositeZ || 0,
-      maGap: metric.ma?.gapPct ? `${(metric.ma.gapPct * 100).toFixed(2)}%` : null,
-      maGapNumeric: metric.ma?.gapPct ? metric.ma.gapPct * 100 : 0,
-      rsi: metric.components?.rsi14 || null,
-      signalColor: 
-        metric.signal === 'BUY' ? 'text-green-400' :
-        metric.signal === 'SELL' ? 'text-red-400' : 
-        'text-yellow-400',
-      signalBgColor:
-        metric.signal === 'BUY' ? 'bg-green-900/20 border-green-700' :
-        metric.signal === 'SELL' ? 'bg-red-900/20 border-red-700' : 
-        'bg-yellow-900/20 border-yellow-700'
-    }))
-    .sort((a, b) => Math.abs(b.compositeZScore || 0) - Math.abs(a.compositeZScore || 0));
+    // Add validation for data structure
+    if (!data || !data.data) {
+      console.warn('🚨 ETF API returned invalid data structure:', data);
+      return [];
+    }
+
+    if (!Array.isArray(data.data)) {
+      console.warn('🚨 ETF data is not an array:', typeof data.data);
+      return [];
+    }
+
+    return data.data.map(metric => {
+      // Validate each metric has required fields
+      if (!metric || typeof metric !== 'object') {
+        console.warn('🚨 Invalid metric object:', metric);
+        return null;
+      }
+
+      return {
+        ...metric,
+        // Ensure numeric fields are numbers or null with validation
+        compositeZScore: typeof metric.compositeZ === 'number' ? metric.compositeZ : null,
+        maGap: metric.ma?.gapPct ? safePercent(metric.ma.gapPct, 2) : null,
+        maGapNumeric: typeof metric.ma?.gapPct === 'number' ? metric.ma.gapPct * 100 : 0,
+        rsi: typeof metric.components?.rsi14 === 'number' ? metric.components.rsi14 : null,
+        macdZ: typeof metric.components?.macdZ === 'number' ? metric.components.macdZ : null,
+        bbPctB: typeof metric.components?.bbPctB === 'number' ? metric.components.bbPctB : null,
+        pctChangeFormatted: typeof metric.pctChange === 'number' ? metric.pctChange : null,
+        signalColor: 
+          metric.signal === 'BUY' ? 'text-green-400' :
+          metric.signal === 'SELL' ? 'text-red-400' : 
+          'text-yellow-400',
+        signalBgColor:
+          metric.signal === 'BUY' ? 'bg-green-900/20 border-green-700' :
+          metric.signal === 'SELL' ? 'bg-red-900/20 border-red-700' : 
+          'bg-yellow-900/20 border-yellow-700'
+      };
+    })
+    .filter((metric): metric is NonNullable<typeof metric> => metric !== null) // Remove null entries with type guard
+    .sort((a, b) => Math.abs(safeComparison(b.compositeZScore)) - Math.abs(safeComparison(a.compositeZScore)));
   }, [data?.data]);
 
   if (isLoading) {
@@ -158,11 +228,11 @@ const ETFMetricsTableOptimized = () => {
                   
                   <td className="p-3 text-center" data-testid={`zscore-${metric.symbol}`}>
                     <div className={`font-mono text-sm ${
-                      Math.abs(metric.compositeZScore || 0) >= 1.5 ? 'text-red-400 font-bold' :
-                      Math.abs(metric.compositeZScore || 0) >= 0.75 ? 'text-yellow-400' :
+                      Math.abs(safeComparison(metric.compositeZScore)) >= 1.5 ? 'text-red-400 font-bold' :
+                      Math.abs(safeComparison(metric.compositeZScore)) >= 0.75 ? 'text-yellow-400' :
                       'text-gray-300'
                     }`}>
-                      {metric.compositeZScore ? metric.compositeZScore.toFixed(4) : 'N/A'}
+                      {safeToFixed(metric.compositeZScore, 4)}
                     </div>
                   </td>
                   
@@ -179,36 +249,36 @@ const ETFMetricsTableOptimized = () => {
                   
                   <td className="p-3 text-center" data-testid={`rsi-${metric.symbol}`}>
                     <div className={`font-mono text-sm ${
-                      (metric.rsi || 0) >= 70 ? 'text-red-400' :
-                      (metric.rsi || 0) <= 30 ? 'text-green-400' :
+                      safeComparison(metric.rsi) >= 70 ? 'text-red-400' :
+                      safeComparison(metric.rsi) <= 30 ? 'text-green-400' :
                       'text-gray-300'
                     }`}>
-                      {metric.rsi ? metric.rsi.toFixed(1) : 'N/A'}
+                      {safeToFixed(metric.rsi, 1)}
                     </div>
                   </td>
                   
                   <td className="p-3 text-center" data-testid={`macd-${metric.symbol}`}>
                     <div className={`font-mono text-xs ${
-                      (metric.components?.macdZ || 0) > 0 ? 'text-green-400' : 'text-red-400'
+                      safeComparison(metric.macdZ) > 0 ? 'text-green-400' : 'text-red-400'
                     }`}>
-                      {metric.components?.macdZ ? metric.components.macdZ.toFixed(3) : 'N/A'}
+                      {safeToFixed(metric.macdZ, 3)}
                     </div>
                   </td>
                   
                   <td className="p-3 text-center" data-testid={`bollinger-${metric.symbol}`}>
                     <div className={`font-mono text-sm ${
-                      (metric.components?.bbPctB || 0) >= 0.8 ? 'text-red-400' :
-                      (metric.components?.bbPctB || 0) <= 0.2 ? 'text-green-400' :
+                      safeComparison(metric.bbPctB) >= 0.8 ? 'text-red-400' :
+                      safeComparison(metric.bbPctB) <= 0.2 ? 'text-green-400' :
                       'text-gray-300'
                     }`}>
-                      {metric.components?.bbPctB ? (metric.components.bbPctB * 100).toFixed(1) + '%' : 'N/A'}
+                      {safePercent(metric.bbPctB, 1)}
                     </div>
                   </td>
                   
                   <td className="p-3 text-center" data-testid={`ma-gap-${metric.symbol}`}>
                     <div className={`font-mono text-sm ${
-                      (metric.maGapNumeric || 0) >= 2 ? 'text-green-400' :
-                      (metric.maGapNumeric || 0) <= -2 ? 'text-red-400' :
+                      safeComparison(metric.maGapNumeric) >= 2 ? 'text-green-400' :
+                      safeComparison(metric.maGapNumeric) <= -2 ? 'text-red-400' :
                       'text-gray-300'
                     }`}>
                       {metric.maGap || 'N/A'}
@@ -217,12 +287,12 @@ const ETFMetricsTableOptimized = () => {
                   
                   <td className="p-3 text-center" data-testid={`price-change-${metric.symbol}`}>
                     <div className={`font-mono text-sm ${
-                      (metric.pctChange || 0) > 0 ? 'text-green-400' : 
-                      (metric.pctChange || 0) < 0 ? 'text-red-400' : 
+                      safeComparison(metric.pctChangeFormatted) > 0 ? 'text-green-400' : 
+                      safeComparison(metric.pctChangeFormatted) < 0 ? 'text-red-400' : 
                       'text-gray-300'
                     }`}>
-                      {metric.pctChange ? 
-                        `${(metric.pctChange || 0) > 0 ? '+' : ''}${(metric.pctChange * 100).toFixed(2)}%` : 
+                      {metric.pctChangeFormatted !== null ? 
+                        `${safeComparison(metric.pctChangeFormatted) > 0 ? '+' : ''}${safePercent(metric.pctChangeFormatted, 2)}` : 
                         'N/A'
                       }
                     </div>
@@ -248,4 +318,45 @@ const ETFMetricsTableOptimized = () => {
   );
 };
 
-export default ETFMetricsTableOptimized;
+// Error Boundary Component
+function ETFErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
+  return (
+    <Card className="bg-gray-900/95 backdrop-blur rounded-lg border border-red-500 p-6">
+      <div className="text-center">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <AlertCircle className="h-5 w-5 text-red-400" />
+          <h3 className="text-red-400 font-semibold">ETF Metrics Error</h3>
+        </div>
+        <p className="text-sm text-gray-400 mb-4">
+          {error.message || 'Failed to load ETF metrics data'}
+        </p>
+        <div className="flex gap-2 justify-center">
+          <Button onClick={resetErrorBoundary} variant="outline" size="sm" className="border-red-600 text-red-400 hover:bg-red-600/10">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Try Again
+          </Button>
+        </div>
+        <details className="mt-4 text-left">
+          <summary className="text-xs text-gray-500 cursor-pointer">Technical Details</summary>
+          <pre className="text-xs text-gray-600 mt-2 p-2 bg-gray-800 rounded overflow-auto">
+            {error.stack}
+          </pre>
+        </details>
+      </div>
+    </Card>
+  );
+}
+
+// Wrapped component with error boundary
+export default function ETFMetricsTableOptimizedWrapper() {
+  return (
+    <ErrorBoundary 
+      FallbackComponent={ETFErrorFallback}
+      onError={(error, errorInfo) => {
+        console.error('🚨 ETF Metrics Component Error:', error, errorInfo);
+      }}
+    >
+      <ETFMetricsTableOptimized />
+    </ErrorBoundary>
+  );
+}
