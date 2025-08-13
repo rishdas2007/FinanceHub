@@ -223,6 +223,16 @@ export class LiveZScoreCalculator {
               CASE 
                 WHEN lpm.metric_name ILIKE '%nonfarm%' OR lpm.metric_name ILIKE '%payroll%' OR lpm.metric_name ILIKE '%employment change%'
                 THEN COALESCE(e2.monthly_change, e2.value)
+                -- For CPI inflation indicators, use year-over-year comparison
+                WHEN lpm.metric_name ILIKE '%cpi%' OR lpm.metric_name ILIKE '%inflation%'
+                THEN (
+                  SELECT e_yoy.value 
+                  FROM economic_indicators_history e_yoy 
+                  WHERE e_yoy.metric_name = lpm.metric_name 
+                    AND e_yoy.unit = lpm.unit
+                    AND e_yoy.period_date = lpm.period_date - INTERVAL '1 year'
+                  LIMIT 1
+                )
                 ELSE e2.value 
               END
             FROM economic_indicators_history e2 
