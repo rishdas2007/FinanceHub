@@ -87,6 +87,35 @@ export const createStandardRoutes = () => {
     ResponseUtils.success(res, healthCheck);
   }));
 
+  // Emergency ETF Pipeline Fix endpoint
+  router.post('/admin/fix-etf-pipeline', asyncHandler(async (req: Request, res: Response) => {
+    logger.info('🔧 Starting ETF Pipeline Emergency Fix');
+    
+    try {
+      const { EquityFeaturesETL } = await import('../services/equity-features-etl');
+      const etl = new EquityFeaturesETL();
+      
+      // Step 1: Backfill daily bars from historical data
+      logger.info('📊 Backfilling daily bars...');
+      await etl.backfillDailyBars();
+      
+      // Step 2: Compute features for all ETFs  
+      logger.info('🧮 Computing features for all ETFs...');
+      await etl.computeFeatures();
+      
+      logger.info('✅ ETF Pipeline fix completed successfully');
+      
+      ResponseUtils.success(res, {
+        message: 'ETF Pipeline fix completed successfully',
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error: any) {
+      logger.error('❌ ETF Pipeline fix failed:', error);
+      throw new HttpError(500, `ETF Pipeline fix failed: ${error.message}`);
+    }
+  }));
+
   return router;
 };
 

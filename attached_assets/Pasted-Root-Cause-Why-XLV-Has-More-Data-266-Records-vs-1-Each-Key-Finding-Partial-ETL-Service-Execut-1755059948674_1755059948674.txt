@@ -1,0 +1,132 @@
+Root Cause: Why XLV Has More Data (266 Records vs 1 Each)
+
+  Key Finding: Partial ETL Service Execution
+
+  The data disparity occurs because your Equity Features ETL service
+  (equity-features-etl.ts) ran successfully for XLV only, while other
+  ETFs only have fallback/seed records.
+
+  Evidence from Code Analysis:
+
+  1. ETL Service Exists and Should Process All ETFs
+
+  File: server/services/equity-features-etl.ts:8
+  const ETF_SYMBOLS = ['SPY', 'XLK', 'XLF', 'XLE', 'XLV', 'XLI', 'XLP',
+  'XLY', 'XLU', 'XLB', 'XLRE', 'XRT'];
+
+  async computeFeatures(symbols: string[] = ETF_SYMBOLS, lookbackDays:
+  number = 400): Promise<void> {
+    // Should process ALL ETFs
+    for (const symbol of symbols) {
+      await this.computeFeaturesForSymbol(symbol, cutoffDate);
+    }
+  }
+
+  2. All ETFs Are in Scheduler Lists
+
+  File: server/services/scheduler.ts:62
+  const etfSymbols = ['SPY', 'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC',
+  'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'];
+
+  3. XLV Is Consistently Listed Third
+
+  In every array across multiple files, XLV appears as the 3rd ETF, which
+   suggests it might have been processed when the ETL job was interrupted
+   or failed.
+
+  Most Likely Scenarios:
+
+  Scenario A: ETL Job Interrupted (Most Probable)
+
+  1. ETL started processing all 12 ETFs in order: SPY, XLK, XLV, XLF...
+  2. ETL successfully processed the first few symbols (SPY, XLK, XLV)
+  3. Process crashed/interrupted after XLV, leaving other ETFs
+  unprocessed
+  4. Fallback data was inserted for unprocessed ETFs (the single records
+  with 0.5 %B values)
+
+  Scenario B: Database/Source Data Issue
+
+  1. Underlying data (from equity_daily_bars or historical_stock_data)
+  exists for XLV
+  2. Missing source data for other ETFs prevents feature calculation
+  3. ETL skips symbols with insufficient underlying data
+
+  Scenario C: Service Configuration Issue
+
+  1. ETL service configured to process only certain symbols
+  2. XLV was whitelisted for testing/debugging
+  3. Other ETFs remained disabled
+
+  How to Verify the Root Cause
+
+  Step 1: Check Underlying Data Coverage
+
+  -- Check if source data exists for all ETFs
+  SELECT
+      symbol,
+      COUNT(*) as records,
+      MIN(ts_utc) as earliest,
+      MAX(ts_utc) as latest
+  FROM equity_daily_bars
+  WHERE symbol IN ('SPY', 'XLK', 'XLF', 'XLI', 'XLE', 'XLV', 'XLP',
+  'XLU', 'XLY', 'XLC', 'XLB', 'XLRE')
+  GROUP BY symbol
+  ORDER BY records DESC;
+
+  Step 2: Check Server Logs
+
+  Look for ETL execution logs showing which symbols were processed:
+  grep -r "Computed features for\|Failed to compute features" /var/log/
+  2>/dev/null | tail -50
+
+  Step 3: Check Feature Calculation History
+
+  -- Look for ETL processing history
+  SELECT
+      symbol,
+      COUNT(*) as feature_records,
+      MIN(asof_date) as first_calculated,
+      MAX(asof_date) as last_calculated
+  FROM equity_features_daily
+  WHERE pipeline_version = 'v1.0.0'
+  GROUP BY symbol
+  ORDER BY feature_records DESC;
+
+  Fix Strategy
+
+  Immediate Fix: Re-run ETL for All ETFs (15 minutes)
+
+  // Add to your routes or run as script
+  app.post('/api/admin/recompute-all-etf-features', async (req, res) => {
+    const { equityFeaturesETL } = await
+  import('./services/equity-features-etl');
+
+    try {
+      // Re-run feature computation for all ETFs
+      await equityFeaturesETL.computeFeatures();
+      res.json({ success: true, message: 'ETF features recomputed for all
+   symbols' });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  Root Cause Resolution
+
+  1. Run the ETL service for all ETF symbols
+  2. Verify sufficient underlying data exists for all ETFs
+  3. Fix any data pipeline scheduling issues to prevent future
+  disparities
+
+  Expected Result
+
+  After running the ETL service for all ETFs:
+  - All 12 ETFs should have 200+ records (similar to XLV's 266)
+  - Real Bollinger %B values across 0-100% range instead of 50%
+  - Proper z-score calculations with realistic decimal precision
+  - Varied BUY/SELL/HOLD signals based on actual technical analysis
+
+  The fundamental issue is that your feature calculation pipeline only 
+  completed for XLV, leaving other ETFs with placeholder data. Running
+  the full ETL process will fix this data disparity.

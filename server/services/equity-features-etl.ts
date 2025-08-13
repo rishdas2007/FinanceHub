@@ -43,7 +43,15 @@ export class EquityFeaturesETL {
         // Upsert daily bars
         for (const bar of dailyBars) {
           await db.insert(equityDailyBars)
-            .values(bar)
+            .values({
+              symbol: bar.symbol,
+              tsUtc: bar.tsUtc,
+              open: bar.open.toString(),
+              high: bar.high.toString(),
+              low: bar.low.toString(),
+              close: bar.close.toString(),
+              volume: bar.volume
+            })
             .onConflictDoNothing();
         }
         
@@ -151,17 +159,17 @@ export class EquityFeaturesETL {
       
       // Compute Z-score
       const stats = welfordStats(longWindowCloses);
-      const zClose = stats.count >= 180 && stats.standardDeviation > 1e-8 ? 
-        (currentBar.close - stats.mean) / stats.standardDeviation : null;
+      const zClose = stats.count >= 180 && stats.stdDev > 1e-8 ? 
+        (currentBar.close - stats.mean) / stats.stdDev : null;
       
       // Quality assessment
-      const hasQualityData = stats.count >= 180 && stats.standardDeviation > 1e-8;
+      const hasQualityData = stats.count >= 180 && stats.stdDev > 1e-8;
       const dataQuality = hasQualityData ? 'high' : stats.count >= 60 ? 'medium' : 'low';
       
       // Store features
       const features = {
         symbol,
-        asofDate: new Date(asofDate),
+        asofDate: asofDate,
         horizon: horizon.name,
         rsi14: rsi,
         macd: macd?.macd || null,
@@ -177,7 +185,7 @@ export class EquityFeaturesETL {
         percentB: bollinger?.percentB || null,
         observations: stats.count,
         meanValue: stats.mean,
-        stdDev: stats.standardDeviation,
+        stdDev: stats.stdDev,
         dataQuality,
         hasSufficientData: hasQualityData,
         pipelineVersion: PIPELINE_VERSION,
