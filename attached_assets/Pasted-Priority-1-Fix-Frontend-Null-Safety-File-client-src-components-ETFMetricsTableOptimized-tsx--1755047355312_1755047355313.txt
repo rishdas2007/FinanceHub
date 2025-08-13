@@ -1,0 +1,81 @@
+Priority 1: Fix Frontend Null Safety
+
+  // File: client/src/components/ETFMetricsTableOptimized.tsx:55
+  // CURRENT (BROKEN):
+  maGapNumeric: parseFloat(metric.maGap.replace('%', '')) || 0,
+
+  // FIXED:
+  maGapNumeric: metric.maGap ? parseFloat(metric.maGap.replace('%', ''))
+  || 0 : 0,
+
+  Priority 2: Database Schema Validation
+
+  Based on the documentation, create SQL commands to verify/fix schema:
+
+  -- Check if columns exist in technical_indicators table
+  SELECT column_name FROM information_schema.columns
+  WHERE table_name = 'technical_indicators';
+
+  -- Check if macd_line column exists (mentioned in docs)
+  SELECT column_name FROM information_schema.columns
+  WHERE table_name = 'technical_indicators'
+  AND column_name IN ('macd', 'macd_line');
+
+  -- Check ETF-specific tables
+  SELECT table_name FROM information_schema.tables
+  WHERE table_name LIKE '%etf%';
+
+  Priority 3: Missing Columns Fix
+
+  -- Add missing columns if they don't exist
+  ALTER TABLE technical_indicators
+  ADD COLUMN IF NOT EXISTS macd_line decimal(10, 4);
+
+  -- Migrate data if needed
+  UPDATE technical_indicators
+  SET macd_line = macd
+  WHERE macd_line IS NULL AND macd IS NOT NULL;
+
+  Complete Repair Implementation Plan
+
+  Phase 1: Emergency Frontend Fix (15 minutes)
+
+  1. Fix null reference in ETFMetricsTableOptimized.tsx
+  2. Add null guards to all property accesses
+  3. Add error boundaries for graceful failures
+
+  Phase 2: Schema Validation (30 minutes)
+
+  1. Run database schema discovery queries
+  2. Compare actual schema vs expected schema
+  3. Document all missing/renamed columns
+
+  Phase 3: Database Migration (45 minutes)
+
+  1. Create missing columns with proper types
+  2. Migrate existing data to new column names
+  3. Update indexes for performance
+
+  Phase 4: Code Alignment (30 minutes)
+
+  1. Update service files to use correct column names
+  2. Fix API response formatting
+  3. Update TypeScript interfaces
+
+  Specific Files to Fix
+
+  Frontend (Null Safety)
+
+  - client/src/components/ETFMetricsTableOptimized.tsx:55
+  - Any other components accessing maGap, signal, compositeZScore
+
+  Backend (Column References)
+
+  - server/services/etf-metrics-service.ts (likely has wrong column
+  names)
+  - server/controllers/* (any ETF-related endpoints)
+
+  Schema (Database)
+
+  - shared/schema.ts (align with actual database)
+  - Migration scripts if needed
