@@ -26,7 +26,7 @@ const safeComparison = (value: number | null | undefined, defaultValue: number =
 interface ETFMetric {
   symbol: string;
   price: number;
-  pctChange: number;
+  changePercent: number;  // Fixed: was pctChange, should be changePercent
   compositeZ: number | null;
   signal: string;
   components: {
@@ -59,8 +59,8 @@ const ETFMetricsTableOptimized = () => {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const { data, isLoading, error, refetch } = useQuery<ETFMetricsResponse>({
-    queryKey: ['/api/etf-enhanced/metrics', refreshKey],
-    queryFn: () => fetch('/api/etf-enhanced/metrics').then(res => {
+    queryKey: ['/api/etf-metrics', refreshKey],
+    queryFn: () => fetch('/api/etf-metrics').then(res => {
       console.log('🔍 ETF API Response Status:', res.status, res.statusText);
       if (!res.ok) {
         console.error('🚨 ETF API Error Response:', res.status);
@@ -149,7 +149,7 @@ const ETFMetricsTableOptimized = () => {
         macdZ: metric.components?.macdZ || null,
         bbPctB: metric.components?.bbPctB || null,
         bbZ: metric.components?.bbZ || null, // Use real Bollinger Z-score from API
-        pctChangeFormatted: metric.pctChange || null,
+        pctChangeFormatted: metric.changePercent || null,
         maGapZ: metric.components?.maGapZ || null, // Use real MA Gap Z-score from API
         signal: (() => {
           const zScore = metric.compositeZ || 0;
