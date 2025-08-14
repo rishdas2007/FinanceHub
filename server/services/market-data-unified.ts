@@ -23,6 +23,7 @@
 import { logger } from '../../shared/utils/logger';
 import { isMarketOpen } from '../../shared/utils/marketHours-unified';
 import { formatNumber, formatPercentage, formatLargeNumber } from '../../shared/utils/numberFormatting-unified';
+import { emergencyCircuitBreaker } from './emergency-circuit-breaker';
 
 /**
  * Stock quote data structure
@@ -133,15 +134,21 @@ export class MarketDataService {
     });
   }
 
-  async getStockQuote(symbol: string, cacheTtl = 60000): Promise<StockData> {
+  async getStockQuote(symbol: string, cacheTtl = 900000): Promise<StockData> {
     const cacheKey = `stock_${symbol}`;
     const cached = this.getCached<StockData>(cacheKey);
     if (cached) {
-      logger.debug(`Using cached stock data for ${symbol}`, 'MarketData');
+      logger.info(`📊 Using cached stock data for ${symbol}`, 'MarketData');
       return cached;
     }
 
     try {
+      // Check circuit breaker before making API calls
+      if (!emergencyCircuitBreaker.canExecute('twelve_data')) {
+        logger.warn(`⛔ Circuit breaker preventing API call for ${symbol}`);
+        throw new Error('Circuit breaker open - API calls suspended');
+      }
+
       await this.rateLimitGuard();
       this.apiCallCount++;
 
@@ -150,14 +157,29 @@ export class MarketDataService {
       );
 
       if (!response.ok) {
+        // Check for rate limiting
+        if (response.status === 429) {
+          emergencyCircuitBreaker.recordFailure('twelve_data', true);
+          logger.error(`🚨 RATE LIMIT: Twelve Data API returned 429 for ${symbol}`);
+          throw new Error(`Rate limit exceeded: HTTP ${response.status}`);
+        }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
 
       if (data.status === 'error' || !data.close) {
+        // Check if error message indicates rate limiting
+        const errorMsg = data.message || '';
+        if (errorMsg.includes('rate') || errorMsg.includes('limit') || errorMsg.includes('quota')) {
+          emergencyCircuitBreaker.recordFailure('twelve_data', true);
+          logger.error(`🚨 RATE LIMIT: Twelve Data API error for ${symbol}: ${errorMsg}`);
+        }
         throw new Error('Invalid response from Twelve Data API');
       }
+
+      // Record success
+      emergencyCircuitBreaker.recordSuccess('twelve_data');
 
       const stockData: StockData = {
         symbol: data.symbol || symbol,
@@ -191,38 +213,25 @@ export class MarketDataService {
     }
   }
 
-  async getTechnicalIndicators(symbol: string, cacheTtl = 180000): Promise<TechnicalIndicators> {
+  async getTechnicalIndicators(symbol: string, cacheTtl = 3600000): Promise<TechnicalIndicators> {
     const cacheKey = `technical_${symbol}`;
     const cached = this.getCached<TechnicalIndicators>(cacheKey);
     if (cached) {
+      logger.info(`📊 Using cached technical data for ${symbol}`, 'MarketData');
       return cached;
     }
 
     try {
       await this.rateLimitGuard();
       
-      // Fetch multiple indicators in parallel
-      const indicators = [
-        'RSI', 'MACD', 'SMA', 'EMA', 'BBANDS', 'ADX', 'STOCH', 'VWAP', 'ATR', 'WILLR'
-      ];
-
-      const requests = indicators.map(async (indicator) => {
-        this.apiCallCount++;
-        let url = `https://api.twelvedata.com/${indicator.toLowerCase()}?symbol=${symbol}&interval=1day&apikey=${this.apiKey}`;
-        
-        // Add specific parameters for certain indicators
-        if (indicator === 'SMA') {
-          url += '&time_period=20';
-        } else if (indicator === 'EMA') {
-          url += '&time_period=12';
-        }
-        
-        return fetch(url);
-      });
-
-      const responses = await Promise.all(requests);
-      const dataPromises = responses.map(r => r.json());
-      const results = await Promise.all(dataPromises);
+      // EMERGENCY: Skip all technical indicator API calls due to rate limiting (281/144 exceeded)
+      logger.warn(`🚨 EMERGENCY: Skipping ALL technical indicator API calls for ${symbol} due to rate limiting`, 'MarketData');
+      
+      // Force circuit breaker open for technical indicators to prevent further API abuse
+      emergencyCircuitBreaker.forceOpen('twelve_data_technical', 1800000); // 30 minutes
+      
+      // Return minimal fallback data to prevent rate limit overages
+      const results: any[] = [];
 
       // Process results into technical indicators object
       const technical: TechnicalIndicators = {

@@ -36,9 +36,9 @@ export class RateLimitingService {
   private initializeConfig(): void {
     // Configure rate limits per service/endpoint
     this.config.set('twelve_data', {
-      requests: 144, // 144 calls per minute (Twelve Data limit)
+      requests: 50, // EMERGENCY: Reduced to 50 from 144 due to rate limiting (281/144 exceeded)
       window: 60 * 1000, // 1 minute
-      burst: 10 // Allow 10 burst requests
+      burst: 5 // Emergency reduction from 10 to 5
     });
 
     this.config.set('fred_api', {

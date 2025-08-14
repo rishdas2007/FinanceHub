@@ -125,7 +125,7 @@ class ETFMetricsService {
 
   /**
    * OPTIMIZED: Market-aware fast loading with data integrity validation
-   * Pipeline: Fast Cache → Database → Validation → Standard Cache → API (if needed)
+   * Pipeline: Fast Cache → Database → Validation → Standard Cache → SKIP API (Rate limited 281/144)
    */
   async getConsolidatedETFMetrics(): Promise<ETFMetrics[]> {
     const startTime = Date.now();
@@ -445,7 +445,9 @@ class ETFMetricsService {
 
         if (latest.length > 0) {
           results.set(symbol, latest[0]);
-          logger.info(`📊 Found Z-score data for ${symbol}: ${latest[0].date.toISOString()}`);
+          const data = latest[0];
+          logger.info(`📊 Found Z-score data for ${symbol}: ${data.date.toISOString()}`);
+          logger.info(`🔍 Z-score values: RSI=${data.rsiZscore}, MACD=${data.macdZscore}, BB=${data.bollingerZscore}`);
         } else {
           logger.warn(`❌ No recent Z-score data for ${symbol} in last 30 days`);
         }
@@ -459,22 +461,12 @@ class ETFMetricsService {
 
   /**
    * CACHE-FIRST: Get momentum data from existing momentum analysis
+   * CRITICAL: Skip internal API calls to prevent rate limiting cascade
    */
   private async getMomentumDataFromCache(): Promise<MomentumData[]> {
     try {
-      // First, try to get fresh momentum data by making an API call to the momentum endpoint
-      try {
-        const response = await fetch('http://localhost:5000/api/momentum-analysis');
-        if (response.ok) {
-          const data = await response.json();
-          if ((data as any).momentumStrategies && Array.isArray((data as any).momentumStrategies)) {
-            logger.info(`📊 Fetched fresh momentum data for ${(data as any).momentumStrategies.length} ETFs from API`);
-            return (data as any).momentumStrategies;
-          }
-        }
-      } catch (fetchError) {
-        logger.warn('Failed to fetch fresh momentum data via API:', fetchError);
-      }
+      // CRITICAL: Skip internal API calls due to rate limiting (281/144 exceeded)
+      logger.warn('⚠️  Skipping momentum API call due to rate limiting - using cached data only', 'ETFMetrics');
 
       // Fallback: Use cached momentum data
       const momentumCacheKey = 'momentum-analysis-cache-v2';
@@ -615,14 +607,14 @@ class ETFMetricsService {
       
       // Frontend expects components property - Data Quality-First Architecture
       components: {
-        macdZ: zscore?.macd_zscore || null,
+        macdZ: zscore?.macdZScore ? parseFloat(zscore.macdZScore) : null,
         rsi14: standardIndicator?.rsi || (momentumETF?.rsi ? parseFloat(momentumETF.rsi.toString()) : (technical?.rsi ? parseFloat(technical.rsi) : null)),
-        rsiZ: zscore?.rsi_zscore || null,
+        rsiZ: zscore?.rsiZScore ? parseFloat(zscore.rsiZScore) : null,
         bbPctB: standardIndicator?.bollingerPercentB || (technical?.percent_b ? parseFloat(technical.percent_b) : null),
-        bbZ: zscore?.bollinger_zscore || null,
+        bbZ: zscore?.bollingerZScore ? parseFloat(zscore.bollingerZScore) : null,
         maGapPct: maGapPct,
         maGapZ: maGapZScore,
-        mom5dZ: zscore?.momentum_zscore || null,
+        mom5dZ: zscore?.priceMomentumZScore ? parseFloat(zscore.priceMomentumZScore) : null,
       },
       
       // Z-Score weighted fields
@@ -631,9 +623,9 @@ class ETFMetricsService {
       
       // Z-Score Analysis (Supplementary)
       zScoreData: zscore ? {
-        rsiZScore: zscore.rsi_zscore || null,
-        macdZScore: zscore.macd_zscore || null,
-        bollingerZScore: zscore.bollinger_zscore || null,
+        rsiZScore: zscore.rsiZScore ? parseFloat(zscore.rsiZScore) : null,
+        macdZScore: zscore.macdZScore ? parseFloat(zscore.macdZScore) : null,
+        bollingerZScore: zscore.bollingerZScore ? parseFloat(zscore.bollingerZScore) : null,
         atrZScore: null,
         priceMomentumZScore: null,
         maTrendZScore: maGapZScore,

@@ -74,13 +74,13 @@ export class CacheService {
     deletes: 0
   };
   
-  // Extended TTL configurations for economic data caching
+  // EMERGENCY: Extended TTL configurations to reduce API calls (281/144 rate limit exceeded)
   private readonly ECONOMIC_CONFIG = {
-    memoryTtl: 86400000, // 24 hours during market hours
-    databaseTtl: 604800000, // 7 days for database fallback
-    maxStaleAge: 2592000000, // 30 days max stale
-    afterHoursMultiplier: 1, // Keep 1x since daily refresh is conservative
-    weekendMultiplier: 1
+    memoryTtl: 172800000, // 48 hours (increased from 24h)
+    databaseTtl: 1209600000, // 14 days (increased from 7 days)
+    maxStaleAge: 5184000000, // 60 days max stale (increased from 30 days)
+    afterHoursMultiplier: 2, // Increased cache during off hours
+    weekendMultiplier: 3 // Aggressive caching on weekends
   };
 
   private constructor() {
