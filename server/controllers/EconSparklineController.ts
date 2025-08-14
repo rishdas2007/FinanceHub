@@ -34,16 +34,8 @@ export async function getEconSparkline(req: Request, res: Response) {
     // Query Silver layer with monthly resampling and transform support
     let queryResult;
     
-    console.log(`🚨 CRITICAL DEBUG: ${seriesId} with transform: "${finalTransform}" (type: ${typeof finalTransform})`);
-    console.log(`🚨 Equality test: finalTransform === 'YOY' ? ${finalTransform === 'YOY'}`);
-    console.log(`🚨 Strict equality test: finalTransform.toString() === 'YOY' ? ${finalTransform.toString() === 'YOY'}`);
-    
-    // Clear cache for debugging
-    cache.delete(cacheKey);
-    
-    // Force explicit YOY check with multiple conditions
+    // Determine transform type for calculation
     const isYOY = finalTransform === 'YOY' || finalTransform?.toString() === 'YOY' || finalTransform?.toUpperCase() === 'YOY';
-    console.log(`🚨 Is YOY calculation needed? ${isYOY}`);
     
     if (isYOY) {
       // Year-over-Year percentage change calculation
@@ -126,10 +118,6 @@ export async function getEconSparkline(req: Request, res: Response) {
     const result = queryResult;
 
     logger.info(`📊 Query executed for ${seriesId}, transform: ${finalTransform}, returned ${result.rows.length} rows`);
-    if (result.rows.length > 0 && isYOY) {
-      console.log(`🧮 YOY result sample: ${result.rows[0]?.value_std} (should be 2-3% rate, not 300+ absolute)`);
-      console.log(`🔍 Full first row:`, result.rows[0]);
-    }
 
     // Transform data for client
     const data = result.rows.map((row: any) => ({

@@ -450,6 +450,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get('/api/movers/etf', getEtfMovers);
   app.get('/api/movers/econ', getEconMovers);
+
+  // Batch Sparklines Route for Performance
+  app.post('/api/econ/sparklines/batch', (await import('./routes/batch-sparklines')).getBatchSparklines);
   
   // Cache management endpoints removed (file deleted)
 

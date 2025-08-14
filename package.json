@@ -99,6 +99,7 @@
     "react-error-boundary": "^6.0.0",
     "react-hook-form": "^7.55.0",
     "react-icons": "^5.4.0",
+    "react-sparklines": "^1.7.0",
     "recharts": "^2.15.4",
     "redis": "^5.8.0",
     "reflect-metadata": "^0.2.2",

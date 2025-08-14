@@ -206,21 +206,15 @@ class ETFMetricsService {
       const standardTechService = StandardTechnicalIndicatorsService.getInstance();
       const fetchTimeout = 1500; // 1.5s timeout per operation
       
-      const [dbTechnicals, dbZScoreData, momentumData, standardIndicators] = await Promise.all([
+      const [dbTechnicals, dbZScoreData, momentumData, standardIndicators] = await Promise.allSettled([
         Promise.race([
           this.getLatestTechnicalIndicatorsFromDB(),
           new Promise((_, reject) => setTimeout(() => reject(new Error('Technical indicators timeout')), fetchTimeout))
-        ]).catch(error => {
-          logger.warn(`⚠️ Technical indicators fetch failed: ${error.message}`);
-          return new Map();
-        }),
+        ]),
         Promise.race([
           this.getLatestZScoreDataFromDB(),
           new Promise((_, reject) => setTimeout(() => reject(new Error('Z-score data timeout')), fetchTimeout))
-        ]).catch(error => {
-          logger.warn(`⚠️ Z-score data fetch failed: ${error.message}`);
-          return new Map();
-        }),
+        ]),
         this.getMomentumDataFromCache(),
         // Get standard technical indicators for all ETFs
         Promise.all(
@@ -234,7 +228,7 @@ class ETFMetricsService {
             }
           })
         ).then(results => new Map(results.filter(([_, indicators]) => indicators !== null) as [string, any][]))
-      ]);
+      ]).then(results => results.map(r => r.status === 'fulfilled' ? r.value : new Map()));
 
       // 6. OPTIMIZED: Parallel ETF metrics consolidation with validated prices and standard indicators
       const consolidationTimeout = 1000; // 1s timeout for consolidation

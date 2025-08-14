@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useBatchSparklines } from '../hooks/useBatchSparklines';
+import { BatchSparklineCell } from './BatchSparklineCell';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, AlertCircle, RefreshCw, Search, Filter, ChevronUp, ChevronDown, BarChart3 } from 'lucide-react';
 import { EconomicChartModal } from './EconomicChartModal';
-import { SparklineCell } from './SparklineCell';
+// Removed SparklineCell import - using BatchSparklineCell for performance
 
 
 interface MacroIndicator {
@@ -267,6 +269,19 @@ const MacroeconomicIndicators: React.FC = () => {
     refetchInterval: false, // Disable automatic refetching
     staleTime: 5 * 60 * 1000, // 5 minutes - standardized
   });
+
+  // Extract series IDs for batch sparklines
+  const seriesIds = macroData?.indicators
+    ?.filter(indicator => indicator.seriesId)
+    ?.map(indicator => indicator.seriesId!)
+    ?.slice(0, 15) || []; // Limit to first 15 for performance
+
+  // Batch sparklines query for performance
+  const { data: batchSparklinesData, isLoading: sparklinesLoading } = useBatchSparklines(
+    seriesIds,
+    12, // 12 months of data
+    'YOY' // Year-over-year transform
+  );
 
 
 
@@ -807,15 +822,11 @@ const MacroeconomicIndicators: React.FC = () => {
                     </td>
                     <td className="text-center py-3 px-2 w-32">
                       {indicator.seriesId ? (
-                        <SparklineCell
-                          api="/api/econ/sparkline"
-                          params={{
-                            seriesId: indicator.seriesId,
-                            months: 12,
-                            transform: indicator.metric.includes('(Δ-adjusted)') || indicator.metric.includes('Rate') || indicator.metric.includes('Yield') ? 'LEVEL' : 'YOY'
-                          }}
-                          height={32}
-                          width={120}
+                        <BatchSparklineCell 
+                          seriesId={indicator.seriesId} 
+                          batchData={batchSparklinesData?.data}
+                          isLoading={sparklinesLoading || isLoading}
+                          className="h-8 w-28"
                         />
                       ) : (
                         <div className="flex items-center justify-center text-slate-400 text-xs h-8">
