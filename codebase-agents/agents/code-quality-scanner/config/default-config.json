@@ -1,0 +1,88 @@
+{
+  "enabled": true,
+  "autoFix": false,
+  "severity": "medium",
+  "rules": {
+    "typescript-no-any": true,
+    "typescript-interface-naming": true,
+    "typescript-unused-import": true,
+    "typescript-function-complexity": {
+      "enabled": true,
+      "maxComplexity": 10
+    },
+    "react-key-prop": true,
+    "react-hooks-exhaustive-deps": true,
+    "react-no-direct-dom": true,
+    "react-component-naming": true,
+    "react-no-inline-styles": false,
+    "react-test-id": true,
+    "node-async-error-handling": true,
+    "express-error-handling": true,
+    "node-sql-injection-prevention": true,
+    "node-no-hardcoded-credentials": true,
+    "node-input-validation": true,
+    "express-rate-limiting": false,
+    "node-structured-logging": false,
+    "financial-data-validation": true,
+    "function-complexity-limit": {
+      "enabled": true,
+      "maxComplexity": 10
+    },
+    "class-method-limit": {
+      "enabled": true,
+      "maxMethods": 15
+    },
+    "class-complexity-limit": {
+      "enabled": true,
+      "maxComplexity": 50
+    },
+    "max-nesting-depth": {
+      "enabled": true,
+      "maxDepth": 4
+    },
+    "max-parameters": {
+      "enabled": true,
+      "maxParams": 5
+    },
+    "unused-import": true,
+    "missing-import": true,
+    "no-circular-dependency": true,
+    "no-deep-relative-imports": {
+      "enabled": true,
+      "maxDepth": 3
+    },
+    "no-duplicate-imports": true,
+    "no-unreachable-code": true,
+    "no-unused-variables": true,
+    "no-unused-functions": true,
+    "no-empty-functions": true,
+    "no-commented-code": false,
+    "no-console-log": true,
+    "financial-z-score-accuracy": true,
+    "financial-decimal-precision": true,
+    "financial-error-handling": true
+  },
+  "excludePatterns": [
+    "node_modules/**",
+    "dist/**",
+    "build/**",
+    "*.test.ts",
+    "*.test.tsx",
+    "*.spec.ts",
+    "*.spec.tsx",
+    "test/**",
+    "tests/**",
+    "__tests__/**"
+  ],
+  "includePatterns": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.js",
+    "**/*.jsx"
+  ],
+  "financialCodePatterns": {
+    "zScoreCalculations": ["z-score", "zScore", "Z-Score"],
+    "financialPrecision": ["price", "amount", "value", "calculation"],
+    "apiEndpoints": ["/api/", "router.", "app.get", "app.post"]
+  }
+}
