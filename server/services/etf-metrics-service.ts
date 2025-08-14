@@ -597,11 +597,21 @@ class ETFMetricsService {
     const validatedPrice = prices?.get(symbol);
     const price = validatedPrice ? validatedPrice.close : this.getETFPrice(symbol, zscore, momentumETF);
     
+    // CRITICAL FIX: Use real-time percentage change if available
+    let changePercent = 0;
+    if (validatedPrice && validatedPrice.pctChange !== undefined && validatedPrice.pctChange !== null) {
+      changePercent = validatedPrice.pctChange;
+      logger.info(`📊 Using real-time change% for ${symbol}: ${changePercent}%`);
+    } else if (momentumETF?.oneDayChange) {
+      changePercent = parseFloat(momentumETF.oneDayChange.toString());
+      logger.info(`📊 Using momentum change% for ${symbol}: ${changePercent}%`);
+    }
+    
     return {
       symbol,
       name: ETFMetricsService.ETF_NAMES[symbol as keyof typeof ETFMetricsService.ETF_NAMES] || symbol,
       price: price,
-      changePercent: momentumETF?.oneDayChange ? parseFloat(momentumETF.oneDayChange.toString()) : 0,
+      changePercent: changePercent,
       
       // Frontend expects components property - Data Quality-First Architecture
       components: {

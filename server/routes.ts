@@ -97,8 +97,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Clear ETF metrics cache to force fresh data on next request
-      const { redisCache } = await import('./config/redis-cache');
-      await redisCache.clear('etf-metrics*');
+      const { cacheService } = await import('./services/cache-unified');
+      cacheService.clear('etf-metrics-consolidated-v4-sector-fallback');
+      cacheService.clear('etf-metrics-fast-v4-sector-fallback');
       console.log('🧹 ETF metrics cache cleared');
       
       res.json({ 
