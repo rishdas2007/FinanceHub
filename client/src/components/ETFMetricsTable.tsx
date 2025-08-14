@@ -338,10 +338,9 @@ const ETFRow = memo(function ETFRow({
       <td className="py-3 px-1 text-center bg-purple-900/20">
         <div className="flex flex-col items-center">
           <span className={`text-sm font-medium ${
-            (etf.technicalIndicators?.macd || macdZScore) && (etf.technicalIndicators?.macd || macdZScore || 0) > 0 
-              ? 'text-green-400' : 'text-red-400'
+            macdZScore && macdZScore > 0 ? 'text-green-400' : 'text-red-400'
           }`}>
-            {etf.technicalIndicators?.macd?.toFixed(3) || macdZScore?.toFixed(3) || 'N/A'}
+            {macdZScore?.toFixed(3) || 'N/A'}
           </span>
           <span className="text-xs text-gray-400">
             MACD
@@ -356,13 +355,13 @@ const ETFRow = memo(function ETFRow({
       <td className="py-3 px-1 text-center bg-purple-900/20">
         <div className="flex flex-col items-center">
           <span className={`text-sm font-medium ${
-            (etf.technicalIndicators?.rsi || rsi) 
-              ? (etf.technicalIndicators?.rsi || rsi || 0) > 70 ? 'text-red-400'
-                : (etf.technicalIndicators?.rsi || rsi || 0) < 30 ? 'text-green-400'
+            etf.components?.rsi14 
+              ? etf.components.rsi14 > 70 ? 'text-red-400'
+                : etf.components.rsi14 < 30 ? 'text-green-400'
                 : 'text-blue-400'
               : 'text-gray-400'
           }`}>
-            {(etf.technicalIndicators?.rsi || rsi)?.toFixed(1) || 'N/A'}
+            {etf.components?.rsi14?.toFixed(1) || 'N/A'}
           </span>
           <span className="text-xs text-gray-400">
             RSI
@@ -377,14 +376,14 @@ const ETFRow = memo(function ETFRow({
       <td className="py-3 px-1 text-center bg-purple-900/20">
         <div className="flex flex-col items-center">
           <span className={`text-sm font-medium ${
-            (etf.technicalIndicators?.bollingerPercentB || bollingerPosition) 
-              ? (etf.technicalIndicators?.bollingerPercentB || bollingerPosition || 0) > 0.8 ? 'text-red-400'
-                : (etf.technicalIndicators?.bollingerPercentB || bollingerPosition || 0) < 0.2 ? 'text-green-400'
+            etf.components?.bbPctB 
+              ? etf.components.bbPctB > 0.8 ? 'text-red-400'
+                : etf.components.bbPctB < 0.2 ? 'text-green-400'
                 : 'text-blue-400'
               : 'text-gray-400'
           }`}>
-            {(etf.technicalIndicators?.bollingerPercentB || bollingerPosition) 
-              ? `${((etf.technicalIndicators?.bollingerPercentB || bollingerPosition || 0) * 100).toFixed(1)}%` 
+            {etf.components?.bbPctB 
+              ? `${(etf.components.bbPctB * 100).toFixed(1)}%` 
               : 'N/A'}
           </span>
           <span className="text-xs text-gray-400">
@@ -399,11 +398,11 @@ const ETFRow = memo(function ETFRow({
       {/* MA Trend with Z-Score (20%) */}
       <td className="py-3 px-1 text-center bg-purple-900/20">
         <div className="flex flex-col items-center">
-          <span className={`text-sm font-medium ${(maGap || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            MA Trend
+          <span className={`text-sm font-medium ${(etf.components?.maGapPct || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {etf.components?.maGapPct ? `${(etf.components.maGapPct * 100).toFixed(1)}%` : 'N/A'}
           </span>
           <span className="text-xs text-gray-400">
-            Gap: {formattedMaGap}
+            MA Gap
           </span>
           <span className={`text-xs font-mono mt-1 ${getZScoreColor('maGapZ', maTrendZScore)}`}>
             Z: {formatZScore(maTrendZScore, 3)}
