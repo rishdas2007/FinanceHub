@@ -110,12 +110,13 @@ const ETFMetricsTableOptimized = () => {
   const processedMetrics = useMemo(() => {
     console.log('🔍 Raw API data:', { data, hasData: !!data?.data });
 
-    // Handle different API response structures
-    const metricsArray = data?.data || [];
-    console.log('🔍 Metrics array:', { type: typeof metricsArray, length: metricsArray?.length, first: metricsArray?.[0] });
+    // Handle different API response structures - convert object to array if needed
+    const rawData = data?.data || [];
+    const metricsArray = Array.isArray(rawData) ? rawData : Object.values(rawData);
+    console.log('🔍 Metrics array:', { type: typeof rawData, isArray: Array.isArray(rawData), length: metricsArray?.length, first: metricsArray?.[0] });
 
-    if (!Array.isArray(metricsArray)) {
-      console.warn('🚨 Metrics is not an array:', metricsArray);
+    if (!metricsArray.length) {
+      console.warn('🚨 Metrics array is empty:', metricsArray);
       return [];
     }
 
