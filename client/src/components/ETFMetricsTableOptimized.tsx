@@ -297,7 +297,7 @@ const ETFMetricsTableOptimized = () => {
                         'text-gray-300'
                       }`}>
                         {metric.pctChangeFormatted !== null ? 
-                          `${safeComparison(metric.pctChangeFormatted) > 0 ? '+' : ''}${safePercent(metric.pctChangeFormatted, 2)}` : 
+                          `${safeComparison(metric.pctChangeFormatted) > 0 ? '+' : ''}${safeToFixed(metric.pctChangeFormatted, 2)}%` : 
                           'N/A'
                         }
                       </span>
