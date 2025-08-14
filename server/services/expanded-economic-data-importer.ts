@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { db } from '../db.js';
 import { sql } from 'drizzle-orm';
 import { logger } from '../../shared/utils/logger';
 import fs from 'fs';

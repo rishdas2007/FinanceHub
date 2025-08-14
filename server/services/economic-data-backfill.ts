@@ -3,7 +3,7 @@
 
 import { readFileSync } from 'fs';
 import { parse } from 'csv-parse/sync';
-import { db } from '../db';
+import { db } from '../db.js';
 import { 
   econSeriesDef, 
   econSeriesObservation,

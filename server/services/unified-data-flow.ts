@@ -8,7 +8,7 @@ import { logger } from '../utils/logger';
 import { IntelligentCache } from './intelligent-cache-system';
 import { BatchProcessingService } from './batch-processing-service';
 import { RateLimitingService } from './rate-limiting-service';
-import { db } from '../db';
+import { db } from '../db.js';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { technicalIndicators, marketSentiment, vixData, zscoreTechnicalIndicators } from '../../shared/schema';
 

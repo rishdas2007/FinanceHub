@@ -3,7 +3,7 @@ import { logger } from '../middleware/logging';
 import { marketHoursDetector } from './market-hours-detector';
 import { unifiedDashboardCache } from './unified-dashboard-cache';
 import { storage } from '../storage';
-import { db } from '../db';
+import { db } from '../db.js';
 import { technicalIndicators, historicalSectorData } from '@shared/schema';
 import { sql } from 'drizzle-orm';
 import type { ComprehensiveHistoricalCollector } from './comprehensive-historical-collector';

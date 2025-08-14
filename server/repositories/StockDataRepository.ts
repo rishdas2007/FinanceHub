@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { db } from '../db.js';
 import { stockData, StockData, InsertStockData } from '../../shared/schema';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { DATABASE_CONFIG } from '../../shared/config/constants';

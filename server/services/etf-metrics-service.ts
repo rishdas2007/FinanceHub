@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { db } from '../db.js';
 import { technicalIndicators, zscoreTechnicalIndicators, historicalStockData, stockData } from '@shared/schema';
 import { desc, eq, and, gte, sql } from 'drizzle-orm';
 import { cacheService } from './cache-unified';

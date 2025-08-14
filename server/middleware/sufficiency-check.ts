@@ -6,7 +6,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { DataSufficiencyGates, DataSufficiencyResult } from '../services/data-quality/sufficiency-gates';
 import { logger } from '../services/logger';
-import { db } from '../db';
+import { db } from '../db.js';
 
 export interface SufficiencyCheckRequest extends Request {
   sufficiencyResult?: DataSufficiencyResult;

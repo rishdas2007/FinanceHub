@@ -3,7 +3,7 @@
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse/sync';
-import { db } from '../db';
+import { db } from '../db.js';
 import { historicalStockData, historicalTechnicalIndicators } from '@shared/schema';
 import { logger } from '../utils/logger';
 

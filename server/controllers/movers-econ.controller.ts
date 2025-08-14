@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { sql } from 'drizzle-orm';
-import { db } from '../db';
+import { db } from '../db.js';
 import { MOVERS } from '../config/movers';
 import { getCache, setCache, getLastGood, setLastGood } from '../cache/unified-dashboard-cache';
 

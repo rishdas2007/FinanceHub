@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { db } from '../db.js';
 import { historicalMarketSentiment } from '@shared/schema';
 import { eq, gt, desc, asc } from 'drizzle-orm';
 import fs from 'fs';

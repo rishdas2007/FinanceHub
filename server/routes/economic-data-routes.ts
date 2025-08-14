@@ -1,6 +1,6 @@
 // New API endpoints for the 3-layer economic data model
 import { Router } from 'express';
-import { db } from '../db';
+import { db } from '../db.js';
 import { econSeriesDef, econSeriesObservation, econSeriesFeatures } from '../../shared/economic-data-model';
 import { eq, desc, and, gte } from 'drizzle-orm';
 import { formatValue, formatColumnHeader } from '../../shared/formatters/economic-formatters';

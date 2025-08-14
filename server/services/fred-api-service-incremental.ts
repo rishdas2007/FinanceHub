@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { logger } from '../../shared/utils/logger';
-import { db } from '../db';
+import { db } from '../db.js';
 import { economicIndicatorsHistory } from '../../shared/schema';
 import { eq, desc, max, sql, and } from 'drizzle-orm';
 import { dataQualityValidator } from './data-quality-validator';

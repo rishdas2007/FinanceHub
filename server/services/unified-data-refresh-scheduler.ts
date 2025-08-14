@@ -1,7 +1,7 @@
 import { logger } from '../../shared/utils/logger';
 import { fredApiServiceIncremental } from './fred-api-service-incremental';
 import { dataIntegrityValidator } from './data-integrity-validator';
-import { db } from '../db';
+import { db } from '../db.js';
 import { sql } from 'drizzle-orm';
 
 /**

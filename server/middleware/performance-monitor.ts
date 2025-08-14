@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
-import { db } from '../db';
+import { db } from '../db.js';
 import { sql } from 'drizzle-orm';
 
 interface QueryStats {

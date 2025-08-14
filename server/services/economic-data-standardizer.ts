@@ -1,7 +1,7 @@
 // ETL Service: Bronze → Silver → Gold
 // Standardizes all economic data through the 3-layer model
 
-import { db } from '../db';
+import { db } from '../db.js';
 import { econSeriesDef, econSeriesRaw, econSeriesObservation, econSeriesFeatures } from '../../shared/economic-data-model';
 import { eq, desc, and, gte } from 'drizzle-orm';
 import { logger } from '../../shared/utils/logger';

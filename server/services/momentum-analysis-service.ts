@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { db } from '../db.js';
 import { zscoreTechnicalIndicators } from '../../shared/schema';
 import { eq, desc } from 'drizzle-orm';
 

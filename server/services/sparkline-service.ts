@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { db } from '../db';
+import { db } from '../db.js';
 import { logger } from '../../shared/utils/logger';
 
 export interface SparklineData {

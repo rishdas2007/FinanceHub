@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { db } from '../db.js';
 import { equityDailyBars, historicalStockData } from '@shared/schema-v2';
 import { eq, desc, and, gte, lte } from 'drizzle-orm';
 import { logger } from '../middleware/logging';

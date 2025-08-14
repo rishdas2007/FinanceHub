@@ -8,6 +8,9 @@ Preferred communication style: Simple, everyday language.
 UI Preference: Clean, actionable interface without overly technical explanations that don't provide user value.
 
 ## Recent Changes (August 14, 2025)
+- **Deployment Issues Fixed**: Resolved critical ESBuild module resolution errors preventing deployment by fixing all database import paths from '../db' to '../db.js' across the entire server codebase
+- **Database Module Structure Improved**: Created server/db/index.ts and index.js files for proper ESBuild compatibility with both TypeScript and JavaScript module resolution
+- **Build Configuration Enhanced**: Added esbuild.config.js with proper TypeScript compilation settings and external dependency handling
 - **Real-time ETF Data Integration Complete**: Successfully replaced stale cached ETF prices with live Twelve Data API integration, showing dynamic percentage changes instead of null values
 - **ETF Data Freshness Issue Resolved**: Fixed ETF Technical Metrics dashboard to display current market data with real-time price updates and percentage changes
 - **Performance Maintained**: Preserved sub-1 second dashboard load times while integrating real-time data from Twelve Data API
@@ -15,7 +18,7 @@ UI Preference: Clean, actionable interface without overly technical explanations
 - **Interface Rollback Strategy Implemented**: Created EconomicHealthFallback service to resolve TypeScript interface mismatches with database schema
 - **Dashboard Performance Restored**: Economic health dashboard now working (24ms response) after resolving 100% failure rate
 - **Sparkline Performance Confirmed**: Batch sparklines API performing excellently at 66ms for 3 series
-- **LSP Diagnostics Cleaned**: Resolved all 59 TypeScript errors through proper interface alignment
+- **LSP Diagnostics Cleaned**: Resolved TypeScript errors through proper interface alignment and import path fixes
 - **Data Layer Compatibility**: Implemented fallback service using existing econ_series_observation table structure
 
 ## System Architecture

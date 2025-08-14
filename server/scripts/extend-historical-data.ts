@@ -6,7 +6,7 @@
  */
 
 import { logger } from '../utils/logger';
-import { db } from '../db';
+import { db } from '../db.js';
 import { historicalStockData } from '@shared/schema';
 import { FinancialDataService } from '../services/financial-data';
 import { desc, eq, and, lt } from 'drizzle-orm';

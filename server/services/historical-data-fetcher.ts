@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { db } from '../db.js';
 import { historicalSectorData } from '../../shared/schema';
 import { logger } from '../middleware/logging';
 import { and, eq, desc, sql } from 'drizzle-orm';

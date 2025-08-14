@@ -1,5 +1,5 @@
 import { logger } from './logger';
-import { db } from '../db';
+import { db } from '../db.js';
 import { sql } from 'drizzle-orm';
 
 interface QueryAnalysis {
