@@ -2,7 +2,7 @@
 // Ensures frequently accessed data is always cached and ready
 
 import { getCache, setCache } from '../cache/unified-dashboard-cache.js';
-import { db } from '../db.js';
+import { db } from '../db/index.js';
 import { sql } from 'drizzle-orm';
 
 export class CacheWarmupService {

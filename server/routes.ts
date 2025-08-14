@@ -507,11 +507,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create momentum lookup map
       const momentumMap = new Map();
       if (momentumData.momentumStrategies) {
-        const strategies = Array.isArray(momentumData.momentumStrategies) 
-      ? momentumData.momentumStrategies 
-      : Object.values(momentumData.momentumStrategies || {});
-    
-    strategies.forEach((strategy: any) => {
+        momentumData.momentumStrategies.forEach((strategy: any) => {
           momentumMap.set(strategy.ticker, {
             signal: strategy.momentum.toUpperCase(),
             strength: Math.round(strategy.strength * 10), // Convert to 0-10 scale
@@ -522,8 +518,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Process ETF data for movers with momentum integration
-      const sectorsArray = Array.isArray(sectorsData) ? sectorsData : (sectorsData || []);
-      const etfMovers = sectorsArray.map((etf: any) => {
+      const etfMovers = sectorsData.map((etf: any) => {
         const momentumInfo = momentumMap.get(etf.symbol) || { signal: 'NEUTRAL', strength: 0, zScore: 0 };
         return {
           symbol: etf.symbol,
@@ -541,10 +536,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const losers = etfMovers.filter((etf: any) => etf.changePercent < 0).slice(0, 5);
       
       // Process economic indicators for significant movers
-      const indicatorsArray = Array.isArray(economicData.indicators) 
-        ? economicData.indicators 
-        : Object.values(economicData.indicators || {});
-      const economicMovers = indicatorsArray
+      const economicMovers = economicData.indicators
         .filter((indicator: any) => indicator.zScore !== undefined && Math.abs(indicator.zScore) > 0.3)
         .sort((a: any, b: any) => Math.abs(b.zScore || 0) - Math.abs(a.zScore || 0))
         .slice(0, 8)

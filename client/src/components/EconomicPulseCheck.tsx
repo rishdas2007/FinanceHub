@@ -320,8 +320,7 @@ export function EconomicPulseCheck() {
   // Sample indicators date validation completed
 
   // Filter indicators based on filter criteria
-  const filteredIndicators = (economicData?.indicators && Array.isArray(economicData.indicators)) 
-    ? economicData.indicators.filter(indicator => {
+  const filteredIndicators = economicData?.indicators?.filter(indicator => {
     // Search filter
     const matchesSearch = searchTerm === '' || 
       indicator.metric.toLowerCase().includes(searchTerm.toLowerCase());
@@ -399,8 +398,7 @@ export function EconomicPulseCheck() {
     }
 
     return matchesSearch && matchesCategory && matchesType && matchesDateRange && matchesZScore && matchesDeltaZScore;
-  })
-    : [];
+  }) || [];
 
   // Client-side Economic Insight Classifier
   const classifyIndicator = (indicator: any, allIndicators: any[] = []): EconomicInsightClassification => {

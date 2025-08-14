@@ -99,15 +99,6 @@ app.use('/api', metricsMiddleware());
 // Performance Monitoring - Apply to all API routes
 app.use('/api', performanceTrackingMiddleware);
 
-// APM Monitoring Integration
-const { apmMiddleware } = await import('./middleware/apm-monitoring.js');
-app.use('/api', apmMiddleware);
-
-// Smart Compression
-const { compressionMiddleware, jsonOptimizationMiddleware } = await import('./middleware/smart-compression.js');
-app.use(compressionMiddleware);
-app.use('/api', jsonOptimizationMiddleware);
-
 // Optional Enhancements - API Versioning
 app.use('/api', apiVersioning);
 app.use('/api', versionDeprecation(['v1'])); // Mark v1 as deprecated
@@ -199,14 +190,6 @@ app.use((req, res, next) => {
     const { performanceMonitoringRoutes } = await import('./routes/performance-monitoring');
     app.use('/api/performance', performanceMonitoringRoutes);
 
-    // APM monitoring routes
-    const { apmRoutes } = await import('./routes/apm-routes.js');
-    app.use('/api/apm', apmRoutes);
-
-    // Streaming data routes
-    const { streamingRoutes } = await import('./routes/streaming-routes.js');
-    app.use('/api/streaming', streamingRoutes);
-
     // Register original routes (maintain backward compatibility)
     const server = await registerRoutes(app);
 
@@ -280,21 +263,6 @@ app.use((req, res, next) => {
           log('⚠️ Cache warmup service failed to initialize:', String(error));
         }
       }, 2000);
-
-      // Initialize Redis cluster (non-blocking)
-      setTimeout(async () => {
-        try {
-          const { redisCluster } = await import('./config/redis-cluster.js');
-          const clusterSuccess = await redisCluster.initialize();
-          if (clusterSuccess) {
-            log('🎯 Redis cluster initialized successfully');
-          } else {
-            log('⚠️ Redis cluster unavailable, using fallback cache');
-          }
-        } catch (error) {
-          log('⚠️ Redis cluster initialization failed:', String(error));
-        }
-      }, 3000);
       
       log('🔍 Performance monitoring, resource management, and cache warmup initialized');
       
