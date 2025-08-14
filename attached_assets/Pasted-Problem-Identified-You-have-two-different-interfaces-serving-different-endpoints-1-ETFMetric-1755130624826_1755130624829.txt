@@ -1,0 +1,130 @@
+Problem Identified
+
+  You have two different interfaces serving different endpoints:
+
+  1. ETFMetricsResponse (in /server/routes/etf-enhanced-routes.ts) - has
+  components property
+  2. ETFMetrics (in /server/services/etf-metrics-service.ts) - does NOT
+  have components property
+
+  The Issue: Frontend calls /api/etf-metrics expecting components property,
+   but gets ETFMetrics interface instead.
+
+  Quick Fix Options
+
+  Option 1: Add components to ETFMetrics Service Interface (Recommended)
+
+  File: /server/services/etf-metrics-service.ts
+
+  Add components property to the ETFMetrics interface:
+
+  export interface ETFMetrics {
+    symbol: string;
+    name: string;
+    price: number;
+    changePercent: number;
+
+    // ADD THIS: Frontend expects components property
+    components?: {
+      macdZ: number | null;
+      rsi14: number | null;
+      rsiZ: number | null;
+      bbPctB: number | null;
+      maGapPct: number | null;
+      mom5dZ: number | null;
+    };
+
+    // Z-Score Weighted Technical Indicator Scoring System
+    weightedScore: number | null;
+    weightedSignal: string | null;
+    // ... rest of existing properties
+  }
+
+  Then update the service to populate the components property:
+
+  // In processETFMetricParallel method, add this before return:
+  return {
+    symbol,
+    name: ETFMetricsService.ETF_NAMES[symbol as keyof typeof
+  ETFMetricsService.ETF_NAMES] || symbol,
+    price: price,
+    changePercent: momentumETF?.oneDayChange ?
+  parseFloat(momentumETF.oneDayChange.toString()) : 0,
+
+    // ADD THIS: Populate components for frontend
+    components: {
+      macdZ: zscore?.macdZScore || null,
+      rsi14: momentumETF?.rsi ? parseFloat(momentumETF.rsi.toString()) :
+  (technical?.rsi ? parseFloat(technical.rsi) : null),
+      rsiZ: zscore?.rsiZScore || null,
+      bbPctB: technical?.percent_b ? parseFloat(technical.percent_b) :
+  null,
+      maGapPct: this.getMAGap(technical) ? this.getMAGap(technical) / 100 :
+   null, // Convert percentage to decimal
+      mom5dZ: momentumETF?.fiveDayZScore || null,
+    },
+
+    // ... rest of existing properties
+  };
+
+  Option 2: Change Frontend to Use Enhanced Route
+
+  File: /client/src/hooks/useEtfMetrics.ts
+
+  Change the API endpoint from /api/etf-metrics to /api/etf-enhanced:
+
+  export function useEtfMetrics(horizon = '60D') {
+    return useQuery({
+      queryKey: ['etf-metrics', horizon],
+      queryFn: async () => {
+        // Change this line:
+        const json = await fetchJsonWith304(`/api/etf-enhanced?horizon=${en
+  codeURIComponent(horizon)}`);
+        // ... rest unchanged
+      },
+      // ... rest unchanged
+    });
+  }
+
+  Option 3: Create Adapter/Transformer
+
+  File: /client/src/adapters/etfMetricsAdapter.ts
+
+  Add a transformer to map ETFMetrics to expected format:
+
+  export function normalizeEtfMetrics(json: any) {
+    // If json has ETFMetrics format, transform it
+    if (json.data && Array.isArray(json.data) && !json.data[0]?.components)
+   {
+      json.data = json.data.map((etf: any) => ({
+        ...etf,
+        components: {
+          macdZ: etf.zScoreData?.macdZScore || null,
+          rsi14: etf.rsi || null,
+          rsiZ: etf.zScoreData?.rsiZScore || null,
+          bbPctB: etf.bollingerPosition || null,
+          maGapPct: etf.maGap ? etf.maGap / 100 : null,
+          mom5dZ: etf.zScoreData?.priceMomentumZScore || null,
+        }
+      }));
+    }
+
+    return {
+      rows: json.data || [],
+      meta: json.meta || {}
+    };
+  }
+
+  Recommendation
+
+  Use Option 1 - it's the cleanest fix that maintains consistency with your
+   existing architecture and ensures the service provides what the frontend
+   expects.
+
+  Implementation Steps:
+  1. Update ETFMetrics interface to include components property
+  2. Update processETFMetricParallel method to populate components
+  3. Test that frontend receives expected data structure
+
+  This fix will resolve the etf.components error and allow your dashboard
+  to display the technical indicators properly.

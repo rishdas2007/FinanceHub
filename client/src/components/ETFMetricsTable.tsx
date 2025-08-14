@@ -338,9 +338,9 @@ const ETFRow = memo(function ETFRow({
       <td className="py-3 px-1 text-center bg-purple-900/20">
         <div className="flex flex-col items-center">
           <span className={`text-sm font-medium ${
-            macdZScore && macdZScore > 0 ? 'text-green-400' : 'text-red-400'
+            etf.components?.macdValue && etf.components.macdValue > 0 ? 'text-green-400' : 'text-red-400'
           }`}>
-            {macdZScore?.toFixed(3) || 'N/A'}
+            {etf.components?.macdValue?.toFixed(3) || 'N/A'}
           </span>
           <span className="text-xs text-gray-400">
             MACD

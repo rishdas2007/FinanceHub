@@ -16,11 +16,19 @@ export interface ETFMetrics {
   price: number;
   changePercent: number;
   
-  // Z-Score Weighted Technical Indicator Scoring System
-  weightedScore: number | null;
-  weightedSignal: string | null;
+  // Data Quality-First Architecture: Raw Technical Indicators
+  components: {
+    rsi14: number | null;        // Raw RSI value (0-100)
+    macdValue: number | null;    // Raw MACD line value
+    macdSignal: number | null;   // Raw MACD signal line
+    macdHistogram: number | null; // Raw MACD histogram
+    bbPctB: number | null;       // Raw Bollinger %B (0-1 scale)
+    maGapPct: number | null;     // Raw MA gap percentage
+    atr14: number | null;        // Raw ATR value
+    mom5d: number | null;        // Raw 5-day momentum
+  };
   
-  // Multi-Horizon Z-Score indicators (institutional-grade analysis)
+  // Z-Score Analysis (Supplementary)
   zScoreData: {
     rsiZScore: number | null;
     macdZScore: number | null;
@@ -523,67 +531,75 @@ class ETFMetricsService {
       price: price,
       changePercent: momentumETF?.oneDayChange ? parseFloat(momentumETF.oneDayChange.toString()) : 0,
       
-      // Bollinger Bands & Position/Squeeze - Prioritize standard indicators
+      // Data Quality-First Architecture: Raw Technical Indicators
+      components: {
+        rsi14: standardIndicator?.rsi || (momentumETF?.rsi ? parseFloat(momentumETF.rsi.toString()) : (technical?.rsi ? parseFloat(technical.rsi) : null)),
+        macdValue: standardIndicator?.macd || technical?.macd_line || null,
+        macdSignal: standardIndicator?.macdSignal || technical?.macdSignal || null,
+        macdHistogram: standardIndicator?.macdHistogram || technical?.macdHistogram || null,
+        bbPctB: standardIndicator?.bollingerPercentB || (technical?.percent_b ? parseFloat(technical.percent_b) : null),
+        maGapPct: this.calculateMAGapPercentage(technical),
+        atr14: technical?.atr ? parseFloat(technical.atr) : null,
+        mom5d: momentumETF?.fiveDayChange || null,
+      },
+      
+      // Z-Score weighted fields
+      weightedScore: 0,
+      weightedSignal: 'HOLD',
+      
+      // Z-Score Analysis (Supplementary)
+      zScoreData: zscore ? {
+        rsiZScore: zscore.rsi_zscore || null,
+        macdZScore: zscore.macd_zscore || null,
+        bollingerZScore: zscore.bollinger_zscore || null,
+        atrZScore: null,
+        priceMomentumZScore: null,
+        maTrendZScore: null,
+        compositeZScore: zscore.composite_zscore || null,
+        shortTermZScore: null,
+        mediumTermZScore: null,
+        longTermZScore: null,
+        ultraLongZScore: null,
+        signal: zscore.composite_zscore ? (
+          zscore.composite_zscore >= 0.75 ? 'BUY' :
+          zscore.composite_zscore <= -0.75 ? 'SELL' : 'HOLD'
+        ) : null,
+        regimeAware: false,
+      } : null,
+      
+      // Legacy fields for compatibility
       bollingerPosition: standardIndicator?.bollingerPercentB || (technical?.percent_b ? parseFloat(technical.percent_b) : null),
       bollingerSqueeze: this.calculateBollingerSqueeze(technical),
       bollingerStatus: this.getBollingerStatus(technical),
-      
-      // ATR & Volatility
       atr: technical?.atr ? parseFloat(technical.atr) : null,
       volatility: momentumETF?.volatility || null,
-      
-      // Moving Average (Trend) - prioritize momentum data over technical
       maSignal: momentumETF?.momentum === 'bullish' ? 'BULLISH' : 
               momentumETF?.momentum === 'bearish' ? 'BEARISH' : 
               this.getMASignal(technical),
       maTrend: this.getMATrend(technical),
       maGap: this.getMAGap(technical),
-      
-      // RSI (Momentum) - Prioritize standard indicators for accuracy
       rsi: standardIndicator?.rsi || (momentumETF?.rsi ? parseFloat(momentumETF.rsi.toString()) : (technical?.rsi ? parseFloat(technical.rsi) : null)),
       rsiSignal: this.getRSISignal(standardIndicator?.rsi || momentumETF?.rsi || technical?.rsi),
       rsiDivergence: false,
-      
-      // Z-Score calculations
       zScore: momentumETF?.zScore || null,
       sharpeRatio: momentumETF?.sharpeRatio || null,
       fiveDayReturn: momentumETF?.fiveDayChange || null,
-      // 30-Day Trend (Fixed calculation from database)
       change30Day,
-      
-      // Volume, VWAP, OBV
       volumeRatio: null,
       vwapSignal: this.getVWAPSignal(technical, zscore, momentumETF),
-      obvTrend: momentumETF?.signal ? this.parseOBVFromSignal(momentumETF.signal) : 'neutral',
-      
-      // Z-Score system results
-      weightedScore: 0,
-      weightedSignal: 'HOLD',
-      zScoreData: zscore ? this.buildZScoreDataOptimized(zscore) : null,
-      
-      // PHASE 3: Add raw technical indicators for display
-      technicalIndicators: standardIndicator ? {
-        rsi: standardIndicator.rsi,
-        macd: standardIndicator.macd,
-        macdSignal: standardIndicator.macdSignal,
-        macdHistogram: standardIndicator.macdHistogram,
-        bollingerPercentB: standardIndicator.bollingerPercentB,
-        bollingerUpper: standardIndicator.bollingerUpper,
-        bollingerLower: standardIndicator.bollingerLower,
-      } : null,
-      
-      // Z-Score analysis separate from raw values
-      zScoreAnalysis: zscore ? {
-        rsiZScore: zscore.rsi_zscore || null,
-        macdZScore: zscore.macd_zscore || null,
-        bollingerZScore: zscore.bollinger_zscore || null,
-        compositeZScore: zscore.composite_zscore || null,
-        signal: zscore.composite_zscore ? (
-          zscore.composite_zscore >= 0.75 ? 'BUY' :
-          zscore.composite_zscore <= -0.75 ? 'SELL' : 'HOLD'
-        ) : null,
-      } : null
+      obvTrend: momentumETF?.signal ? this.parseOBVFromSignal(momentumETF.signal) : 'neutral'
     };
+  }
+
+  /**
+   * Helper method to calculate MA gap as percentage
+   */
+  private calculateMAGapPercentage(technical: any): number | null {
+    if (!technical?.sma_20 || !technical?.sma_50) return null;
+    const sma20 = parseFloat(technical.sma_20);
+    const sma50 = parseFloat(technical.sma_50);
+    if (isNaN(sma20) || isNaN(sma50) || sma50 === 0) return null;
+    return ((sma20 - sma50) / sma50);
   }
 
   /**
