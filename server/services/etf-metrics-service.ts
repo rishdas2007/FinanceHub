@@ -9,6 +9,7 @@ import { performanceBudgetMonitor } from '../middleware/performance-budget';
 import { StandardTechnicalIndicatorsService } from './standard-technical-indicators';
 import { welfordStats, hasSufficientData, zScore, calculateRSI } from '@shared/utils/statistics';
 import { validateEtfPayload, createContentETag, validatePriceSanity, type PayloadMetadata } from './validatePayload';
+import { MarketDataService } from './market-data-unified';
 
 export interface ETFMetrics {
   symbol: string;
@@ -150,8 +151,8 @@ class ETFMetricsService {
           return cached as ETFMetrics[];
         }
 
-      // 3. CRITICAL: Get latest available price data 
-      const latestPrices = await this.getLatestPricesFromDB();
+      // 3. PRIORITY: Get real-time price data from Twelve Data API, fallback to database
+      const latestPrices = await this.getLatestPricesWithRealTime();
       logger.info(`💰 Found price data for ${latestPrices.size} ETFs`);
       
       // If no recent price data, fall back to existing consolidated data
@@ -286,14 +287,75 @@ class ETFMetricsService {
   }
 
   /**
+   * REAL-TIME: Get fresh price data from Twelve Data API, fallback to database
+   */
+  private async getLatestPricesWithRealTime() {
+    const results = new Map();
+    const marketDataService = MarketDataService.getInstance();
+    
+    // Attempt to fetch real-time data for all ETFs
+    const realTimePromises = this.ETF_SYMBOLS.map(async (symbol) => {
+      try {
+        const freshData = await marketDataService.getStockQuote(symbol, 30000); // 30s cache
+        const price = parseFloat(freshData.price);
+        const changePercent = parseFloat(freshData.changePercent);
+        
+        if (price > 0 && isFinite(price)) {
+          logger.info(`📈 Real-time ${symbol}: $${price} (${changePercent}%)`);
+          return {
+            symbol,
+            data: {
+              close: price,
+              price: freshData.price,
+              pctChange: changePercent,
+              change: parseFloat(freshData.change),
+              volume: freshData.volume,
+              ts: new Date(),
+              isRealTime: true
+            }
+          };
+        }
+      } catch (error) {
+        logger.warn(`⚠️ Failed to get real-time data for ${symbol}: ${error.message}`);
+      }
+      return null;
+    });
+    
+    const realTimeResults = await Promise.allSettled(realTimePromises);
+    const successfulRealTime = realTimeResults
+      .filter(r => r.status === 'fulfilled' && r.value !== null)
+      .map(r => r.value);
+    
+    // Add successful real-time data
+    successfulRealTime.forEach(({ symbol, data }) => {
+      results.set(symbol, data);
+    });
+    
+    logger.info(`📊 Real-time data fetched for ${successfulRealTime.length}/${this.ETF_SYMBOLS.length} ETFs`);
+    
+    // For any missing symbols, fall back to database
+    const missingSymbols = this.ETF_SYMBOLS.filter(symbol => !results.has(symbol));
+    if (missingSymbols.length > 0) {
+      logger.warn(`🔄 Falling back to database for ${missingSymbols.length} ETFs: ${missingSymbols.join(', ')}`);
+      const dbPrices = await this.getLatestPricesFromDB(missingSymbols);
+      dbPrices.forEach((data, symbol) => {
+        results.set(symbol, { ...data, isRealTime: false });
+      });
+    }
+    
+    return results;
+  }
+
+  /**
    * CRITICAL: Get latest available price data from database (last 7 days, expand if needed)
    */
-  private async getLatestPricesFromDB() {
+  private async getLatestPricesFromDB(symbolsToFetch?: string[]) {
     const results = new Map();
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - 2); // Reduced lookback to 2 days for fresher data
     
-    for (const symbol of this.ETF_SYMBOLS) {
+    const symbols = symbolsToFetch || this.ETF_SYMBOLS;
+    for (const symbol of symbols) {
       try {
         const latest = await db
           .select()

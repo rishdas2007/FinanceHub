@@ -66,6 +66,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ success: false, error: error.message });
     }
   });
+
+  // Manual ETF Data Refresh from Twelve Data API
+  app.post('/api/admin/refresh-etf-data', async (req, res) => {
+    try {
+      console.log('🔄 Manual ETF data refresh from Twelve Data API triggered');
+      
+      const { MarketDataService } = await import('./services/market-data-unified');
+      const marketDataService = MarketDataService.getInstance();
+      
+      // Get fresh data for all major ETFs
+      const etfSymbols = ['SPY', 'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'];
+      
+      const refreshResults = await Promise.allSettled(
+        etfSymbols.map(async (symbol) => {
+          console.log(`🔄 Refreshing ${symbol} from Twelve Data API...`);
+          const freshData = await marketDataService.getStockQuote(symbol, 0); // Force fresh data (no cache)
+          console.log(`✅ ${symbol}: $${freshData.price} (${freshData.changePercent}%)`);
+          return { symbol, data: freshData };
+        })
+      );
+      
+      const successful = refreshResults.filter(r => r.status === 'fulfilled').length;
+      const failed = refreshResults.filter(r => r.status === 'rejected');
+      
+      console.log(`✅ ETF data refresh completed: ${successful}/${etfSymbols.length} successful`);
+      
+      if (failed.length > 0) {
+        console.warn('⚠️ Some ETF data refresh attempts failed:', failed.map(f => f.reason));
+      }
+      
+      // Clear ETF metrics cache to force fresh data on next request
+      const { redisCache } = await import('./config/redis-cache');
+      await redisCache.clear('etf-metrics*');
+      console.log('🧹 ETF metrics cache cleared');
+      
+      res.json({ 
+        success: true, 
+        message: `ETF data refresh completed: ${successful}/${etfSymbols.length} ETFs updated`,
+        successful,
+        failed: failed.length,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ ETF data refresh failed:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
   
   // FRED Cache Management endpoints
   // FRED cache routes removed - using unified cache system instead
