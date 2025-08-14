@@ -4,29 +4,7 @@ import { db } from '../db';
 import { MOVERS } from '../config/movers';
 import { getCache, setCache, getLastGood, setLastGood } from '../cache/unified-dashboard-cache';
 
-async function spark12m(seriesId: string, transform: string) {
-  const q = await db.execute(sql`
-    with raw as (
-      select period_end::date as pe, value_std
-      from econ_series_observation
-      where series_id = ${seriesId}
-        and transform_code = ${transform}
-        and period_end >= date_trunc('month', current_date) - interval '12 months'
-    ),
-    bucket as (
-      select date_trunc('month', pe) as m_end, pe, value_std from raw
-    ),
-    last_per_month as (
-      select distinct on (m_end) m_end::date as period_end, value_std
-      from bucket
-      order by m_end, pe desc
-    )
-    select period_end, value_std
-    from last_per_month
-    order by period_end asc;
-  `);
-  return (q.rows as any[]).map(r => ({ t: Date.parse(r.period_end), value: Number(r.value_std) }));
-}
+// Removed spark12m function - no longer needed
 
 export const getEconMovers = async (req: Request, res: Response) => {
   const limit = Math.max(1, Math.min(10, Number(req.query.limit) || 5));
@@ -95,8 +73,6 @@ export const getEconMovers = async (req: Request, res: Response) => {
         ? Number(currentVal) - Number(priorVal)
         : null;
 
-      const spark = await spark12m(series_id, default_transform);
-
       out.push({
         seriesId: series_id,
         displayName: display_name,
@@ -106,8 +82,7 @@ export const getEconMovers = async (req: Request, res: Response) => {
         current: currentVal,
         prior: priorVal,
         vsPrior,
-        zScore: z,
-        spark12m: spark
+        zScore: z
       });
     }
 

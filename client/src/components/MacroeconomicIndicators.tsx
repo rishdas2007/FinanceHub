@@ -724,11 +724,7 @@ const MacroeconomicIndicators: React.FC = () => {
                       {getSortIcon('category')}
                     </button>
                   </th>
-                  <th className="text-center py-3 px-2 w-32 bg-financial-card">
-                    <span className="text-gray-300 font-medium">
-                      12M Trend
-                    </span>
-                  </th>
+
                   <th className="text-center py-3 px-2 w-24 bg-financial-card">
                     <button 
                       onClick={() => handleSort('period')}
@@ -820,20 +816,7 @@ const MacroeconomicIndicators: React.FC = () => {
                         {indicator.category}
                       </span>
                     </td>
-                    <td className="text-center py-3 px-2 w-32">
-                      {indicator.seriesId ? (
-                        <BatchSparklineCell 
-                          seriesId={indicator.seriesId} 
-                          batchData={batchSparklinesData?.data}
-                          isLoading={sparklinesLoading || isLoading}
-                          className="h-8 w-28"
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center text-slate-400 text-xs h-8">
-                          —
-                        </div>
-                      )}
-                    </td>
+
                     <td className="py-3 px-2 text-center w-24">
                       <div className="text-white text-sm">
                         {indicator.period_date ? new Date(indicator.period_date).toLocaleDateString() : 'N/A'}

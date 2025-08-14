@@ -3,35 +3,7 @@ import { sql } from 'drizzle-orm';
 import { db } from '../db';
 import { getCache, setCache } from '../cache/unified-dashboard-cache';
 
-// Function to generate 12-month sparkline data
-async function getSparkline12M(seriesId: string, transform: string = 'LEVEL') {
-  try {
-    const q = await db.execute(sql`
-      with raw as (
-        select period_end::date as pe, value_std
-        from econ_series_observation
-        where series_id = ${seriesId}
-          and transform_code = ${transform}
-          and period_end >= date_trunc('month', current_date) - interval '12 months'
-      ),
-      bucket as (
-        select date_trunc('month', pe) as m_end, pe, value_std from raw
-      ),
-      last_per_month as (
-        select distinct on (m_end) m_end::date as period_end, value_std
-        from bucket
-        order by m_end, pe desc
-      )
-      select period_end, value_std
-      from last_per_month
-      order by period_end asc;
-    `);
-    return (q.rows as any[]).map(r => ({ t: Date.parse(r.period_end), value: Number(r.value_std) }));
-  } catch (error) {
-    console.warn(`Failed to get sparkline for ${seriesId}:`, error);
-    return null;
-  }
-}
+// Removed getSparkline12M function - no longer needed
 
 // Mapping of series IDs to display names and metadata
 const ECONOMIC_SERIES_MAP = {
@@ -121,8 +93,7 @@ export const getEconomicPulse = async (req: Request, res: Response) => {
       `);
       const zScore = (zScoreQuery.rows[0] as { level_z: number } | undefined)?.level_z || null;
       
-      // Get 12M sparkline data only for series with robust historical data
-      const spark12m = series.hasRobustData ? await getSparkline12M(seriesId, transform) : null;
+      // Removed 12M sparkline data - no longer needed
       
       // Format values appropriately
       const formatValue = (val: number) => {
@@ -143,8 +114,7 @@ export const getEconomicPulse = async (req: Request, res: Response) => {
         zScore: zScore ? zScore.toFixed(2) : '0.00',
         deltaZScore: '0.00', // Placeholder for now
         releaseDate: current.period_end,
-        period_date: current.period_end,
-        spark12m
+        period_date: current.period_end
       });
     }
     

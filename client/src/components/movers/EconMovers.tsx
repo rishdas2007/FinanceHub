@@ -142,15 +142,7 @@ export default function EconMovers({ limit = 5 }: { limit?: number }) {
             </div>
           </div>
 
-          {/* 12M Trend Sparkline */}
-          <div className="w-24 h-8 mx-3">
-            <SimpleSparkline 
-              data={indicator.spark12m} 
-              trend={indicator.vsPrior || 0}
-              height={32}
-              width={96}
-            />
-          </div>
+
 
           {/* Current Value */}
           <div className="text-right w-20">
