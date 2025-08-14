@@ -608,7 +608,21 @@ class ETFMetricsService {
       // Frontend expects components property - Data Quality-First Architecture
       components: {
         macdZ: zscore?.macdZScore ? parseFloat(zscore.macdZScore) : null,
-        rsi14: standardIndicator?.rsi || (momentumETF?.rsi ? parseFloat(momentumETF.rsi.toString()) : (technical?.rsi ? parseFloat(technical.rsi) : null)),
+        rsi14: (() => {
+          const sources = {
+            standard: standardIndicator?.rsi,
+            technical: technical?.rsi ? parseFloat(technical.rsi) : null,
+            momentum: momentumETF?.rsi ? parseFloat(momentumETF.rsi.toString()) : null
+          };
+          // PRIORITY FIX: Always prioritize database technical indicators over computed ones
+          const chosen = sources.technical || sources.standard || sources.momentum;
+          if (symbol === 'XLI') {
+            logger.info(`🔍 RSI sources for ${symbol}: standard=${sources.standard}, technical=${sources.technical}, momentum=${sources.momentum}, chosen=${chosen}`);
+            logger.info(`🔍 Technical object for ${symbol}:`, JSON.stringify(technical, null, 2));
+            logger.info(`🔍 StandardIndicator object for ${symbol}:`, JSON.stringify(standardIndicator, null, 2));
+          }
+          return chosen;
+        })(),
         rsiZ: zscore?.rsiZScore ? parseFloat(zscore.rsiZScore) : null,
         bbPctB: standardIndicator?.bollingerPercentB || (technical?.percent_b ? parseFloat(technical.percent_b) : null),
         bbZ: zscore?.bollingerZScore ? parseFloat(zscore.bollingerZScore) : null,
@@ -652,8 +666,8 @@ class ETFMetricsService {
               this.getMASignal(technical),
       maTrend: this.getMATrend(technical),
       maGap: this.getMAGap(technical),
-      rsi: standardIndicator?.rsi || (momentumETF?.rsi ? parseFloat(momentumETF.rsi.toString()) : (technical?.rsi ? parseFloat(technical.rsi) : null)),
-      rsiSignal: this.getRSISignal(standardIndicator?.rsi || momentumETF?.rsi || technical?.rsi),
+      rsi: technical?.rsi ? parseFloat(technical.rsi) : (standardIndicator?.rsi || (momentumETF?.rsi ? parseFloat(momentumETF.rsi.toString()) : null)),
+      rsiSignal: this.getRSISignal(technical?.rsi || standardIndicator?.rsi || momentumETF?.rsi),
       rsiDivergence: false,
       zScore: momentumETF?.zScore || null,
       sharpeRatio: momentumETF?.sharpeRatio || null,
