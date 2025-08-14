@@ -131,10 +131,46 @@ const ETFMetricsTableOptimized = () => {
         return null;
       }
 
+      // Calculate composite Z-score from available individual Z-scores
+      const calculateCompositeZScore = () => {
+        const zData = metric.zScoreData;
+        if (!zData) return null;
+        
+        const zScores = [];
+        if (zData.rsiZScore !== null && zData.rsiZScore !== undefined) zScores.push(zData.rsiZScore);
+        if (zData.macdZScore !== null && zData.macdZScore !== undefined) zScores.push(zData.macdZScore);
+        if (zData.bollingerZScore !== null && zData.bollingerZScore !== undefined) zScores.push(zData.bollingerZScore);
+        
+        if (zScores.length === 0) return null;
+        
+        // Weighted average: MACD 35%, RSI 25%, Bollinger 40%
+        let weightedSum = 0;
+        let totalWeight = 0;
+        
+        if (zData.macdZScore !== null && zData.macdZScore !== undefined) {
+          weightedSum += zData.macdZScore * 0.35;
+          totalWeight += 0.35;
+        }
+        if (zData.rsiZScore !== null && zData.rsiZScore !== undefined) {
+          weightedSum += zData.rsiZScore * 0.25;
+          totalWeight += 0.25;
+        }
+        if (zData.bollingerZScore !== null && zData.bollingerZScore !== undefined) {
+          weightedSum += zData.bollingerZScore * 0.40;
+          totalWeight += 0.40;
+        }
+        
+        return totalWeight > 0 ? weightedSum / totalWeight : null;
+      };
+
+      const calculatedCompositeZ = calculateCompositeZScore();
+
       console.log(`🔍 ${metric.symbol} Z-Score debug:`, {
         compositeZ: metric.compositeZ,
+        calculatedCompositeZ: calculatedCompositeZ,
         macdValue: metric.components?.macdZ,
         macdZ: metric.components?.macdZ,
+        zScoreData: metric.zScoreData,
         allNumericFields: Object.entries(metric).filter(([k,v]) => typeof v === 'number')
       });
 
@@ -142,7 +178,7 @@ const ETFMetricsTableOptimized = () => {
         ...metric,
         // Map API field names to frontend expectations with comprehensive fallbacks
         symbol: metric.symbol,
-        compositeZScore: metric.compositeZ || null,
+        compositeZScore: metric.zScoreData?.compositeZScore || metric.compositeZ || calculatedCompositeZ,
         rsi: metric.components?.rsi14 || null,
         rsiZ: metric.components?.rsiZ || null, // Use real RSI Z-score from API
         macdValue: metric.components?.macdZ || null, // Use macdZ as the actual MACD display value
@@ -152,7 +188,7 @@ const ETFMetricsTableOptimized = () => {
         pctChangeFormatted: metric.changePercent || null,
         maGapZ: metric.components?.maGapZ || null, // Use real MA Gap Z-score from API
         signal: (() => {
-          const zScore = metric.compositeZ || 0;
+          const zScore = metric.zScoreData?.compositeZScore || metric.compositeZ || calculatedCompositeZ || 0;
           return zScore >= 0.75 ? 'SELL' : zScore <= -0.75 ? 'BUY' : 'HOLD';
         })(),
         maGap: (metric.ma?.gapPct !== null && metric.ma?.gapPct !== undefined) ? safePercent(metric.ma.gapPct, 2) : 'N/A',

@@ -629,7 +629,7 @@ class ETFMetricsService {
         atrZScore: null,
         priceMomentumZScore: null,
         maTrendZScore: maGapZScore,
-        compositeZScore: zscore.composite_zscore || null,
+        compositeZScore: zscore.compositeZScore ? parseFloat(zscore.compositeZScore) : null,
         shortTermZScore: null,
         mediumTermZScore: null,
         longTermZScore: null,
