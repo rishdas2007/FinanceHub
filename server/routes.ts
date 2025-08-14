@@ -507,7 +507,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create momentum lookup map
       const momentumMap = new Map();
       if (momentumData.momentumStrategies) {
-        momentumData.momentumStrategies.forEach((strategy: any) => {
+        const strategies = Array.isArray(momentumData.momentumStrategies) 
+      ? momentumData.momentumStrategies 
+      : Object.values(momentumData.momentumStrategies || {});
+    
+    strategies.forEach((strategy: any) => {
           momentumMap.set(strategy.ticker, {
             signal: strategy.momentum.toUpperCase(),
             strength: Math.round(strategy.strength * 10), // Convert to 0-10 scale
