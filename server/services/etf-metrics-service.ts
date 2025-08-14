@@ -16,16 +16,16 @@ export interface ETFMetrics {
   price: number;
   changePercent: number;
   
-  // Data Quality-First Architecture: Raw Technical Indicators
+  // Frontend expects components property - matches ETFMetricsResponse interface
   components: {
+    macdZ: number | null;        // MACD Z-Score
     rsi14: number | null;        // Raw RSI value (0-100)
-    macdValue: number | null;    // Raw MACD line value
-    macdSignal: number | null;   // Raw MACD signal line
-    macdHistogram: number | null; // Raw MACD histogram
+    rsiZ: number | null;         // RSI Z-Score
     bbPctB: number | null;       // Raw Bollinger %B (0-1 scale)
+    bbZ: number | null;          // Bollinger Z-Score
     maGapPct: number | null;     // Raw MA gap percentage
-    atr14: number | null;        // Raw ATR value
-    mom5d: number | null;        // Raw 5-day momentum
+    maGapZ: number | null;       // MA Gap Z-Score
+    mom5dZ: number | null;       // 5-day momentum Z-Score
   };
   
   // Z-Score Analysis (Supplementary)
@@ -474,6 +474,18 @@ class ETFMetricsService {
       weightedSignal: 'HOLD',
       zScoreData: null,
       
+      // Frontend expects components property
+      components: {
+        macdZ: null,
+        rsi14: null,
+        rsiZ: null,
+        bbPctB: null,
+        bbZ: null,
+        maGapPct: null,
+        maGapZ: null,
+        mom5dZ: null,
+      },
+      
       bollingerPosition: null,
       bollingerSqueeze: false,
       bollingerStatus: `Data Quality Issue: ${metadata.dqStatus}`,
@@ -531,16 +543,16 @@ class ETFMetricsService {
       price: price,
       changePercent: momentumETF?.oneDayChange ? parseFloat(momentumETF.oneDayChange.toString()) : 0,
       
-      // Data Quality-First Architecture: Raw Technical Indicators
+      // Frontend expects components property - Data Quality-First Architecture
       components: {
+        macdZ: zscore?.macd_zscore || null,
         rsi14: standardIndicator?.rsi || (momentumETF?.rsi ? parseFloat(momentumETF.rsi.toString()) : (technical?.rsi ? parseFloat(technical.rsi) : null)),
-        macdValue: standardIndicator?.macd || technical?.macd_line || null,
-        macdSignal: standardIndicator?.macdSignal || technical?.macdSignal || null,
-        macdHistogram: standardIndicator?.macdHistogram || technical?.macdHistogram || null,
+        rsiZ: zscore?.rsi_zscore || null,
         bbPctB: standardIndicator?.bollingerPercentB || (technical?.percent_b ? parseFloat(technical.percent_b) : null),
+        bbZ: zscore?.bollinger_zscore || null,
         maGapPct: this.calculateMAGapPercentage(technical),
-        atr14: technical?.atr ? parseFloat(technical.atr) : null,
-        mom5d: momentumETF?.fiveDayChange || null,
+        maGapZ: null, // Will be calculated later if needed
+        mom5dZ: zscore?.momentum_zscore || null,
       },
       
       // Z-Score weighted fields
