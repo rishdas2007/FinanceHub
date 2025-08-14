@@ -14,7 +14,7 @@ export async function getEconSparkline(req: Request, res: Response) {
     });
   }
 
-  const cacheKey = `econ:spark:${seriesId}:${transform}:${months}:v3`;
+  const cacheKey = `econ:spark:${seriesId}:${transform}:${months}:v6`;
   
   try {
     // Check cache first
@@ -36,39 +36,40 @@ export async function getEconSparkline(req: Request, res: Response) {
     
     logger.info(`📊 Sparkline query for ${seriesId} with transform: ${finalTransform} (type: ${typeof finalTransform})`);
     
+    // Clear cache for debugging
+    cache.delete(cacheKey);
     if (finalTransform === 'YOY') {
       // Year-over-Year percentage change calculation
       logger.info(`🧮 Using YOY calculation for ${seriesId}`);
       queryResult = await db.execute(sql`
-        WITH monthly_base AS (
+        WITH monthly_data AS (
           SELECT DISTINCT ON (date_trunc('month', period_end)) 
-            date_trunc('month', period_end)::date as month_start,
-            period_end::date as period_end, 
-            value_std
+            period_end::date,
+            value_std::FLOAT as value_std
           FROM econ_series_observation
           WHERE series_id = ${seriesId}
             AND value_std IS NOT NULL
             AND period_end >= current_date - interval '36 months'
           ORDER BY date_trunc('month', period_end), period_end DESC
         ),
-        with_yoy_calculation AS (
+        with_yoy AS (
           SELECT 
             period_end,
-            value_std as current_value,
-            LAG(value_std, 12) OVER (ORDER BY month_start) as value_12m_ago,
+            value_std,
+            LAG(value_std, 12) OVER (ORDER BY period_end) as value_12m_ago,
             CASE 
-              WHEN LAG(value_std, 12) OVER (ORDER BY month_start) IS NOT NULL 
-              THEN ROUND(((value_std - LAG(value_std, 12) OVER (ORDER BY month_start)) / LAG(value_std, 12) OVER (ORDER BY month_start)) * 100, 2)
+              WHEN LAG(value_std, 12) OVER (ORDER BY period_end) IS NOT NULL 
+              THEN ((value_std - LAG(value_std, 12) OVER (ORDER BY period_end)) / LAG(value_std, 12) OVER (ORDER BY period_end)) * 100
               ELSE NULL 
             END as yoy_rate
-          FROM monthly_base
+          FROM monthly_data
         )
         SELECT 
           period_end, 
-          COALESCE(yoy_rate, current_value) as value_std
-        FROM with_yoy_calculation
-        WHERE period_end >= current_date - interval '${months} months'
-          AND (yoy_rate IS NOT NULL OR current_value IS NOT NULL)
+          yoy_rate as value_std
+        FROM with_yoy
+        WHERE yoy_rate IS NOT NULL
+          AND period_end >= current_date - interval '${months} months'
         ORDER BY period_end ASC
       `);
     } else {
@@ -116,6 +117,11 @@ export async function getEconSparkline(req: Request, res: Response) {
     }
 
     const result = queryResult;
+
+    logger.info(`📊 Query executed for ${seriesId}, transform: ${finalTransform}, returned ${result.rows.length} rows`);
+    if (result.rows.length > 0 && finalTransform === 'YOY') {
+      logger.info(`🧮 YOY result sample: ${result.rows[0]?.value_std} (should be 2-3% rate, not 300+ absolute)`);
+    }
 
     // Transform data for client
     const data = result.rows.map((row: any) => ({
