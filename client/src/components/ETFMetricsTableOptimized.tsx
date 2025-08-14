@@ -191,8 +191,8 @@ const ETFMetricsTableOptimized = () => {
           const zScore = metric.zScoreData?.compositeZScore || metric.compositeZ || calculatedCompositeZ || 0;
           return zScore >= 0.75 ? 'SELL' : zScore <= -0.75 ? 'BUY' : 'HOLD';
         })(),
-        maGap: (metric.ma?.gapPct !== null && metric.ma?.gapPct !== undefined) ? safePercent(metric.ma.gapPct, 2) : 'N/A',
-        maGapNumeric: metric.ma?.gapPct ? metric.ma.gapPct * 100 : 0,
+        maGap: (metric.components?.maGapPct !== null && metric.components?.maGapPct !== undefined) ? safePercent(metric.components.maGapPct, 2) : 'N/A',
+        maGapNumeric: metric.components?.maGapPct ? metric.components.maGapPct * 100 : 0,
         signalColor: 
           metric.signal === 'BUY' ? 'text-green-400' :
           metric.signal === 'SELL' ? 'text-red-400' : 
