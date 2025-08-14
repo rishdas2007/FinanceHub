@@ -14,19 +14,19 @@ export async function getEconSparkline(req: Request, res: Response) {
     });
   }
 
-  const cacheKey = `econ:spark:${seriesId}:${transform}:${months}:v2`;
+  const cacheKey = `econ:spark:${seriesId}:${transform}:${months}:v3`;
   
   try {
-    // Temporarily disable cache for debugging transform issues
-    // const cached = cache.get<any>(cacheKey);
-    // if (cached) {
-    //   return res.json({
-    //     success: true,
-    //     data: cached.data,
-    //     meta: cached.meta,
-    //     cached: true
-    //   });
-    // }
+    // Check cache first
+    const cached = cache.get<any>(cacheKey);
+    if (cached) {
+      return res.json({
+        success: true,
+        data: cached.data,
+        meta: cached.meta,
+        cached: true
+      });
+    }
 
     // Use the requested transform directly (no auto-detection)
     let finalTransform = transform as string;
@@ -40,41 +40,35 @@ export async function getEconSparkline(req: Request, res: Response) {
       // Year-over-Year percentage change calculation
       logger.info(`🧮 Using YOY calculation for ${seriesId}`);
       queryResult = await db.execute(sql`
-        WITH raw AS (
-          SELECT period_end::date as pe, value_std
+        WITH monthly_base AS (
+          SELECT DISTINCT ON (date_trunc('month', period_end)) 
+            date_trunc('month', period_end)::date as month_start,
+            period_end::date as period_end, 
+            value_std
           FROM econ_series_observation
           WHERE series_id = ${seriesId}
             AND value_std IS NOT NULL
-            AND period_end >= date_trunc('month', current_date) - (${months} + 12 || ' months')::interval
-            AND period_end <= current_date
+            AND period_end >= current_date - interval '36 months'
+          ORDER BY date_trunc('month', period_end), period_end DESC
         ),
-        bucket AS (
-          SELECT date_trunc('month', pe) as m_end, pe, value_std
-          FROM raw
-        ),
-        last_per_month AS (
-          SELECT DISTINCT ON (m_end) 
-            m_end::date as period_end, 
-            value_std
-          FROM bucket
-          ORDER BY m_end, pe DESC
-        ),
-        with_yoy AS (
+        with_yoy_calculation AS (
           SELECT 
             period_end,
-            value_std,
-            LAG(value_std, 12) OVER (ORDER BY period_end) as value_12m_ago,
+            value_std as current_value,
+            LAG(value_std, 12) OVER (ORDER BY month_start) as value_12m_ago,
             CASE 
-              WHEN LAG(value_std, 12) OVER (ORDER BY period_end) IS NOT NULL 
-              THEN ((value_std - LAG(value_std, 12) OVER (ORDER BY period_end)) / LAG(value_std, 12) OVER (ORDER BY period_end)) * 100 
+              WHEN LAG(value_std, 12) OVER (ORDER BY month_start) IS NOT NULL 
+              THEN ROUND(((value_std - LAG(value_std, 12) OVER (ORDER BY month_start)) / LAG(value_std, 12) OVER (ORDER BY month_start)) * 100, 2)
               ELSE NULL 
-            END as yoy_value
-          FROM last_per_month
+            END as yoy_rate
+          FROM monthly_base
         )
-        SELECT period_end, yoy_value as value_std
-        FROM with_yoy
-        WHERE yoy_value IS NOT NULL
-          AND period_end >= date_trunc('month', current_date) - (${months} || ' months')::interval
+        SELECT 
+          period_end, 
+          COALESCE(yoy_rate, current_value) as value_std
+        FROM with_yoy_calculation
+        WHERE period_end >= current_date - interval '${months} months'
+          AND (yoy_rate IS NOT NULL OR current_value IS NOT NULL)
         ORDER BY period_end ASC
       `);
     } else {

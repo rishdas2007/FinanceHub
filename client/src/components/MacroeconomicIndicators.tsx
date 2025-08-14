@@ -812,7 +812,7 @@ const MacroeconomicIndicators: React.FC = () => {
                           params={{
                             seriesId: indicator.seriesId,
                             months: 12,
-                            transform: 'LEVEL'
+                            transform: indicator.metric.includes('(Δ-adjusted)') || indicator.metric.includes('Rate') || indicator.metric.includes('Yield') ? 'LEVEL' : 'YOY'
                           }}
                           height={32}
                           width={120}
