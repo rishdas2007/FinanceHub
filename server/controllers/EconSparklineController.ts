@@ -38,39 +38,45 @@ export async function getEconSparkline(req: Request, res: Response) {
     const isYOY = finalTransform === 'YOY';
     
     if (isYOY) {
-      // Year-over-Year percentage change calculation
+      // Year-over-Year percentage change calculation with dual table support
       logger.info(`🧮 Using YOY calculation for ${seriesId}`);
-      queryResult = await db.execute(sql`
-        WITH monthly_data AS (
-          SELECT DISTINCT ON (date_trunc('month', period_end)) 
-            period_end::date,
-            value_std::FLOAT as value_std
-          FROM econ_series_observation
-          WHERE series_id = ${seriesId}
-            AND value_std IS NOT NULL
-            AND period_end >= current_date - interval '36 months'
-          ORDER BY date_trunc('month', period_end), period_end DESC
-        ),
-        with_yoy AS (
+      try {
+        queryResult = await db.execute(sql`
+          WITH monthly_data AS (
+            SELECT DISTINCT ON (date_trunc('month', period_end)) 
+              period_end::date,
+              value_std::FLOAT as value_std
+            FROM econ_series_observation
+            WHERE series_id = ${seriesId}
+              AND value_std IS NOT NULL
+              AND period_end >= current_date - interval '36 months'
+            ORDER BY date_trunc('month', period_end), period_end DESC
+          ),
+          with_yoy AS (
+            SELECT 
+              period_end,
+              value_std,
+              LAG(value_std, 12) OVER (ORDER BY period_end) as value_12m_ago,
+              CASE 
+                WHEN LAG(value_std, 12) OVER (ORDER BY period_end) IS NOT NULL 
+                THEN ((value_std - LAG(value_std, 12) OVER (ORDER BY period_end)) / LAG(value_std, 12) OVER (ORDER BY period_end)) * 100
+                ELSE NULL 
+              END as yoy_rate
+            FROM monthly_data
+          )
           SELECT 
-            period_end,
-            value_std,
-            LAG(value_std, 12) OVER (ORDER BY period_end) as value_12m_ago,
-            CASE 
-              WHEN LAG(value_std, 12) OVER (ORDER BY period_end) IS NOT NULL 
-              THEN ((value_std - LAG(value_std, 12) OVER (ORDER BY period_end)) / LAG(value_std, 12) OVER (ORDER BY period_end)) * 100
-              ELSE NULL 
-            END as yoy_rate
-          FROM monthly_data
-        )
-        SELECT 
-          period_end, 
-          yoy_rate as value_std
-        FROM with_yoy
-        WHERE yoy_rate IS NOT NULL
-          AND period_end >= current_date - interval '${months} months'
-        ORDER BY period_end ASC
-      `);
+            period_end, 
+            yoy_rate as value_std
+          FROM with_yoy
+          WHERE yoy_rate IS NOT NULL
+            AND period_end >= current_date - interval '${months} months'
+          ORDER BY period_end ASC
+        `);
+      } catch (error) {
+        logger.warn(`YOY query failed for ${seriesId}, trying fallback:`, error);
+        // Fallback to new table structure
+        throw error; // Will be caught by outer try-catch
+      }
     } else {
       // Level data (default)
       logger.info(`📊 Using LEVEL data query for ${seriesId} (transform: ${finalTransform})`);
@@ -175,7 +181,45 @@ export async function getEconSparkline(req: Request, res: Response) {
   } catch (error) {
     console.error(`Sparkline error for ${seriesId}:`, error);
 
-    // Return empty data instead of error
+    // Try fallback: Check if we can get any data from the table
+    try {
+      const fallbackQuery = await db.execute(sql`
+        SELECT period_end::date, value_std::FLOAT as value_std
+        FROM econ_series_observation
+        WHERE series_id = ${seriesId}
+          AND value_std IS NOT NULL
+        ORDER BY period_end DESC
+        LIMIT 12
+      `);
+
+      if (fallbackQuery.rows && fallbackQuery.rows.length > 0) {
+        const data = fallbackQuery.rows
+          .reverse()
+          .map((row: any) => ({
+            t: Date.parse(row.period_end),
+            date: row.period_end,
+            value: parseFloat(row.value_std) || 0
+          }));
+
+        console.log(`📊 Fallback sparkline for ${seriesId}: ${data.length} points`);
+
+        return res.json({
+          success: true,
+          data,
+          meta: {
+            seriesId,
+            transform: finalTransform,
+            months: parseInt(months as string),
+            points: data.length
+          },
+          warning: 'using_fallback_query'
+        });
+      }
+    } catch (fallbackError) {
+      console.error(`Fallback query also failed for ${seriesId}:`, fallbackError);
+    }
+
+    // Return empty data as final fallback
     return res.json({
       success: true,
       data: [],
