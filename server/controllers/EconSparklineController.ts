@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { db } from '../db';
 import { sql } from 'drizzle-orm';
 import { logger } from '../utils/logger';
-import { cache } from '../services/cache-service';
+import { cacheService as cache } from '../services/cache-unified';
 
 export async function getEconSparkline(req: Request, res: Response) {
   const { seriesId, months = 12, transform = 'LEVEL' } = req.query;
@@ -18,7 +18,7 @@ export async function getEconSparkline(req: Request, res: Response) {
   
   try {
     // Check cache first
-    const cached = cache.get(cacheKey);
+    const cached = cache.get<any>(cacheKey);
     if (cached) {
       return res.json({
         success: true,
@@ -48,7 +48,7 @@ export async function getEconSparkline(req: Request, res: Response) {
       }
     }
 
-    // Query Silver layer with monthly resampling
+    // Query Silver layer with monthly resampling - enhanced with latest data inclusion
     const result = await db.execute(sql`
       WITH raw AS (
         SELECT period_end::date as pe, value_std
@@ -56,6 +56,7 @@ export async function getEconSparkline(req: Request, res: Response) {
         WHERE series_id = ${seriesId}
           AND value_std IS NOT NULL
           AND period_end >= date_trunc('month', current_date) - (${months} || ' months')::interval
+          AND period_end <= current_date  -- Include up to today
       ),
       bucket AS (
         SELECT date_trunc('month', pe) as m_end, pe, value_std
@@ -67,9 +68,23 @@ export async function getEconSparkline(req: Request, res: Response) {
           value_std
         FROM bucket
         ORDER BY m_end, pe DESC
+      ),
+      -- CRITICAL: Ensure we have the absolute latest data point
+      latest_overall AS (
+        SELECT period_end::date, value_std
+        FROM econ_series_observation
+        WHERE series_id = ${seriesId}
+          AND value_std IS NOT NULL
+        ORDER BY period_end DESC
+        LIMIT 1
       )
-      SELECT period_end, value_std
-      FROM last_per_month
+      -- Combine monthly data with latest point
+      SELECT DISTINCT period_end, value_std
+      FROM (
+        SELECT period_end, value_std FROM last_per_month
+        UNION ALL
+        SELECT period_end, value_std FROM latest_overall
+      ) combined
       ORDER BY period_end ASC
       LIMIT 50
     `);
@@ -91,8 +106,35 @@ export async function getEconSparkline(req: Request, res: Response) {
       }
     };
 
-    // Cache for 30 minutes
-    cache.set(cacheKey, response, 30 * 60 * 1000);
+    // Check if sparkline data is consistent with latest available data
+    const latestCheck = await db.execute(sql`
+      SELECT period_end::date, value_std
+      FROM econ_series_observation
+      WHERE series_id = ${seriesId}
+        AND value_std IS NOT NULL
+      ORDER BY period_end DESC
+      LIMIT 1
+    `);
+
+    // If we have newer data than what's in sparkline, invalidate cache
+    if (latestCheck.rows.length > 0) {
+      const latestInDB = new Date(latestCheck.rows[0].period_end as string);
+      const latestInSparkline = data.length > 0 ? new Date(data[data.length - 1].date) : new Date(0);
+
+      if (latestInDB > latestInSparkline) {
+        logger.info(`Newer data available for ${seriesId}, refreshing sparkline`);
+        // Don't cache, return fresh data
+        return res.json({
+          success: true,
+          ...response,
+          cached: false,
+          refreshed: true
+        });
+      }
+    }
+
+    // Cache for 5 minutes for fresher sparklines
+    cache.set(cacheKey, response, 5 * 60 * 1000);
 
     res.json({
       success: true,
@@ -104,7 +146,7 @@ export async function getEconSparkline(req: Request, res: Response) {
     logger.error(`Failed to fetch sparkline for ${seriesId}:`, error);
     
     // Try to serve last good data from cache if available
-    const lastGood = cache.get(`${cacheKey}:lastgood`);
+    const lastGood = cache.get<any>(`${cacheKey}:lastgood`);
     if (lastGood) {
       return res.json({
         success: true,
@@ -121,7 +163,7 @@ export async function getEconSparkline(req: Request, res: Response) {
       data: [],
       meta: {
         seriesId,
-        transform: finalTransform,
+        transform: transform as string,
         months: parseInt(months as string),
         points: 0
       },

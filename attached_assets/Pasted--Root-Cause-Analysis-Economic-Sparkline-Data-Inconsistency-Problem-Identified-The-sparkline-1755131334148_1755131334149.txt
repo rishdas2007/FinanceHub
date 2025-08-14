@@ -1,0 +1,165 @@
+🔍 Root Cause Analysis: Economic Sparkline Data Inconsistency
+
+  Problem Identified
+
+  The sparklines are using stale/cached data while the current values are 
+  updated. Here's what's happening:
+
+  The Data Flow Issue:
+
+  1. Current Values: Come from fresh economic data (showing CPI decreased
+  2.9% → 2.7%)
+  2. Sparkline Data: Come from econ_series_observation table via
+  /api/econ/sparkline endpoint
+  3. Cache Issue: Sparklines are cached for 30 minutes (line 95 in
+  EconSparklineController.ts)
+  4. Data Lag: The sparkline historical data may not include the latest
+  period that shows in the "Current" column
+
+  Specific Issues Found:
+
+  1. Cache Mismatch: Current data bypasses sparkline cache
+  2. Data Sync Gap: New economic releases update current values but
+  sparkline data hasn't refreshed
+  3. Period Alignment: Sparklines show last 12 months but may exclude the
+  very latest data point
+
+⏺ Update Todos
+  ⎿  ☒ Examine sparkline data source and calculation logic          
+     ☒ Check economic indicators data pipeline
+     ☒ Identify why sparklines don't reflect current trend direction
+     ☒ Provide fix for sparkline data inconsistency
+
+⏺ 💡 Immediate Fixes
+
+  Fix 1: Include Latest Data Point in Sparklines
+
+  File: /server/controllers/EconSparklineController.ts (lines 52-75)
+
+  Problem: Query excludes the current month's data
+  -- Current query excludes current month
+  AND period_end >= date_trunc('month', current_date) - (${months} || '
+  months')::interval
+
+  Fix: Include current month and get latest available data:
+  // Replace lines 52-75 with:
+  const result = await db.execute(sql`
+    WITH raw AS (
+      SELECT period_end::date as pe, value_std
+      FROM econ_series_observation
+      WHERE series_id = ${seriesId}
+        AND value_std IS NOT NULL
+        AND period_end >= date_trunc('month', current_date) - (${months} ||
+   ' months')::interval
+        AND period_end <= current_date  -- Include up to today
+    ),
+    bucket AS (
+      SELECT date_trunc('month', pe) as m_end, pe, value_std
+      FROM raw
+    ),
+    last_per_month AS (
+      SELECT DISTINCT ON (m_end) 
+        m_end::date as period_end, 
+        value_std
+      FROM bucket
+      ORDER BY m_end, pe DESC
+    ),
+    -- CRITICAL: Ensure we have the absolute latest data point
+    latest_overall AS (
+      SELECT period_end::date, value_std
+      FROM econ_series_observation
+      WHERE series_id = ${seriesId}
+        AND value_std IS NOT NULL
+      ORDER BY period_end DESC
+      LIMIT 1
+    )
+    -- Combine monthly data with latest point
+    SELECT DISTINCT period_end, value_std
+    FROM (
+      SELECT period_end, value_std FROM last_per_month
+      UNION ALL
+      SELECT period_end, value_std FROM latest_overall
+    ) combined
+    ORDER BY period_end ASC
+    LIMIT 50
+  `);
+
+  Fix 2: Reduce Cache TTL for Fresh Data
+
+  File: /server/controllers/EconSparklineController.ts (line 95)
+
+  Change from:
+  cache.set(cacheKey, response, 30 * 60 * 1000); // 30 minutes
+
+  To:
+  cache.set(cacheKey, response, 5 * 60 * 1000);  // 5 minutes for fresher 
+  sparklines
+
+  Fix 3: Add Data Freshness Check
+
+  File: /server/controllers/EconSparklineController.ts
+
+  Add after line 92:
+  // Check if sparkline data is consistent with latest available data
+  const latestCheck = await db.execute(sql`
+    SELECT period_end::date, value_std
+    FROM econ_series_observation
+    WHERE series_id = ${seriesId}
+      AND value_std IS NOT NULL
+    ORDER BY period_end DESC
+    LIMIT 1
+  `);
+
+  // If we have newer data than what's in sparkline, invalidate cache
+  if (latestCheck.rows.length > 0) {
+    const latestInDB = new Date(latestCheck.rows[0].period_end as string);
+    const latestInSparkline = data.length > 0 ? new Date(data[data.length -
+   1].date) : new Date(0);
+
+    if (latestInDB > latestInSparkline) {
+      logger.info(`Newer data available for ${seriesId}, refreshing 
+  sparkline`);
+      // Don't cache, return fresh data
+      return res.json({
+        success: true,
+        ...response,
+        cached: false,
+        refreshed: true
+      });
+    }
+  }
+
+  Fix 4: Client-Side Cache Busting
+
+  File: /client/src/components/SparklineCell.tsx (lines 47-49)
+
+  Change from:
+  staleTime: 5 * 60 * 1000, // 5 minutes
+  refetchOnWindowFocus: false
+
+  To:
+  staleTime: 2 * 60 * 1000, // 2 minutes for economic data
+  refetchOnWindowFocus: false,
+  // Force refresh if main data updates
+  refetchInterval: 5 * 60 * 1000  // Check every 5 minutes
+
+  🚀 Quick Implementation Guide
+
+  1. Apply Fix 1: Update the SQL query to include latest data points
+  2. Apply Fix 2: Reduce cache TTL from 30 minutes to 5 minutes
+  3. Deploy and Test: Check that CPI sparkline now shows downward trend
+  4. Monitor: Verify other indicators like Core CPI, PPI show correct
+  trends
+
+  Expected Result
+
+  After these fixes:
+  - CPI All Items: Sparkline should trend downward (reflecting 2.9% → 2.7%
+  decrease)
+  - Core CPI: Sparkline should show consistent trend with current vs. prior
+   data
+  - All Indicators: 12M Trend charts should align with Current vs. Prior
+  directional changes
+
+  The root cause is a data synchronization timing issue where sparklines
+  lag behind current values due to caching and query scope limitations.

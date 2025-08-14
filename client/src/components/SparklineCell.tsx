@@ -45,8 +45,10 @@ export function SparklineCell({
       }
       return response.json();
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false
+    staleTime: 2 * 60 * 1000, // 2 minutes for economic data
+    refetchOnWindowFocus: false,
+    // Force refresh if main data updates
+    refetchInterval: 5 * 60 * 1000  // Check every 5 minutes
   });
 
   // Loading state
