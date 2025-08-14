@@ -85,7 +85,9 @@ export function EconomicHealthScoreAppendix() {
   // Utility functions to extract live FRED data
   const getIndicatorData = (metric: string) => {
     if (!fredData?.indicators) return null;
-    return fredData.indicators.find((ind: any) => ind.metric === metric);
+    return (fredData?.indicators && Array.isArray(fredData.indicators))
+      ? fredData.indicators.find((ind: any) => ind.metric === metric)
+      : null;
   };
 
   const formatZScore = (zScore: number): string => {
