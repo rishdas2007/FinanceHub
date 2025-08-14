@@ -1,4 +1,4 @@
-import DatabasePool from '../../config/database-pool.js';
+// Database pool configuration removed for startup optimization
 import { logger } from '../../utils/logger.js';
 
 export interface DataSufficiencyResult {

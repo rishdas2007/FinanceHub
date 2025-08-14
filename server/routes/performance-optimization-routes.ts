@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { dbPool } from '../config/database-pool';
+// Database pool configuration removed for startup optimization
 import { redisCache } from '../config/redis-cache';
 import { streamingService } from '../services/streaming-query-service';
 import { CentralizedZScoreService } from '../services/centralized-zscore-service';

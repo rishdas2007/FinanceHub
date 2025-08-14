@@ -1,125 +1,94 @@
-import pkg from 'pg';
-const { Pool } = pkg;
-import pino from 'pino';
+// Enhanced database connection pool configuration
+// Optimized for high-performance financial data processing
 
-const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
-  transport: {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      translateTime: 'HH:MM:ss',
-      ignore: 'pid,hostname'
+export const dbConfig = {
+  // Increased connection limits for better concurrent handling
+  connectionLimit: 20,        // Up from default 10
+  acquireTimeoutMillis: 60000, // 1 minute timeout for acquiring connections
+  idleTimeoutMillis: 30000,   // Close idle connections after 30 seconds
+  reapIntervalMillis: 1000,   // Check for idle connections every second
+  createRetryIntervalMillis: 2000, // Retry failed connections after 2 seconds
+  
+  // Connection pool settings
+  pool: {
+    min: 2,                   // Minimum connections to maintain
+    max: 20,                  // Maximum connections in pool
+    acquireTimeoutMillis: 60000,
+    idleTimeoutMillis: 30000,
+    reapIntervalMillis: 1000,
+    createRetryIntervalMillis: 2000,
+    
+    // Additional performance settings
+    createTimeoutMillis: 30000,
+    destroyTimeoutMillis: 5000,
+    
+    // Health check configuration
+    propagateCreateError: false,
+    
+    // Connection validation
+    validate: (connection: any) => {
+      return connection && !connection.destroyed;
+    }
+  },
+
+  // Query timeout settings
+  statement_timeout: 30000,   // 30 second query timeout
+  query_timeout: 30000,       // 30 second query timeout
+  
+  // SSL configuration for production
+  ssl: process.env.NODE_ENV === 'production' ? {
+    rejectUnauthorized: false
+  } : false,
+
+  // Additional connection options
+  options: {
+    trustServerCertificate: true,
+    enableArithAbort: true,
+    encrypt: process.env.NODE_ENV === 'production'
+  }
+};
+
+// Connection pool monitoring utilities
+export const poolMonitoring = {
+  // Get current pool statistics
+  getPoolStats: (pool: any) => ({
+    size: pool.size,
+    available: pool.available,
+    borrowed: pool.borrowed,
+    invalid: pool.invalid,
+    pending: pool.pending
+  }),
+
+  // Log pool performance metrics
+  logPoolMetrics: (pool: any, logger: any) => {
+    const stats = poolMonitoring.getPoolStats(pool);
+    logger.info('📊 Database Pool Stats:', stats);
+    
+    // Alert if pool utilization is high
+    if (stats.borrowed / stats.size > 0.8) {
+      logger.warn('⚠️ High database pool utilization:', stats);
     }
   }
-});
+};
 
-/**
- * Enhanced Database Connection Pool for 10-Year Dataset Performance
- * Optimized for handling large historical data queries efficiently
- */
-class DatabasePool {
-  private static instance: DatabasePool;
-  private pool: Pool;
-
-  private constructor() {
-    this.pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      // Enhanced configuration for 10-year dataset performance
-      max: 20,          // Maximum connections in the pool
-      min: 5,           // Minimum connections to maintain
-      idleTimeoutMillis: 30000,     // Close connections after 30s idle
-      connectionTimeoutMillis: 5000, // Wait 5s for connection
-      maxUses: 7500,    // Recycle connections after 7500 uses
-      
-      // Enhanced for large dataset queries
-      statement_timeout: 60000,     // 60s query timeout for large historical queries
-      query_timeout: 60000,         // 60s query timeout
-      
-      // Connection health monitoring
-      keepAlive: true,
-      keepAliveInitialDelayMillis: 10000,
-    });
-
-    // Pool event listeners for monitoring
-    this.pool.on('connect', () => {
-      logger.debug('New database client connected');
-    });
-
-    this.pool.on('acquire', () => {
-      logger.debug('Client acquired from pool');
-    });
-
-    this.pool.on('error', (err, client) => {
-      logger.error('Unexpected database pool error', { error: err.message });
-    });
-
-    this.pool.on('remove', () => {
-      logger.debug('Client removed from pool');
-    });
-
-    logger.info('Database connection pool initialized for 10-year dataset performance');
-  }
-
-  public static getInstance(): DatabasePool {
-    if (!DatabasePool.instance) {
-      DatabasePool.instance = new DatabasePool();
+// Enhanced error handling for database connections
+export const connectionErrorHandler = {
+  handleConnectionError: (error: any, logger: any) => {
+    logger.error('🚨 Database connection error:', error);
+    
+    // Specific error handling
+    if (error.code === 'ECONNREFUSED') {
+      logger.error('❌ Database server is not responding');
+    } else if (error.code === 'ENOTFOUND') {
+      logger.error('❌ Database host not found');
+    } else if (error.code === 'ECONNRESET') {
+      logger.error('❌ Database connection was reset');
     }
-    return DatabasePool.instance;
-  }
-
-  public getPool(): Pool {
-    return this.pool;
-  }
-
-  /**
-   * Execute query with automatic connection management
-   */
-  public async query(text: string, params?: any[]): Promise<any> {
-    const start = Date.now();
-    try {
-      const result = await this.pool.query(text, params);
-      const duration = Date.now() - start;
-      
-      if (duration > 1000) {
-        logger.warn('Slow query detected', {
-          query: text.substring(0, 100) + '...',
-          duration: `${duration}ms`,
-          rowCount: result.rowCount
-        });
-      }
-      
-      return result;
-    } catch (error) {
-      logger.error('Database query error', {
-        query: text.substring(0, 100) + '...',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * Get pool statistics for monitoring
-   */
-  public getStats() {
+    
     return {
-      totalCount: this.pool.totalCount,
-      idleCount: this.pool.idleCount,
-      waitingCount: this.pool.waitingCount,
-      maxConnections: 20,
-      activeConnections: this.pool.totalCount - this.pool.idleCount
+      success: false,
+      error: 'Database connection failed',
+      details: error.message
     };
   }
-
-  /**
-   * Graceful shutdown
-   */
-  public async end(): Promise<void> {
-    logger.info('Shutting down database connection pool');
-    await this.pool.end();
-  }
-}
-
-export const dbPool = DatabasePool.getInstance();
-export default dbPool;
+};

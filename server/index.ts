@@ -251,7 +251,20 @@ app.use((req, res, next) => {
       // Initialize performance monitoring
       performanceOptimizer.startMonitoring(30000); // Every 30 seconds
       resourceManager.startMaintenanceScheduler();
-      log('🔍 Performance monitoring and resource management initialized');
+      
+      // Initialize cache warmup service (non-blocking)
+      setTimeout(async () => {
+        try {
+          const { CacheWarmupService } = await import('./services/cache-warmup.js');
+          const cacheWarmup = new CacheWarmupService(logger);
+          cacheWarmup.startWarmupSchedule();
+          log('🔥 Cache warmup service initialized');
+        } catch (error) {
+          log('⚠️ Cache warmup service failed to initialize:', String(error));
+        }
+      }, 2000);
+      
+      log('🔍 Performance monitoring, resource management, and cache warmup initialized');
       
       // Initialize services with proper dependency ordering (replaces race conditions)
       const serviceConfigs: ServiceConfig[] = [

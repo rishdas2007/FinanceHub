@@ -1,5 +1,5 @@
 import QueryStream from 'pg-query-stream';
-import { dbPool } from '../config/database-pool';
+// Database pool configuration removed for startup optimization
 import { redisCache } from '../config/redis-cache';
 import pino from 'pino';
 import { Transform, PassThrough } from 'stream';

@@ -2,7 +2,7 @@ import { logger } from '../utils/logger.js';
 import { ZScoreDataQualityValidator, ZScoreValidationResult } from './data-quality/zscore-validator.js';
 import { DataSufficiencyGates } from './data-quality/sufficiency-gates.js';
 import { ETFMetric } from '../../shared/validation/etf-contracts.js';
-import DatabasePool from '../config/database-pool.js';
+// Database pool configuration removed for startup optimization
 
 export interface ETFMetricsV2Response {
   success: boolean;
