@@ -14,16 +14,22 @@ export function getUserTimezone(): string {
 /**
  * Format UTC ISO string for display in user's timezone
  */
-export function formatMarketTime(isoUtc: string | null, userTz?: string): string {
-  if (!isoUtc) return '—';
+export function formatMarketTime(isoUtc: string | null | any, userTz?: string): string {
+  // Enhanced validation for different input types
+  if (!isoUtc || typeof isoUtc !== 'string' || isoUtc.trim() === '') {
+    return '—';
+  }
   
   const tz = userTz || getUserTimezone();
   
   try {
     const date = new Date(isoUtc);
     
-    // Timezone conversion debug (remove after fix)
-    console.log('🕐 timezone debug:', { input: isoUtc, output: date.toLocaleString("en-US", { timeZone: tz }) });
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.warn('Failed to format market time: Invalid date', isoUtc);
+      return '—';
+    }
     
     return new Intl.DateTimeFormat(undefined, {
       timeZone: tz,
@@ -32,7 +38,7 @@ export function formatMarketTime(isoUtc: string | null, userTz?: string): string
       minute: '2-digit'
     }).format(date);
   } catch (error) {
-    console.warn('Failed to format market time:', error);
+    console.warn('Failed to format market time:', isoUtc, error);
     return '—';
   }
 }

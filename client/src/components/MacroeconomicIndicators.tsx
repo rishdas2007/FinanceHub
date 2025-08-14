@@ -271,10 +271,12 @@ const MacroeconomicIndicators: React.FC = () => {
   });
 
   // Extract series IDs for batch sparklines
-  const seriesIds = macroData?.indicators
-    ?.filter(indicator => indicator.seriesId)
-    ?.map(indicator => indicator.seriesId!)
-    ?.slice(0, 15) || []; // Limit to first 15 for performance
+  const seriesIds = (macroData?.indicators && Array.isArray(macroData.indicators))
+    ? macroData.indicators
+        .filter(indicator => indicator.seriesId)
+        .map(indicator => indicator.seriesId!)
+        .slice(0, 15)
+    : []; // Limit to first 15 for performance
 
   // Batch sparklines query for performance
   const { data: batchSparklinesData, isLoading: sparklinesLoading } = useBatchSparklines(
@@ -357,7 +359,8 @@ const MacroeconomicIndicators: React.FC = () => {
 
   // Enhanced filter and sort indicators with new filtering options
   const filteredAndSortedIndicators = (() => {
-    let filtered = macroData?.indicators.filter(indicator => {
+    let filtered = (macroData?.indicators && Array.isArray(macroData.indicators))
+      ? macroData.indicators.filter(indicator => {
       const matchesCategory = activeCategory === 'All' || indicator.category === activeCategory;
       const matchesSearch = indicator.metric.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType = typeFilter === 'all' || indicator.type === typeFilter;
@@ -429,7 +432,8 @@ const MacroeconomicIndicators: React.FC = () => {
       }
       
       return matchesCategory && matchesSearch && matchesType && matchesDeltaZScore && matchesDateRange && matchesZScore;
-    }) || [];
+    })
+      : [];
 
     // Sort if column and direction are selected
     if (sortColumn && sortDirection) {
@@ -494,9 +498,11 @@ const MacroeconomicIndicators: React.FC = () => {
   })();
 
   const categories = ['All', 'Growth', 'Inflation', 'Labor', 'Monetary Policy', 'Sentiment'];
-  const recentIndicators = macroData?.indicators
-    .sort((a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime())
-    .slice(0, 6) || [];
+  const recentIndicators = (macroData?.indicators && Array.isArray(macroData.indicators))
+    ? macroData.indicators
+        .sort((a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime())
+        .slice(0, 6)
+    : [];
 
   if (isLoading) {
     return (
