@@ -29,16 +29,23 @@ export async function getEconSparkline(req: Request, res: Response) {
     }
 
     // Use the requested transform directly (no auto-detection)
-    let finalTransform = transform as string;
+    let finalTransform = (transform as string)?.trim();
 
     // Query Silver layer with monthly resampling and transform support
     let queryResult;
     
-    logger.info(`📊 Sparkline query for ${seriesId} with transform: ${finalTransform} (type: ${typeof finalTransform})`);
+    console.log(`🚨 CRITICAL DEBUG: ${seriesId} with transform: "${finalTransform}" (type: ${typeof finalTransform})`);
+    console.log(`🚨 Equality test: finalTransform === 'YOY' ? ${finalTransform === 'YOY'}`);
+    console.log(`🚨 Strict equality test: finalTransform.toString() === 'YOY' ? ${finalTransform.toString() === 'YOY'}`);
     
     // Clear cache for debugging
     cache.delete(cacheKey);
-    if (finalTransform === 'YOY') {
+    
+    // Force explicit YOY check with multiple conditions
+    const isYOY = finalTransform === 'YOY' || finalTransform?.toString() === 'YOY' || finalTransform?.toUpperCase() === 'YOY';
+    console.log(`🚨 Is YOY calculation needed? ${isYOY}`);
+    
+    if (isYOY) {
       // Year-over-Year percentage change calculation
       logger.info(`🧮 Using YOY calculation for ${seriesId}`);
       queryResult = await db.execute(sql`
@@ -119,8 +126,9 @@ export async function getEconSparkline(req: Request, res: Response) {
     const result = queryResult;
 
     logger.info(`📊 Query executed for ${seriesId}, transform: ${finalTransform}, returned ${result.rows.length} rows`);
-    if (result.rows.length > 0 && finalTransform === 'YOY') {
-      logger.info(`🧮 YOY result sample: ${result.rows[0]?.value_std} (should be 2-3% rate, not 300+ absolute)`);
+    if (result.rows.length > 0 && isYOY) {
+      console.log(`🧮 YOY result sample: ${result.rows[0]?.value_std} (should be 2-3% rate, not 300+ absolute)`);
+      console.log(`🔍 Full first row:`, result.rows[0]);
     }
 
     // Transform data for client
