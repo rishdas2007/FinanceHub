@@ -34,8 +34,8 @@ export async function getEconSparkline(req: Request, res: Response) {
     // Query Silver layer with monthly resampling and transform support
     let queryResult;
     
-    // Determine transform type for calculation
-    const isYOY = finalTransform === 'YOY' || finalTransform?.toString() === 'YOY' || finalTransform?.toUpperCase() === 'YOY';
+    // Simplified YOY check
+    const isYOY = finalTransform === 'YOY';
     
     if (isYOY) {
       // Year-over-Year percentage change calculation
@@ -163,8 +163,8 @@ export async function getEconSparkline(req: Request, res: Response) {
       }
     }
 
-    // Cache for 5 minutes for fresher sparklines
-    cache.set(cacheKey, response, 5 * 60 * 1000);
+    // Cache for 5 minutes instead of 30
+    cache.set(cacheKey, response, 300000); // 5 minutes = 300,000ms
 
     res.json({
       success: true,
@@ -173,31 +173,19 @@ export async function getEconSparkline(req: Request, res: Response) {
     });
 
   } catch (error) {
-    logger.error(`Failed to fetch sparkline for ${seriesId}:`, error);
-    
-    // Try to serve last good data from cache if available
-    const lastGood = cache.get<any>(`${cacheKey}:lastgood`);
-    if (lastGood) {
-      return res.json({
-        success: true,
-        data: lastGood.data,
-        meta: lastGood.meta,
-        cached: true,
-        warning: 'using_cached_data'
-      });
-    }
+    console.error(`Sparkline error for ${seriesId}:`, error);
 
-    // Return empty data on error (never return error response)
-    res.json({
+    // Return empty data instead of error
+    return res.json({
       success: true,
       data: [],
       meta: {
         seriesId,
-        transform: transform as string,
+        transform: finalTransform,
         months: parseInt(months as string),
         points: 0
       },
-      warning: 'data_unavailable'
+      error: 'query_failed'
     });
   }
 }
