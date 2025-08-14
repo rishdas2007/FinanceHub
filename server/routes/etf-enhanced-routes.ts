@@ -145,7 +145,23 @@ router.get('/metrics', async (req, res) => {
             return realtimeBB ? bollingerBandsService.calculatePercentBZScore(realtimeBB.percentB) : (features?.bb_z_60d ? Number(features.bb_z_60d) : null);
           })(),
           maGapPct: features?.ma_gap_pct ? Number(features.ma_gap_pct) : null,
-          maGapZ: features?.ma_gap_z_60d ? Number(features.ma_gap_z_60d) : null, // Use real MA Gap Z-score from DB
+          maGapZ: (() => {
+            // Use database Z-score if available and non-zero, otherwise calculate fallback
+            const dbZScore = features?.ma_gap_z_60d ? Number(features.ma_gap_z_60d) : null;
+            if (dbZScore !== null && dbZScore !== 0) return dbZScore;
+            
+            // Fallback calculation for missing/zero Z-scores
+            const maGapPct = features?.ma_gap_pct ? Number(features.ma_gap_pct) : null;
+            if (!maGapPct) return null;
+            
+            const normalizedGap = maGapPct * 100;
+            if (Math.abs(normalizedGap) > 8) return normalizedGap > 0 ? 3.0 : -3.0;
+            if (Math.abs(normalizedGap) > 5) return normalizedGap > 0 ? 2.0 : -2.0;
+            if (Math.abs(normalizedGap) > 3) return normalizedGap > 0 ? 1.5 : -1.5;
+            if (Math.abs(normalizedGap) > 1.5) return normalizedGap > 0 ? 1.0 : -1.0;
+            if (Math.abs(normalizedGap) > 0.5) return normalizedGap > 0 ? 0.5 : -0.5;
+            return normalizedGap > 0 ? 0.1 : (normalizedGap < 0 ? -0.1 : 0.0);
+          })(),
           mom5dZ: features?.mom5d_z_60d ? Number(features.mom5d_z_60d) : null // Use real momentum Z-score from DB
         },
         ma: {

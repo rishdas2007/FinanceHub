@@ -245,7 +245,7 @@ const ETFRow = memo(function ETFRow({
   const macdZScore = zScoreAnalysis?.macdZScore || zScoreData?.macdZScore;
   const rsiZScore = zScoreAnalysis?.rsiZScore || zScoreData?.rsiZScore;
   const bollingerZScore = zScoreAnalysis?.bollingerZScore || zScoreData?.bollingerZScore;
-  const maTrendZScore = zScoreData?.maTrendZScore;
+  const maTrendZScore = etf.components?.maGapZ || zScoreData?.maTrendZScore;
   const priceMomentumZScore = zScoreData?.priceMomentumZScore;
 
   // Props interface for TypeScript compatibility  
