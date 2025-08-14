@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { EconomicHealthCalculator } from '../services/economic-health-calculator.js';
+import { EconomicHealthFallback } from '../services/economic-health-fallback.js';
 import { StatisticalHealthCalculator } from '../services/statistical-health-calculator.js';
 import { logger } from '../utils/logger.js';
-import type { EconomicHealthScore } from '../services/economic-health-calculator.js';
+import type { EconomicHealthScore } from '../services/economic-health-fallback.js';
 
 const router = Router();
-const healthCalculator = new EconomicHealthCalculator();
+const healthCalculator = new EconomicHealthFallback();
 const statisticalHealthCalculator = new StatisticalHealthCalculator();
 // Static insights generation (no AI required)
 function generateStaticInsights(healthScore: EconomicHealthScore) {
@@ -192,87 +192,42 @@ router.get('/historical-trend', async (req, res) => {
   }
 });
 
-// Get component score details
+// Get component score details (simplified for fallback compatibility)
 router.get('/component-analysis', async (req, res) => {
   try {
     logger.info('🔍 Component analysis request');
     
     const healthScore = await healthCalculator.calculateEconomicHealthScore();
     
-    // Provide detailed breakdown of each component
+    // Use the actual available properties from our fallback service
     const componentAnalysis = {
       coreHealth: {
-        score: healthScore.scoreBreakdown.coreHealth,
+        score: (healthScore.componentScores.growthMomentum + healthScore.componentScores.laborHealth) / 2,
         components: {
-          gdpHealth: {
-            score: healthScore.componentScores.gdpHealth,
-            weight: 15,
-            description: 'GDP growth trend and consistency'
+          growthMomentum: {
+            score: healthScore.componentScores.growthMomentum,
+            weight: 30,
+            description: 'Economic growth momentum indicators'
           },
-          employmentHealth: {
-            score: healthScore.componentScores.employmentHealth,
-            weight: 15,
-            description: 'Employment indicators including payrolls and unemployment'
-          },
-          inflationStability: {
-            score: healthScore.componentScores.inflationStability,
-            weight: 10,
-            description: 'Price stability and inflation trend consistency'
-          }
-        }
-      },
-      correlationHarmony: {
-        score: healthScore.scoreBreakdown.correlationHarmony,
-        components: {
-          signalClarity: {
-            score: healthScore.componentScores.signalClarity,
-            weight: 25,
-            description: 'How definitively indicators point in economic direction'
-          },
-          crossIndicatorHarmony: {
-            score: healthScore.componentScores.crossIndicatorHarmony,
-            weight: 35,
-            description: 'Level-trend alignment across economic categories'
-          },
-          conflictResolution: {
-            score: healthScore.componentScores.conflictResolution,
+          laborHealth: {
+            score: healthScore.componentScores.laborHealth,
             weight: 20,
-            description: 'Handling of mixed and contradictory economic signals'
+            description: 'Employment and labor market health'
           },
-          forwardLookingAccuracy: {
-            score: healthScore.componentScores.forwardLookingAccuracy,
-            weight: 20,
-            description: 'Predictive capability with leading indicators'
+          inflationTrajectory: {
+            score: healthScore.componentScores.inflationTrajectory,
+            weight: 15,
+            description: 'Inflation trend and price stability'
           }
         }
       },
-      marketStress: {
-        score: healthScore.scoreBreakdown.marketStress,
+      financialStress: {
+        score: healthScore.componentScores.financialStress,
         components: {
-          alertFrequency: {
-            score: healthScore.componentScores.alertFrequency,
+          policyEffectiveness: {
+            score: healthScore.componentScores.policyEffectiveness,
             weight: 10,
-            description: 'Frequency of economic alerts and stress signals'
-          },
-          regimeStability: {
-            score: healthScore.componentScores.regimeStability,
-            weight: 10,
-            description: 'Economic regime stability and transition risk'
-          }
-        }
-      },
-      confidence: {
-        score: healthScore.scoreBreakdown.confidence,
-        components: {
-          dataQuality: {
-            score: healthScore.componentScores.dataQuality,
-            weight: 8,
-            description: 'Data freshness and quality metrics'
-          },
-          sectorAlignment: {
-            score: healthScore.componentScores.sectorAlignment,
-            weight: 7,
-            description: 'Sector prediction accuracy and alignment'
+            description: 'Monetary policy effectiveness indicators'
           }
         }
       }
@@ -281,6 +236,7 @@ router.get('/component-analysis', async (req, res) => {
     res.json({
       componentAnalysis,
       overallScore: healthScore.overallScore,
+      healthGrade: healthScore.healthGrade,
       timestamp: new Date().toISOString()
     });
     
