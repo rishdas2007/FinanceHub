@@ -14,80 +14,114 @@ export async function getEconSparkline(req: Request, res: Response) {
     });
   }
 
-  const cacheKey = `econ:spark:${seriesId}:${transform}:${months}:v1`;
+  const cacheKey = `econ:spark:${seriesId}:${transform}:${months}:v2`;
   
   try {
-    // Check cache first
-    const cached = cache.get<any>(cacheKey);
-    if (cached) {
-      return res.json({
-        success: true,
-        data: cached.data,
-        meta: cached.meta,
-        cached: true
-      });
-    }
+    // Temporarily disable cache for debugging transform issues
+    // const cached = cache.get<any>(cacheKey);
+    // if (cached) {
+    //   return res.json({
+    //     success: true,
+    //     data: cached.data,
+    //     meta: cached.meta,
+    //     cached: true
+    //   });
+    // }
 
-    // Get default transform from series definition if not provided
-    let finalTransform = transform;
-    if (transform === 'LEVEL') {
-      try {
-        const seriesDef = await db.execute(sql`
-          SELECT default_transform, native_unit, frequency
-          FROM econ_series_def 
+    // Use the requested transform directly (no auto-detection)
+    let finalTransform = transform as string;
+
+    // Query Silver layer with monthly resampling and transform support
+    let queryResult;
+    
+    logger.info(`📊 Sparkline query for ${seriesId} with transform: ${finalTransform} (type: ${typeof finalTransform})`);
+    
+    if (finalTransform === 'YOY') {
+      // Year-over-Year percentage change calculation
+      logger.info(`🧮 Using YOY calculation for ${seriesId}`);
+      queryResult = await db.execute(sql`
+        WITH raw AS (
+          SELECT period_end::date as pe, value_std
+          FROM econ_series_observation
           WHERE series_id = ${seriesId}
+            AND value_std IS NOT NULL
+            AND period_end >= date_trunc('month', current_date) - (${months} + 12 || ' months')::interval
+            AND period_end <= current_date
+        ),
+        bucket AS (
+          SELECT date_trunc('month', pe) as m_end, pe, value_std
+          FROM raw
+        ),
+        last_per_month AS (
+          SELECT DISTINCT ON (m_end) 
+            m_end::date as period_end, 
+            value_std
+          FROM bucket
+          ORDER BY m_end, pe DESC
+        ),
+        with_yoy AS (
+          SELECT 
+            period_end,
+            value_std,
+            LAG(value_std, 12) OVER (ORDER BY period_end) as value_12m_ago,
+            CASE 
+              WHEN LAG(value_std, 12) OVER (ORDER BY period_end) IS NOT NULL 
+              THEN ((value_std - LAG(value_std, 12) OVER (ORDER BY period_end)) / LAG(value_std, 12) OVER (ORDER BY period_end)) * 100 
+              ELSE NULL 
+            END as yoy_value
+          FROM last_per_month
+        )
+        SELECT period_end, yoy_value as value_std
+        FROM with_yoy
+        WHERE yoy_value IS NOT NULL
+          AND period_end >= date_trunc('month', current_date) - (${months} || ' months')::interval
+        ORDER BY period_end ASC
+      `);
+    } else {
+      // Level data (default)
+      logger.info(`📊 Using LEVEL data query for ${seriesId} (transform: ${finalTransform})`);
+      queryResult = await db.execute(sql`
+        WITH raw AS (
+          SELECT period_end::date as pe, value_std
+          FROM econ_series_observation
+          WHERE series_id = ${seriesId}
+            AND value_std IS NOT NULL
+            AND period_end >= date_trunc('month', current_date) - (${months} || ' months')::interval
+            AND period_end <= current_date  -- Include up to today
+        ),
+        bucket AS (
+          SELECT date_trunc('month', pe) as m_end, pe, value_std
+          FROM raw
+        ),
+        last_per_month AS (
+          SELECT DISTINCT ON (m_end) 
+            m_end::date as period_end, 
+            value_std
+          FROM bucket
+          ORDER BY m_end, pe DESC
+        ),
+        -- CRITICAL: Ensure we have the absolute latest data point
+        latest_overall AS (
+          SELECT period_end::date, value_std
+          FROM econ_series_observation
+          WHERE series_id = ${seriesId}
+            AND value_std IS NOT NULL
+          ORDER BY period_end DESC
           LIMIT 1
-        `);
-        
-        if (seriesDef.rows.length > 0) {
-          const def = seriesDef.rows[0] as any;
-          finalTransform = def.default_transform || 'LEVEL';
-        }
-      } catch (error) {
-        logger.warn(`Failed to get series definition for ${seriesId}:`, error);
-      }
+        )
+        -- Combine monthly data with latest point
+        SELECT DISTINCT period_end, value_std
+        FROM (
+          SELECT period_end, value_std FROM last_per_month
+          UNION ALL
+          SELECT period_end, value_std FROM latest_overall
+        ) combined
+        ORDER BY period_end ASC
+        LIMIT 50
+      `);
     }
 
-    // Query Silver layer with monthly resampling - enhanced with latest data inclusion
-    const result = await db.execute(sql`
-      WITH raw AS (
-        SELECT period_end::date as pe, value_std
-        FROM econ_series_observation
-        WHERE series_id = ${seriesId}
-          AND value_std IS NOT NULL
-          AND period_end >= date_trunc('month', current_date) - (${months} || ' months')::interval
-          AND period_end <= current_date  -- Include up to today
-      ),
-      bucket AS (
-        SELECT date_trunc('month', pe) as m_end, pe, value_std
-        FROM raw
-      ),
-      last_per_month AS (
-        SELECT DISTINCT ON (m_end) 
-          m_end::date as period_end, 
-          value_std
-        FROM bucket
-        ORDER BY m_end, pe DESC
-      ),
-      -- CRITICAL: Ensure we have the absolute latest data point
-      latest_overall AS (
-        SELECT period_end::date, value_std
-        FROM econ_series_observation
-        WHERE series_id = ${seriesId}
-          AND value_std IS NOT NULL
-        ORDER BY period_end DESC
-        LIMIT 1
-      )
-      -- Combine monthly data with latest point
-      SELECT DISTINCT period_end, value_std
-      FROM (
-        SELECT period_end, value_std FROM last_per_month
-        UNION ALL
-        SELECT period_end, value_std FROM latest_overall
-      ) combined
-      ORDER BY period_end ASC
-      LIMIT 50
-    `);
+    const result = queryResult;
 
     // Transform data for client
     const data = result.rows.map((row: any) => ({
