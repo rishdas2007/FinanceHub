@@ -1,46 +1,71 @@
-import { logger } from '../middleware/logging';
-
-export enum CircuitState {
-  CLOSED = 'CLOSED',
-  OPEN = 'OPEN',
-  HALF_OPEN = 'HALF_OPEN'
-}
+import { logger } from '../../shared/utils/logger';
 
 export interface CircuitBreakerOptions {
   failureThreshold: number;
-  resetTimeout: number;
+  recoveryTimeout: number;
   monitoringPeriod: number;
-  name: string;
 }
 
-export class CircuitBreaker {
-  private state: CircuitState = CircuitState.CLOSED;
-  private failureCount: number = 0;
-  private lastFailureTime: number = 0;
-  private successes: number = 0;
-  private options: CircuitBreakerOptions;
+export interface CircuitBreakerState {
+  isOpen: boolean;
+  failures: number;
+  lastFailureTime?: number;
+  lastSuccessTime?: number;
+  totalRequests: number;
+  successfulRequests: number;
+}
 
-  constructor(options: CircuitBreakerOptions) {
+/**
+ * ✅ PHASE 3 TASK 7: Circuit Breaker Pattern Implementation
+ * Prevents cascading failures by tracking API call success/failure rates
+ */
+export class CircuitBreaker {
+  private state: CircuitBreakerState;
+  private options: CircuitBreakerOptions;
+  private name: string;
+
+  constructor(name: string, options: Partial<CircuitBreakerOptions> = {}) {
+    this.name = name;
     this.options = {
-      failureThreshold: 5,
-      resetTimeout: 60000, // 1 minute
-      monitoringPeriod: 10000, // 10 seconds
+      failureThreshold: options.failureThreshold || 8,  // Increased from 3 to 8
+      recoveryTimeout: options.recoveryTimeout || 2 * 60 * 1000, // 2 minutes 
+      monitoringPeriod: options.monitoringPeriod || 60 * 1000, // 1 minute
       ...options
+    };
+    
+    this.state = {
+      isOpen: false,
+      failures: 0,
+      totalRequests: 0,
+      successfulRequests: 0
     };
   }
 
-  async execute<T>(operation: () => Promise<T>): Promise<T> {
-    if (this.state === CircuitState.OPEN) {
-      if (this.shouldAttemptReset()) {
-        this.state = CircuitState.HALF_OPEN;
-        logger.info(`🔄 Circuit breaker ${this.options.name} transitioning to HALF_OPEN`);
+  /**
+   * Execute a function with circuit breaker protection
+   */
+  async execute<T>(fn: () => Promise<T>): Promise<T> {
+    // Check if circuit breaker should be opened
+    if (this.shouldOpen()) {
+      this.open();
+    }
+
+    // If circuit is open, check if we can attempt recovery
+    if (this.state.isOpen) {
+      if (this.canAttemptRecovery()) {
+        logger.info(`Circuit breaker ${this.name} attempting recovery`);
+        // Allow one request through to test recovery
       } else {
-        throw new Error(`Circuit breaker ${this.options.name} is OPEN`);
+        const error = new Error(`Circuit breaker ${this.name} is OPEN - rejecting request`);
+        logger.warn(`Circuit breaker ${this.name} rejected request`, `Failures: ${this.state.failures}, Threshold: ${this.options.failureThreshold}, Last failure: ${this.state.lastFailureTime}`);
+        throw error;
       }
     }
 
+    this.state.totalRequests++;
+
     try {
-      const result = await operation();
+      const result = await fn();
       this.onSuccess();
       return result;
     } catch (error) {
@@ -49,90 +74,166 @@ export class CircuitBreaker {
     }
   }
 
-  private shouldAttemptReset(): boolean {
-    return Date.now() - this.lastFailureTime >= this.options.resetTimeout;
-  }
-
-  private onSuccess(): void {
-    this.failureCount = 0;
-    this.successes++;
+  /**
+   * Record successful operation
+   */
+  private onSuccess() {
+    this.state.successfulRequests++;
+    this.state.lastSuccessTime = Date.now();
     
-    if (this.state === CircuitState.HALF_OPEN) {
-      this.state = CircuitState.CLOSED;
-      logger.info(`✅ Circuit breaker ${this.options.name} reset to CLOSED`);
+    // Reset failures on success
+    if (this.state.failures > 0) {
+      logger.info(`Circuit breaker ${this.name} recording success - resetting failure count`, `Previous failures: ${this.state.failures}`);
+      this.state.failures = 0;
+    }
+
+    // Close circuit breaker if it was open
+    if (this.state.isOpen) {
+      this.close();
     }
   }
 
-  private onFailure(): void {
-    this.failureCount++;
-    this.lastFailureTime = Date.now();
+  /**
+   * Record failed operation
+   */
+  private onFailure() {
+    this.state.failures++;
+    this.state.lastFailureTime = Date.now();
     
-    if (this.failureCount >= this.options.failureThreshold) {
-      this.state = CircuitState.OPEN;
-      logger.warn(`🚫 Circuit breaker ${this.options.name} opened due to ${this.failureCount} failures`);
-    }
+    logger.warn(`Circuit breaker ${this.name} recording failure`, `Failures: ${this.state.failures}, Threshold: ${this.options.failureThreshold}`);
   }
 
-  getState(): CircuitState {
-    return this.state;
+  /**
+   * Check if circuit breaker should be opened
+   */
+  private shouldOpen(): boolean {
+    return this.state.failures >= this.options.failureThreshold && !this.state.isOpen;
   }
 
-  getStats(): { state: CircuitState; failures: number; successes: number; lastFailure: number } {
+  /**
+   * Open the circuit breaker
+   */
+  private open() {
+    this.state.isOpen = true;
+    logger.error(`Circuit breaker ${this.name} OPENED`, `Failures: ${this.state.failures}, Threshold: ${this.options.failureThreshold}, Success rate: ${this.getSuccessRate()}%`);
+  }
+
+  /**
+   * Close the circuit breaker
+   */
+  private close() {
+    this.state.isOpen = false;
+    this.state.failures = 0;
+    logger.info(`Circuit breaker ${this.name} CLOSED - service recovered`, `Success rate: ${this.getSuccessRate()}%`);
+  }
+
+  /**
+   * Check if we can attempt recovery
+   */
+  private canAttemptRecovery(): boolean {
+    if (!this.state.lastFailureTime) return false;
+    
+    const timeSinceLastFailure = Date.now() - this.state.lastFailureTime;
+    return timeSinceLastFailure >= this.options.recoveryTimeout;
+  }
+
+  /**
+   * Get current success rate
+   */
+  getSuccessRate(): number {
+    if (this.state.totalRequests === 0) return 100;
+    return (this.state.successfulRequests / this.state.totalRequests) * 100;
+  }
+
+  /**
+   * Get current circuit breaker status
+   */
+  getStatus() {
     return {
-      state: this.state,
-      failures: this.failureCount,
-      successes: this.successes,
-      lastFailure: this.lastFailureTime
+      name: this.name,
+      isOpen: this.state.isOpen,
+      failures: this.state.failures,
+      threshold: this.options.failureThreshold,
+      successRate: this.getSuccessRate(),
+      totalRequests: this.state.totalRequests,
+      successfulRequests: this.state.successfulRequests,
+      canAttemptRecovery: this.state.isOpen ? this.canAttemptRecovery() : null,
+      lastFailureTime: this.state.lastFailureTime,
+      lastSuccessTime: this.state.lastSuccessTime
     };
   }
 
-  reset(): void {
-    this.state = CircuitState.CLOSED;
-    this.failureCount = 0;
-    this.successes = 0;
-    this.lastFailureTime = 0;
-    logger.info(`🔄 Circuit breaker ${this.options.name} manually reset`);
+  /**
+   * Reset circuit breaker state (for testing/admin purposes)
+   */
+  reset() {
+    this.state = {
+      isOpen: false,
+      failures: 0,
+      totalRequests: 0,
+      successfulRequests: 0
+    };
+    logger.info(`Circuit breaker ${this.name} manually reset`);
   }
 }
 
-// Global circuit breakers for key services
-export const circuitBreakers = {
-  database: new CircuitBreaker({
-    name: 'database',
-    failureThreshold: 3,
-    resetTimeout: 30000,
-    monitoringPeriod: 5000
-  }),
-  
-  fredApi: new CircuitBreaker({
-    name: 'fred-api',
-    failureThreshold: 5,
-    resetTimeout: 60000,
-    monitoringPeriod: 10000
-  }),
-  
-  twelveData: new CircuitBreaker({
-    name: 'twelve-data-api',
-    failureThreshold: 10,
-    resetTimeout: 120000,
-    monitoringPeriod: 15000
-  }),
-  
-  etfMetrics: new CircuitBreaker({
-    name: 'etf-metrics',
-    failureThreshold: 3,
-    resetTimeout: 30000,
-    monitoringPeriod: 5000
-  })
-};
+/**
+ * Circuit breaker registry for managing multiple circuit breakers
+ */
+export class CircuitBreakerRegistry {
+  private static breakers = new Map<string, CircuitBreaker>();
 
-// Health check for all circuit breakers
-export function getCircuitBreakerHealth(): Record<string, any> {
-  const health: Record<string, any> = {};
-  
-  for (const [name, breaker] of Object.entries(circuitBreakers)) {
-    health[name] = breaker.getStats();
+  static getOrCreate(name: string, options?: Partial<CircuitBreakerOptions>): CircuitBreaker {
+    if (!this.breakers.has(name)) {
+      this.breakers.set(name, new CircuitBreaker(name, options));
+    }
+    return this.breakers.get(name)!;
   }
-  
-  return health;
+
+  static getStatus(name?: string) {
+    if (name) {
+      const breaker = this.breakers.get(name);
+      return breaker ? breaker.getStatus() : null;
+    }
+
+    // Return status of all circuit breakers
+    const status: Record<string, any> = {};
+    for (const [name, breaker] of this.breakers) {
+      status[name] = breaker.getStatus();
+    }
+    return status;
+  }
+
+  static reset(name?: string) {
+    if (name) {
+      const breaker = this.breakers.get(name);
+      if (breaker) {
+        breaker.reset();
+      }
+    } else {
+      // Reset all circuit breakers
+      for (const breaker of this.breakers.values()) {
+        breaker.reset();
+      }
+    }
+  }
 }
+
+// Export pre-configured circuit breakers for common services
+export const fredApiCircuitBreaker = CircuitBreakerRegistry.getOrCreate('FRED_API', {
+  failureThreshold: 8,
+  recoveryTimeout: 2 * 60 * 1000, // 2 minutes
+  monitoringPeriod: 60 * 1000
+});
+
+export const twelveDataCircuitBreaker = CircuitBreakerRegistry.getOrCreate('TWELVE_DATA_API', {
+  failureThreshold: 5,
+  recoveryTimeout: 5 * 60 * 1000, // 5 minutes
+  monitoringPeriod: 60 * 1000
+});
+
+export const openaiCircuitBreaker = CircuitBreakerRegistry.getOrCreate('OPENAI_API', {
+  failureThreshold: 3,
+  recoveryTimeout: 1 * 60 * 1000, // 1 minute
+  monitoringPeriod: 30 * 1000
+});

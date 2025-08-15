@@ -105,17 +105,11 @@ export class EnvironmentValidator {
    */
   static logValidationResults(result: EnvironmentValidationResult) {
     if (result.critical.length > 0) {
-      logger.error('❌ Critical environment configuration errors:', {
-        critical: result.critical,
-        total: result.critical.length + result.warnings.length
-      });
+      logger.error('❌ Critical environment configuration errors:', `${result.critical.join(', ')} (${result.critical.length + result.warnings.length} total issues)`);
     }
     
     if (result.warnings.length > 0) {
-      logger.warn('⚠️ Environment configuration warnings:', {
-        warnings: result.warnings,
-        total: result.warnings.length
-      });
+      logger.warn('⚠️ Environment configuration warnings:', `${result.warnings.join(', ')} (${result.warnings.length} warnings)`);
     }
     
     if (result.isValid && result.warnings.length === 0) {
@@ -144,5 +138,9 @@ export class EnvironmentValidator {
   }
 }
 
-// Export singleton for easy access
-export const environmentValidator = new EnvironmentValidator();
+// Export convenience functions for backward compatibility
+export const environmentValidator = {
+  validateEnvironment: EnvironmentValidator.validateEnvironment,
+  logValidationResults: EnvironmentValidator.logValidationResults,
+  getEnvironmentSummary: EnvironmentValidator.getEnvironmentSummary
+};

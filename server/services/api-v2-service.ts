@@ -6,7 +6,7 @@ import { economicFeaturesETL } from './economic-features-etl';
 import { historicalDataService } from './historical-data-service';
 import { cacheService } from './cache-unified';
 import { getMarketHoursInfo } from '@shared/utils/marketHours';
-import { circuitBreakers } from './circuit-breaker';
+import { circuitBreakers } from '../utils/circuit-breaker';
 
 export class ApiV2Service {
   

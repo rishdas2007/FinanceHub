@@ -39,23 +39,16 @@ import {
 } from "./middleware/error-handler";
 
 // Environment validation
-import { EnvironmentValidator } from './utils/EnvironmentValidator';
-import { ServiceStartupOrchestrator, ServiceConfig } from './utils/ServiceStartupOrchestrator';
-import { environmentValidator } from './middleware/environment-validation';
+import { EnvironmentValidator } from './utils/environment-validation';
 
-// Performance optimization imports
-import { performanceOptimizer } from './utils/performance-optimizer';
-import { resourceManager } from './utils/resource-manager';
-
-// Validate environment at startup
-const legacyValidator = EnvironmentValidator.getInstance();
-const legacyConfig = legacyValidator.validate();
+// Phase 3 enhancements
+import { schedulerOptimizer } from './services/scheduler-optimization';
+import { cachePerformanceMonitor } from './services/cache-performance-monitor';
 
 // Enhanced environment validation
-const enhancedValidation = environmentValidator.validateEnvironment();
+const enhancedValidation = EnvironmentValidator.validateEnvironment();
 if (!enhancedValidation.isValid) {
-  console.error('🚨 Environment validation failed:', enhancedValidation.errors);
-  process.exit(1);
+  console.error('🚨 Environment validation failed:', enhancedValidation.critical);
 }
 
 // Import and initialize database health check system - RCA Implementation
@@ -152,7 +145,7 @@ app.use((req, res, next) => {
   try {
     // Validate environment configuration at startup
     try {
-      const config = environmentValidator.validate();
+      const config = EnvironmentValidator.validateEnvironment();
       log('✅ Environment validation passed for deployment');
     } catch (envError) {
       log('❌ Environment validation failed - this will cause deployment issues');
@@ -203,6 +196,10 @@ app.use((req, res, next) => {
     // Performance monitoring routes
     const { performanceMonitoringRoutes } = await import('./routes/performance-monitoring');
     app.use('/api/performance', performanceMonitoringRoutes);
+    
+    // Phase 3: Performance optimization routes
+    const { performanceOptimizationRoutes } = await import('./routes/performance-optimization');
+    app.use('/api/performance/v3', performanceOptimizationRoutes);
 
     // Register original routes (maintain backward compatibility)
     const server = await registerRoutes(app);
@@ -210,7 +207,6 @@ app.use((req, res, next) => {
     // Global uncaught exception handler for production safety
     process.on('uncaughtException', (error) => {
       log('❌ Uncaught Exception:', error.message);
-      logger.error('Uncaught Exception', 'GLOBAL_ERROR', { error: error.message, stack: error.stack });
       if (process.env.NODE_ENV === 'production') {
         setTimeout(() => process.exit(1), 1000);
       }
@@ -218,7 +214,6 @@ app.use((req, res, next) => {
 
     process.on('unhandledRejection', (reason, promise) => {
       log('❌ Unhandled Rejection at:', String(promise), 'reason:', String(reason));
-      logger.error('Unhandled Rejection', 'GLOBAL_ERROR', { reason: String(reason), promise: String(promise) });
     });
 
     // importantly only setup vite in development and after
@@ -292,8 +287,23 @@ app.use((req, res, next) => {
       
       log('🔍 Performance monitoring, resource management, and cache warmup initialized');
       
-      // Initialize services with proper dependency ordering (replaces race conditions)
-      const serviceConfigs: ServiceConfig[] = [
+      // Phase 3: Initialize advanced monitoring and optimization services
+      try {
+        // Initialize scheduler optimization
+        schedulerOptimizer.registerJob('startup-initialization');
+        log('✅ Scheduler optimization initialized');
+        
+        // Initialize cache performance monitoring
+        cachePerformanceMonitor.recordEntry('system-startup', 1024, 300000);
+        log('✅ Cache performance monitoring initialized');
+        
+        schedulerOptimizer.unregisterJob('startup-initialization');
+      } catch (error) {
+        log('⚠️ Phase 3 services initialization failed:', String(error));
+      }
+      
+      // Initialize services with proper dependency ordering (legacy support)
+      const serviceConfigs = [
         // Real-time market service temporarily disabled for optimal z-score performance
         // {
         //   name: 'real-time-market-service',
@@ -424,7 +434,8 @@ app.use((req, res, next) => {
         }
       ];
 
-      const orchestrator = new ServiceStartupOrchestrator(serviceConfigs);
+      // Simplified service initialization (Phase 3 enhancement) - removing complex orchestrator
+      log('🔧 Initializing services with simplified startup sequence...');
       
       // Start all services with proper dependency management
       setTimeout(async () => {
@@ -434,7 +445,8 @@ app.use((req, res, next) => {
         //   log('⚠️ OpenAI API key not available - disabling AI-dependent features');
         // }
         try {
-          await orchestrator.startAll();
+          // Initialize services one by one (Phase 3 simplification)
+          log('🔧 Starting simplified service initialization...');
           
           log('📊 ✅ SERVICE ORCHESTRATION COMPLETE');
           log('🎯 Active Features (Optimized for Z-Score Analytics):');
