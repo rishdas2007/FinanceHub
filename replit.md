@@ -8,6 +8,11 @@ Preferred communication style: Simple, everyday language.
 UI Preference: Clean, actionable interface without overly technical explanations that don't provide user value.
 
 ## Recent Changes (August 15, 2025)
+- **CRITICAL: Data Transformation Bug Fixed**: Resolved major issue where economic indicators displayed raw index levels (262.5%, 149.7%) instead of meaningful year-over-year percentage changes
+- **Economic YoY Transformer Implementation**: Created comprehensive `economic-yoy-transformer.ts` service that converts index levels to proper YoY inflation rates (e.g., Producer Price Index now shows "+3.2% YoY" instead of "262.5 points")
+- **Smart Data Presentation Rules**: Implemented intelligent transformation rules distinguishing between index series (need YoY calculation), rate series (display as-is), and count series (show YoY changes in K/M format)
+- **Enhanced Economic Data Accuracy**: Economic indicators now show industry-standard presentations making them actionable for financial analysis instead of confusing raw numbers
+- **PPI Date Display Bug Fixed**: Resolved issue where dates showed period start dates (2025-06-01) instead of correct period end dates (2025-06-30) with `convertToPeriodEndDate` method
 - **Critical PPI Data Pipeline Fixes**: Successfully resolved Producer Price Index data pipeline issues identified in comprehensive root cause analysis
 - **Complete PPI Series Integration**: Added 5 comprehensive PPI series (PPIACO, PPIFIS, PPIENG, PPIFGS, WPUSOP3000) to FRED data collection pipeline
 - **Circuit Breaker Optimization**: Adjusted failure threshold from 3 to 8, reduced recovery timeout to 2 minutes, extended rate limit cooldown to 1 hour for FRED API compliance

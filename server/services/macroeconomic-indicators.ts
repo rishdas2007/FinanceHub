@@ -218,8 +218,9 @@ export class MacroeconomicService {
    */
   private async getDataFromDatabase(): Promise<MacroeconomicData | null> {
     try {
-      // Import live z-score calculator
+      // Import live z-score calculator and YoY transformer
       const { liveZScoreCalculator } = await import('./live-zscore-calculator');
+      const { economicYoYTransformer } = await import('./economic-yoy-transformer');
       
       // Calculate live z-scores (never cached)
       const liveZScoreData = await liveZScoreCalculator.calculateLiveZScores();
@@ -231,7 +232,7 @@ export class MacroeconomicService {
       
       logger.info(`📊 Calculated ${liveZScoreData.length} live z-scores from database`);
 
-      const indicators = liveZScoreData.map((zData) => {
+      const indicators = await Promise.all(liveZScoreData.map(async (zData) => {
         const currentReading = zData.currentValue;
         const priorReading = zData.priorValue;
         
@@ -239,6 +240,9 @@ export class MacroeconomicService {
         const actualVariance = currentReading !== null && priorReading !== null 
           ? currentReading - priorReading 
           : null;
+
+        // CRITICAL FIX: Use YoY transformer for proper data presentation
+        const yoyTransformation = await economicYoYTransformer.transformBySeriesOrMetric(zData.seriesId, zData.metric);
 
         // Enhanced unit-based formatting function with metric-specific handling
         const formatNumber = (value: number | null | undefined, unit: string, metric: string): string => {
@@ -349,16 +353,22 @@ export class MacroeconomicService {
           category: zData.category,
           releaseDate: zData.periodDate,
           period_date: zData.periodDate, // Add period_date field for table display
-          currentReading: formatNumber(currentReading, zData.unit, zData.metric),
+          // CRITICAL FIX: Use YoY transformation for proper display values
+          currentReading: yoyTransformation ? yoyTransformation.displayValue : formatNumber(currentReading, zData.unit, zData.metric),
           priorReading: formatNumber(priorReading, zData.unit, zData.metric),
           varianceVsPrior: formatVariance(actualVariance, zData.unit, zData.metric), // Simple current - prior calculation
           zScore: zData.deltaAdjustedZScore, // Use delta-adjusted z-score instead of raw z-score
           deltaZScore: zData.deltaZScore, // Period-to-period change z-score
           frequency: zData.frequency, // Indicator frequency (daily, weekly, monthly, quarterly)
           unit: zData.unit,
-          seriesId: zData.seriesId // Add seriesId for sparkline charts
+          seriesId: zData.seriesId, // Add seriesId for sparkline charts
+          // Add YoY transformation data for debugging and future use
+          yoyPercentage: yoyTransformation?.yoyPercentage || null,
+          yoyChange: yoyTransformation?.yoyChange || null,
+          transformationType: yoyTransformation?.unit || 'unknown',
+          rawCurrentValue: currentReading // Keep raw value for debugging
         };
-      });
+      }));
 
       const data: MacroeconomicData = {
         indicators,
