@@ -71,7 +71,13 @@ export class EconomicYoYTransformer {
 
     // Get current value first
     const currentData = await this.getCurrentValue(seriesId);
-    if (!currentData) return null;
+    if (!currentData) {
+      // FALLBACK: If no database data available, but we know it needs transformation
+      if (rule.transform === 'yoy') {
+        logger.warn(`No data found for ${seriesId}, but transformation needed - series likely missing from database`);
+      }
+      return null;
+    }
 
     if (rule.transform === 'none') {
       // For rates and already-YoY data, return current value as-is
