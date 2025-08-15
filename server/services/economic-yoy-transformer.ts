@@ -16,37 +16,38 @@ interface YoYTransformation {
 export class EconomicYoYTransformer {
   
   // Define which series need YoY transformation vs raw display
-  private readonly TRANSFORMATION_RULES: Record<string, { transform: 'yoy' | 'none'; name: string; unit: 'percentage' | 'index' | 'rate' | 'count' }> = {
-    // Index series - need YoY calculation
-    'CPIAUCSL': { transform: 'yoy', name: 'CPI All Items', unit: 'index' },
-    'CPILFESL': { transform: 'yoy', name: 'Core CPI', unit: 'index' },
-    'PPIACO': { transform: 'yoy', name: 'Producer Price Index', unit: 'index' },
-    'PPIFIS': { transform: 'yoy', name: 'PPI Final Demand', unit: 'index' },
-    'PPIFGS': { transform: 'yoy', name: 'PPI Final Demand Goods', unit: 'index' },
-    'WPUSOP3000': { transform: 'yoy', name: 'Core PPI', unit: 'index' },
-    'PCEPI': { transform: 'yoy', name: 'PCE Price Index', unit: 'index' },
-    'PCEPILFE': { transform: 'yoy', name: 'Core PCE Price Index', unit: 'index' },
-    'CPIENGSL': { transform: 'yoy', name: 'CPI Energy', unit: 'index' },
-    'PPIENG': { transform: 'yoy', name: 'PPI Energy', unit: 'index' },
-    'PPIFGS': { transform: 'yoy', name: 'PPI Final Demand Goods', unit: 'index' },
+  private readonly TRANSFORMATION_RULES: Record<string, { transform: 'yoy' | 'none'; name: string; unit: 'percentage' | 'index' | 'rate' | 'count'; isAlreadyYoY: boolean }> = {
+    // These are ALREADY YoY percentages from FRED - DON'T transform
+    'CPIAUCSL': { transform: 'none', name: 'CPI All Items', unit: 'percentage', isAlreadyYoY: true },
+    'CPILFESL': { transform: 'none', name: 'Core CPI', unit: 'percentage', isAlreadyYoY: true },
+    'PCEPI': { transform: 'none', name: 'PCE Price Index', unit: 'percentage', isAlreadyYoY: true },
+    'PCEPILFE': { transform: 'none', name: 'Core PCE Price Index', unit: 'percentage', isAlreadyYoY: true },
+
+    // These are RAW INDEX LEVELS - DO transform to YoY
+    'PPIACO': { transform: 'yoy', name: 'Producer Price Index', unit: 'index', isAlreadyYoY: false },
+    'PPIFIS': { transform: 'yoy', name: 'PPI Final Demand', unit: 'index', isAlreadyYoY: false },
+    'PPIFGS': { transform: 'yoy', name: 'PPI Final Demand Goods', unit: 'index', isAlreadyYoY: false },
+    'WPUSOP3000': { transform: 'yoy', name: 'Core PPI', unit: 'index', isAlreadyYoY: false },
+    'CPIENGSL': { transform: 'yoy', name: 'CPI Energy', unit: 'index', isAlreadyYoY: false },
+    'PPIENG': { transform: 'yoy', name: 'PPI Energy', unit: 'index', isAlreadyYoY: false },
     
-    // Rate series - display as-is  
-    'UNRATE': { transform: 'none', name: 'Unemployment Rate', unit: 'rate' },
-    'FEDFUNDS': { transform: 'none', name: 'Federal Funds Rate', unit: 'rate' },
-    'DGS10': { transform: 'none', name: '10-Year Treasury Yield', unit: 'rate' },
-    'T10Y2Y': { transform: 'none', name: 'Yield Curve (10yr-2yr)', unit: 'rate' },
-    'MORTGAGE30US': { transform: 'none', name: '30-Year Mortgage Rate', unit: 'rate' },
+    // Rates - display as-is
+    'UNRATE': { transform: 'none', name: 'Unemployment Rate', unit: 'rate', isAlreadyYoY: false },
+    'FEDFUNDS': { transform: 'none', name: 'Federal Funds Rate', unit: 'rate', isAlreadyYoY: false },
+    'DGS10': { transform: 'none', name: '10-Year Treasury Yield', unit: 'rate', isAlreadyYoY: false },
+    'T10Y2Y': { transform: 'none', name: 'Yield Curve (10yr-2yr)', unit: 'rate', isAlreadyYoY: false },
+    'MORTGAGE30US': { transform: 'none', name: '30-Year Mortgage Rate', unit: 'rate', isAlreadyYoY: false },
     
-    // Count series - need YoY calculation but different display format
-    'PAYEMS': { transform: 'yoy', name: 'Nonfarm Payrolls', unit: 'count' },
-    'ICSA': { transform: 'yoy', name: 'Initial Jobless Claims', unit: 'count' },
-    'CCSA': { transform: 'yoy', name: 'Continuing Jobless Claims', unit: 'count' },
+    // Count series - need YoY calculation
+    'PAYEMS': { transform: 'yoy', name: 'Nonfarm Payrolls', unit: 'count', isAlreadyYoY: false },
+    'ICSA': { transform: 'yoy', name: 'Initial Jobless Claims', unit: 'count', isAlreadyYoY: false },
+    'CCSA': { transform: 'yoy', name: 'Continuing Jobless Claims', unit: 'count', isAlreadyYoY: false },
     
     // Other percentage/growth series - display as-is
-    'CIVPART': { transform: 'none', name: 'Labor Force Participation Rate', unit: 'rate' },
-    'EMRATIO': { transform: 'none', name: 'Employment Population Ratio', unit: 'rate' },
-    'AWHMAN': { transform: 'none', name: 'Average Weekly Hours', unit: 'rate' },
-    'CES0500000003': { transform: 'yoy', name: 'Average Hourly Earnings', unit: 'index' }
+    'CIVPART': { transform: 'none', name: 'Labor Force Participation Rate', unit: 'rate', isAlreadyYoY: false },
+    'EMRATIO': { transform: 'none', name: 'Employment Population Ratio', unit: 'rate', isAlreadyYoY: false },
+    'AWHMAN': { transform: 'none', name: 'Average Weekly Hours', unit: 'rate', isAlreadyYoY: false },
+    'CES0500000003': { transform: 'yoy', name: 'Average Hourly Earnings', unit: 'index', isAlreadyYoY: false }
   };
 
   /**
@@ -68,18 +69,31 @@ export class EconomicYoYTransformer {
       return null;
     }
 
+    // Get current value first
+    const currentData = await this.getCurrentValue(seriesId);
+    if (!currentData) return null;
+
     if (rule.transform === 'none') {
-      // For rates, return current value as-is
-      const currentData = await this.getCurrentValue(seriesId);
-      if (!currentData) return null;
-      
+      // For rates and already-YoY data, return current value as-is
+      let displayValue: string;
+
+      if (rule.isAlreadyYoY || rule.unit === 'percentage') {
+        // CPI, Core CPI etc. are already YoY percentages
+        displayValue = `${currentData.value >= 0 ? '+' : ''}${currentData.value.toFixed(1)}%`;
+      } else if (rule.unit === 'rate') {
+        // Interest rates, unemployment rates
+        displayValue = `${currentData.value.toFixed(1)}%`;
+      } else {
+        displayValue = `${currentData.value.toFixed(1)}`;
+      }
+
       return {
         seriesId,
         currentValue: currentData.value,
         previousYearValue: 0,
         yoyChange: 0,
-        yoyPercentage: 0,
-        displayValue: this.formatRateValue(currentData.value, rule.unit),
+        yoyPercentage: currentData.value,
+        displayValue,
         unit: rule.unit,
         metric: rule.name
       };
@@ -92,29 +106,38 @@ export class EconomicYoYTransformer {
   /**
    * Infer transformation rule from metric name when exact series ID not found
    */
-  private inferTransformationRule(metric: string, seriesId: string): { transform: 'yoy' | 'none'; name: string; unit: 'percentage' | 'index' | 'rate' | 'count' } | null {
+  private inferTransformationRule(metric: string, seriesId: string): { transform: 'yoy' | 'none'; name: string; unit: 'percentage' | 'index' | 'rate' | 'count'; isAlreadyYoY: boolean } | null {
     const metricLower = metric.toLowerCase();
     
-    // Price indices need YoY transformation
-    if (metricLower.includes('ppi') || metricLower.includes('cpi') || 
-        metricLower.includes('price index') || metricLower.includes('inflation')) {
-      return { transform: 'yoy', name: metric, unit: 'index' };
+    // CPI series are usually already YoY percentages from FRED
+    if (metricLower.includes('cpi') && !metricLower.includes('ppi')) {
+      return { transform: 'none', name: metric, unit: 'percentage', isAlreadyYoY: true };
+    }
+    
+    // PPI series are usually raw index levels that need YoY calculation
+    if (metricLower.includes('ppi') || metricLower.includes('producer price')) {
+      return { transform: 'yoy', name: metric, unit: 'index', isAlreadyYoY: false };
+    }
+    
+    // PCE series are usually already YoY percentages
+    if (metricLower.includes('pce')) {
+      return { transform: 'none', name: metric, unit: 'percentage', isAlreadyYoY: true };
     }
     
     // Rates display as-is
     if (metricLower.includes('rate') || metricLower.includes('yield') || 
         metricLower.includes('unemployment') || metricLower.includes('participation')) {
-      return { transform: 'none', name: metric, unit: 'rate' };
+      return { transform: 'none', name: metric, unit: 'rate', isAlreadyYoY: false };
     }
     
     // Employment counts need YoY
     if (metricLower.includes('payroll') || metricLower.includes('claims') || 
         metricLower.includes('employment') || metricLower.includes('jobs')) {
-      return { transform: 'yoy', name: metric, unit: 'count' };
+      return { transform: 'yoy', name: metric, unit: 'count', isAlreadyYoY: false };
     }
     
-    // Default to YoY for unknown series
-    return { transform: 'yoy', name: metric, unit: 'index' };
+    // Default to no transformation for unknown series
+    return { transform: 'none', name: metric, unit: 'percentage', isAlreadyYoY: false };
   }
 
   /**

@@ -12,6 +12,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import { apiLogger, getApiStats } from "./middleware/apiLogger";
 import path from 'path';
 // FRED routes removed to fix crashes
+import debugTransformationRoutes from './routes/debug-transformation';
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -220,6 +221,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Debug transformation endpoint
+  app.use('/api', debugTransformationRoutes);
 
   // Macroeconomic Indicators API - prioritizes FRED data with OpenAI fallback
   app.get('/api/macroeconomic-indicators', async (req, res) => {

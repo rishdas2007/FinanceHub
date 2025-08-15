@@ -8,7 +8,7 @@ Preferred communication style: Simple, everyday language.
 UI Preference: Clean, actionable interface without overly technical explanations that don't provide user value.
 
 ## Recent Changes (August 15, 2025)
-- **CRITICAL: Data Transformation Bug Fixed**: Resolved major issue where economic indicators displayed raw index levels (262.5%, 149.7%) instead of meaningful year-over-year percentage changes
+- **CRITICAL: Data Transformation Bug COMPLETELY FIXED**: Resolved major overcorrection issue where some indicators were double-transformed. CPI data (already YoY percentages from FRED) now display correctly as "+2.7%, +3.2%" while PPI data (raw index levels) are properly transformed to YoY percentages
 - **Economic YoY Transformer Implementation**: Created comprehensive `economic-yoy-transformer.ts` service that converts index levels to proper YoY inflation rates (e.g., Producer Price Index now shows "+3.2% YoY" instead of "262.5 points")
 - **Smart Data Presentation Rules**: Implemented intelligent transformation rules distinguishing between index series (need YoY calculation), rate series (display as-is), and count series (show YoY changes in K/M format)
 - **Enhanced Economic Data Accuracy**: Economic indicators now show industry-standard presentations making them actionable for financial analysis instead of confusing raw numbers
