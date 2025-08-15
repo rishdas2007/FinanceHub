@@ -1,5 +1,6 @@
 import { isMarketOpen } from '@shared/utils/marketHours';
 import { calculateImpact } from '@shared/utils/varianceCalculations';
+import { logger } from '@shared/utils/logger';
 
 interface EconomicEvent {
   id: string;
@@ -600,17 +601,17 @@ export class SimplifiedEconomicCalendarService {
 
   async getAllEconomicEvents(): Promise<EconomicEvent[]> {
     try {
-      console.log('🔄 Generating reliable economic calendar events...');
+      logger.info('Generating reliable economic calendar events', 'ECONOMIC_CALENDAR');
       
       // Check cache first
       if (this.isCacheValid()) {
-        console.log('✅ Using cached reliable economic events');
+        logger.info('Using cached reliable economic events', 'ECONOMIC_CALENDAR');
         return this.cache!.events;
       }
 
       const events = this.generateReliableEconomicEvents();
       
-      console.log(`📊 Generated ${events.length} reliable economic events`);
+      logger.info(`Generated ${events.length} reliable economic events`, 'ECONOMIC_CALENDAR');
       
       // Cache the results
       this.cache = {
@@ -621,7 +622,7 @@ export class SimplifiedEconomicCalendarService {
       return events;
       
     } catch (error) {
-      console.error('❌ Error generating economic events:', error);
+      logger.error('Error generating economic events', 'ECONOMIC_CALENDAR_ERROR', error);
       return [];
     }
   }
@@ -653,7 +654,12 @@ export class SimplifiedEconomicCalendarService {
     );
     const highImpact = allEvents.filter(event => event.importance === 'high');
     
-    console.log(`📈 Reliable Calendar - Market Hours Context: Open=${marketOpen}, Today=${currentTradingDay.length}, Recent=${recent.length}, High Impact=${highImpact.length}`);
+    logger.info('Reliable Calendar - Market Hours Context', 'ECONOMIC_CALENDAR', {
+      marketOpen,
+      todayCount: currentTradingDay.length,
+      recentCount: recent.length,
+      highImpactCount: highImpact.length
+    });
     
     return {
       isMarketOpen: marketOpen,

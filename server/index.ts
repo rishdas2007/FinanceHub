@@ -62,6 +62,11 @@ if (!enhancedValidation.isValid) {
 import { validateDatabaseOnStartup, DatabaseHealthChecker } from './middleware/database-health-check.js';
 import { logger } from './utils/logger';
 
+// Import advanced optimization middleware
+import { databaseRollbackSafety } from './middleware/database-rollback-safety';
+import { memoryOptimizer } from './middleware/memory-optimization';
+import { apiResponseOptimizer } from './middleware/api-response-optimizer';
+
 const app = express();
 
 // Trust proxy for rate limiting and security headers

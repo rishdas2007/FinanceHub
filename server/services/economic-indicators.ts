@@ -1,8 +1,5 @@
 // FRED and historical services removed - using OpenAI only
-const logger = {
-  info: (msg: string, ...args: any[]) => console.log(`[INFO] ${msg}`, ...args),
-  error: (msg: string, ...args: any[]) => console.error(`[ERROR] ${msg}`, ...args)
-};
+import { logger } from '@shared/utils/logger';
 
 interface EconomicIndicator {
   metric: string;
@@ -260,11 +257,11 @@ class EconomicIndicatorsService {
       
       try {
         csvContent = await fs.readFile(csvPath, 'utf-8');
-        console.log('📊 Using FRED-generated CSV data');
+        logger.info('Using FRED-generated CSV data', 'ECONOMIC_DATA');
       } catch {
         csvPath = './attached_assets/macroeconomic_indicators_dataset_1753235318949.csv';
         csvContent = await fs.readFile(csvPath, 'utf-8');
-        console.log('📊 Using original CSV data');
+        logger.info('Using original CSV data', 'ECONOMIC_DATA');
       }
       
       const records = parse(csvContent, {
@@ -292,7 +289,7 @@ class EconomicIndicatorsService {
 
       return indicators;
     } catch (error) {
-      console.error('❌ Error loading CSV data:', error);
+      logger.error('Error loading CSV data', 'ECONOMIC_DATA_ERROR', error);
       return [];
     }
   }

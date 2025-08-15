@@ -3,6 +3,7 @@ import { historicalMarketSentiment } from '@shared/schema';
 import { eq, gt, desc, asc } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
+import { logger } from '@shared/utils/logger';
 
 /**
  * Historical Data Importer Service
@@ -22,7 +23,7 @@ export class HistoricalDataImporter {
    * Import VIX historical data from CSV
    */
   async importVIXData(csvPath: string): Promise<number> {
-    console.log('📊 Starting VIX historical data import...');
+    logger.info('Starting VIX historical data import', 'HISTORICAL_IMPORT');
     
     try {
       const csvContent = fs.readFileSync(csvPath, 'utf-8');
@@ -60,11 +61,15 @@ export class HistoricalDataImporter {
           
           importedCount++;
         } catch (error) {
-          console.warn(`⚠️  Skipping invalid VIX row: ${line.substring(0, 50)}...`);
+          logger.warn('Skipping invalid VIX row', 'HISTORICAL_IMPORT', { 
+            preview: line.substring(0, 50) 
+          });
         }
       }
       
-      console.log(`✅ VIX import completed: ${importedCount} records`);
+      logger.info('VIX import completed', 'HISTORICAL_IMPORT', { 
+        importedRecords: importedCount 
+      });
       return importedCount;
     } catch (error) {
       console.error('❌ VIX import failed:', error);

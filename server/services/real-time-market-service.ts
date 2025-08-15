@@ -1,5 +1,6 @@
 import { getTwelveDataWebSocket, type MarketDataUpdate } from './twelve-data-websocket';
 import { EventEmitter } from 'events';
+import { logger } from '@shared/utils/logger';
 
 interface RealTimeMarketData {
   [symbol: string]: {
@@ -23,7 +24,7 @@ export class RealTimeMarketService extends EventEmitter {
 
   private setupWebSocketHandlers(): void {
     this.ws.on('connected', () => {
-      console.log('✅ Real-time market service connected');
+      logger.info('Real-time market service connected', 'REALTIME_MARKET');
       this.emit('connected');
       
       // Subscribe to default symbols on connect
@@ -31,7 +32,7 @@ export class RealTimeMarketService extends EventEmitter {
     });
 
     this.ws.on('disconnected', () => {
-      console.log('❌ Real-time market service disconnected');
+      logger.info('Real-time market service disconnected', 'REALTIME_MARKET');
       this.emit('disconnected');
     });
 
@@ -40,7 +41,9 @@ export class RealTimeMarketService extends EventEmitter {
     });
 
     this.ws.on('error', (error: Error) => {
-      console.warn('⚠️ Real-time market service error (non-fatal):', error.message);
+      logger.warn('Real-time market service error (non-fatal)', 'REALTIME_MARKET', { 
+        error: error.message 
+      });
       // Don't emit error to parent to prevent crashes - just log it
       // The service will attempt reconnection automatically
     });
