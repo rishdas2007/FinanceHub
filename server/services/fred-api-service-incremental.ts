@@ -3,7 +3,7 @@ import { logger } from '../../shared/utils/logger';
 import { db } from '../db.js';
 import { economicIndicatorsHistory } from '../../shared/schema';
 import { eq, desc, max, sql, and } from 'drizzle-orm';
-import { dataQualityValidator } from './data-quality-validator';
+import { DataQualityValidator } from './data-quality-validator';
 import { dataLineageTracker } from './data-lineage-tracker';
 import { economicDataTransformer } from './economic-data-transformer';
 
@@ -26,7 +26,11 @@ export const CURATED_SERIES = [
   // Medium record count indicators (18-21 records)
   { id: 'CCSA', label: 'Continuing Jobless Claims', type: 'Lagging', category: 'Labor' },
   { id: 'ICSA', label: 'Initial Jobless Claims', type: 'Leading', category: 'Labor' },
-  { id: 'WPUSOP3000', label: 'Core PPI', type: 'Leading', category: 'Inflation' },
+  { id: 'WPUSOP3000', label: 'Core PPI', type: 'Lagging', category: 'Inflation' },
+  { id: 'PPIACO', label: 'Producer Price Index', type: 'Lagging', category: 'Inflation' },
+  { id: 'PPIFIS', label: 'PPI Final Demand', type: 'Lagging', category: 'Inflation' },
+  { id: 'PPIENG', label: 'PPI Energy', type: 'Leading', category: 'Inflation' },
+  { id: 'PPIFGS', label: 'PPI Final Demand Goods', type: 'Lagging', category: 'Inflation' },
   { id: 'AWHAETP', label: 'Average Weekly Hours', type: 'Leading', category: 'Labor' },
   { id: 'BUSLOANS', label: 'Commercial & Industrial Loans', type: 'Coincident', category: 'Monetary Policy' },
   { id: 'CAPUTLG2211S', label: 'Capacity Utilization (Mfg)', type: 'Coincident', category: 'Growth' },

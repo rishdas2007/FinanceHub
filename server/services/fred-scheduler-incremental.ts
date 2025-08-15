@@ -29,7 +29,7 @@ export class FredSchedulerIncremental {
   constructor(config: Partial<SchedulerConfig> = {}) {
     this.config = {
       enabled: true,
-      intervalHours: 4, // Run every 4 hours during market days
+      intervalHours: 24, // Run daily to catch monthly/weekly releases  
       maxRetries: 3,
       retryDelayMinutes: 15,
       runOnStartup: false,

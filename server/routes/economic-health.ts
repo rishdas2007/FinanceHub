@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { EconomicHealthFallback } from '../services/economic-health-fallback.js';
 import { StatisticalHealthCalculator } from '../services/statistical-health-calculator.js';
+import { economicDataFreshnessMonitor } from '../services/economic-data-freshness-monitor.js';
 import { logger } from '../utils/logger.js';
 import type { EconomicHealthScore } from '../services/economic-health-fallback.js';
 
@@ -243,6 +244,26 @@ router.get('/component-analysis', async (req, res) => {
   } catch (error) {
     logger.error('Error generating component analysis:', error);
     res.status(500).json({ error: 'Failed to generate component analysis' });
+  }
+});
+
+// Get economic data freshness monitoring report
+router.get('/freshness', async (req, res) => {
+  try {
+    logger.info('🕐 Economic data freshness check request');
+    
+    const freshnessSummary = await economicDataFreshnessMonitor.getFreshnessSummary();
+    const detailedChecks = await economicDataFreshnessMonitor.checkAllSeries();
+    
+    res.json({
+      summary: freshnessSummary,
+      detailedChecks,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    logger.error('Error checking data freshness:', error);
+    res.status(500).json({ error: 'Failed to check data freshness' });
   }
 });
 

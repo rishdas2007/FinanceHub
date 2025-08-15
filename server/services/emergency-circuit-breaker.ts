@@ -16,10 +16,11 @@ export class EmergencyCircuitBreaker {
   private static instance: EmergencyCircuitBreaker;
   private circuits: Map<string, CircuitState> = new Map();
   
-  // EMERGENCY: Aggressive circuit breaker settings
-  private readonly FAILURE_THRESHOLD = 3; // Open after 3 failures
-  private readonly RECOVERY_TIMEOUT = 300000; // 5 minutes before retry
-  private readonly RATE_LIMIT_COOLDOWN = 900000; // 15 minutes for rate limit recovery
+  // Optimized circuit breaker settings for FRED API
+  private readonly FAILURE_THRESHOLD = 8; // Open after 8 failures (was too sensitive)
+  private readonly RECOVERY_TIMEOUT = 120000; // 2 minutes before retry (faster recovery)
+  private readonly RATE_LIMIT_COOLDOWN = 3600000; // 1 hour for rate limit recovery (FRED limit is hourly)
+  private readonly MAX_REQUESTS_PER_HOUR = 100; // Stay under FRED's 120/hour limit
 
   static getInstance(): EmergencyCircuitBreaker {
     if (!EmergencyCircuitBreaker.instance) {

@@ -50,6 +50,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Health monitoring endpoints
   app.use('/api/health', (await import('./routes/health')).default);
   
+  // Economic health and data quality monitoring
+  app.use('/api/economic-health', (await import('./routes/economic-health')).default);
+  
+  // PPI diagnostic endpoint
+  app.use('/api/ppi-diagnostic', (await import('./routes/ppi-diagnostic')).default);
+  
   // Phase 3: Manual Economic Data Refresh Endpoint
   app.post('/api/admin/refresh-economic-data', async (req, res) => {
     try {
