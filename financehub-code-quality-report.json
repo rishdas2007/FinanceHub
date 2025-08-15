@@ -1,42 +1,15 @@
 {
-  "timestamp": "2025-08-15T00:17:04.731Z",
+  "timestamp": "2025-08-15T00:23:33.565Z",
   "summary": {
     "totalFiles": 92,
-    "totalLines": 31039,
+    "totalLines": 31044,
     "complexFunctions": 0,
-    "anyUsage": 146,
+    "anyUsage": 143,
     "consoleLogs": 103,
     "deadCode": 0
   },
   "issues": {
     "critical": [
-      {
-        "severity": "critical",
-        "type": "type-safety",
-        "title": "Type Safety Issue",
-        "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-        "file": "server/services/comprehensive-economic-service.ts",
-        "line": 173,
-        "rule": "no-any-type"
-      },
-      {
-        "severity": "critical",
-        "type": "type-safety",
-        "title": "Type Safety Issue",
-        "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-        "file": "server/services/comprehensive-economic-service.ts",
-        "line": 187,
-        "rule": "no-any-type"
-      },
-      {
-        "severity": "critical",
-        "type": "type-safety",
-        "title": "Type Safety Issue",
-        "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-        "file": "server/services/data-quality/zscore-validator.ts",
-        "line": 13,
-        "rule": "no-any-type"
-      },
       {
         "severity": "critical",
         "type": "type-safety",
@@ -2641,6 +2614,15 @@
         "description": "Line is 123 characters. Consider breaking it up.",
         "file": "server/services/comprehensive-economic-service.ts",
         "line": 103,
+        "rule": "max-line-length"
+      },
+      {
+        "severity": "low",
+        "type": "formatting",
+        "title": "Line Too Long",
+        "description": "Line is 161 characters. Consider breaking it up.",
+        "file": "server/services/comprehensive-economic-service.ts",
+        "line": 187,
         "rule": "max-line-length"
       },
       {
@@ -7237,27 +7219,18 @@
           "rule": "max-line-length"
         },
         {
-          "severity": "critical",
-          "type": "type-safety",
-          "title": "Type Safety Issue",
-          "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-          "file": "server/services/comprehensive-economic-service.ts",
-          "line": 173,
-          "rule": "no-any-type"
-        },
-        {
-          "severity": "critical",
-          "type": "type-safety",
-          "title": "Type Safety Issue",
-          "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
+          "severity": "low",
+          "type": "formatting",
+          "title": "Line Too Long",
+          "description": "Line is 161 characters. Consider breaking it up.",
           "file": "server/services/comprehensive-economic-service.ts",
           "line": 187,
-          "rule": "no-any-type"
+          "rule": "max-line-length"
         }
       ],
       "stats": {
         "complexFunctions": 0,
-        "anyUsage": 2,
+        "anyUsage": 0,
         "consoleLogs": 0,
         "deadCode": 0
       }
@@ -7318,20 +7291,10 @@
       }
     },
     "server/services/data-quality/zscore-validator.ts": {
-      "issues": [
-        {
-          "severity": "critical",
-          "type": "type-safety",
-          "title": "Type Safety Issue",
-          "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-          "file": "server/services/data-quality/zscore-validator.ts",
-          "line": 13,
-          "rule": "no-any-type"
-        }
-      ],
+      "issues": [],
       "stats": {
         "complexFunctions": 0,
-        "anyUsage": 1,
+        "anyUsage": 0,
         "consoleLogs": 0,
         "deadCode": 0
       }

@@ -416,7 +416,7 @@ export class FREDApiService {
   /**
    * Fetch series observations from FRED API
    */
-  private async fetchSeriesData(seriesId: string, limit: number = 3): Promise<any[]> {
+  private async fetchSeriesData(seriesId: string, limit: number = 3): Promise<{ value: string; date: string }[]> {
     try {
       const url = `${this.baseUrl}/series/observations?series_id=${seriesId}&api_key=${this.apiKey}&file_type=json&limit=${limit}&sort_order=desc`;
       

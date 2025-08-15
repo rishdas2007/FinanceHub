@@ -10,7 +10,12 @@ export interface ZScoreValidationResult {
   errors: string[];
   warnings: string[];
   sufficiency: DataSufficiencyResult;
-  contractValidation?: any;
+  contractValidation?: {
+    valid: boolean;
+    errors: string[];
+    warnings: string[];
+    metrics: Record<string, boolean>;
+  };
 }
 
 /**

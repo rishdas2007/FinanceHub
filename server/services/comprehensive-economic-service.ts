@@ -170,7 +170,7 @@ class ComprehensiveEconomicService {
       // Cache results
       await db.insert(economicSearchCache).values({
         search_query: "comprehensive_economic_readings",
-        search_results: uniqueReadings as any,
+        search_results: JSON.stringify(uniqueReadings),
         indicators_found: uniqueReadings.length,
         expires_at: new Date(Date.now() + 60 * 60 * 1000) // 1 hour cache
       });
@@ -184,7 +184,7 @@ class ComprehensiveEconomicService {
     }
   }
 
-  private extractEconomicData(searchResults: any[], query: string): EconomicReading[] {
+  private extractEconomicData(searchResults: Array<{ title?: string; description?: string; content?: string; url?: string }>, query: string): EconomicReading[] {
     const readings: EconomicReading[] = [];
     
     // Extract data from search results using various patterns
