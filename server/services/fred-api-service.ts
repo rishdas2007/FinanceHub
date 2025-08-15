@@ -88,9 +88,11 @@ export class FREDApiService {
   ];
 
   constructor() {
-    this.apiKey = process.env.FRED_API_KEY || 'afa2c5a53a8116fe3a6c6fb339101ca1';
+    // ✅ PHASE 2 TASK 4: Remove hardcoded API key for security
+    this.apiKey = process.env.FRED_API_KEY || '';
     if (!this.apiKey) {
-      logger.warn('FRED API key not provided. FRED service will not function.');
+      logger.error('FRED API key not provided in environment variables. FRED service will not function.');
+      throw new Error('FRED_API_KEY environment variable is required');
     }
   }
 
@@ -118,7 +120,7 @@ export class FREDApiService {
       
       return null;
     } catch (error) {
-      logger.error(`Failed to fetch latest observation for ${seriesId}:`, error);
+      logger.error(`Failed to fetch latest observation for ${seriesId}:`, String(error));
       return null;
     }
   }

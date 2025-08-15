@@ -95,7 +95,7 @@ class TechnicalIndicators {
     return emaValues;
   }
 
-  // Calculate MACD
+  // ✅ CRITICAL FIX: Calculate MACD with proper EMA array alignment
   static calculateMACD(prices: number[]): { macd: number[], signal: number[], histogram: number[] } {
     const ema12 = this.calculateEMA(prices, 12);
     const ema26 = this.calculateEMA(prices, 26);
@@ -104,20 +104,22 @@ class TechnicalIndicators {
       return { macd: [], signal: [], histogram: [] };
     }
     
-    // Align arrays (EMA26 starts later)
+    // ✅ FIX: Proper array alignment - both EMAs should have same length after proper calculation
     const macd: number[] = [];
-    const startIndex = 26 - 12; // EMA26 starts 14 periods later than EMA12
+    const minLength = Math.min(ema12.length, ema26.length);
     
-    for (let i = startIndex; i < ema12.length; i++) {
-      macd.push(ema12[i] - ema26[i - startIndex]);
+    // ✅ FIX: Calculate MACD from properly aligned EMAs
+    for (let i = 0; i < minLength; i++) {
+      macd.push(ema12[i] - ema26[i]);
     }
     
     const signal = this.calculateEMA(macd, 9);
     const histogram: number[] = [];
     
+    // ✅ FIX: Correct histogram calculation
     const signalStartIndex = macd.length - signal.length;
-    for (let i = signalStartIndex; i < macd.length; i++) {
-      histogram.push(macd[i] - signal[i - signalStartIndex]);
+    for (let i = 0; i < signal.length; i++) {
+      histogram.push(macd[signalStartIndex + i] - signal[i]);
     }
     
     return { macd, signal, histogram };

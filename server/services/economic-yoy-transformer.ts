@@ -17,11 +17,11 @@ export class EconomicYoYTransformer {
   
   // Define which series need YoY transformation vs raw display
   private readonly TRANSFORMATION_RULES: Record<string, { transform: 'yoy' | 'none'; name: string; unit: 'percentage' | 'index' | 'rate' | 'count'; isAlreadyYoY: boolean }> = {
-    // These are ALREADY YoY percentages from FRED - DON'T transform
-    'CPIAUCSL': { transform: 'none', name: 'CPI All Items', unit: 'percentage', isAlreadyYoY: true },
-    'CPILFESL': { transform: 'none', name: 'Core CPI', unit: 'percentage', isAlreadyYoY: true },
-    'PCEPI': { transform: 'none', name: 'PCE Price Index', unit: 'percentage', isAlreadyYoY: true },
-    'PCEPILFE': { transform: 'none', name: 'Core PCE Price Index', unit: 'percentage', isAlreadyYoY: true },
+    // ✅ CRITICAL FIX: These are RAW INDEX LEVELS from FRED - DO transform to YoY
+    'CPIAUCSL': { transform: 'yoy', name: 'CPI All Items', unit: 'index', isAlreadyYoY: false },
+    'CPILFESL': { transform: 'yoy', name: 'Core CPI', unit: 'index', isAlreadyYoY: false },
+    'PCEPI': { transform: 'yoy', name: 'PCE Price Index', unit: 'index', isAlreadyYoY: false },
+    'PCEPILFE': { transform: 'yoy', name: 'Core PCE Price Index', unit: 'index', isAlreadyYoY: false },
 
     // These are RAW INDEX LEVELS - DO transform to YoY
     'PPIACO': { transform: 'yoy', name: 'Producer Price Index', unit: 'index', isAlreadyYoY: false },
@@ -115,9 +115,9 @@ export class EconomicYoYTransformer {
   private inferTransformationRule(metric: string, seriesId: string): { transform: 'yoy' | 'none'; name: string; unit: 'percentage' | 'index' | 'rate' | 'count'; isAlreadyYoY: boolean } | null {
     const metricLower = metric.toLowerCase();
     
-    // CPI series are usually already YoY percentages from FRED
+    // ✅ CRITICAL FIX: CPI series are RAW INDEX LEVELS from FRED - need YoY transformation
     if (metricLower.includes('cpi') && !metricLower.includes('ppi')) {
-      return { transform: 'none', name: metric, unit: 'percentage', isAlreadyYoY: true };
+      return { transform: 'yoy', name: metric, unit: 'index', isAlreadyYoY: false };
     }
     
     // PPI series are usually raw index levels that need YoY calculation
@@ -125,9 +125,9 @@ export class EconomicYoYTransformer {
       return { transform: 'yoy', name: metric, unit: 'index', isAlreadyYoY: false };
     }
     
-    // PCE series are usually already YoY percentages
+    // ✅ CRITICAL FIX: PCE series are RAW INDEX LEVELS from FRED - need YoY transformation
     if (metricLower.includes('pce')) {
-      return { transform: 'none', name: metric, unit: 'percentage', isAlreadyYoY: true };
+      return { transform: 'yoy', name: metric, unit: 'index', isAlreadyYoY: false };
     }
     
     // Rates display as-is
@@ -214,7 +214,7 @@ export class EconomicYoYTransformer {
       };
 
     } catch (error) {
-      logger.error(`YoY calculation failed for ${seriesId}:`, error);
+      logger.error(`YoY calculation failed for ${seriesId}:`, String(error));
       return null;
     }
   }
@@ -273,7 +273,7 @@ export class EconomicYoYTransformer {
         date: String(row.date)
       };
     } catch (error) {
-      logger.error(`Failed to get current value for ${seriesId}:`, error);
+      logger.error(`Failed to get current value for ${seriesId}:`, String(error));
       return null;
     }
   }
