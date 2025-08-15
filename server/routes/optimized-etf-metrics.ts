@@ -153,44 +153,65 @@ router.get('/etf-metrics', async (req, res) => {
           ELSE symbol
         END as name,
         close_price as price,
-        COALESCE(daily_return, 0) as "changePercent",
+        COALESCE(daily_return, 0) as changePercent,
         COALESCE(volume, 0) as volume,
         -- Create components object structure for compatibility
-        json_build_object(
-          'macdZ', 0,
-          'rsi14', 50,
-          'rsiZ', 0,
-          'bbPctB', 0.5,
-          'bbZ', 0,
-          'maGapPct', CASE WHEN sma_20 > 0 THEN ((sma_5 - sma_20) / sma_20 * 100) ELSE 0 END
-        ) as components,
-        0 as "weightedScore",
-        'NEUTRAL' as "weightedSignal",
-        -- Create zScoreData structure for compatibility
-        json_build_object(
-          'rsiZScore', 0,
-          'macdZScore', 0,
-          'bollingerZScore', 0,
-          'compositeZScore', CASE WHEN volatility_20d > 0 THEN ((close_price - sma_20) / volatility_20d) ELSE 0 END
-        ) as "zScoreData",
+        CASE WHEN sma_20 > 0 THEN ((sma_5 - sma_20) / sma_20 * 100) ELSE 0 END as maGapPct,
+        0 as weightedScore,
+        'NEUTRAL' as weightedSignal,
+        -- Create basic z-score for compatibility
+        CASE WHEN volatility_20d > 0 THEN ((close_price - sma_20) / volatility_20d) ELSE 0 END as compositeZScore,
         ROUND(COALESCE(volatility_20d, 0)::numeric, 2) as volatility,
-        ROUND(COALESCE(sma_5, 0)::numeric, 2) as "sma5",
-        ROUND(COALESCE(sma_20, 0)::numeric, 2) as "sma20",
-        date as "lastUpdated"
+        ROUND(COALESCE(sma_5, 0)::numeric, 2) as sma5,
+        ROUND(COALESCE(sma_20, 0)::numeric, 2) as sma20,
+        date as lastUpdated
       FROM latest_etf
       ORDER BY symbol
     `);
 
-    const metrics = Array.from(result).map(row => ({
+    // Debug: Log the raw result structure
+    logger.info(`📊 Raw DB result type: ${typeof result}`);
+    logger.info(`📊 Raw DB result keys: ${Object.keys(result)}`);
+    
+    // Handle different Drizzle result formats
+    let rows;
+    if (Array.isArray(result)) {
+      rows = result;
+    } else if (result.rows) {
+      rows = result.rows;
+    } else if (typeof result === 'object' && result[Symbol.iterator]) {
+      rows = Array.from(result);
+    } else {
+      rows = [];
+    }
+    
+    logger.info(`📊 Processed rows: ${rows.length}`);
+    if (rows.length > 0) {
+      logger.info('📊 Sample row:', rows[0]);
+    }
+
+    const metrics = rows.map(row => ({
       symbol: row.symbol,
       name: row.name,
       price: Number(row.price),
       changePercent: Number(row.changePercent),
       volume: Number(row.volume),
-      components: row.components,
-      weightedScore: row.weightedScore,
+      components: {
+        macdZ: 0,
+        rsi14: 50,
+        rsiZ: 0,
+        bbPctB: 0.5,
+        bbZ: 0,
+        maGapPct: Number(row.maGapPct || 0)
+      },
+      weightedScore: Number(row.weightedScore),
       weightedSignal: row.weightedSignal,
-      zScoreData: row.zScoreData,
+      zScoreData: {
+        rsiZScore: 0,
+        macdZScore: 0,
+        bollingerZScore: 0,
+        compositeZScore: Number(row.compositeZScore || 0)
+      },
       volatility: row.volatility ? Number(row.volatility) : null,
       sma5: row.sma5 ? Number(row.sma5) : null,
       sma20: row.sma20 ? Number(row.sma20) : null,

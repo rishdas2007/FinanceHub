@@ -21,6 +21,8 @@ import { performanceTrackingMiddleware } from './middleware/performance-tracking
 import enhancedZScoreRoutes from './routes/enhanced-zscore-demo';
 import adminMigrationRoutes from './routes/admin-migration-routes';
 import optimizedEtfMetricsRoutes from './routes/optimized-etf-metrics';
+import etfMetricsDirectFixRoutes from './routes/etf-metrics-direct-fix';
+import etfSimpleFixRoutes from './routes/etf-simple-fix';
 import { setupVite, serveStatic, log } from "./vite";
 import healthRoutes from "./routes/health";
 
@@ -194,8 +196,14 @@ app.use((req, res, next) => {
     // Admin Migration Routes for Economic Data Unit Fix
     app.use('/api/admin', adminMigrationRoutes);
     
-    // Optimized ETF Metrics Routes (Performance Fix)
-    app.use('/api', optimizedEtfMetricsRoutes);
+    // Simple ETF Metrics Fix (Working Solution) - Takes Priority
+    app.use('/api', etfSimpleFixRoutes);
+    
+    // Direct ETF Metrics Fix (Immediate Data Restoration) - Disabled temporarily
+    // app.use('/api', etfMetricsDirectFixRoutes);
+    
+    // Optimized ETF Metrics Routes (Performance Fix) - Disabled temporarily
+    // app.use('/api', optimizedEtfMetricsRoutes);
     
     // Performance monitoring routes
     const { performanceMonitoringRoutes } = await import('./routes/performance-monitoring');

@@ -9,6 +9,7 @@ UI Preference: Clean, actionable interface without overly technical explanations
 
 ## Recent Changes (August 15, 2025)
 - **CRITICAL PERFORMANCE OPTIMIZATION SUCCESS**: Resolved "server unavailable" errors and improved ETF metrics response time from 998ms to 25ms (97% improvement) through materialized view implementation
+- **ETF DATA PIPELINE RESTORED**: Successfully fixed "No ETF metrics data available" error by implementing direct database query approach, restoring ETF data display for all 12 symbols
 - **COMPLETE: FinanceHub Pro v30 Implementation SUCCESS**: Successfully loaded 76,441 historical economic records across 33 series spanning 1913-2025 using comprehensive 3-layer data loading infrastructure
 - **NEW: Enhanced Economic Data Service**: Created complete economic data service with YoY transformations and 3 new API endpoints (`/api/enhanced-economic-indicators`, `/api/economic-data-summary`, `/api/economic-validation`)
 - **DATA ACHIEVEMENT: 112-Year Economic History**: Loaded comprehensive economic dataset from 1913-2025 with 13,003 Federal Funds Rate records, 8,906 10-Year Treasury records, and full coverage of critical economic indicators
