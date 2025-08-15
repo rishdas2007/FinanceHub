@@ -74,7 +74,8 @@ async function fetchRealETFMetrics() {
       rsiZ: 0,
       bbPctB: 0.5,
       bbZ: 0,
-      maGapPct: (row.sma20 as number) > 0 ? ((Number(row.sma5) - Number(row.sma20)) / Number(row.sma20) * 100) : 0
+      maGapPct: (row.sma20 as number) > 0 ? 
+        Math.round(((Number(row.sma5) - Number(row.sma20)) / Number(row.sma20) * 100) * 1000) / 1000 : 0
     },
     weightedScore: 0,
     weightedSignal: 'NEUTRAL' as const,
@@ -125,10 +126,10 @@ async function fetchETFTechnicalIndicators() {
                  LAG(close_price, 14) OVER (PARTITION BY symbol ORDER BY date) * 100
             ELSE 50
           END as rsi_14,
-          -- MACD approximation (12-26 EMA difference)
-          close_price - AVG(close_price) OVER (
+          -- MACD approximation (simplified EMA difference, normalized)
+          (close_price - AVG(close_price) OVER (
             PARTITION BY symbol ORDER BY date ROWS BETWEEN 25 PRECEDING AND CURRENT ROW
-          ) as macd_line,
+          )) / NULLIF(close_price, 0) * 100 as macd_line,
           -- Bollinger Band position
           (close_price - AVG(close_price) OVER (
             PARTITION BY symbol ORDER BY date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW
@@ -157,7 +158,7 @@ async function fetchETFTechnicalIndicators() {
     rows.forEach(row => {
       indicators[row.symbol as string] = {
         rsi14: Math.max(0, Math.min(100, Number(row.rsi))),
-        macd: Number(row.macd),
+        macd: Math.max(-2, Math.min(2, Number(row.macd) || 0)), // Clamp MACD to reasonable range
         bbPctB: Math.max(0, Math.min(1, (Number(row.bb_percent) + 2) / 4)), // Normalize to 0-1
         lastCalculated: new Date().toISOString()
       };
@@ -196,14 +197,14 @@ router.get('/etf-metrics', async (req, res) => {
         components: {
           ...etf.components,
           rsi14: technical.rsi14 || 50,
-          macdZ: technical.macd ? technical.macd * 10 : 0, // Scale for display
+          macdZ: technical.macd ? Math.max(-2, Math.min(2, technical.macd)) : 0, // MACD already normalized
           rsiZ: technical.rsi14 ? (technical.rsi14 - 50) / 15 : 0, // Normalize RSI to Z-score
           bbPctB: technical.bbPctB || 0.5
         },
         zScoreData: {
           ...etf.zScoreData,
           rsiZScore: technical.rsi14 ? (technical.rsi14 - 50) / 15 : 0,
-          macdZScore: technical.macd ? technical.macd * 10 : 0,
+          macdZScore: technical.macd ? Math.max(-2, Math.min(2, technical.macd)) : 0, // MACD already normalized
           bollingerZScore: technical.bbPctB ? (technical.bbPctB - 0.5) * 4 : 0
         }
       };
