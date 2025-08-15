@@ -160,6 +160,32 @@ interface LiveZScoreData {
 export class LiveZScoreCalculator {
   
   /**
+   * Convert period start date (e.g., 2025-06-01) to period end date (e.g., 2025-06-30)
+   * This fixes the date display bug where PPI data shows previous month dates
+   */
+  private convertToPeriodEndDate(periodStartDate: string | any): string {
+    try {
+      const dateStr = String(periodStartDate);
+      const date = new Date(dateStr);
+      
+      // Validate the date
+      if (isNaN(date.getTime())) {
+        logger.warn(`Invalid date provided: ${dateStr}`);
+        return dateStr;
+      }
+      
+      // Get the last day of the same month
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const lastDay = new Date(year, month + 1, 0); // Day 0 of next month = last day of current month
+      return lastDay.toISOString().split('T')[0]; // Return YYYY-MM-DD format
+    } catch (error) {
+      logger.warn(`Failed to convert period date ${periodStartDate}:`, error);
+      return String(periodStartDate); // Return original if conversion fails
+    }
+  }
+  
+  /**
    * Calculate live z-scores for all economic indicators
    * Ensures z-score calculations are never cached and always computed fresh
    */
@@ -379,7 +405,7 @@ export class LiveZScoreCalculator {
           priorValue,
           varianceFromMean,
           varianceFromPrior,
-          periodDate: row.period_date,
+          periodDate: this.convertToPeriodEndDate(row.period_date),
           category: row.category,
           type: row.type,
           unit: row.unit,

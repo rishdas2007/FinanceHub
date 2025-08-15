@@ -56,6 +56,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // PPI diagnostic endpoint
   app.use('/api/ppi-diagnostic', (await import('./routes/ppi-diagnostic')).default);
   
+  // Debug PPI dates endpoint
+  app.use('/api/debug-ppi-dates', (await import('./routes/debug-ppi-dates')).default);
+  
   // Phase 3: Manual Economic Data Refresh Endpoint
   app.post('/api/admin/refresh-economic-data', async (req, res) => {
     try {
