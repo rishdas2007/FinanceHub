@@ -2,7 +2,7 @@ import { db } from '../db.js';
 import { technicalIndicators, zscoreTechnicalIndicators, historicalStockData, stockData } from '@shared/schema';
 import { desc, eq, and, gte, sql } from 'drizzle-orm';
 import { cacheService } from './cache-unified';
-import { logger } from '../middleware/logging';
+import { logger } from '@shared/utils/logger';
 import { zscoreTechnicalService } from './zscore-technical-service';
 import { etfMetricsCircuitBreaker } from '../middleware/circuit-breaker';
 import { performanceBudgetMonitor } from '../middleware/performance-budget';
@@ -10,6 +10,15 @@ import { StandardTechnicalIndicatorsService } from './standard-technical-indicat
 import { welfordStats, hasSufficientData, zScore, calculateRSI } from '@shared/utils/statistics';
 import { validateEtfPayload, createContentETag, validatePriceSanity, type PayloadMetadata } from './validatePayload';
 import { MarketDataService } from './market-data-unified';
+import { 
+  TechnicalIndicatorData, 
+  ZScoreData, 
+  PriceData, 
+  DatabaseQueryResult,
+  WeightedTechnicalScore,
+  ETFPriceValidation,
+  MarketDataResponse
+} from '@shared/types/financial-interfaces';
 
 export interface ETFMetrics {
   symbol: string;
@@ -392,7 +401,7 @@ class ETFMetricsService {
   /**
    * DATABASE-FIRST: Get latest technical indicators from database
    */
-  private async getLatestTechnicalIndicatorsFromDB() {
+  private async getLatestTechnicalIndicatorsFromDB(): Promise<Map<string, TechnicalIndicatorData>> {
     const results = new Map();
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - 2); // Reduced lookback to 2 days for fresher data
@@ -426,7 +435,7 @@ class ETFMetricsService {
   /**
    * DATABASE-FIRST: Get latest Z-score technical data from database
    */
-  private async getLatestZScoreDataFromDB() {
+  private async getLatestZScoreDataFromDB(): Promise<Map<string, ZScoreData>> {
     const results = new Map();
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - 30); // Get data from last 30 days only
@@ -489,10 +498,10 @@ class ETFMetricsService {
    * PARALLEL CONSOLIDATE: Process ETF metrics in parallel for maximum speed
    */
   private async consolidateETFMetricsParallel(
-    technicals: Map<string, any>,
-    zscoreData: Map<string, any>,
+    technicals: Map<string, TechnicalIndicatorData>,
+    zscoreData: Map<string, ZScoreData>,
     momentum: MomentumData[],
-    prices?: Map<string, any>,
+    prices?: Map<string, PriceData>,
     standardIndicators?: Map<string, any>
   ): Promise<ETFMetrics[]> {
     // Process all ETFs in parallel instead of sequentially
@@ -559,10 +568,10 @@ class ETFMetricsService {
    */
   private async processETFMetricParallel(
     symbol: string,
-    technicals: Map<string, any>,
-    zscoreData: Map<string, any>,
+    technicals: Map<string, TechnicalIndicatorData>,
+    zscoreData: Map<string, ZScoreData>,
     momentum: MomentumData[],
-    prices?: Map<string, any>,
+    prices?: Map<string, PriceData>,
     standardIndicators?: Map<string, any>
   ): Promise<ETFMetrics> {
     const technical = technicals.get(symbol);
@@ -578,7 +587,7 @@ class ETFMetricsService {
       const trendCalculator = new ETFTrendCalculatorService();
       change30Day = await trendCalculator.calculate30DayTrend(symbol);
     } catch (error) {
-      console.warn(`⚠️ Failed to calculate 30-day trend for ${symbol}:`, error);
+      logger.warn(`Failed to calculate 30-day trend for ${symbol}`, 'ETF_TREND_CALC', error);
     }
 
     // Calculate MA Gap and its Z-Score
@@ -830,7 +839,7 @@ class ETFMetricsService {
                                    momentumETF.momentum === 'bearish' ? 'BEARISH' : 'NEUTRAL';
         (metrics as any).strength = momentumETF.zScore ? Math.round(Math.abs(momentumETF.zScore) * 10) : null;
         (metrics as any).zScore = momentumETF.zScore || null;
-        console.log(`✅ Momentum signals mapped for ${symbol}: ${(metrics as any).signal}, strength: ${(metrics as any).strength}, zScore: ${(metrics as any).zScore}`);
+        logger.info(`Momentum signals mapped for ${symbol}`, 'MOMENTUM_MAPPING', { signal: (metrics as any).signal, strength: (metrics as any).strength, zScore: (metrics as any).zScore });
       }
 
       // Calculate weighted scoring system with LIVE Z-score integration
@@ -846,23 +855,23 @@ class ETFMetricsService {
         (metrics as any).compositeZScore = weightedResult.zScoreData.compositeZScore;
         (metrics as any).zscoreSignal = weightedResult.zScoreData.signal;
         (metrics as any).zscoreStrength = Math.abs(weightedResult.zScoreData.compositeZScore);
-        console.log(`✅ Live Z-score assigned for ${metrics.symbol}: ${weightedResult.zScoreData.compositeZScore}`);
+        logger.info(`Live Z-score assigned for ${metrics.symbol}`, 'Z_SCORE_ASSIGN', { compositeZScore: weightedResult.zScoreData.compositeZScore });
       } else {
-        console.log(`⚠️ No Z-score data available for ${metrics.symbol}`);
+        logger.warn(`No Z-score data available for ${metrics.symbol}`, 'Z_SCORE_MISSING');
       }
 
       // Calculate accurate 30-day trend from database historical prices
-      console.log(`🔍 Starting 30-day trend calculation for ${symbol}...`);
+      logger.debug(`Starting 30-day trend calculation for ${symbol}`, 'TREND_CALC_START');
       try {
         const { ETFTrendCalculatorService } = await import('./etf-trend-calculator');
-        console.log(`📦 Successfully imported ETFTrendCalculatorService for ${symbol}`);
+        logger.debug(`Successfully imported ETFTrendCalculatorService for ${symbol}`, 'TREND_CALC_IMPORT');
         const trendCalculator = new ETFTrendCalculatorService();
         const trend30Day = await trendCalculator.calculate30DayTrend(symbol);
         metrics.change30Day = trend30Day;
-        console.log(`✅ 30-day trend calculated for ${symbol}: ${trend30Day}%`);
+        logger.info(`30-day trend calculated for ${symbol}: ${trend30Day}%`, 'TREND_CALC_SUCCESS');
       } catch (error) {
-        console.warn(`⚠️ Failed to calculate 30-day trend for ${symbol}:`, error);
-        console.error('Full error details:', error);
+        logger.warn(`Failed to calculate 30-day trend for ${symbol}`, 'TREND_CALC_ERROR', error);
+        logger.error('Full error details', 'TREND_CALC_ERROR', error);
         metrics.change30Day = null;
       }
 
@@ -1008,9 +1017,9 @@ class ETFMetricsService {
    * Z-SCORE WEIGHTED TECHNICAL INDICATOR SCORING SYSTEM
    * Implements Z-score normalized weighting for scale independence and statistical consistency
    */
-  private async calculateWeightedTechnicalScore(metrics: any, momentumETF?: any): Promise<{ score: number; signal: string; zScoreData: any }> {
+  private async calculateWeightedTechnicalScore(metrics: any, momentumETF?: MomentumData): Promise<WeightedTechnicalScore> {
     // First, process Z-score calculations for this ETF
-    console.log(`🔄 Calculating Z-scores for ${metrics.symbol}...`);
+    logger.debug(`Calculating Z-scores for ${metrics.symbol}`, 'Z_SCORE_CALC');
     const zScoreData = await zscoreTechnicalService.processETFZScores(metrics.symbol);
     
     if (zScoreData && zScoreData.compositeZScore !== null) {
@@ -1040,7 +1049,7 @@ class ETFMetricsService {
     let totalScore = 0;
     let totalWeight = 0;
     
-    console.log(`⚠️ No Z-score data found for ${metrics.symbol}, using legacy calculation`);
+    logger.warn(`No Z-score data found for ${metrics.symbol}, using legacy calculation`, 'Z_SCORE_FALLBACK');
     
     // Legacy weights
     const LEGACY_WEIGHTS = {

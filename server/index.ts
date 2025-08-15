@@ -41,14 +41,22 @@ import {
 // Environment validation
 import { EnvironmentValidator } from './utils/EnvironmentValidator';
 import { ServiceStartupOrchestrator, ServiceConfig } from './utils/ServiceStartupOrchestrator';
+import { environmentValidator } from './middleware/environment-validation';
 
 // Performance optimization imports
 import { performanceOptimizer } from './utils/performance-optimizer';
 import { resourceManager } from './utils/resource-manager';
 
 // Validate environment at startup
-const environmentValidator = EnvironmentValidator.getInstance();
-const config = environmentValidator.validate();
+const legacyValidator = EnvironmentValidator.getInstance();
+const legacyConfig = legacyValidator.validate();
+
+// Enhanced environment validation
+const enhancedValidation = environmentValidator.validateEnvironment();
+if (!enhancedValidation.isValid) {
+  console.error('🚨 Environment validation failed:', enhancedValidation.errors);
+  process.exit(1);
+}
 
 // Import and initialize database health check system - RCA Implementation
 import { validateDatabaseOnStartup, DatabaseHealthChecker } from './middleware/database-health-check.js';
@@ -196,16 +204,16 @@ app.use((req, res, next) => {
 
     // Global uncaught exception handler for production safety
     process.on('uncaughtException', (error) => {
-      log('❌ Uncaught Exception:', error);
-      logger.error('Uncaught Exception', { error: error.message, stack: error.stack });
+      log('❌ Uncaught Exception:', error.message);
+      logger.error('Uncaught Exception', 'GLOBAL_ERROR', { error: error.message, stack: error.stack });
       if (process.env.NODE_ENV === 'production') {
         setTimeout(() => process.exit(1), 1000);
       }
     });
 
     process.on('unhandledRejection', (reason, promise) => {
-      log('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-      logger.error('Unhandled Rejection', { reason, promise });
+      log('❌ Unhandled Rejection at:', String(promise), 'reason:', String(reason));
+      logger.error('Unhandled Rejection', 'GLOBAL_ERROR', { reason: String(reason), promise: String(promise) });
     });
 
     // importantly only setup vite in development and after
