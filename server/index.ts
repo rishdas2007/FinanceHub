@@ -23,6 +23,8 @@ import adminMigrationRoutes from './routes/admin-migration-routes';
 import optimizedEtfMetricsRoutes from './routes/optimized-etf-metrics';
 import etfMetricsDirectFixRoutes from './routes/etf-metrics-direct-fix';
 import etfSimpleFixRoutes from './routes/etf-simple-fix';
+import cachedEtfMetricsRoutes from './routes/cached-etf-metrics';
+import dataIntegrityDashboardRoutes from './routes/data-integrity-dashboard';
 import { setupVite, serveStatic, log } from "./vite";
 import healthRoutes from "./routes/health";
 
@@ -196,8 +198,14 @@ app.use((req, res, next) => {
     // Admin Migration Routes for Economic Data Unit Fix
     app.use('/api/admin', adminMigrationRoutes);
     
-    // Simple ETF Metrics Fix (Working Solution) - Takes Priority
-    app.use('/api', etfSimpleFixRoutes);
+    // Cached ETF Metrics (Real Data + Performance) - Takes Priority
+    app.use('/api', cachedEtfMetricsRoutes);
+    
+    // Data Integrity Dashboard
+    app.use('/api', dataIntegrityDashboardRoutes);
+    
+    // Simple ETF Metrics Fix (Working Solution) - Disabled for cache testing
+    // app.use('/api', etfSimpleFixRoutes);
     
     // Direct ETF Metrics Fix (Immediate Data Restoration) - Disabled temporarily
     // app.use('/api', etfMetricsDirectFixRoutes);
