@@ -1,0 +1,2 @@
+=== DATABASE SCHEMA SUMMARY ===
+Tables in FinanceHub Pro database:
