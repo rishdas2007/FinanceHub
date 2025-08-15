@@ -142,7 +142,9 @@ class FredIndicatorsBackfillService {
   /**
    * Fetch latest data from FRED API
    */
-  private async fetchLatestFredData(seriesId: string): Promise<any> {
+  private async fetchLatestFredData(seriesId: string): Promise<{
+    observations: Array<{ date: string; value: string }>;
+  }> {
     const url = `${this.FRED_BASE_URL}?series_id=${seriesId}&api_key=${this.FRED_API_KEY}&file_type=json&limit=1&sort_order=desc`;
     
     const response = await fetch(url);
@@ -157,7 +159,7 @@ class FredIndicatorsBackfillService {
   /**
    * Store indicator data in database
    */
-  private async storeIndicatorData(config: FredIndicatorConfig, observation: any): Promise<void> {
+  private async storeIndicatorData(config: FredIndicatorConfig, observation: { date: string; value: string }): Promise<void> {
     // Check if record already exists
     const existing = await db
       .select()

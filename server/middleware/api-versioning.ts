@@ -77,7 +77,7 @@ export function contentNegotiation(req: Request, res: Response, next: NextFuncti
   }
   
   // Store format in request for use in controllers
-  (req as any).responseFormat = responseFormat;
+  (req as Request & { responseFormat?: string }).responseFormat = responseFormat;
   
   next();
 }

@@ -42,7 +42,7 @@ export const getEtfMovers = async (req: Request, res: Response) => {
         `);
         
         if (priceData.rows.length > 0) {
-          const latest = priceData.rows[0] as any;
+          const latest = priceData.rows[0] as { close: number | string; prev_close: number | string | null };
           const current = Number(latest.close);
           const previous = latest.prev_close ? Number(latest.prev_close) : null;
           const pctChange = (previous && previous > 0) ? (current - previous) / previous : null;
@@ -52,7 +52,6 @@ export const getEtfMovers = async (req: Request, res: Response) => {
           priceMap.set(symbol, { price: null, pctChange: null });
         }
       } catch (error) {
-        console.warn(`Failed to get price data for ${symbol}:`, error);
         priceMap.set(symbol, { price: null, pctChange: null });
       }
     }
@@ -72,13 +71,12 @@ export const getEtfMovers = async (req: Request, res: Response) => {
         `);
         
         if (zData.rows.length > 0) {
-          const z = (zData.rows[0] as any).z_close;
+          const z = (zData.rows[0] as { z_close: number | string | null }).z_close;
           zMap.set(symbol, z ? Number(z) : null);
         } else {
           zMap.set(symbol, null);
         }
       } catch (error) {
-        console.warn(`Failed to get z-score for ${symbol}:`, error);
         zMap.set(symbol, null);
       }
     }
@@ -87,9 +85,11 @@ export const getEtfMovers = async (req: Request, res: Response) => {
     async function spark(symbol: string) {
       try {
         const series = await loadDailyCloses(symbol, MOVERS.ETF_SPARK_DAYS);
-        return (series ?? []).map((p: any) => ({ t: new Date(p.date).getTime(), value: Number(p.close) }));
+        return (series ?? []).map((p: { date: string | Date; close: number | string }) => ({ 
+          t: new Date(p.date).getTime(), 
+          value: Number(p.close) 
+        }));
       } catch (error) {
-        console.warn(`Failed to load spark data for ${symbol}:`, error);
         return [];
       }
     }

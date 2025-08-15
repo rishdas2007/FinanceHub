@@ -18,7 +18,6 @@ export function useWebSocket() {
       setConnectionStatus('connecting');
 
       ws.current.onopen = () => {
-        console.log('WebSocket connected');
         setConnectionStatus('connected');
         setError(null);
         reconnectAttempts.current = 0;
@@ -34,7 +33,6 @@ export function useWebSocket() {
       };
 
       ws.current.onclose = () => {
-        console.log('WebSocket disconnected');
         setConnectionStatus('disconnected');
         
         // Attempt to reconnect with exponential backoff

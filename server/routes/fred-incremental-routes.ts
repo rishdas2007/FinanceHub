@@ -175,7 +175,15 @@ router.post('/config', async (req, res) => {
   try {
     const { enabled, intervalHours, maxRetries, retryDelayMinutes, runOnStartup } = req.body;
     
-    const newConfig: any = {};
+    interface FredConfig {
+      enabled?: boolean;
+      intervalHours?: number;
+      maxRetries?: number;
+      retryDelayMinutes?: number;
+      runOnStartup?: boolean;
+    }
+    
+    const newConfig: FredConfig = {};
     if (typeof enabled === 'boolean') newConfig.enabled = enabled;
     if (typeof intervalHours === 'number' && intervalHours > 0) newConfig.intervalHours = intervalHours;
     if (typeof maxRetries === 'number' && maxRetries > 0) newConfig.maxRetries = maxRetries;

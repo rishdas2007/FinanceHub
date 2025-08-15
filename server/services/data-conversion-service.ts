@@ -133,7 +133,27 @@ class DataConversionServiceImpl implements DataConversionService {
   /**
    * Calculate technical indicators from OHLCV data
    */
-  private calculateTechnicalIndicators(currentData: any, historicalWindow: any[]): any {
+  private calculateTechnicalIndicators(
+    currentData: { open: number; high: number; low: number; close: number; volume?: number }, 
+    historicalWindow: Array<{ open: number; high: number; low: number; close: number; volume?: number }>
+  ): {
+    rsi: number | null;
+    macd: number | null;
+    macdSignal: number | null;
+    macdHistogram: number | null;
+    bb_upper: number | null;
+    bb_middle: number | null;
+    bb_lower: number | null;
+    percent_b: number | null;
+    adx: number | null;
+    stoch_k: number | null;
+    stoch_d: number | null;
+    sma_20: number | null;
+    sma_50: number | null;
+    vwap: number | null;
+    atr: number | null;
+    willr: number | null;
+  } {
     const closes = historicalWindow.map(d => parseFloat(d.close));
     const highs = historicalWindow.map(d => parseFloat(d.high));
     const lows = historicalWindow.map(d => parseFloat(d.low));

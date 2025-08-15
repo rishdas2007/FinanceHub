@@ -1,78 +1,15 @@
 {
-  "timestamp": "2025-08-15T00:11:23.044Z",
+  "timestamp": "2025-08-15T00:17:04.731Z",
   "summary": {
     "totalFiles": 92,
-    "totalLines": 31005,
+    "totalLines": 31039,
     "complexFunctions": 0,
-    "anyUsage": 154,
+    "anyUsage": 146,
     "consoleLogs": 103,
     "deadCode": 0
   },
   "issues": {
     "critical": [
-      {
-        "severity": "critical",
-        "type": "type-safety",
-        "title": "Type Safety Issue",
-        "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-        "file": "server/controllers/movers-etf.controller.ts",
-        "line": 45,
-        "rule": "no-any-type"
-      },
-      {
-        "severity": "critical",
-        "type": "type-safety",
-        "title": "Type Safety Issue",
-        "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-        "file": "server/controllers/movers-etf.controller.ts",
-        "line": 75,
-        "rule": "no-any-type"
-      },
-      {
-        "severity": "critical",
-        "type": "type-safety",
-        "title": "Type Safety Issue",
-        "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-        "file": "server/controllers/movers-etf.controller.ts",
-        "line": 90,
-        "rule": "no-any-type"
-      },
-      {
-        "severity": "critical",
-        "type": "type-safety",
-        "title": "Type Safety Issue",
-        "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-        "file": "server/middleware/api-versioning.ts",
-        "line": 80,
-        "rule": "no-any-type"
-      },
-      {
-        "severity": "critical",
-        "type": "type-safety",
-        "title": "Type Safety Issue",
-        "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-        "file": "server/routes/fred-incremental-routes.ts",
-        "line": 178,
-        "rule": "no-any-type"
-      },
-      {
-        "severity": "critical",
-        "type": "type-safety",
-        "title": "Type Safety Issue",
-        "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-        "file": "server/scripts/fred-indicators-backfill.ts",
-        "line": 160,
-        "rule": "no-any-type"
-      },
-      {
-        "severity": "critical",
-        "type": "type-safety",
-        "title": "Type Safety Issue",
-        "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-        "file": "server/services/centralized-zscore-service.ts",
-        "line": 302,
-        "rule": "no-any-type"
-      },
       {
         "severity": "critical",
         "type": "type-safety",
@@ -89,15 +26,6 @@
         "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
         "file": "server/services/comprehensive-economic-service.ts",
         "line": 187,
-        "rule": "no-any-type"
-      },
-      {
-        "severity": "critical",
-        "type": "type-safety",
-        "title": "Type Safety Issue",
-        "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-        "file": "server/services/data-conversion-service.ts",
-        "line": 136,
         "rule": "no-any-type"
       },
       {
@@ -1486,24 +1414,6 @@
         "title": "Debug Statement in Production",
         "description": "Remove console.log statements from production code",
         "file": "server/scripts/fred-indicators-backfill.ts",
-        "line": 235,
-        "rule": "no-console-logs"
-      },
-      {
-        "severity": "medium",
-        "type": "debug-code",
-        "title": "Debug Statement in Production",
-        "description": "Remove console.log statements from production code",
-        "file": "server/scripts/fred-indicators-backfill.ts",
-        "line": 236,
-        "rule": "no-console-logs"
-      },
-      {
-        "severity": "medium",
-        "type": "debug-code",
-        "title": "Debug Statement in Production",
-        "description": "Remove console.log statements from production code",
-        "file": "server/scripts/fred-indicators-backfill.ts",
         "line": 237,
         "rule": "no-console-logs"
       },
@@ -1540,7 +1450,7 @@
         "title": "Debug Statement in Production",
         "description": "Remove console.log statements from production code",
         "file": "server/scripts/fred-indicators-backfill.ts",
-        "line": 243,
+        "line": 241,
         "rule": "no-console-logs"
       },
       {
@@ -1549,7 +1459,7 @@
         "title": "Debug Statement in Production",
         "description": "Remove console.log statements from production code",
         "file": "server/scripts/fred-indicators-backfill.ts",
-        "line": 244,
+        "line": 242,
         "rule": "no-console-logs"
       },
       {
@@ -1558,7 +1468,16 @@
         "title": "Debug Statement in Production",
         "description": "Remove console.log statements from production code",
         "file": "server/scripts/fred-indicators-backfill.ts",
-        "line": 247,
+        "line": 245,
+        "rule": "no-console-logs"
+      },
+      {
+        "severity": "medium",
+        "type": "debug-code",
+        "title": "Debug Statement in Production",
+        "description": "Remove console.log statements from production code",
+        "file": "server/scripts/fred-indicators-backfill.ts",
+        "line": 246,
         "rule": "no-console-logs"
       },
       {
@@ -1577,6 +1496,15 @@
         "description": "Remove console.log statements from production code",
         "file": "server/scripts/fred-indicators-backfill.ts",
         "line": 251,
+        "rule": "no-console-logs"
+      },
+      {
+        "severity": "medium",
+        "type": "debug-code",
+        "title": "Debug Statement in Production",
+        "description": "Remove console.log statements from production code",
+        "file": "server/scripts/fred-indicators-backfill.ts",
+        "line": 253,
         "rule": "no-console-logs"
       },
       {
@@ -2523,7 +2451,16 @@
         "title": "Line Too Long",
         "description": "Line is 130 characters. Consider breaking it up.",
         "file": "server/scripts/fred-indicators-backfill.ts",
-        "line": 146,
+        "line": 148,
+        "rule": "max-line-length"
+      },
+      {
+        "severity": "low",
+        "type": "formatting",
+        "title": "Line Too Long",
+        "description": "Line is 126 characters. Consider breaking it up.",
+        "file": "server/scripts/fred-indicators-backfill.ts",
+        "line": 162,
         "rule": "max-line-length"
       },
       {
@@ -6580,38 +6517,10 @@
       }
     },
     "server/controllers/movers-etf.controller.ts": {
-      "issues": [
-        {
-          "severity": "critical",
-          "type": "type-safety",
-          "title": "Type Safety Issue",
-          "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-          "file": "server/controllers/movers-etf.controller.ts",
-          "line": 45,
-          "rule": "no-any-type"
-        },
-        {
-          "severity": "critical",
-          "type": "type-safety",
-          "title": "Type Safety Issue",
-          "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-          "file": "server/controllers/movers-etf.controller.ts",
-          "line": 75,
-          "rule": "no-any-type"
-        },
-        {
-          "severity": "critical",
-          "type": "type-safety",
-          "title": "Type Safety Issue",
-          "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-          "file": "server/controllers/movers-etf.controller.ts",
-          "line": 90,
-          "rule": "no-any-type"
-        }
-      ],
+      "issues": [],
       "stats": {
         "complexFunctions": 0,
-        "anyUsage": 3,
+        "anyUsage": 0,
         "consoleLogs": 0,
         "deadCode": 0
       }
@@ -6635,20 +6544,11 @@
           "file": "server/middleware/api-versioning.ts",
           "line": 57,
           "rule": "max-line-length"
-        },
-        {
-          "severity": "critical",
-          "type": "type-safety",
-          "title": "Type Safety Issue",
-          "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-          "file": "server/middleware/api-versioning.ts",
-          "line": 80,
-          "rule": "no-any-type"
         }
       ],
       "stats": {
         "complexFunctions": 0,
-        "anyUsage": 1,
+        "anyUsage": 0,
         "consoleLogs": 0,
         "deadCode": 0
       }
@@ -6838,20 +6738,10 @@
       }
     },
     "server/routes/fred-incremental-routes.ts": {
-      "issues": [
-        {
-          "severity": "critical",
-          "type": "type-safety",
-          "title": "Type Safety Issue",
-          "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-          "file": "server/routes/fred-incremental-routes.ts",
-          "line": 178,
-          "rule": "no-any-type"
-        }
-      ],
+      "issues": [],
       "stats": {
         "complexFunctions": 0,
-        "anyUsage": 1,
+        "anyUsage": 0,
         "consoleLogs": 0,
         "deadCode": 0
       }
@@ -7027,35 +6917,17 @@
           "title": "Line Too Long",
           "description": "Line is 130 characters. Consider breaking it up.",
           "file": "server/scripts/fred-indicators-backfill.ts",
-          "line": 146,
+          "line": 148,
           "rule": "max-line-length"
         },
         {
-          "severity": "critical",
-          "type": "type-safety",
-          "title": "Type Safety Issue",
-          "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
+          "severity": "low",
+          "type": "formatting",
+          "title": "Line Too Long",
+          "description": "Line is 126 characters. Consider breaking it up.",
           "file": "server/scripts/fred-indicators-backfill.ts",
-          "line": 160,
-          "rule": "no-any-type"
-        },
-        {
-          "severity": "medium",
-          "type": "debug-code",
-          "title": "Debug Statement in Production",
-          "description": "Remove console.log statements from production code",
-          "file": "server/scripts/fred-indicators-backfill.ts",
-          "line": 235,
-          "rule": "no-console-logs"
-        },
-        {
-          "severity": "medium",
-          "type": "debug-code",
-          "title": "Debug Statement in Production",
-          "description": "Remove console.log statements from production code",
-          "file": "server/scripts/fred-indicators-backfill.ts",
-          "line": 236,
-          "rule": "no-console-logs"
+          "line": 162,
+          "rule": "max-line-length"
         },
         {
           "severity": "medium",
@@ -7099,7 +6971,7 @@
           "title": "Debug Statement in Production",
           "description": "Remove console.log statements from production code",
           "file": "server/scripts/fred-indicators-backfill.ts",
-          "line": 243,
+          "line": 241,
           "rule": "no-console-logs"
         },
         {
@@ -7108,7 +6980,7 @@
           "title": "Debug Statement in Production",
           "description": "Remove console.log statements from production code",
           "file": "server/scripts/fred-indicators-backfill.ts",
-          "line": 244,
+          "line": 242,
           "rule": "no-console-logs"
         },
         {
@@ -7117,7 +6989,16 @@
           "title": "Debug Statement in Production",
           "description": "Remove console.log statements from production code",
           "file": "server/scripts/fred-indicators-backfill.ts",
-          "line": 247,
+          "line": 245,
+          "rule": "no-console-logs"
+        },
+        {
+          "severity": "medium",
+          "type": "debug-code",
+          "title": "Debug Statement in Production",
+          "description": "Remove console.log statements from production code",
+          "file": "server/scripts/fred-indicators-backfill.ts",
+          "line": 246,
           "rule": "no-console-logs"
         },
         {
@@ -7137,11 +7018,20 @@
           "file": "server/scripts/fred-indicators-backfill.ts",
           "line": 251,
           "rule": "no-console-logs"
+        },
+        {
+          "severity": "medium",
+          "type": "debug-code",
+          "title": "Debug Statement in Production",
+          "description": "Remove console.log statements from production code",
+          "file": "server/scripts/fred-indicators-backfill.ts",
+          "line": 253,
+          "rule": "no-console-logs"
         }
       ],
       "stats": {
         "complexFunctions": 0,
-        "anyUsage": 1,
+        "anyUsage": 0,
         "consoleLogs": 11,
         "deadCode": 0
       }
@@ -7156,20 +7046,10 @@
       }
     },
     "server/services/centralized-zscore-service.ts": {
-      "issues": [
-        {
-          "severity": "critical",
-          "type": "type-safety",
-          "title": "Type Safety Issue",
-          "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-          "file": "server/services/centralized-zscore-service.ts",
-          "line": 302,
-          "rule": "no-any-type"
-        }
-      ],
+      "issues": [],
       "stats": {
         "complexFunctions": 0,
-        "anyUsage": 1,
+        "anyUsage": 0,
         "consoleLogs": 0,
         "deadCode": 0
       }
@@ -7429,20 +7309,10 @@
       }
     },
     "server/services/data-conversion-service.ts": {
-      "issues": [
-        {
-          "severity": "critical",
-          "type": "type-safety",
-          "title": "Type Safety Issue",
-          "description": "Using \"any\" type defeats TypeScript benefits in financial calculations",
-          "file": "server/services/data-conversion-service.ts",
-          "line": 136,
-          "rule": "no-any-type"
-        }
-      ],
+      "issues": [],
       "stats": {
         "complexFunctions": 0,
-        "anyUsage": 1,
+        "anyUsage": 0,
         "consoleLogs": 0,
         "deadCode": 0
       }

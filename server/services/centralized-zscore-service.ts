@@ -299,7 +299,11 @@ export class CentralizedZScoreService {
     zScore: number | null;
     adjustedZScore: number | null;
     signal: 'STRONG_BUY' | 'BUY' | 'HOLD' | 'SELL' | 'STRONG_SELL';
-    regime: any;
+    regime: { 
+      level: 'low' | 'normal' | 'high' | 'extreme'; 
+      description: string;
+      multiplier: number;
+    } | null;
     rationale: string;
   }> {
     const zScoreResult = await this.getZScore(symbol, metric, values, assetClass);
