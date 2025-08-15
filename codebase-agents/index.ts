@@ -1,6 +1,7 @@
 // FinanceHub Pro v26 - Codebase Agent Framework Entry Point
 
 import { CodeQualityScanner } from './agents/code-quality-scanner/index.js';
+import { DeploymentSafetyAgent } from './agents/deployment-safety/index.js';
 import { CodeQualityScannerRunner } from './agents/code-quality-scanner/runner.js';
 import { testCodeQualityScanner } from './test-scanner.js';
 
@@ -19,6 +20,13 @@ export const AVAILABLE_AGENTS = {
     version: '1.0.0',
     class: CodeQualityScanner,
     runner: CodeQualityScannerRunner
+  },
+  'deployment-safety-agent': {
+    name: 'Deployment Safety Agent',
+    description: 'Validates deployment safety and prevents production failures for financial applications',
+    version: '1.0.0',
+    class: DeploymentSafetyAgent,
+    runner: null
   }
   // Future agents will be added here:
   // 'security-audit': SecurityAuditAgent,

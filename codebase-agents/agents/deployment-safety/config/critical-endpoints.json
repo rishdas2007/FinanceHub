@@ -1,0 +1,221 @@
+{
+  "version": "1.0.0",
+  "description": "Critical API endpoints for FinanceHub Pro that must maintain stability",
+  "critical_endpoints": [
+    {
+      "path": "/api/economic-pulse",
+      "method": "GET",
+      "description": "Economic health dashboard data",
+      "priority": "critical",
+      "max_response_time": 500,
+      "required_fields": ["economicHealthScore", "scoreBreakdown", "timestamp"],
+      "breaking_change_tolerance": "none",
+      "monitoring": {
+        "enabled": true,
+        "alert_threshold": 1000,
+        "error_rate_threshold": 0.01
+      }
+    },
+    {
+      "path": "/api/etf-metrics-v2",
+      "method": "GET", 
+      "description": "ETF technical metrics and analysis",
+      "priority": "critical",
+      "max_response_time": 300,
+      "required_fields": ["success", "data", "metrics", "timestamp"],
+      "breaking_change_tolerance": "none",
+      "monitoring": {
+        "enabled": true,
+        "alert_threshold": 500,
+        "error_rate_threshold": 0.02
+      }
+    },
+    {
+      "path": "/api/fred-incremental",
+      "method": "GET",
+      "description": "FRED economic data incremental updates",
+      "priority": "high",
+      "max_response_time": 2000,
+      "required_fields": ["success", "data", "lastUpdate"],
+      "breaking_change_tolerance": "minor",
+      "monitoring": {
+        "enabled": true,
+        "alert_threshold": 3000,
+        "error_rate_threshold": 0.05
+      }
+    },
+    {
+      "path": "/api/unified-dashboard",
+      "method": "GET",
+      "description": "Main dashboard aggregated data",
+      "priority": "critical",
+      "max_response_time": 800,
+      "required_fields": ["economicHealth", "etfMetrics", "marketStatus"],
+      "breaking_change_tolerance": "none",
+      "monitoring": {
+        "enabled": true,
+        "alert_threshold": 1200,
+        "error_rate_threshold": 0.01
+      }
+    },
+    {
+      "path": "/api/enhanced-zscore",
+      "method": "GET",
+      "description": "Enhanced Z-score calculations for financial analysis",
+      "priority": "critical",
+      "max_response_time": 400,
+      "required_fields": ["success", "zScoreData", "calculations"],
+      "breaking_change_tolerance": "none",
+      "monitoring": {
+        "enabled": true,
+        "alert_threshold": 600,
+        "error_rate_threshold": 0.01
+      }
+    },
+    {
+      "path": "/api/health/system-status",
+      "method": "GET",
+      "description": "System health and status monitoring",
+      "priority": "high",
+      "max_response_time": 200,
+      "required_fields": ["status", "services", "timestamp"],
+      "breaking_change_tolerance": "minor",
+      "monitoring": {
+        "enabled": true,
+        "alert_threshold": 500,
+        "error_rate_threshold": 0.02
+      }
+    },
+    {
+      "path": "/api/top-movers",
+      "method": "GET",
+      "description": "Top moving ETFs and market movers",
+      "priority": "high",
+      "max_response_time": 300,
+      "required_fields": ["success", "etfMovers", "timestamp"],
+      "breaking_change_tolerance": "minor",
+      "monitoring": {
+        "enabled": true,
+        "alert_threshold": 500,
+        "error_rate_threshold": 0.03
+      }
+    },
+    {
+      "path": "/api/momentum-analysis",
+      "method": "GET",
+      "description": "Momentum analysis for trading strategies",
+      "priority": "high",
+      "max_response_time": 400,
+      "required_fields": ["momentumStrategies", "timestamp"],
+      "breaking_change_tolerance": "minor",
+      "monitoring": {
+        "enabled": true,
+        "alert_threshold": 600,
+        "error_rate_threshold": 0.03
+      }
+    },
+    {
+      "path": "/api/market-status", 
+      "method": "GET",
+      "description": "Current market status and trading hours",
+      "priority": "medium",
+      "max_response_time": 100,
+      "required_fields": ["success", "status", "timestamp"],
+      "breaking_change_tolerance": "minor",
+      "monitoring": {
+        "enabled": true,
+        "alert_threshold": 200,
+        "error_rate_threshold": 0.05
+      }
+    },
+    {
+      "path": "/api/sectors",
+      "method": "GET",
+      "description": "Sector performance data",
+      "priority": "medium",
+      "max_response_time": 200,
+      "required_fields": ["name", "symbol", "price"],
+      "breaking_change_tolerance": "moderate",
+      "monitoring": {
+        "enabled": true,
+        "alert_threshold": 400,
+        "error_rate_threshold": 0.05
+      }
+    },
+    {
+      "path": "/api/macroeconomic-indicators",
+      "method": "GET",
+      "description": "Macroeconomic indicators from FRED",
+      "priority": "high",
+      "max_response_time": 500,
+      "required_fields": ["indicators", "timestamp"],
+      "breaking_change_tolerance": "minor",
+      "monitoring": {
+        "enabled": true,
+        "alert_threshold": 800,
+        "error_rate_threshold": 0.02
+      }
+    }
+  ],
+  "endpoint_groups": {
+    "financial_data": [
+      "/api/economic-pulse",
+      "/api/etf-metrics-v2", 
+      "/api/enhanced-zscore",
+      "/api/fred-incremental"
+    ],
+    "market_data": [
+      "/api/top-movers",
+      "/api/momentum-analysis",
+      "/api/market-status",
+      "/api/sectors"
+    ],
+    "infrastructure": [
+      "/api/health/system-status"
+    ],
+    "aggregated": [
+      "/api/unified-dashboard",
+      "/api/macroeconomic-indicators"
+    ]
+  },
+  "compatibility_rules": {
+    "critical_endpoints": {
+      "version_changes": "blocked",
+      "parameter_removal": "blocked",
+      "response_field_removal": "blocked",
+      "authentication_changes": "blocked"
+    },
+    "high_priority_endpoints": {
+      "version_changes": "review_required",
+      "parameter_removal": "review_required", 
+      "response_field_removal": "review_required",
+      "authentication_changes": "blocked"
+    },
+    "medium_priority_endpoints": {
+      "version_changes": "allowed_with_notice",
+      "parameter_removal": "allowed_with_deprecation",
+      "response_field_removal": "allowed_with_deprecation",
+      "authentication_changes": "review_required"
+    }
+  },
+  "testing_requirements": {
+    "critical_endpoints": {
+      "integration_tests": "required",
+      "load_testing": "required",
+      "error_scenario_testing": "required",
+      "backward_compatibility_testing": "required"
+    },
+    "high_priority_endpoints": {
+      "integration_tests": "required",
+      "load_testing": "recommended",
+      "error_scenario_testing": "required",
+      "backward_compatibility_testing": "recommended"
+    },
+    "medium_priority_endpoints": {
+      "integration_tests": "recommended",
+      "load_testing": "optional",
+      "error_scenario_testing": "recommended",
+      "backward_compatibility_testing": "optional"
+    }
+  }
+}

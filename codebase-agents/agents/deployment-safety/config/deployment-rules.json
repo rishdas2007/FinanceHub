@@ -1,0 +1,118 @@
+{
+  "version": "1.0.0",
+  "description": "Deployment safety rules for FinanceHub Pro financial application",
+  "rules": {
+    "pre_deployment": {
+      "build_required": true,
+      "tests_required": false,
+      "typescript_compilation": true,
+      "environment_variables_check": true,
+      "api_keys_validation": true,
+      "database_connectivity": true
+    },
+    "database_migrations": {
+      "backup_required": true,
+      "rollback_plan_required": true,
+      "staging_test_required": true,
+      "dangerous_operations_blocked": ["DROP TABLE", "TRUNCATE", "DROP DATABASE"],
+      "financial_table_protection": true,
+      "transaction_safety": true
+    },
+    "api_compatibility": {
+      "breaking_changes_blocked": true,
+      "critical_endpoints_protected": [
+        "/api/economic-pulse",
+        "/api/etf-metrics-v2", 
+        "/api/fred-incremental",
+        "/api/unified-dashboard",
+        "/api/enhanced-zscore",
+        "/api/health/system-status"
+      ],
+      "response_format_stability": true,
+      "parameter_backward_compatibility": true
+    },
+    "data_pipeline": {
+      "fred_api_connectivity": true,
+      "twelve_data_connectivity": true,
+      "data_freshness_validation": true,
+      "cache_system_health": true,
+      "scheduled_jobs_validation": true
+    },
+    "performance": {
+      "response_time_thresholds": {
+        "/api/economic-health/dashboard": 500,
+        "/api/top-movers": 300,
+        "/api/market-status": 100,
+        "/api/momentum-analysis": 400
+      },
+      "memory_usage_limit": 512,
+      "bundle_size_limit": 2048,
+      "database_query_timeout": 100
+    },
+    "security": {
+      "no_hardcoded_credentials": true,
+      "api_rate_limiting": true,
+      "input_validation": true,
+      "error_handling": true,
+      "ssl_required": true
+    },
+    "environment": {
+      "node_version_compatibility": true,
+      "dependency_version_stability": true,
+      "environment_parity": true,
+      "configuration_validation": true
+    },
+    "critical_paths": {
+      "user_journey_tests": [
+        "economic-dashboard-load",
+        "etf-metrics-dashboard", 
+        "real-time-data-pipeline",
+        "health-monitoring"
+      ],
+      "test_timeout": 30000,
+      "failure_tolerance": 0
+    },
+    "rollback": {
+      "plan_required_for": ["database-migration", "breaking-changes", "critical-failures"],
+      "backup_retention": "24h",
+      "rollback_time_limit": "15min",
+      "health_check_required": true
+    }
+  },
+  "severity_levels": {
+    "critical": {
+      "action": "block_deployment",
+      "notification": "immediate",
+      "escalation": true
+    },
+    "high": {
+      "action": "review_required", 
+      "notification": "immediate",
+      "escalation": false
+    },
+    "medium": {
+      "action": "proceed_with_caution",
+      "notification": "standard",
+      "escalation": false
+    },
+    "low": {
+      "action": "proceed",
+      "notification": "log_only",
+      "escalation": false
+    }
+  },
+  "financial_application_specific": {
+    "data_integrity_checks": true,
+    "calculation_accuracy_validation": true,
+    "z_score_precision_requirements": true,
+    "economic_data_freshness": true,
+    "market_hours_awareness": true,
+    "regulatory_compliance": false
+  },
+  "notifications": {
+    "channels": ["console", "log_file"],
+    "critical_alert_format": "🚨 CRITICAL DEPLOYMENT ISSUE",
+    "success_format": "✅ DEPLOYMENT SAFETY VALIDATED",
+    "warning_format": "⚠️ DEPLOYMENT WARNING"
+  }
+}
