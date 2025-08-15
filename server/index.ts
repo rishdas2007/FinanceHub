@@ -52,6 +52,7 @@ const config = environmentValidator.validate();
 
 // Import and initialize database health check system - RCA Implementation
 import { validateDatabaseOnStartup, DatabaseHealthChecker } from './middleware/database-health-check.js';
+import { logger } from './utils/logger';
 
 const app = express();
 
@@ -193,6 +194,20 @@ app.use((req, res, next) => {
     // Register original routes (maintain backward compatibility)
     const server = await registerRoutes(app);
 
+    // Global uncaught exception handler for production safety
+    process.on('uncaughtException', (error) => {
+      log('❌ Uncaught Exception:', error);
+      logger.error('Uncaught Exception', { error: error.message, stack: error.stack });
+      if (process.env.NODE_ENV === 'production') {
+        setTimeout(() => process.exit(1), 1000);
+      }
+    });
+
+    process.on('unhandledRejection', (reason, promise) => {
+      log('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+      logger.error('Unhandled Rejection', { reason, promise });
+    });
+
     // importantly only setup vite in development and after
     // setting up all the other routes so the catch-all route
     // doesn't interfere with the other routes
@@ -213,13 +228,11 @@ app.use((req, res, next) => {
       });
     });
 
-    // Basic error handler (keep original functionality)
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      log(`❌ Application error: ${message} (Status: ${status})`);
-      res.status(status).json({ message });
-    });
+    // CRITICAL: Global error handler (must be after all routes)
+    app.use(errorHandler);
+    
+    // 404 handler for unmatched routes (must be last)
+    app.use(notFoundHandler);
     
     // Graceful shutdown
     gracefulShutdown(server);

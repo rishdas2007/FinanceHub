@@ -75,27 +75,31 @@ export const errorHandler = (err: AppError, req: Request, res: Response, next: N
   res.status(statusCode).json(createErrorResponse(message, code));
 };
 
-// 404 handler
-export const notFoundHandler = (req: Request, res: Response, next: NextFunction) => {
-  res.status(404).json(createErrorResponse(
-    `Route ${req.path} not found`,
-    'NOT_FOUND'
-  ));
+// 404 Not Found handler
+export const notFoundHandler = (req: Request, res: Response) => {
+  const message = `Route ${req.originalUrl} not found`;
+  logger.warn('Route not found', {
+    method: req.method,
+    path: req.originalUrl,
+    ip: req.ip
+  });
+  
+  res.status(404).json(createErrorResponse(message, 'NOT_FOUND'));
 };
 
 // Graceful shutdown handler
 export const gracefulShutdown = (server: any) => {
   const shutdown = (signal: string) => {
-    console.log(`Received ${signal}. Shutting down gracefully...`);
+    logger.info(`Received ${signal}, shutting down gracefully`);
     
     server.close(() => {
-      console.log('HTTP server closed');
+      logger.info('Server closed');
       process.exit(0);
     });
-
+    
     // Force close after 10 seconds
     setTimeout(() => {
-      console.error('Could not close connections in time, forcefully shutting down');
+      logger.error('Could not close connections in time, forcefully shutting down');
       process.exit(1);
     }, 10000);
   };
