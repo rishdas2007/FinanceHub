@@ -1,0 +1,984 @@
+import { useMemo, memo } from "react";
+import { TrendingUp, TrendingDown, Activity, BarChart3, Zap, Volume2, DollarSign } from "lucide-react";
+import { TechnicalIndicatorLegend } from './TechnicalIndicatorLegend';
+import { Sparkline } from '@/components/ui/sparkline';
+import { formatNumber } from '@/lib/utils';
+import { getZScoreColor, formatZScore } from '../lib/zscoreUtils';
+import { useEtfMetrics } from '../hooks/useEtfMetrics';
+import { PerformanceMonitor } from '../utils/performanceMonitor';
+
+interface ETFData {
+  symbol: string;
+  name: string;
+  price: number;
+  changePercent: number;
+  fiveDayChange?: number;
+  oneMonthChange?: number;
+  volume?: number;
+}
+
+interface TechnicalIndicators {
+  rsi: number | null;
+  macd: number | null;
+  macdSignal: number | null;
+  bb_upper: number | null;
+  bb_middle: number | null;
+  bb_lower: number | null;
+  percent_b: number | null;
+  adx: number | null;
+  stoch_k: number | null;
+  stoch_d: number | null;
+  sma_20: number | null;
+  sma_50: number | null;
+  vwap: number | null;
+  atr: number | null;
+  willr: number | null;
+}
+
+interface MomentumStrategy {
+  ticker: string;
+  sector: string;
+  momentum: 'bullish' | 'bearish' | 'neutral';
+  rsi: number;
+  zScore: number;
+  fiveDayZScore: number;
+  sharpeRatio: number;
+  volatility: number;
+  oneDayChange: number;
+  fiveDayChange: number;
+  oneMonthChange: number;
+  correlationToSPY: number;
+  signal: string;
+}
+
+interface ETFMetrics {
+  symbol: string;
+  name: string;
+  price: number;
+  changePercent: number;
+  
+  // CLEAR SEPARATION: Raw technical indicators for main display
+  technicalIndicators?: {
+    rsi: number | null;                    // Actual RSI value (0-100)
+    macd: number | null;                   // Actual MACD line value
+    macdSignal: number | null;             // MACD signal line
+    macdHistogram: number | null;          // MACD histogram
+    bollingerPercentB: number | null;      // Actual %B value (0-1)
+    bollingerUpper: number | null;
+    bollingerLower: number | null;
+  };
+
+  // SEPARATE: Z-Score analysis (advanced metrics)
+  zScoreAnalysis?: {
+    rsiZScore: number | null;
+    macdZScore: number | null;
+    bollingerZScore: number | null;
+    compositeZScore: number | null;
+    signal: 'BUY' | 'SELL' | 'HOLD' | null;
+  };
+  
+  // Weighted Technical Indicator Scoring System
+  weightedScore: number | null;
+  weightedSignal: string | null;
+  
+  // Multi-Horizon Z-Score data from enhanced system
+  zScoreData: {
+    rsiZScore: number | null;
+    macdZScore: number | null;
+    bollingerZScore: number | null;
+    atrZScore: number | null;
+    priceMomentumZScore: number | null;
+    maTrendZScore: number | null;
+    compositeZScore: number | null;
+    shortTermZScore: number | null;    // 63-day horizon
+    mediumTermZScore: number | null;   // 252-day horizon  
+    longTermZScore: number | null;     // 756-day horizon
+    ultraLongZScore: number | null;    // 1260-day horizon
+    signal: string | null;
+    regimeAware: boolean | null;       // Indicates multi-horizon analysis
+  } | null;
+  
+  // Bollinger Bands & Position/Squeeze
+  bollingerPosition: number | null; // %B
+  bollingerSqueeze: boolean;
+  bollingerStatus: string;
+  // ATR & Volatility
+  atr: number | null;
+  volatility: number | null;
+  // Moving Average (Trend)
+  maSignal: string;
+  maTrend: 'bullish' | 'bearish' | 'neutral';
+  maGap: number | null;
+  // RSI (Momentum)
+  rsi: number | null;
+  rsiSignal: string;
+  rsiDivergence: boolean;
+  // Z-Score, Sharpe, Returns
+  zScore: number | null;
+  sharpeRatio: number | null;
+  fiveDayReturn: number | null;
+  // Volume, VWAP, OBV
+  volumeRatio: number | null;
+  vwapSignal: string;
+  obvTrend: string;
+}
+
+const ETF_LIST = [
+  { symbol: 'SPY', name: 'S&P 500' },
+  { symbol: 'XLK', name: 'Technology' },
+  { symbol: 'XLV', name: 'Healthcare' },
+  { symbol: 'XLF', name: 'Financial' },
+  { symbol: 'XLI', name: 'Industrial' },
+  { symbol: 'XLY', name: 'Consumer Discretionary' },
+  { symbol: 'XLP', name: 'Consumer Staples' },
+  { symbol: 'XLE', name: 'Energy' },
+  { symbol: 'XLU', name: 'Utilities' },
+  { symbol: 'XLB', name: 'Materials' },
+  { symbol: 'XLRE', name: 'Real Estate' }
+];
+
+const formatPercentage = (value: number | null | undefined): string => {
+  if (value === null || value === undefined || typeof value !== 'number' || isNaN(value)) return 'N/A';
+  return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
+};
+
+// Simple 30-day trend display (no additional API calls)
+function Simple30DayTrend({ change30Day }: { change30Day: number | null }) {
+  if (change30Day === null || change30Day === undefined) {
+    return <div className="text-xs text-gray-500">No data</div>;
+  }
+
+  return (
+    <div className="flex flex-col items-center">
+      <div className={`text-xs font-medium ${
+        change30Day >= 0 ? 'text-green-400' : 'text-red-400'
+      }`}>
+        {change30Day >= 0 ? '+' : ''}{change30Day.toFixed(2)}%
+      </div>
+      <div className="text-xs text-gray-500">30-day</div>
+    </div>
+  );
+}
+
+const getRSIStatus = (rsi: number | null): { signal: string; color: string } => {
+  if (rsi === null) return { signal: 'No Data', color: 'text-gray-500' };
+  if (rsi >= 70) return { signal: 'Overbought', color: 'text-red-600' }; // Bad - sell signal
+  if (rsi <= 30) return { signal: 'Oversold', color: 'text-green-600' }; // Good - buy signal
+  if (rsi >= 60) return { signal: 'Strong', color: 'text-yellow-600' }; // Neutral - caution
+  if (rsi <= 40) return { signal: 'Weak', color: 'text-yellow-600' }; // Neutral - caution
+  return { signal: 'Neutral', color: 'text-yellow-600' }; // Neutral
+};
+
+const getBollingerStatus = (percentB: number | null): { status: string; squeeze: boolean; color: string } => {
+  if (percentB === null) return { status: 'No Data', squeeze: false, color: 'text-gray-500' };
+  
+  const squeeze = percentB > 0.1 && percentB < 0.9; // Not near extremes = potential squeeze
+  
+  if (percentB >= 1.0) return { status: 'Above Upper', squeeze, color: 'text-red-600' }; // Bad - overbought
+  if (percentB <= 0.0) return { status: 'Below Lower', squeeze, color: 'text-green-600' }; // Good - oversold
+  if (percentB >= 0.8) return { status: 'Near Upper', squeeze, color: 'text-yellow-600' }; // Neutral - caution
+  if (percentB <= 0.2) return { status: 'Near Lower', squeeze, color: 'text-yellow-600' }; // Neutral - caution
+  return { status: 'Middle', squeeze, color: 'text-yellow-600' }; // Neutral
+};
+
+const getMASignal = (sma20: number | null, sma50: number | null, price: number): { signal: string; trend: 'bullish' | 'bearish' | 'neutral'; color: string } => {
+  if (!sma20 || !sma50) return { signal: 'No Data', trend: 'neutral', color: 'text-gray-500' };
+  
+  const ma20AboveMA50 = sma20 > sma50;
+  const priceAboveMA20 = price > sma20;
+  const priceAboveMA50 = price > sma50;
+  
+  if (ma20AboveMA50 && priceAboveMA20 && priceAboveMA50) {
+    return { signal: 'Strong Bull', trend: 'bullish', color: 'text-green-600' }; // Good
+  }
+  if (!ma20AboveMA50 && !priceAboveMA20 && !priceAboveMA50) {
+    return { signal: 'Strong Bear', trend: 'bearish', color: 'text-red-600' }; // Bad
+  }
+  if (ma20AboveMA50) {
+    return { signal: 'Bull Trend', trend: 'bullish', color: 'text-green-500' }; // Good
+  }
+  if (!ma20AboveMA50) {
+    return { signal: 'Bear Trend', trend: 'bearish', color: 'text-red-500' }; // Bad
+  }
+  return { signal: 'Mixed', trend: 'neutral', color: 'text-yellow-600' }; // Neutral
+};
+
+const getVWAPSignal = (price: number, vwap: number | null): { signal: string; color: string; deviation: number | null } => {
+  if (!vwap) return { signal: 'No Data', color: 'text-gray-500', deviation: null };
+  
+  const deviation = ((price - vwap) / vwap) * 100;
+  
+  if (deviation >= 2) return { signal: 'Strong Above', color: 'text-green-600', deviation }; // Good
+  if (deviation <= -2) return { signal: 'Strong Below', color: 'text-red-600', deviation }; // Bad
+  if (deviation > 0) return { signal: 'Above VWAP', color: 'text-green-500', deviation }; // Good
+  if (deviation < 0) return { signal: 'Below VWAP', color: 'text-red-500', deviation }; // Bad
+  return { signal: 'At VWAP', color: 'text-yellow-600', deviation }; // Neutral
+};
+
+// Helper function for safe number formatting with null handling
+const safeFormatNumber = (value: number | null | undefined, decimals: number = 2): string => {
+  if (value === null || value === undefined || isNaN(value)) return 'N/A';
+  return formatNumber(value, decimals);
+};
+
+// Individual ETF Row Component - Optimized with proper memoization
+const ETFRow = memo(function ETFRow({ 
+  etf
+}: {
+  etf: ETFMetrics;
+}) {
+  const { 
+    symbol, 
+    name, 
+    price, 
+    changePercent, 
+    technicalIndicators,
+    zScoreAnalysis,
+    zScoreData,
+    rsi,
+    bollingerPosition,
+    maGap,
+    fiveDayReturn
+  } = etf;
+  
+  const compositeZScore = zScoreAnalysis?.compositeZScore || zScoreData?.compositeZScore;
+  const macdZScore = zScoreAnalysis?.macdZScore || zScoreData?.macdZScore;
+  const rsiZScore = zScoreAnalysis?.rsiZScore || zScoreData?.rsiZScore;
+  const bollingerZScore = zScoreAnalysis?.bollingerZScore || zScoreData?.bollingerZScore;
+  const maTrendZScore = etf.components?.maGapZ || zScoreData?.maTrendZScore;
+  const priceMomentumZScore = zScoreData?.priceMomentumZScore;
+
+  // Props interface for TypeScript compatibility  
+  interface ETFRowProps {
+    etf: ETFMetrics;
+  }
+  
+  const props: ETFRowProps = { etf };
+  const rsiStatus = getRSIStatus(rsi);
+  const bollingerStatus = getBollingerStatus(bollingerPosition);
+  
+  // Signal color mapping
+  const getSignalColor = (signal: string) => {
+    if (signal === 'BULLISH' || signal === 'BUY') return 'text-green-400';
+    if (signal === 'BEARISH' || signal === 'SELL') return 'text-red-400';
+    return 'text-yellow-400';
+  };
+
+  // Format percentage change
+  const formatPercent = (value: number | null | undefined) => {
+    if (value === null || value === undefined) return 'N/A';
+    return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+  };
+
+  // Memoized formatters to avoid recreation on every render
+  const formattedPrice = useMemo(() => {
+    if (price >= 1000) return `$${(price/1000).toFixed(1)}k`;
+    return `$${price.toFixed(2)}`;
+  }, [price]);
+
+  const formattedChangePercent = useMemo(() => {
+    return `${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%`;
+  }, [changePercent]);
+
+  const formattedFiveDayReturn = useMemo(() => {
+    if (fiveDayReturn === null || fiveDayReturn === undefined) return 'N/A';
+    return `${fiveDayReturn >= 0 ? '+' : ''}${fiveDayReturn.toFixed(2)}%`;
+  }, [fiveDayReturn]);
+
+  const formattedMaGap = useMemo(() => {
+    if (maGap === null || maGap === undefined) return 'N/A';
+    return `${maGap >= 0 ? '+' : ''}${maGap.toFixed(2)}%`;
+  }, [maGap]);
+
+  // Safe format number function
+  const safeFormatNumber = (value: number | null | undefined, decimals: number = 2): string => {
+    if (value === null || value === undefined || isNaN(value)) return 'N/A';
+    return value.toFixed(decimals);
+  };
+
+  return (
+    <tr className="border-b border-gray-700/50 hover:bg-gray-800/30 transition-colors">
+      <td className="py-3 px-1">
+        <div className="flex flex-col">
+          <span className="font-medium text-white">{symbol}</span>
+          <span className="text-xs text-gray-400 truncate max-w-[80px]">{name}</span>
+        </div>
+      </td>
+      <td className="py-3 px-1">
+        <div className="flex flex-col">
+          <span className="text-white font-medium">{formattedPrice}</span>
+          <span className={`text-xs font-medium ${changePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {formattedChangePercent}
+          </span>
+        </div>
+      </td>
+
+      {/* Signal Column - Most important column with special styling */}
+      <td className="py-3 px-1 text-center bg-blue-900/40 border-2 border-blue-400/30">
+        <div className="flex flex-col items-center">
+          <span className={`text-lg font-bold font-mono ${
+            (compositeZScore || 0) >= 0.75 ? 'text-green-400' :
+            (compositeZScore || 0) <= -0.75 ? 'text-red-400' : 
+            'text-yellow-400'
+          }`}>
+            {formatZScore(compositeZScore, 3)}
+          </span>
+          <span className={`text-sm font-bold mt-1 px-3 py-1 rounded-md ${
+            (compositeZScore || 0) >= 0.75 ? 'bg-green-800/50 text-green-300 border border-green-600' :
+            (compositeZScore || 0) <= -0.75 ? 'bg-red-800/50 text-red-300 border border-red-600' :
+            'bg-gray-800/50 text-yellow-300 border border-yellow-600'
+          }`}>
+            {(compositeZScore || 0) >= 0.75 ? 'BUY' :
+             (compositeZScore || 0) <= -0.75 ? 'SELL' : 'HOLD'}
+          </span>
+        </div>
+      </td>
+
+      {/* MACD Column - Show actual MACD value, not Z-score */}
+      <td className="py-3 px-1 text-center bg-purple-900/20">
+        <div className="flex flex-col items-center">
+          <span className={`text-sm font-medium ${
+            etf.components?.macdValue && etf.components.macdValue > 0 ? 'text-green-400' : 'text-red-400'
+          }`}>
+            {etf.components?.macdValue?.toFixed(3) || 'N/A'}
+          </span>
+          <span className="text-xs text-gray-400">
+            MACD
+          </span>
+          <span className={`text-xs font-mono mt-1 ${getZScoreColor('macdZ', macdZScore)}`}>
+            Z: {formatZScore(macdZScore, 2)}
+          </span>
+        </div>
+      </td>
+
+      {/* RSI Column - Show actual RSI value (0-100) */}
+      <td className="py-3 px-1 text-center bg-purple-900/20">
+        <div className="flex flex-col items-center">
+          <span className={`text-sm font-medium ${
+            etf.components?.rsi14 
+              ? etf.components.rsi14 > 70 ? 'text-red-400'
+                : etf.components.rsi14 < 30 ? 'text-green-400'
+                : 'text-blue-400'
+              : 'text-gray-400'
+          }`}>
+            {etf.components?.rsi14?.toFixed(1) || 'N/A'}
+          </span>
+          <span className="text-xs text-gray-400">
+            RSI
+          </span>
+          <span className={`text-xs font-mono mt-1 ${getZScoreColor('rsiZ', rsiZScore)}`}>
+            Z: {formatZScore(rsiZScore, 2)}
+          </span>
+        </div>
+      </td>
+
+      {/* %B Column - Show actual %B percentage */}
+      <td className="py-3 px-1 text-center bg-purple-900/20">
+        <div className="flex flex-col items-center">
+          <span className={`text-sm font-medium ${
+            etf.components?.bbPctB 
+              ? etf.components.bbPctB > 0.8 ? 'text-red-400'
+                : etf.components.bbPctB < 0.2 ? 'text-green-400'
+                : 'text-blue-400'
+              : 'text-gray-400'
+          }`}>
+            {etf.components?.bbPctB 
+              ? `${(etf.components.bbPctB * 100).toFixed(1)}%` 
+              : 'N/A'}
+          </span>
+          <span className="text-xs text-gray-400">
+            %B
+          </span>
+          <span className={`text-xs font-mono mt-1 ${getZScoreColor('bollZ', bollingerZScore)}`}>
+            Z: {formatZScore(bollingerZScore, 2)}
+          </span>
+        </div>
+      </td>
+
+      {/* MA Trend with Z-Score (20%) */}
+      <td className="py-3 px-1 text-center bg-purple-900/20">
+        <div className="flex flex-col items-center">
+          <span className={`text-sm font-medium ${(etf.components?.maGapPct || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {etf.components?.maGapPct ? `${(etf.components.maGapPct * 100).toFixed(1)}%` : 'N/A'}
+          </span>
+          <span className="text-xs text-gray-400">
+            MA Gap
+          </span>
+          <span className={`text-xs font-mono mt-1 ${getZScoreColor('maGapZ', maTrendZScore)}`}>
+            Z: {formatZScore(maTrendZScore, 3)}
+          </span>
+        </div>
+      </td>
+
+      {/* Price Momentum with Z-Score (5%) */}
+      <td className="py-3 px-1 text-center bg-purple-900/20">
+        <div className="flex flex-col items-center">
+          <span className="text-sm font-medium text-white">
+            5-Day
+          </span>
+          <span className={`text-xs ${
+            (fiveDayReturn || 0) > 0 ? 'text-green-400' : 'text-red-400'
+          }`}>
+            {formattedFiveDayReturn}
+          </span>
+          <span className={`text-xs font-mono mt-1 ${getZScoreColor('mom5dZ', priceMomentumZScore)}`}>
+            Z: {formatZScore(priceMomentumZScore, 3)}
+          </span>
+        </div>
+      </td>
+    </tr>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison for optimal memoization
+  return (
+    prevProps.etf.symbol === nextProps.etf.symbol &&
+    prevProps.etf.price === nextProps.etf.price &&
+    prevProps.etf.changePercent === nextProps.etf.changePercent &&
+    prevProps.etf.zScoreData?.compositeZScore === nextProps.etf.zScoreData?.compositeZScore
+  );
+});
+
+export default function ETFMetricsTable() {
+  // Use the new defensive hook
+  const { data, isLoading, isError } = useEtfMetrics('60D');
+
+  // Extract rows defensively
+  const etfMetrics = data?.rows ?? [];
+
+  // Show loading only if we truly have no data yet
+  if (isLoading && etfMetrics.length === 0) {
+    return (
+      <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6" data-testid="etf-metrics-loading">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className="h-5 w-5 text-blue-400 animate-pulse" />
+          <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
+          <span className="text-sm text-blue-400">Loading from database...</span>
+        </div>
+        <div className="space-y-3">
+          {[1,2,3,4,5].map(i => (
+            <div key={i} className="h-12 bg-gray-800 rounded animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+
+
+  // Debug logging for troubleshooting
+  console.log('🚨 FINAL RENDER DECISION:', {
+    etfMetricsLength: etfMetrics.length,
+    etfMetricsType: typeof etfMetrics,
+    etfMetricsIsArray: Array.isArray(etfMetrics),
+    isLoading,
+    hasError: !!isError,
+    firstETF: etfMetrics[0]?.symbol || 'none'
+  });
+
+  // Show table if we have data, loading if still fetching, empty state only if error or no data after loading
+  const hasData = etfMetrics.length > 0;
+
+  // Show error state
+  if (isError) {
+    return (
+      <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-red-500 p-6" data-testid="etf-metrics-error">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className="h-5 w-5 text-red-400" />
+          <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
+          <span className="text-sm text-red-400">Failed to load</span>
+        </div>
+        <div className="text-center py-8">
+          <span className="text-red-400">API request failed</span>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show loading state if no data yet and still loading
+  if (isLoading && !hasData) {
+    return (
+      <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6" data-testid="etf-metrics-loading">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className="h-5 w-5 text-blue-400 animate-pulse" />
+          <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
+          <span className="text-sm text-blue-400">Loading...</span>
+        </div>
+        <div className="space-y-3">
+          {[1,2,3,4,5].map(i => (
+            <div key={i} className="h-12 bg-gray-800 rounded animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // CRITICAL FIX: Always show table if we have any data (ignore loading state once data exists)
+  if (hasData) {
+    return (
+      <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6" data-testid="etf-metrics-table">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-blue-400" />
+            <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
+            <span className="text-sm text-gray-400">({etfMetrics.length} ETFs)</span>
+          </div>
+          <TechnicalIndicatorLegend />
+        </div>
+
+        <div className="mb-4 p-3 bg-gray-800/50 rounded-lg border border-gray-600">
+          <p className="text-sm text-gray-300">
+            <strong className="text-white">Color Guide:</strong> 
+            <span className="text-green-400 font-medium">Green = Good/Buy signals</span>, 
+            <span className="text-yellow-400 font-medium">Yellow = Neutral/Caution</span>, 
+            <span className="text-red-400 font-medium">Red = Bad/Sell signals</span>. 
+            <br />
+            <strong className="text-white">Metrics:</strong> 
+            <strong className="text-white"> Signal</strong> - Optimized Z-Score Weighted System (MACD 35%, RSI 25%, MA Trend 20%, Bollinger 15%, Price Momentum 5%, ATR 0%). BUY ≥0.75, SELL ≤-0.75, HOLD -0.75 to 0.75. Dynamic thresholds adjust for market volatility.
+            <strong className="text-white"> Bollinger</strong> - Price position in bands (oversold=good, overbought=bad). 
+            <strong className="text-white"> RSI</strong> - Momentum oscillator (≤30=oversold/good, ≥70=overbought/bad).
+            <strong className="text-white"> Volatility</strong> - Price variation indicator. 
+            <strong className="text-white"> MA Gap</strong> - SMA20 vs SMA50 spread (positive=uptrend).
+          </p>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-600">
+                <th className="text-left py-2 px-1 text-gray-300 font-medium">Symbol</th>
+                <th className="text-left py-2 px-1 text-gray-300 font-medium">Price</th>
+                <th className="text-center py-2 px-1 text-blue-300 font-bold bg-blue-900/40 border-2 border-blue-400">Signal</th>
+                <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">MACD (35%)</th>
+                <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">RSI (25%)</th>
+                <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">MA Trend (20%)</th>
+                <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">Bollinger (15%)</th>
+                <th className="text-center py-2 px-1 text-purple-300 font-medium bg-purple-900/20">5-Day (5%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {etfMetrics.map((etf) => (
+                <ETFRow 
+                  key={etf.symbol}
+                  etf={etf}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state only if not loading and no data
+  if (!hasData) {
+    return (
+      <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6" data-testid="etf-metrics-empty">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className="h-5 w-5 text-blue-400" />
+          <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
+
+        </div>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center space-y-2">
+            <span className="text-gray-400">
+              No ETF data available
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6" data-testid="etf-metrics-table">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-blue-400" />
+          <h3 className="text-lg font-semibold text-white">ETF Technical Metrics</h3>
+          <span className="text-sm text-gray-400">({etfMetrics.length} ETFs)</span>
+        </div>
+        <TechnicalIndicatorLegend />
+      </div>
+
+      <div className="mb-4 p-3 bg-gray-800/50 rounded-lg border border-gray-600">
+        <p className="text-sm text-gray-300">
+          <strong className="text-white">Color Guide:</strong> 
+          <span className="text-green-400 font-medium">Green = Good/Buy signals</span>, 
+          <span className="text-yellow-400 font-medium">Yellow = Neutral/Caution</span>, 
+          <span className="text-red-400 font-medium">Red = Bad/Sell signals</span>. 
+          <br />
+          <strong className="text-white">Metrics:</strong> 
+          <strong className="text-white"> Signal</strong> - Optimized Z-Score Weighted System (MACD 35%, RSI 25%, MA Trend 20%, Bollinger 15%, Price Momentum 5%, ATR 0%). BUY ≥0.75, SELL ≤-0.75, HOLD -0.75 to 0.75. Dynamic thresholds adjust for market volatility.
+          <strong className="text-white"> Bollinger</strong> - Price position in bands (oversold=good, overbought=bad). 
+          <strong className="text-white"> ATR</strong> - Volatility measure. 
+          <strong className="text-white"> MA Trend</strong> - Bull/bear crossover signals. 
+          <strong className="text-white"> RSI</strong> - Momentum (oversold=good, overbought=bad). 
+          <strong className="text-white"> Z-Score Composite</strong> - Enhanced statistical normalization with 252-day institutional-grade window using 10-year historical datasets (2015-2025) for reliable scale-independent signals.
+        </p>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-800/50 border-b border-gray-600">
+              <th className="text-left p-3 font-medium text-white sticky left-0 bg-gray-800/50 z-10">ETF</th>
+              <th className="text-center p-3 font-medium text-gray-300 min-w-[120px]">
+                <div className="flex items-center justify-center gap-1">
+                  <Activity className="h-4 w-4" />
+                  <span>30-Day Trend</span>
+                </div>
+              </th>
+              <th className="text-center p-3 font-medium text-gray-300 min-w-[100px] bg-gray-700/80">
+                <div className="flex items-center justify-center gap-1">
+                  <TrendingUp className="h-4 w-4" />
+                  <span>Signal</span>
+                </div>
+              </th>
+              <th className="text-center p-3 font-medium text-blue-300 min-w-[140px] bg-blue-900/20">
+                <div className="flex items-center justify-center gap-1">
+                  <Activity className="h-4 w-4" />
+                  <span>Multi-Horizon Z-Score</span>
+                </div>
+                <div className="text-xs text-gray-400 mt-1">ST/MT/LT/UL</div>
+              </th>
+              <th className="text-center p-3 font-medium text-purple-300 min-w-[120px] bg-purple-900/20">
+                <div className="flex items-center justify-center gap-1">
+                  <BarChart3 className="h-4 w-4" />
+                  <span>RSI</span>
+                </div>
+                <div className="text-xs text-gray-400">(25%)</div>
+              </th>
+              <th className="text-center p-3 font-medium text-purple-300 min-w-[120px] bg-purple-900/20">
+                <div className="flex items-center justify-center gap-1">
+                  <TrendingUp className="h-4 w-4" />
+                  <span>MACD</span>
+                </div>
+                <div className="text-xs text-gray-400">(35%)</div>
+              </th>
+              <th className="text-center p-3 font-medium text-purple-300 min-w-[120px] bg-purple-900/20">
+                <div className="flex items-center justify-center gap-1">
+                  <Activity className="h-4 w-4" />
+                  <span>Bollinger</span>
+                </div>
+                <div className="text-xs text-gray-400">(15%)</div>
+              </th>
+              <th className="text-center p-3 font-medium text-purple-300 min-w-[120px] bg-purple-900/20">
+                <div className="flex items-center justify-center gap-1">
+                  <TrendingUp className="h-4 w-4" />
+                  <span>MA Trend</span>
+                </div>
+                <div className="text-xs text-gray-400">(20%)</div>
+              </th>
+              <th className="text-center p-3 font-medium text-purple-300 min-w-[120px] bg-purple-900/20">
+                <div className="flex items-center justify-center gap-1">
+                  <Zap className="h-4 w-4" />
+                  <span>Price Mom</span>
+                </div>
+                <div className="text-xs text-gray-400">(5%)</div>
+              </th>
+              <th className="text-center p-3 font-medium text-purple-300 min-w-[90px] bg-purple-900/30">
+                <div className="text-xs font-bold">Composite Z</div>
+                <div className="text-xs text-gray-400">Final Signal</div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {etfMetrics.map((etf, index) => {
+              const rsiResult = getRSIStatus(etf.rsi);
+              // Get color based on backend bollingerStatus text instead of calculating from position
+              const getBollingerColor = (status: string): string => {
+                if (status === 'Oversold') return 'text-green-400'; // Good - buy signal
+                if (status === 'Overbought') return 'text-red-400'; // Bad - sell signal
+                if (status === 'Strong' || status === 'Weak') return 'text-yellow-400'; // Neutral - caution
+                return 'text-yellow-400'; // Neutral (includes 'No Data', 'Neutral', etc.)
+              };
+
+              return (
+                <tr key={etf.symbol} className={`border-b border-gray-600 hover:bg-gray-800/50 ${index % 2 === 0 ? 'bg-gray-900/50' : 'bg-gray-800/30'}`}>
+                  {/* ETF Column */}
+                  <td className="p-3 sticky left-0 bg-gray-900/95 z-10 border-r border-gray-600">
+                    <div className="flex flex-col">
+                      <span className="font-medium text-white">{etf.symbol}</span>
+                      <span className="text-xs text-gray-400">{etf.name}</span>
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-sm font-medium text-white">
+                          ${etf.price > 0 ? etf.price.toFixed(2) : 'Loading...'}
+                        </span>
+                        <span className={`text-xs ${etf.changePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {formatPercentage(etf.changePercent)}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* 30-Day Trend Column */}
+                  <td className="p-3 text-center">
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs text-gray-400">30-Day Trend</span>
+                      <span className={`text-sm font-medium ${
+                        (etf.changePercent || 0) > 0 ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        {formatPercentage(etf.changePercent)}
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* Weighted Signal Column - Dark and prominent */}
+                  <td className="p-3 text-center bg-gray-700/80">
+                    <div className="flex flex-col items-center">
+                      <span className={`inline-block px-3 py-2 rounded-lg text-sm font-bold border-2 ${
+                        etf.zScoreData?.signal === 'BUY' ? 'bg-green-900/50 text-green-300 border-green-500' : 
+                        etf.zScoreData?.signal === 'SELL' ? 'bg-red-900/50 text-red-300 border-red-500' : 
+                        'bg-gray-800/50 text-yellow-300 border-yellow-500'
+                      }`}>
+                        {etf.zScoreData?.signal || 'HOLD'}
+                      </span>
+                      <span className="text-xs text-gray-400 mt-1">
+                        Z: {formatNumber(etf.zScoreData?.compositeZScore, 2)}
+                      </span>
+                      {etf.zScoreData?.regimeAware && (
+                        <span className="text-xs bg-blue-900/50 text-blue-300 px-1 rounded mt-1">
+                          Multi-Horizon
+                        </span>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* Multi-Horizon Z-Score Analysis (New Feature) */}
+                  <td className="p-3 text-center bg-blue-900/20">
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs text-blue-300 font-semibold mb-1">Multi-Horizon Analysis</span>
+                      {etf.zScoreData?.regimeAware ? (
+                        <div className="grid grid-cols-2 gap-1 text-xs">
+                          <div className="text-left">
+                            <span className="text-gray-400">ST:</span> 
+                            <span className={`ml-1 ${
+                              (etf.zScoreData.shortTermZScore || 0) > 0 ? 'text-green-300' : 'text-red-300'
+                            }`}>
+                              {formatNumber(etf.zScoreData.shortTermZScore, 2)}
+                            </span>
+                          </div>
+                          <div className="text-left">
+                            <span className="text-gray-400">MT:</span> 
+                            <span className={`ml-1 ${
+                              (etf.zScoreData.mediumTermZScore || 0) > 0 ? 'text-green-300' : 'text-red-300'
+                            }`}>
+                              {formatNumber(etf.zScoreData.mediumTermZScore, 2)}
+                            </span>
+                          </div>
+                          <div className="text-left">
+                            <span className="text-gray-400">LT:</span> 
+                            <span className={`ml-1 ${
+                              (etf.zScoreData.longTermZScore || 0) > 0 ? 'text-green-300' : 'text-red-300'
+                            }`}>
+                              {formatNumber(etf.zScoreData.longTermZScore, 2)}
+                            </span>
+                          </div>
+                          <div className="text-left">
+                            <span className="text-gray-400">UL:</span> 
+                            <span className={`ml-1 ${
+                              (etf.zScoreData.ultraLongZScore || 0) > 0 ? 'text-green-300' : 'text-red-300'
+                            }`}>
+                              {formatNumber(etf.zScoreData.ultraLongZScore, 2)}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400">Legacy Analysis</span>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* Bollinger Bands */}
+                  <td className="p-3 text-center">
+                    <div className="flex flex-col items-center">
+                      <span className={`text-sm font-medium ${getBollingerColor(etf.bollingerStatus)}`}>
+                        {etf.bollingerStatus}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        %B: {formatNumber(etf.bollingerPosition, 3)}
+                      </span>
+                      {etf.zScoreData?.bollingerZScore !== null && etf.zScoreData?.bollingerZScore !== undefined && (
+                        <span className={`text-xs font-mono mt-1 ${
+                          etf.zScoreData.bollingerZScore > 0 ? 'text-red-300' :
+                          etf.zScoreData.bollingerZScore < 0 ? 'text-green-300' : 'text-gray-300'
+                        }`}>
+                          Z: {formatNumber(etf.zScoreData.bollingerZScore, 2)}
+                        </span>
+                      )}
+                      {etf.bollingerSqueeze && (
+                        <span className="text-xs bg-yellow-900/50 text-yellow-300 px-1 rounded mt-1">
+                          Squeeze
+                        </span>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* ATR/Volatility */}
+                  <td className="p-3 text-center">
+                    <div className="flex flex-col items-center">
+                      <span className="text-sm font-medium text-white">
+                        {formatNumber(etf.atr, 2)}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        Vol: {formatPercentage(etf.volatility)}
+                      </span>
+                      {etf.zScoreData?.atrZScore !== null && etf.zScoreData?.atrZScore !== undefined && (
+                        <span className={`text-xs font-mono mt-1 ${
+                          etf.zScoreData.atrZScore > 0 ? 'text-red-300' :
+                          etf.zScoreData.atrZScore < 0 ? 'text-green-300' : 'text-gray-300'
+                        }`}>
+                          Z: {formatNumber(etf.zScoreData.atrZScore, 2)}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* MA Trend */}
+                  <td className="p-3 text-center">
+                    <div className="flex flex-col items-center">
+                      <span className={`text-sm font-medium ${
+                        etf.maTrend === 'bullish' ? 'text-green-400' : 
+                        etf.maTrend === 'bearish' ? 'text-red-400' : 'text-gray-400'
+                      }`}>
+                        {etf.maSignal}
+                      </span>
+                      {etf.maGap !== null && (
+                        <span className="text-xs text-gray-300 mt-1">
+                          Gap: {formatNumber(etf.maGap, 2)}
+                        </span>
+                      )}
+                      <div className="flex items-center gap-1 mt-1">
+                        {etf.maTrend === 'bullish' ? (
+                          <TrendingUp className="h-3 w-3 text-green-400" />
+                        ) : etf.maTrend === 'bearish' ? (
+                          <TrendingDown className="h-3 w-3 text-red-400" />
+                        ) : (
+                          <Activity className="h-3 w-3 text-gray-400" />
+                        )}
+                      </div>
+                      {etf.zScoreData?.maTrendZScore !== null && etf.zScoreData?.maTrendZScore !== undefined && (
+                        <span className={`text-xs font-mono mt-1 ${
+                          etf.zScoreData.maTrendZScore > 0 ? 'text-green-300' :
+                          etf.zScoreData.maTrendZScore < 0 ? 'text-red-300' : 'text-gray-300'
+                        }`}>
+                          Z: {formatNumber(etf.zScoreData.maTrendZScore, 2)}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* RSI */}
+                  <td className="p-3 text-center">
+                    <div className="flex flex-col items-center">
+                      <span className="text-sm font-medium text-white">
+                        {formatNumber(etf.rsi, 1)}
+                      </span>
+                      <span className={`text-xs ${
+                        rsiResult.color.includes('green') ? 'text-green-400' :
+                        rsiResult.color.includes('red') ? 'text-red-400' :
+                        'text-yellow-400'
+                      }`}>
+                        {etf.rsiSignal}
+                      </span>
+                      {etf.zScoreData?.rsiZScore !== null && etf.zScoreData?.rsiZScore !== undefined && (
+                        <span className={`text-xs font-mono mt-1 ${
+                          etf.zScoreData.rsiZScore > 0 ? 'text-red-300' :
+                          etf.zScoreData.rsiZScore < 0 ? 'text-green-300' : 'text-gray-300'
+                        }`}>
+                          Z: {formatNumber(etf.zScoreData.rsiZScore, 2)}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* Individual Z-Score Components */}
+                  {/* RSI Z-Score (25%) */}
+                  <td className="p-3 text-center bg-purple-900/20">
+                    <span className={`text-sm font-mono ${
+                      (etf.zScoreData?.rsiZScore || 0) > 0 ? 'text-red-300' :
+                      (etf.zScoreData?.rsiZScore || 0) < 0 ? 'text-green-300' : 'text-gray-300'
+                    }`}>
+                      {formatNumber(etf.zScoreData?.rsiZScore, 3)}
+                    </span>
+                  </td>
+
+                  {/* MACD Z-Score (35%) */}
+                  <td className="p-3 text-center bg-purple-900/20">
+                    <span className={`text-sm font-mono ${
+                      (etf.zScoreData?.macdZScore || 0) > 0 ? 'text-green-300' :
+                      (etf.zScoreData?.macdZScore || 0) < 0 ? 'text-red-300' : 'text-gray-300'
+                    }`}>
+                      {formatNumber(etf.zScoreData?.macdZScore, 3)}
+                    </span>
+                  </td>
+
+                  {/* Bollinger Z-Score (15%) */}
+                  <td className="p-3 text-center bg-purple-900/20">
+                    <span className={`text-sm font-mono ${
+                      (etf.zScoreData?.bollingerZScore || 0) > 0 ? 'text-red-300' :
+                      (etf.zScoreData?.bollingerZScore || 0) < 0 ? 'text-green-300' : 'text-gray-300'
+                    }`}>
+                      {formatNumber(etf.zScoreData?.bollingerZScore, 3)}
+                    </span>
+                  </td>
+
+                  {/* MA Trend Z-Score (20%) */}
+                  <td className="p-3 text-center bg-purple-900/20">
+                    <span className={`text-sm font-mono ${
+                      (etf.zScoreData?.maTrendZScore || 0) > 0 ? 'text-green-300' :
+                      (etf.zScoreData?.maTrendZScore || 0) < 0 ? 'text-red-300' : 'text-gray-300'
+                    }`}>
+                      {formatNumber(etf.zScoreData?.maTrendZScore, 3)}
+                    </span>
+                  </td>
+
+                  {/* Price Momentum Z-Score (5%) */}
+                  <td className="p-3 text-center bg-purple-900/20">
+                    <span className={`text-sm font-mono ${
+                      (etf.zScoreData?.priceMomentumZScore || 0) > 0 ? 'text-green-300' :
+                      (etf.zScoreData?.priceMomentumZScore || 0) < 0 ? 'text-red-300' : 'text-gray-300'
+                    }`}>
+                      {formatNumber(etf.zScoreData?.priceMomentumZScore, 3)}
+                    </span>
+                  </td>
+
+                  {/* ATR Z-Score (0% - not used) */}
+                  <td className="p-3 text-center bg-purple-900/20">
+                    <span className="text-sm font-mono text-gray-500">
+                      {formatNumber(etf.zScoreData?.atrZScore, 3)}
+                    </span>
+                    <div className="text-xs text-gray-500 mt-1">Not Used</div>
+                  </td>
+
+                  {/* Composite Z-Score - Final weighted result */}
+                  <td className="p-3 text-center bg-purple-900/30">
+                    <div className="flex flex-col items-center">
+                      <span className={`text-base font-bold font-mono ${
+                        (etf.zScoreData?.compositeZScore || 0) > 0.5 ? 'text-green-400' :
+                        (etf.zScoreData?.compositeZScore || 0) < -0.5 ? 'text-red-400' : 
+                        'text-yellow-400'
+                      }`}>
+                        {formatNumber(etf.zScoreData?.compositeZScore, 3)}
+                      </span>
+                      <span className={`text-xs font-medium mt-1 px-2 py-1 rounded ${
+                        etf.zScoreData?.signal === 'BUY' ? 'bg-green-800/50 text-green-300' :
+                        etf.zScoreData?.signal === 'SELL' ? 'bg-red-800/50 text-red-300' :
+                        'bg-gray-800/50 text-yellow-300'
+                      }`}>
+                        {etf.zScoreData?.signal || 'HOLD'}
+                      </span>
+                    </div>
+                  </td>
+
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+
+    </div>
+  );
+}
