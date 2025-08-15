@@ -173,6 +173,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Economic Health Dashboard endpoints
   app.use('/api/economic-health', (await import('./routes/economic-health')).default);
   
+  // Enhanced Economic Indicators with 3-Layer Data Model (76,441+ records)
+  app.use('/api', (await import('./routes/enhanced-economic-indicators')).default);
+  
   // 3-Layer Economic Data Model (Bronze → Silver → Gold)
   app.use('/api/econ', (await import('./routes/economic-data-routes')).economicDataRoutes);
   
