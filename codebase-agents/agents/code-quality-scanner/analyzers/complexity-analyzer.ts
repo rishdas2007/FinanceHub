@@ -119,7 +119,7 @@ export class ComplexityAnalyzer {
   }
 
   private extractFunctionContent(lines: string[], startIndex: number): { content: string; endIndex: number } {
-    const content = [];
+    const content: string[] = [];
     let braceCount = 0;
     let started = false;
     let endIndex = startIndex;
