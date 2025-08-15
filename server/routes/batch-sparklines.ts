@@ -57,6 +57,7 @@ export async function getBatchSparklines(req: Request, res: Response) {
           LAG(value_std, 12) OVER (PARTITION BY series_id ORDER BY period_end) as value_12m_ago,
           CASE 
             WHEN LAG(value_std, 12) OVER (PARTITION BY series_id ORDER BY period_end) IS NOT NULL 
+                 AND LAG(value_std, 12) OVER (PARTITION BY series_id ORDER BY period_end) != 0
             THEN ((value_std - LAG(value_std, 12) OVER (PARTITION BY series_id ORDER BY period_end)) / LAG(value_std, 12) OVER (PARTITION BY series_id ORDER BY period_end)) * 100
             ELSE NULL
           END as final_value
@@ -85,11 +86,14 @@ export async function getBatchSparklines(req: Request, res: Response) {
       if (!sparklineData[row.series_id]) {
         sparklineData[row.series_id] = [];
       }
-      sparklineData[row.series_id].push({
-        t: Date.parse(row.period_end),
-        date: row.period_end,
-        value: parseFloat(row.value_std) || 0
-      });
+      const value = parseFloat(row.value_std);
+      if (!isNaN(value) && isFinite(value)) {
+        sparklineData[row.series_id].push({
+          t: Date.parse(row.period_end),
+          date: row.period_end,
+          value: value
+        });
+      }
     }
 
     // Cache for 5 minutes
