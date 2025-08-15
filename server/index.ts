@@ -20,6 +20,7 @@ import { performanceTrackingMiddleware } from './middleware/performance-tracking
 // Import enhanced statistical demo routes
 import enhancedZScoreRoutes from './routes/enhanced-zscore-demo';
 import adminMigrationRoutes from './routes/admin-migration-routes';
+import optimizedEtfMetricsRoutes from './routes/optimized-etf-metrics';
 import { setupVite, serveStatic, log } from "./vite";
 import healthRoutes from "./routes/health";
 
@@ -192,6 +193,9 @@ app.use((req, res, next) => {
     
     // Admin Migration Routes for Economic Data Unit Fix
     app.use('/api/admin', adminMigrationRoutes);
+    
+    // Optimized ETF Metrics Routes (Performance Fix)
+    app.use('/api', optimizedEtfMetricsRoutes);
     
     // Performance monitoring routes
     const { performanceMonitoringRoutes } = await import('./routes/performance-monitoring');
