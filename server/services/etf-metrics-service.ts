@@ -272,9 +272,26 @@ class ETFMetricsService {
         }
       }
 
-      // 8. Cache results in both standard and fast cache with data provenance
-      cacheService.set(this.CACHE_KEY, etfMetrics, this.CACHE_TTL);
-      cacheService.set(this.FAST_CACHE_KEY, etfMetrics, this.FAST_CACHE_TTL);
+      // 8. CRITICAL: Validate data quality before caching
+      let validMetricsCount = 0;
+      etfMetrics.forEach(metric => {
+        if (this.validateRealData(metric)) {
+          validMetricsCount++;
+        }
+      });
+
+      const dataQualityRatio = validMetricsCount / etfMetrics.length;
+      if (dataQualityRatio < 0.5) {
+        logger.error(`🚨 DATA QUALITY ALERT: Only ${validMetricsCount}/${etfMetrics.length} ETFs have real data (${(dataQualityRatio * 100).toFixed(1)}%)`);
+        
+        // Don't cache poor quality data
+        logger.warn('⚠️ Skipping cache update due to poor data quality');
+      } else {
+        // Cache results in both standard and fast cache with data provenance
+        cacheService.set(this.CACHE_KEY, etfMetrics, this.CACHE_TTL);
+        cacheService.set(this.FAST_CACHE_KEY, etfMetrics, this.FAST_CACHE_TTL);
+        logger.info(`✅ Cached high-quality data: ${validMetricsCount}/${etfMetrics.length} ETFs validated`);
+      }
       
       const priceInfo = etfMetrics.map(e => `${e.symbol}:$${e.price}`).join(', ');
       logger.info(`⚡ ETF metrics consolidated from database and cached (${Date.now() - startTime}ms, ${etfMetrics.length} ETFs) - ${priceInfo}`);
@@ -361,7 +378,7 @@ class ETFMetricsService {
   private async getLatestPricesFromDB(symbolsToFetch?: string[]) {
     const results = new Map();
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 2); // Reduced lookback to 2 days for fresher data
+    cutoffDate.setDate(cutoffDate.getDate() - 14); // Extended lookback to 2 weeks to handle weekends/holidays
     
     const symbols = symbolsToFetch || this.ETF_SYMBOLS;
     for (const symbol of symbols) {
@@ -388,7 +405,7 @@ class ETFMetricsService {
             logger.warn(`🚨 Invalid price data for ${symbol}: $${price}`);
           }
         } else {
-          logger.warn(`⚠️ No recent price data for ${symbol} in last 7 days`);
+          logger.warn(`⚠️ No recent price data for ${symbol} in last 2 weeks`);
         }
       } catch (error) {
         logger.warn(`No price data for ${symbol}:`, error);
@@ -404,7 +421,7 @@ class ETFMetricsService {
   private async getLatestTechnicalIndicatorsFromDB(): Promise<Map<string, TechnicalIndicatorData>> {
     const results = new Map();
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 2); // Reduced lookback to 2 days for fresher data
+    cutoffDate.setDate(cutoffDate.getDate() - 14); // Extended lookback to 2 weeks to handle weekends/holidays
     
     for (const symbol of this.ETF_SYMBOLS) {
       try {
@@ -422,7 +439,7 @@ class ETFMetricsService {
           results.set(symbol, latest[0]);
           logger.info(`🔧 Technical data for ${symbol}: ${latest[0].timestamp.toISOString()}`);
         } else {
-          logger.error(`❌ No recent technical data for ${symbol} in last 7 days`);
+          logger.error(`❌ No recent technical data for ${symbol} in last 2 weeks`);
         }
       } catch (error) {
         logger.warn(`No technical data for ${symbol}:`, error);
@@ -718,6 +735,31 @@ class ETFMetricsService {
     
     // For very small gaps, still provide a Z-score to avoid null values
     return normalizedGap > 0 ? 0.1 : (normalizedGap < 0 ? -0.1 : 0.0);
+  }
+
+  /**
+   * Validate that ETF metrics contain real data (not fake/placeholder values)
+   */
+  private validateRealData(etfMetrics: ETFMetrics): boolean {
+    // Check for fake data patterns
+    const hasFakeRSI = etfMetrics.rsi === 50.0;
+    const hasFakeZScores = etfMetrics.components?.rsiZ === 0.0000 && 
+                           etfMetrics.components?.macdZ === 0.0000 && 
+                           etfMetrics.components?.bbZ === 0.0000;
+    const hasFakeSignals = etfMetrics.rsiSignal === 'HOLD' && 
+                           etfMetrics.vwapSignal === 'HOLD' && 
+                           etfMetrics.maSignal === 'HOLD';
+    
+    if (hasFakeRSI || hasFakeZScores || hasFakeSignals) {
+      logger.warn(`🚨 FAKE DATA DETECTED for ${etfMetrics.symbol}:`, {
+        fakeRSI: hasFakeRSI,
+        fakeZScores: hasFakeZScores, 
+        fakeSignals: hasFakeSignals
+      });
+      return false;
+    }
+    
+    return true;
   }
 
   /**
@@ -1194,6 +1236,14 @@ class ETFMetricsService {
   private getFallbackMetrics(): ETFMetrics[] {
     logger.warn('⚠️ Using fallback ETF metrics due to service error');
     
+    // Try to get cached data first before using empty fallback
+    const cachedData = cacheService.get(this.CACHE_KEY) || cacheService.get(this.FAST_CACHE_KEY);
+    if (cachedData && Array.isArray(cachedData) && cachedData.length > 0) {
+      logger.info('📦 Using cached data as fallback instead of empty metrics');
+      return cachedData as ETFMetrics[];
+    }
+    
+    // Last resort: return empty metrics with clear indicators
     return this.ETF_SYMBOLS.map(symbol => ({
       symbol,
       name: ETFMetricsService.ETF_NAMES[symbol as keyof typeof ETFMetricsService.ETF_NAMES] || symbol,
@@ -1203,25 +1253,37 @@ class ETFMetricsService {
       
       // Required Z-Score weighted fields
       weightedScore: null,
-      weightedSignal: 'HOLD',
+      weightedSignal: 'DATA_UNAVAILABLE', // Clear indicator this is fallback
       zScoreData: null,
+      
+      // Frontend expects components property
+      components: {
+        macdZ: null,
+        rsi14: null,
+        rsiZ: null,
+        bbPctB: null,
+        bbZ: null,
+        maGapPct: null,
+        maGapZ: null,
+        mom5dZ: null,
+      },
       
       bollingerPosition: null,
       bollingerSqueeze: false,
-      bollingerStatus: 'Data Unavailable',
+      bollingerStatus: 'SERVICE_UNAVAILABLE', // Clear indicator
       atr: null,
       volatility: null,
-      maSignal: 'Data Unavailable',
+      maSignal: 'SERVICE_UNAVAILABLE', // Clear indicator
       maTrend: 'neutral' as const,
       maGap: null,
       rsi: null,
-      rsiSignal: 'Data Unavailable',
+      rsiSignal: 'SERVICE_UNAVAILABLE', // Clear indicator
       rsiDivergence: false,
       zScore: null,
       sharpeRatio: null,
       fiveDayReturn: null,
       volumeRatio: null,
-      vwapSignal: 'Data Unavailable',
+      vwapSignal: 'SERVICE_UNAVAILABLE', // Clear indicator
       obvTrend: 'neutral' as const
     }));
   }
