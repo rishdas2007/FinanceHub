@@ -268,7 +268,7 @@ router.get('/sector-etfs', async (req, res) => {
 // Technical indicators endpoint - Database-first
 router.get('/technical-indicators', async (req, res) => {
   try {
-    logger.info('📊 Technical indicators request - using database');
+    logger.warn('🚨 CACHE BYPASS: Technical indicators request - forcing fresh database data');
     const { etfMetricsService } = await import('../services/etf-metrics-service');
     
     const metrics = await etfMetricsService.getConsolidatedETFMetrics();

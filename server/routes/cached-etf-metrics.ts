@@ -163,10 +163,11 @@ router.get('/etf-metrics', async (req, res) => {
   try {
     const startTime = Date.now();
 
-    // Get cached real ETF data
+    // TEMPORARY: Skip cache completely and fetch fresh data
+    logger.warn('🚨 CACHE BYPASS: Fetching fresh ETF data without caching');
     const [etfData, technicalData] = await Promise.all([
-      cacheManager.get('etf-metrics', fetchRealETFMetrics),
-      cacheManager.get('etf-technical', fetchETFTechnicalIndicators)
+      fetchRealETFMetrics(), // Direct call, no cache
+      fetchETFTechnicalIndicators() // Direct call, no cache
     ]);
 
     // Merge real price data with technical indicators

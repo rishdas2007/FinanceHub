@@ -282,6 +282,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const fastDashboardRoutes = (await import('./routes/fast-dashboard-routes')).default;
   app.use('/api', fastDashboardRoutes);
   
+  // TEMPORARY: Direct override for ETF technical metrics to bypass all caches
+  app.get('/api/etf/technical-metrics', async (req, res) => {
+    try {
+      logger.warn('🚨 DIRECT CACHE BYPASS: ETF technical metrics - serving fresh data only');
+      const { etfMetricsService } = await import('./services/etf-metrics-service');
+      
+      const metrics = await etfMetricsService.getConsolidatedETFMetrics();
+      
+      res.json({
+        success: true,
+        data: metrics,
+        metadata: {
+          count: metrics.length,
+          source: 'fresh_database_bypass',
+          cached: false,
+          timestamp: new Date().toISOString()
+        }
+      });
+      
+    } catch (error) {
+      logger.error('❌ ETF technical metrics bypass error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+  
   // OPTIMIZED: Fast ETF Metrics API with market-aware caching
   // Support both routes to avoid subtle 404s / empty states
   app.get('/api/etf/metrics', async (req, res) => {

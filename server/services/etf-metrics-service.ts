@@ -279,23 +279,32 @@ class ETFMetricsService {
       // 8. CRITICAL: Validate data quality before caching (enhanced validation)
       const qualityReport = ETFDataQualityValidator.validateETFMetrics(etfMetrics);
       
-      if (qualityReport.recommendation === 'CACHE') {
-        // Cache high-quality data
-        cacheService.set(this.CACHE_KEY, etfMetrics, this.CACHE_TTL);
-        cacheService.set(this.FAST_CACHE_KEY, etfMetrics, this.FAST_CACHE_TTL);
-        logger.info(`✅ Cached high-quality data: ${qualityReport.realDataPoints}/${qualityReport.totalDataPoints} real data points (${(qualityReport.realDataRatio * 100).toFixed(1)}%)`);
-      } else if (qualityReport.recommendation === 'WARN') {
-        // Cache with warning
-        cacheService.set(this.CACHE_KEY, etfMetrics, this.CACHE_TTL);
-        cacheService.set(this.FAST_CACHE_KEY, etfMetrics, this.FAST_CACHE_TTL);
-        logger.warn(`⚠️ Cached mixed-quality data: ${qualityReport.realDataPoints}/${qualityReport.totalDataPoints} real data points (${(qualityReport.realDataRatio * 100).toFixed(1)}%)`);
-        logger.warn(`🚨 Quality issues detected:`, qualityReport.issues);
-      } else {
-        // Don't cache poor quality data - serves from fresh data without caching
-        logger.error(`🚨 DATA QUALITY ALERT: Poor data quality detected (${(qualityReport.realDataRatio * 100).toFixed(1)}% real data)`);
-        logger.error(`🚨 Quality issues:`, qualityReport.issues);
-        logger.warn('⚠️ Skipping cache update due to poor data quality - serving fresh data without caching');
+      // TEMPORARY: Skip ALL caching during cache poisoning fix debugging
+      logger.warn(`🚨 CACHE BYPASS: Skipping all caching to eliminate cache poisoning - serving only fresh database data`);
+      logger.info(`📊 Data Quality Report: ${qualityReport.realDataPoints}/${qualityReport.totalDataPoints} real data points (${(qualityReport.realDataRatio * 100).toFixed(1)}%)`);
+      
+      if (qualityReport.issues.length > 0) {
+        logger.warn(`⚠️ Quality issues detected:`, qualityReport.issues);
       }
+      
+      // Skip caching entirely to force fresh data
+      // if (qualityReport.recommendation === 'CACHE') {
+      //   // Cache high-quality data
+      //   cacheService.set(this.CACHE_KEY, etfMetrics, this.CACHE_TTL);
+      //   cacheService.set(this.FAST_CACHE_KEY, etfMetrics, this.FAST_CACHE_TTL);
+      //   logger.info(`✅ Cached high-quality data: ${qualityReport.realDataPoints}/${qualityReport.totalDataPoints} real data points (${(qualityReport.realDataRatio * 100).toFixed(1)}%)`);
+      // } else if (qualityReport.recommendation === 'WARN') {
+      //   // Cache with warning
+      //   cacheService.set(this.CACHE_KEY, etfMetrics, this.CACHE_TTL);
+      //   cacheService.set(this.FAST_CACHE_KEY, etfMetrics, this.FAST_CACHE_TTL);
+      //   logger.warn(`⚠️ Cached mixed-quality data: ${qualityReport.realDataPoints}/${qualityReport.totalDataPoints} real data points (${(qualityReport.realDataRatio * 100).toFixed(1)}%)`);
+      //   logger.warn(`🚨 Quality issues detected:`, qualityReport.issues);
+      // } else {
+      //   // Don't cache poor quality data - serves from fresh data without caching
+      //   logger.error(`🚨 DATA QUALITY ALERT: Poor data quality detected (${(qualityReport.realDataRatio * 100).toFixed(1)}% real data)`);
+      //   logger.error(`🚨 Quality issues:`, qualityReport.issues);
+      //   logger.warn('⚠️ Skipping cache update due to poor data quality - serving fresh data without caching');
+      // }
       
       const priceInfo = etfMetrics.map(e => `${e.symbol}:$${e.price}`).join(', ');
       logger.info(`⚡ ETF metrics consolidated from database and cached (${Date.now() - startTime}ms, ${etfMetrics.length} ETFs) - ${priceInfo}`);

@@ -50,13 +50,14 @@ export class IntelligentCacheManager {
     });
 
     // ETF technical indicators - cache for 5 minutes, refresh at 4 minutes  
-    this.configs.set('etf-technical', {
-      key: 'etf-technical',
-      ttl: 300,
-      refreshThreshold: 240,
-      source: 'calculation',
-      priority: 'high'
-    });
+    // TEMPORARY: Disable etf-technical cache to fix cache poisoning
+    // this.configs.set('etf-technical', {
+    //   key: 'etf-technical',
+    //   ttl: 300,
+    //   refreshThreshold: 240,
+    //   source: 'calculation',
+    //   priority: 'high'
+    // });
 
     // Economic indicators - cache for 1 hour, refresh at 50 minutes
     this.configs.set('economic-indicators', {
