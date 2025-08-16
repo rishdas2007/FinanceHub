@@ -16,29 +16,8 @@ interface EconMover {
   spark12m: Array<{ t: number; value: number }>;
 }
 
-function formatValue(value: number | null, unit?: string): string {
-  if (value === null) return '—';
-  
-  // Handle percentage units
-  if (unit?.includes('%') || unit?.toLowerCase().includes('percent')) {
-    return `${value.toFixed(2)}%`;
-  }
-  
-  // Handle currency
-  if (unit?.includes('$') || unit?.toLowerCase().includes('dollar')) {
-    return `$${value.toLocaleString()}`;
-  }
-  
-  // Handle large numbers
-  if (Math.abs(value) >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
-  }
-  if (Math.abs(value) >= 1000) {
-    return `${(value / 1000).toFixed(1)}K`;
-  }
-  
-  return value.toFixed(2);
-}
+// Note: formatValue function removed - now using backend pre-formatted values
+// All economic indicators now use standard_unit formatting from API
 
 function formatPeriod(period: string): string {
   const date = new Date(period);
@@ -147,7 +126,7 @@ export default function EconMovers({ limit = 5 }: { limit?: number }) {
           {/* Current Value */}
           <div className="text-right w-20">
             <div className="font-medium text-sm">
-              {formatValue(indicator.current, indicator.unit)}
+              {indicator.current !== null ? indicator.current.toFixed(2) : '—'}
             </div>
             <div className="text-xs text-gray-500">Current</div>
           </div>
@@ -155,7 +134,7 @@ export default function EconMovers({ limit = 5 }: { limit?: number }) {
           {/* Prior Value */}
           <div className="text-right w-20 mx-2">
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              {formatValue(indicator.prior, indicator.unit)}
+              {indicator.prior !== null ? indicator.prior.toFixed(2) : '—'}
             </div>
             <div className="text-xs text-gray-500">Prior</div>
           </div>

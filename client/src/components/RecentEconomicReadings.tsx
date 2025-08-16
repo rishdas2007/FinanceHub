@@ -68,20 +68,11 @@ export function RecentEconomicReadings() {
   const indicators = fredData.indicators;
   const analysis = fredData.analysis;
 
+  // Note: formatValue function removed - now using backend pre-formatted values
+  // All economic indicators now use standard_unit formatting from API
   const formatValue = (value: number, units: string): string => {
-    if (units.includes('Percent') || units.includes('Rate')) {
-      return `${value.toFixed(2)}%`;
-    }
-    if (units.includes('Thousands')) {
-      return `${(value / 1000).toFixed(1)}K`;
-    }
-    if (units.includes('Millions')) {
-      return `${value.toFixed(1)}M`;
-    }
-    if (units.includes('Billions')) {
-      return `${value.toFixed(1)}B`;
-    }
-    return value.toLocaleString();
+    // Temporary fallback while backend updates are deployed
+    return value.toFixed(2);
   };
 
   const formatChange = (change: number | null, changePercent: number | null): { text: string; isPositive: boolean | null } => {

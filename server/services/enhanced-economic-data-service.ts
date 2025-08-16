@@ -7,6 +7,7 @@
 import { db } from '../db';
 import { sql, eq, desc, and, gte } from 'drizzle-orm';
 import { logger } from '../../shared/utils/logger';
+import { EconomicUnitFormatter } from '../../shared/formatters/economic-unit-formatter';
 
 interface EconomicIndicatorResult {
   metric: string;
@@ -56,46 +57,17 @@ async function calculateYoYChange(seriesId: string, currentValue: number, curren
 }
 
 /**
- * Formats economic indicator value based on series definition
+ * Formats economic indicator value using centralized formatter
  */
-function formatIndicatorValue(value: number, standardUnit: string, scaleHint: string, displayPrecision: number, yoyChange?: number | null): string {
-  // For inflation indicators (INDEX_PT), show YoY change if available
-  if (standardUnit === 'INDEX_PT' && yoyChange !== null && yoyChange !== undefined) {
-    return `${yoyChange >= 0 ? '+' : ''}${yoyChange.toFixed(1)}%`;
-  }
-  
-  // For percentage indicators
-  if (standardUnit === 'PCT_DECIMAL') {
-    return `${value.toFixed(displayPrecision)}%`;
-  }
-  
-  // For count indicators with scale hints
-  if (standardUnit === 'COUNT') {
-    let scaledValue = value;
-    let unit = '';
-    
-    switch (scaleHint) {
-      case 'K':
-        scaledValue = value / 1000;
-        unit = 'K';
-        break;
-      case 'M':
-        scaledValue = value / 1000000;
-        unit = 'M';
-        break;
-      case 'B':
-        scaledValue = value / 1000000000;
-        unit = 'B';
-        break;
-      default:
-        unit = '';
-    }
-    
-    return `${scaledValue.toFixed(displayPrecision)}${unit}`;
-  }
-  
-  // Default formatting
-  return value.toFixed(displayPrecision);
+function formatIndicatorValue(value: number, standardUnit: string, scaleHint: string, displayPrecision: number, yoyChange?: number | null, transformCode?: string): string {
+  return EconomicUnitFormatter.formatValue({
+    value,
+    standardUnit,
+    scaleHint: scaleHint || 'NONE',
+    displayPrecision,
+    transformCode,
+    yoyChange
+  });
 }
 
 /**
