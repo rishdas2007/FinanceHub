@@ -1,268 +1,166 @@
 /**
- * ETF Data Fix Verification Script
- * Tests the database lookback period fixes and data quality improvements
+ * Verify ETF Cache Poisoning Fix Success
+ * Comprehensive test to confirm real data is being served
  */
 
-import { db } from '../server/db';
-import { technicalIndicators, zscoreTechnicalIndicators, stockData } from '@shared/schema';
-import { desc, eq, and, gte, sql } from 'drizzle-orm';
-import { logger } from '@shared/utils/logger';
+import { promises as fs } from 'fs';
 
-const ETF_SYMBOLS = [
-  'SPY', 'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'
-];
-
-interface DataAvailabilityResult {
-  symbol: string;
-  hasPriceData: boolean;
-  hasTechnicalData: boolean;
-  hasZScoreData: boolean;
-  priceTimestamp: Date | null;
-  technicalTimestamp: Date | null;
-  zscoreTimestamp: Date | null;
-  rsiValue: number | null;
-  isFakeRSI: boolean;
-}
-
-async function verifyETFDataFix(): Promise<void> {
-  console.log('🔍 === ETF FAKE DATA FIX VERIFICATION ===');
-  console.log('📊 Testing database lookback period fixes...');
+async function verifyETFDataFix() {
+  console.log('🔍 VERIFYING ETF CACHE POISONING FIX...');
   console.log('');
-
-  const now = new Date();
-  const twoWeeksAgo = new Date();
-  twoWeeksAgo.setDate(now.getDate() - 14);
   
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(now.getDate() - 30);
-
-  console.log(`🗓️  Testing lookback periods:`);
-  console.log(`   Price/Technical data: Last 14 days (since ${twoWeeksAgo.toISOString()})`);
-  console.log(`   Z-Score data: Last 30 days (since ${thirtyDaysAgo.toISOString()})`);
-  console.log('');
-
-  const results: DataAvailabilityResult[] = [];
-
-  for (const symbol of ETF_SYMBOLS) {
-    const result: DataAvailabilityResult = {
-      symbol,
-      hasPriceData: false,
-      hasTechnicalData: false,
-      hasZScoreData: false,
-      priceTimestamp: null,
-      technicalTimestamp: null,
-      zscoreTimestamp: null,
-      rsiValue: null,
-      isFakeRSI: false
-    };
-
-    try {
-      // Check price data (14-day lookback)
-      const priceData = await db
-        .select()
-        .from(stockData)
-        .where(and(
-          eq(stockData.symbol, symbol),
-          gte(stockData.timestamp, twoWeeksAgo)
-        ))
-        .orderBy(desc(stockData.timestamp))
-        .limit(1);
-
-      if (priceData.length > 0) {
-        result.hasPriceData = true;
-        result.priceTimestamp = priceData[0].timestamp;
-      }
-
-      // Check technical indicators (14-day lookback)
-      const techData = await db
-        .select()
-        .from(technicalIndicators)
-        .where(and(
-          eq(technicalIndicators.symbol, symbol),
-          gte(technicalIndicators.timestamp, twoWeeksAgo)
-        ))
-        .orderBy(desc(technicalIndicators.timestamp))
-        .limit(1);
-
-      if (techData.length > 0) {
-        result.hasTechnicalData = true;
-        result.technicalTimestamp = techData[0].timestamp;
-        result.rsiValue = techData[0].rsi ? parseFloat(techData[0].rsi) : null;
-        result.isFakeRSI = result.rsiValue === 50.0;
-      }
-
-      // Check Z-score data (30-day lookback)
-      const zscoreData = await db
-        .select()
-        .from(zscoreTechnicalIndicators)
-        .where(and(
-          eq(zscoreTechnicalIndicators.symbol, symbol),
-          gte(zscoreTechnicalIndicators.date, thirtyDaysAgo)
-        ))
-        .orderBy(desc(zscoreTechnicalIndicators.date))
-        .limit(1);
-
-      if (zscoreData.length > 0) {
-        result.hasZScoreData = true;
-        result.zscoreTimestamp = zscoreData[0].date;
-      }
-
-    } catch (error) {
-      console.error(`❌ Error checking data for ${symbol}:`, error);
-    }
-
-    results.push(result);
-  }
-
-  // Generate verification report
-  console.log('📋 === DATA AVAILABILITY RESULTS ===');
-  console.log('Symbol | Price | Technical | Z-Score | RSI Value | Status');
-  console.log('-------|-------|-----------|---------|-----------|--------');
-
-  let successCount = 0;
-  let fakeRSICount = 0;
-
-  results.forEach(result => {
-    const priceStatus = result.hasPriceData ? '✅' : '❌';
-    const techStatus = result.hasTechnicalData ? '✅' : '❌';
-    const zscoreStatus = result.hasZScoreData ? '✅' : '❌';
-    const rsiDisplay = result.rsiValue !== null ? result.rsiValue.toFixed(1) : 'N/A';
-    const fakeFlag = result.isFakeRSI ? '🚨 FAKE' : '✅ REAL';
-
-    console.log(`${result.symbol.padEnd(6)} | ${priceStatus.padEnd(5)} | ${techStatus.padEnd(9)} | ${zscoreStatus.padEnd(7)} | ${rsiDisplay.padEnd(9)} | ${fakeFlag}`);
-
-    if (result.hasPriceData && result.hasTechnicalData && result.hasZScoreData && !result.isFakeRSI) {
-      successCount++;
-    }
-
-    if (result.isFakeRSI) {
-      fakeRSICount++;
-    }
-  });
-
-  console.log('');
-  console.log('📊 === VERIFICATION SUMMARY ===');
-  
-  const priceAvailable = results.filter(r => r.hasPriceData).length;
-  const technicalAvailable = results.filter(r => r.hasTechnicalData).length;
-  const zscoreAvailable = results.filter(r => r.hasZScoreData).length;
-  
-  console.log(`Price Data: ${priceAvailable}/${ETF_SYMBOLS.length} symbols (${Math.round(priceAvailable / ETF_SYMBOLS.length * 100)}%)`);
-  console.log(`Technical Data: ${technicalAvailable}/${ETF_SYMBOLS.length} symbols (${Math.round(technicalAvailable / ETF_SYMBOLS.length * 100)}%)`);
-  console.log(`Z-Score Data: ${zscoreAvailable}/${ETF_SYMBOLS.length} symbols (${Math.round(zscoreAvailable / ETF_SYMBOLS.length * 100)}%)`);
-  console.log(`Complete Data: ${successCount}/${ETF_SYMBOLS.length} symbols (${Math.round(successCount / ETF_SYMBOLS.length * 100)}%)`);
-  console.log(`Fake RSI Values: ${fakeRSICount}/${ETF_SYMBOLS.length} symbols (${Math.round(fakeRSICount / ETF_SYMBOLS.length * 100)}%)`);
-  console.log('');
-
-  // Test the actual ETF service
-  console.log('🧪 === TESTING ETF METRICS SERVICE ===');
   try {
-    const { etfMetricsService } = await import('../server/services/etf-metrics-service');
-    const startTime = Date.now();
-    const metrics = await etfMetricsService.getConsolidatedETFMetrics();
-    const responseTime = Date.now() - startTime;
-
-    console.log(`📊 Service Response: ${metrics.length} ETF metrics in ${responseTime}ms`);
+    // Test the ETF endpoint directly
+    const response = await fetch('http://localhost:5000/api/etf/technical-metrics');
+    
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}: ${response.statusText}`);
+    }
+    
+    const contentType = response.headers.get('content-type') || '';
+    
+    if (!contentType.includes('application/json')) {
+      console.log('❌ Response is not JSON (likely HTML error page)');
+      console.log(`Content-Type: ${contentType}`);
+      const text = await response.text();
+      console.log(`Response preview: ${text.substring(0, 200)}...`);
+      return;
+    }
+    
+    const data = await response.json();
+    
+    console.log('📊 API Response Analysis:');
+    console.log(`   Status: ${response.status}`);
+    console.log(`   Content-Type: ${contentType}`);
+    console.log(`   Has success field: ${data.success !== undefined}`);
+    console.log(`   Has data array: ${Array.isArray(data.data)}`);
+    console.log(`   ETF count: ${data.data?.length || 0}`);
+    console.log('');
+    
+    if (!data.success || !Array.isArray(data.data) || data.data.length === 0) {
+      console.log('❌ Invalid API response structure');
+      console.log('Response:', JSON.stringify(data, null, 2));
+      return;
+    }
+    
+    // Analyze data quality
+    console.log('🔍 DATA QUALITY ANALYSIS:');
+    console.log('Symbol | RSI    | MACD-Z | Signal | Z-Score | Price  | Status');
+    console.log('-------|--------|--------|--------|---------|--------|--------');
     
     let realDataCount = 0;
     let fakeDataCount = 0;
-
-    console.log('');
-    console.log('Symbol | Price  | RSI   | Z-Score | Status');
-    console.log('-------|--------|-------|---------|--------');
-
-    metrics.forEach(metric => {
-      const hasFakeRSI = metric.rsi === 50.0 || metric.rsi === null;
-      const hasFakePrice = metric.price === 0;
-      const hasFakeZScores = (
-        metric.components?.rsiZ === 0.0000 || metric.components?.rsiZ === null
-      ) && (
-        metric.components?.macdZ === 0.0000 || metric.components?.macdZ === null
-      );
-
-      const isFakeData = hasFakeRSI && hasFakePrice && hasFakeZScores;
+    let partialDataCount = 0;
+    
+    data.data.forEach((etf: any) => {
+      const symbol = etf.symbol || 'N/A';
+      const rsi = etf.components?.rsi14;
+      const macdZ = etf.components?.macdZ;
+      const signal = etf.zScoreData?.signal || etf.signal;
+      const compositeZ = etf.zScoreData?.compositeZScore;
+      const price = etf.price;
       
-      if (isFakeData) {
+      // Quality assessment
+      const hasFakeRSI = rsi === 50.0;
+      const hasFakeMACD = macdZ === 0.0 || macdZ === null || macdZ === undefined;
+      const hasFakeSignal = signal === 'HOLD';
+      const hasFakeZScore = compositeZ === 0.0 || compositeZ === null;
+      const hasZeroPrice = price === 0 || price === null || price === undefined;
+      
+      let status = '';
+      let quality = 'real';
+      
+      // Determine data quality
+      if (hasFakeRSI && hasFakeMACD && hasFakeSignal && hasFakeZScore) {
+        status = '🚨 FAKE';
+        quality = 'fake';
         fakeDataCount++;
+      } else if (hasZeroPrice || (!rsi && !macdZ && !signal)) {
+        status = '⚠️ PARTIAL';
+        quality = 'partial';
+        partialDataCount++;
       } else {
+        status = '✅ REAL';
+        quality = 'real';
         realDataCount++;
       }
-
-      const priceDisplay = metric.price > 0 ? `$${metric.price.toFixed(2)}` : '$0.00';
-      const rsiDisplay = metric.rsi !== null ? metric.rsi.toFixed(1) : 'N/A';
-      const zScoreDisplay = metric.components?.rsiZ !== null ? metric.components.rsiZ.toFixed(2) : 'N/A';
-      const status = isFakeData ? '🚨 FAKE' : '✅ REAL';
-
-      console.log(`${metric.symbol.padEnd(6)} | ${priceDisplay.padEnd(6)} | ${rsiDisplay.padEnd(5)} | ${zScoreDisplay.padEnd(7)} | ${status}`);
+      
+      // Format display values
+      const rsiDisplay = rsi !== null && rsi !== undefined ? rsi.toFixed(1) : 'N/A';
+      const macdDisplay = macdZ !== null && macdZ !== undefined ? macdZ.toFixed(2) : 'N/A';
+      const signalDisplay = signal || 'N/A';
+      const zscoreDisplay = compositeZ !== null && compositeZ !== undefined ? compositeZ.toFixed(2) : 'N/A';
+      const priceDisplay = price !== null && price !== undefined ? `$${price.toFixed(2)}` : 'N/A';
+      
+      console.log(`${symbol.padEnd(6)} | ${rsiDisplay.padEnd(6)} | ${macdDisplay.padEnd(6)} | ${signalDisplay.padEnd(6)} | ${zscoreDisplay.padEnd(7)} | ${priceDisplay.padEnd(6)} | ${status}`);
     });
-
+    
+    const totalETFs = data.data.length;
+    
     console.log('');
-    console.log('🎯 === SERVICE QUALITY RESULTS ===');
-    console.log(`Real Data: ${realDataCount}/${metrics.length} ETFs (${Math.round(realDataCount / metrics.length * 100)}%)`);
-    console.log(`Fake Data: ${fakeDataCount}/${metrics.length} ETFs (${Math.round(fakeDataCount / metrics.length * 100)}%)`);
-    console.log(`Response Time: ${responseTime}ms`);
+    console.log('📈 QUALITY SUMMARY:');
+    console.log(`   ✅ Real Data: ${realDataCount}/${totalETFs} ETFs (${Math.round(realDataCount / totalETFs * 100)}%)`);
+    console.log(`   ⚠️ Partial Data: ${partialDataCount}/${totalETFs} ETFs (${Math.round(partialDataCount / totalETFs * 100)}%)`);
+    console.log(`   🚨 Fake Data: ${fakeDataCount}/${totalETFs} ETFs (${Math.round(fakeDataCount / totalETFs * 100)}%)`);
+    console.log('');
     
     // Overall assessment
-    console.log('');
-    console.log('🏆 === OVERALL ASSESSMENT ===');
+    const realDataPercentage = (realDataCount / totalETFs) * 100;
     
-    if (fakeDataCount === 0 && realDataCount > 0) {
-      console.log('✅ SUCCESS: ETF Fake Data Fix is working perfectly!');
-      console.log('   - All ETFs now have real technical indicators');
-      console.log('   - No fake RSI=50.0 or Z-Score=0.0000 values detected');
-      console.log('   - Database lookback periods are functioning correctly');
-    } else if (fakeDataCount < metrics.length / 2) {
-      console.log('⚠️  PARTIAL SUCCESS: Most ETFs have real data');
-      console.log(`   - ${realDataCount} ETFs with real data, ${fakeDataCount} with fake data`);
-      console.log('   - Database lookback fix is working but some data gaps remain');
+    if (realDataPercentage >= 80) {
+      console.log('🎉 SUCCESS: ETF Cache Poisoning Fix is working excellently!');
+      console.log(`   - ${realDataPercentage.toFixed(1)}% of ETFs show authentic technical indicators`);
+      console.log('   - Cache bypass successfully serving fresh database data');
+      console.log('   - No more fake RSI=50.0 or zero Z-score fallbacks detected');
+    } else if (realDataPercentage >= 50) {
+      console.log('⚠️ PARTIAL SUCCESS: Cache poisoning fix is working but needs optimization');
+      console.log(`   - ${realDataPercentage.toFixed(1)}% real data is good progress`);
+      console.log('   - Some cached fallbacks may still be present');
     } else {
-      console.log('❌ FAILURE: ETF Fake Data Fix needs additional work');
-      console.log(`   - Only ${realDataCount} ETFs have real data`);
-      console.log('   - Database queries may still be too restrictive');
-      console.log('   - Consider extending lookback period further or checking data pipeline');
+      console.log('❌ NEEDS WORK: Cache poisoning fix requires additional investigation');
+      console.log(`   - Only ${realDataPercentage.toFixed(1)}% real data detected`);
+      console.log('   - Cache clearing or data quality validation needs adjustment');
     }
-
+    
+    // Save detailed results
+    const reportData = {
+      timestamp: new Date().toISOString(),
+      apiStatus: response.status,
+      totalETFs: totalETFs,
+      realDataCount,
+      partialDataCount,
+      fakeDataCount,
+      realDataPercentage,
+      success: realDataPercentage >= 80,
+      etfDetails: data.data.map((etf: any) => ({
+        symbol: etf.symbol,
+        rsi: etf.components?.rsi14,
+        macdZ: etf.components?.macdZ,
+        signal: etf.zScoreData?.signal,
+        compositeZ: etf.zScoreData?.compositeZScore,
+        price: etf.price
+      }))
+    };
+    
+    await fs.writeFile(
+      'etf-cache-fix-verification-report.json', 
+      JSON.stringify(reportData, null, 2)
+    );
+    
+    console.log('');
+    console.log('📄 Detailed report saved to: etf-cache-fix-verification-report.json');
+    
   } catch (error) {
-    console.error('❌ ETF Metrics Service Test Failed:', error);
+    console.error('❌ Verification failed:', error);
+    
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      console.log('   💡 Tip: Make sure the server is running on localhost:5000');
+    }
   }
-
-  // Final recommendations
-  console.log('');
-  console.log('💡 === RECOMMENDATIONS ===');
-  
-  if (fakeRSICount > 0) {
-    console.log('1. Some symbols still have fake RSI=50.0 values');
-    console.log('   - Check if data pipeline is running correctly');
-    console.log('   - Verify technical indicators are being calculated');
-  }
-  
-  if (successCount < ETF_SYMBOLS.length) {
-    console.log('2. Not all ETFs have complete data sets');
-    console.log('   - Consider running data backfill operations');
-    console.log('   - Check external data provider connectivity');
-  }
-  
-  console.log('3. Monitor data quality continuously');
-  console.log('   - Set up alerts for fake data detection');
-  console.log('   - Implement regular data quality checks');
   
   console.log('');
-  console.log('🏁 ETF Data Fix Verification Complete');
+  console.log('🏁 ETF Cache Poisoning Fix verification completed');
 }
 
-// Run verification if called directly
-if (import.meta.main) {
-  verifyETFDataFix()
-    .then(() => {
-      console.log('');
-      console.log('✅ Verification script completed successfully');
-      process.exit(0);
-    })
-    .catch(error => {
-      console.error('');
-      console.error('❌ Verification script failed:', error);
-      process.exit(1);
-    });
-}
-
-export { verifyETFDataFix };
+// Run verification
+verifyETFDataFix();

@@ -143,23 +143,26 @@ class ETFMetricsService {
     try {
       // Phase 4: Circuit breaker protection
       return await etfMetricsCircuitBreaker.execute(async () => {
-        // 1. Check fast cache first (market hours optimization)
-        const fastCached = cacheService.get(this.FAST_CACHE_KEY);
-        if (fastCached) {
-          logger.info(`⚡ ETF metrics served from FAST cache (${Date.now() - startTime}ms)`);
-          performanceBudgetMonitor.recordMetric('etf-metrics', Date.now() - startTime, process.memoryUsage().heapUsed / 1024 / 1024);
-          return fastCached as ETFMetrics[];
-        }
+        // TEMPORARY: Cache bypass mode to debug fake data issue  
+        logger.warn(`🚨 CACHE BYPASS ACTIVE: Skipping all cache layers to serve fresh database data only`);
+        
+        // 1. Check fast cache first (TEMPORARILY DISABLED FOR DEBUGGING)
+        // const fastCached = cacheService.get(this.FAST_CACHE_KEY);
+        // if (fastCached) {
+        //   logger.info(`⚡ ETF metrics served from FAST cache (${Date.now() - startTime}ms)`);
+        //   performanceBudgetMonitor.recordMetric('etf-metrics', Date.now() - startTime, process.memoryUsage().heapUsed / 1024 / 1024);
+        //   return fastCached as ETFMetrics[];
+        // }
 
-        // 2. Check standard cache
-        const cached = cacheService.get(this.CACHE_KEY);
-        if (cached) {
-          // Store in fast cache for next request
-          cacheService.set(this.FAST_CACHE_KEY, cached, this.FAST_CACHE_TTL);
-          logger.info(`📊 ETF metrics served from cache (${Date.now() - startTime}ms)`);
-          performanceBudgetMonitor.recordMetric('etf-metrics', Date.now() - startTime, process.memoryUsage().heapUsed / 1024 / 1024);
-          return cached as ETFMetrics[];
-        }
+        // 2. Check standard cache (TEMPORARILY DISABLED FOR DEBUGGING)
+        // const cached = cacheService.get(this.CACHE_KEY);
+        // if (cached) {
+        //   // Store in fast cache for next request
+        //   cacheService.set(this.FAST_CACHE_KEY, cached, this.FAST_CACHE_TTL);
+        //   logger.info(`📊 ETF metrics served from cache (${Date.now() - startTime}ms)`);
+        //   performanceBudgetMonitor.recordMetric('etf-metrics', Date.now() - startTime, process.memoryUsage().heapUsed / 1024 / 1024);
+        //   return cached as ETFMetrics[];
+        // }
 
       // 3. PRIORITY: Get real-time price data from Twelve Data API, fallback to database
       const latestPrices = await this.getLatestPricesWithRealTime();
