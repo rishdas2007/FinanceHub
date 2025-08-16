@@ -55,6 +55,23 @@ interface ETFMetricsResponse {
   timestamp: string;
 }
 
+// Helper function to safely format timestamps - fixes "Invalid Date" issue
+function formatTimestamp(timestamp: any): string {
+  if (!timestamp) {
+    return 'Recently';
+  }
+  
+  try {
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) {
+      return 'Recently';
+    }
+    return date.toLocaleTimeString();
+  } catch (error) {
+    return 'Recently';
+  }
+}
+
 const ETFMetricsTableOptimized = () => {
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -257,7 +274,7 @@ const ETFMetricsTableOptimized = () => {
         </CardTitle>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">
-            Updated: {new Date(data.timestamp).toLocaleTimeString()}
+            Updated: {formatTimestamp(data.timestamp)}
           </span>
           <Button onClick={handleRefresh} variant="outline" size="sm" className="border-blue-600 text-blue-400 hover:bg-blue-600/10">
             <RefreshCw className="h-4 w-4" />

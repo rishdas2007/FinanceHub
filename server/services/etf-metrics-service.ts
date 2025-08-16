@@ -7,6 +7,7 @@ import { zscoreTechnicalService } from './zscore-technical-service';
 import { etfMetricsCircuitBreaker } from '../middleware/circuit-breaker';
 import { performanceBudgetMonitor } from '../middleware/performance-budget';
 import { StandardTechnicalIndicatorsService } from './standard-technical-indicators';
+import { ETFDataQualityValidator } from './etf-data-quality-validator';
 import { welfordStats, hasSufficientData, zScore, calculateRSI } from '@shared/utils/statistics';
 import { validateEtfPayload, createContentETag, validatePriceSanity, type PayloadMetadata } from './validatePayload';
 import { MarketDataService } from './market-data-unified';
@@ -272,25 +273,25 @@ class ETFMetricsService {
         }
       }
 
-      // 8. CRITICAL: Validate data quality before caching
-      let validMetricsCount = 0;
-      etfMetrics.forEach(metric => {
-        if (this.validateRealData(metric)) {
-          validMetricsCount++;
-        }
-      });
-
-      const dataQualityRatio = validMetricsCount / etfMetrics.length;
-      if (dataQualityRatio < 0.5) {
-        logger.error(`🚨 DATA QUALITY ALERT: Only ${validMetricsCount}/${etfMetrics.length} ETFs have real data (${(dataQualityRatio * 100).toFixed(1)}%)`);
-        
-        // Don't cache poor quality data
-        logger.warn('⚠️ Skipping cache update due to poor data quality');
-      } else {
-        // Cache results in both standard and fast cache with data provenance
+      // 8. CRITICAL: Validate data quality before caching (enhanced validation)
+      const qualityReport = ETFDataQualityValidator.validateETFMetrics(etfMetrics);
+      
+      if (qualityReport.recommendation === 'CACHE') {
+        // Cache high-quality data
         cacheService.set(this.CACHE_KEY, etfMetrics, this.CACHE_TTL);
         cacheService.set(this.FAST_CACHE_KEY, etfMetrics, this.FAST_CACHE_TTL);
-        logger.info(`✅ Cached high-quality data: ${validMetricsCount}/${etfMetrics.length} ETFs validated`);
+        logger.info(`✅ Cached high-quality data: ${qualityReport.realDataPoints}/${qualityReport.totalDataPoints} real data points (${(qualityReport.realDataRatio * 100).toFixed(1)}%)`);
+      } else if (qualityReport.recommendation === 'WARN') {
+        // Cache with warning
+        cacheService.set(this.CACHE_KEY, etfMetrics, this.CACHE_TTL);
+        cacheService.set(this.FAST_CACHE_KEY, etfMetrics, this.FAST_CACHE_TTL);
+        logger.warn(`⚠️ Cached mixed-quality data: ${qualityReport.realDataPoints}/${qualityReport.totalDataPoints} real data points (${(qualityReport.realDataRatio * 100).toFixed(1)}%)`);
+        logger.warn(`🚨 Quality issues detected:`, qualityReport.issues);
+      } else {
+        // Don't cache poor quality data - serves from fresh data without caching
+        logger.error(`🚨 DATA QUALITY ALERT: Poor data quality detected (${(qualityReport.realDataRatio * 100).toFixed(1)}% real data)`);
+        logger.error(`🚨 Quality issues:`, qualityReport.issues);
+        logger.warn('⚠️ Skipping cache update due to poor data quality - serving fresh data without caching');
       }
       
       const priceInfo = etfMetrics.map(e => `${e.symbol}:$${e.price}`).join(', ');
