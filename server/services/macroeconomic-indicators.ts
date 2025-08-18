@@ -233,18 +233,29 @@ export class MacroeconomicService {
       logger.info(`📊 Calculated ${liveZScoreData.length} live z-scores from database`);
 
       // FILTER OUT EXTREME Z-SCORES (above 3 or below -3) as requested by user
+      // Check BOTH main Z-score AND delta Z-score (trend) for extreme values
       const filteredZScoreData = liveZScoreData.filter((zData) => {
-        const zScore = zData.deltaAdjustedZScore;
-        const isWithinAcceptableRange = zScore >= -3 && zScore <= 3;
+        const mainZScore = zData.deltaAdjustedZScore;
+        const deltaZScore = zData.deltaZScore;
+        
+        const mainZWithinRange = mainZScore >= -3 && mainZScore <= 3;
+        const deltaZWithinRange = deltaZScore >= -3 && deltaZScore <= 3;
+        
+        const isWithinAcceptableRange = mainZWithinRange && deltaZWithinRange;
         
         if (!isWithinAcceptableRange) {
-          logger.info(`🗑️ Filtering out ${zData.metric} with extreme Z-score: ${zScore.toFixed(2)}`);
+          if (!mainZWithinRange) {
+            logger.info(`🗑️ Filtering out ${zData.metric} with extreme main Z-score: ${mainZScore.toFixed(2)}`);
+          }
+          if (!deltaZWithinRange) {
+            logger.info(`🗑️ Filtering out ${zData.metric} with extreme trend Z-score: ${deltaZScore.toFixed(2)}`);
+          }
         }
         
         return isWithinAcceptableRange;
       });
       
-      logger.info(`📊 Filtered out ${liveZScoreData.length - filteredZScoreData.length} indicators with extreme Z-scores (|z| > 3)`);
+      logger.info(`📊 Filtered out ${liveZScoreData.length - filteredZScoreData.length} indicators with extreme Z-scores (|z| > 3 OR |trend| > 3)`);
       logger.info(`📊 Remaining indicators after filtering: ${filteredZScoreData.length}`);
 
       const indicators = await Promise.all(filteredZScoreData.map(async (zData) => {
@@ -407,7 +418,7 @@ export class MacroeconomicService {
 
       const data: MacroeconomicData = {
         indicators,
-        aiSummary: `Live z-score analysis computed for ${indicators.length} comprehensive economic indicators using 12-month historical statistics. Indicators with extreme Z-scores (|z| > 3) have been filtered out for data quality. Includes GDP Growth Rate and all indicators with sufficient historical data baseline.`,
+        aiSummary: `Live z-score analysis computed for ${indicators.length} comprehensive economic indicators using 12-month historical statistics. Indicators with extreme Z-scores or trend scores (|z| > 3 OR |trend| > 3) have been filtered out for data quality. Includes GDP Growth Rate and all indicators with sufficient historical data baseline.`,
         lastUpdated: new Date().toISOString(),
         source: 'Live Database Calculation (12-month rolling statistics)'
       };
