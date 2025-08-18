@@ -232,7 +232,22 @@ export class MacroeconomicService {
       
       logger.info(`📊 Calculated ${liveZScoreData.length} live z-scores from database`);
 
-      const indicators = await Promise.all(liveZScoreData.map(async (zData) => {
+      // FILTER OUT EXTREME Z-SCORES (above 3 or below -3) as requested by user
+      const filteredZScoreData = liveZScoreData.filter((zData) => {
+        const zScore = zData.deltaAdjustedZScore;
+        const isWithinAcceptableRange = zScore >= -3 && zScore <= 3;
+        
+        if (!isWithinAcceptableRange) {
+          logger.info(`🗑️ Filtering out ${zData.metric} with extreme Z-score: ${zScore.toFixed(2)}`);
+        }
+        
+        return isWithinAcceptableRange;
+      });
+      
+      logger.info(`📊 Filtered out ${liveZScoreData.length - filteredZScoreData.length} indicators with extreme Z-scores (|z| > 3)`);
+      logger.info(`📊 Remaining indicators after filtering: ${filteredZScoreData.length}`);
+
+      const indicators = await Promise.all(filteredZScoreData.map(async (zData) => {
         const currentReading = zData.currentValue;
         const priorReading = zData.priorValue;
         
@@ -392,7 +407,7 @@ export class MacroeconomicService {
 
       const data: MacroeconomicData = {
         indicators,
-        aiSummary: `Live z-score analysis computed for ${indicators.length} comprehensive economic indicators using 12-month historical statistics. Includes GDP Growth Rate and all indicators with sufficient historical data baseline.`,
+        aiSummary: `Live z-score analysis computed for ${indicators.length} comprehensive economic indicators using 12-month historical statistics. Indicators with extreme Z-scores (|z| > 3) have been filtered out for data quality. Includes GDP Growth Rate and all indicators with sufficient historical data baseline.`,
         lastUpdated: new Date().toISOString(),
         source: 'Live Database Calculation (12-month rolling statistics)'
       };
