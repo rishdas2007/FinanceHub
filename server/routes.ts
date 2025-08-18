@@ -282,7 +282,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const fastDashboardRoutes = (await import('./routes/fast-dashboard-routes')).default;
   app.use('/api', fastDashboardRoutes);
   
-  // ETF technical metrics route removed - component eliminated from dashboard
+  // Clean ETF technical metrics - direct API calls, no cache
+  const etfTechnicalCleanRoutes = (await import('./routes/etf-technical-clean')).default;
+  app.use('/api/etf', etfTechnicalCleanRoutes);
   
   // OPTIMIZED: Fast ETF Metrics API with market-aware caching
   // Support both routes to avoid subtle 404s / empty states
