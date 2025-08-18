@@ -86,11 +86,11 @@ export class IntelligentCronScheduler {
       await this.runJobSafely('daily-status', () => this.generateDailyStatusReport());
     });
 
-    // Schedule daily RSI calculation (4:15 PM ET on trading days)
-    this.scheduleJob('daily-rsi-calculation', '15 16 * * 1-5', async () => {
-      await this.runJobSafely('daily-rsi-calculation', async () => {
-        const { dailyRSICalculator } = await import('./daily-rsi-calculator');
-        await dailyRSICalculator.calculateDailyRSI();
+    // Schedule daily technical indicators calculation (4:15 PM ET on trading days)
+    this.scheduleJob('daily-technical-indicators', '15 16 * * 1-5', async () => {
+      await this.runJobSafely('daily-technical-indicators', async () => {
+        const { dailyTechnicalCalculator } = await import('./daily-rsi-calculator');
+        await dailyTechnicalCalculator.calculateDailyTechnicalIndicators();
       });
     });
 
@@ -135,7 +135,7 @@ export class IntelligentCronScheduler {
     }, 5000);
 
     this.isInitialized = true;
-    logger.info('✅ Intelligent cron scheduler initialized with 8 jobs (including daily RSI calculation)');
+    logger.info('✅ Intelligent cron scheduler initialized with 8 jobs (including daily technical indicators)');
   }
 
   private scheduleJob(name: string, cronExpression: string, jobFunction: () => Promise<void>): void {

@@ -1,6 +1,6 @@
 /**
- * Daily RSI Calculator Service
- * Ensures one authentic RSI calculation per trading day at market close
+ * Daily Technical Indicators Calculator Service
+ * Ensures one authentic calculation per trading day at market close for RSI, MACD, and Bollinger %B
  * Prevents database corruption from repeated intraday calculations
  */
 
@@ -14,40 +14,40 @@ interface PriceData {
   timestamp: Date;
 }
 
-export class DailyRSICalculatorService {
-  private static instance: DailyRSICalculatorService;
+export class DailyTechnicalIndicatorsService {
+  private static instance: DailyTechnicalIndicatorsService;
 
-  public static getInstance(): DailyRSICalculatorService {
+  public static getInstance(): DailyTechnicalIndicatorsService {
     if (!this.instance) {
-      this.instance = new DailyRSICalculatorService();
+      this.instance = new DailyTechnicalIndicatorsService();
     }
     return this.instance;
   }
 
   /**
-   * Calculate and store one RSI value per ETF per trading day
+   * Calculate and store one set of technical indicators (RSI, MACD, %B) per ETF per trading day
    * Called at market close (4:00 PM ET) or once per day
    */
-  async calculateDailyRSI(): Promise<void> {
+  async calculateDailyTechnicalIndicators(): Promise<void> {
     const ETF_SYMBOLS = ['SPY', 'XLK', 'XLV', 'XLF', 'XLY', 'XLI', 'XLC', 'XLP', 'XLE', 'XLU', 'XLB', 'XLRE'];
     
-    logger.info('🔢 Starting daily RSI calculation at market close');
+    logger.info('🔢 Starting daily technical indicators calculation at market close');
     
     for (const symbol of ETF_SYMBOLS) {
       try {
-        await this.calculateDailyRSIForSymbol(symbol);
+        await this.calculateDailyIndicatorsForSymbol(symbol);
       } catch (error) {
-        logger.error(`❌ Error calculating daily RSI for ${symbol}:`, error);
+        logger.error(`❌ Error calculating daily indicators for ${symbol}:`, error);
       }
     }
     
-    logger.info('✅ Daily RSI calculation completed');
+    logger.info('✅ Daily technical indicators calculation completed');
   }
 
   /**
-   * Calculate RSI for a single symbol using authentic daily closing prices
+   * Calculate all technical indicators for a single symbol using authentic daily closing prices
    */
-  private async calculateDailyRSIForSymbol(symbol: string): Promise<void> {
+  private async calculateDailyIndicatorsForSymbol(symbol: string): Promise<void> {
     // Check if we already have today's RSI calculation
     const today = new Date();
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -62,42 +62,43 @@ export class DailyRSICalculatorService {
       .limit(1);
 
     if (existingTodayRSI.length > 0) {
-      logger.info(`📊 Daily RSI already calculated for ${symbol} today`);
+      logger.info(`📊 Daily indicators already calculated for ${symbol} today`);
       return;
     }
 
-    // Get last 30 days of closing prices for 14-period RSI calculation
-    const priceHistory = await this.getDailyClosingPrices(symbol, 30);
+    // Get last 50 days of closing prices for reliable indicator calculations
+    const priceHistory = await this.getDailyClosingPrices(symbol, 50);
     
-    if (priceHistory.length < 15) {
+    if (priceHistory.length < 30) {
       logger.warn(`⚠️ Insufficient price history for ${symbol}: ${priceHistory.length} days`);
       return;
     }
 
-    // Calculate authentic daily RSI using proper Wilder's method
+    // Calculate all technical indicators using authentic daily data
     const closes = priceHistory.map(p => parseFloat(p.close));
     const rsiValue = this.calculateWildersRSI(closes, 14);
+    const macdResult = this.calculateMACD(closes);
+    const bollingerResult = this.calculateBollingerBands(closes, 20, 2);
 
-    if (rsiValue === null) {
-      logger.warn(`⚠️ Failed to calculate RSI for ${symbol}`);
+    if (rsiValue === null || macdResult === null || bollingerResult === null) {
+      logger.warn(`⚠️ Failed to calculate indicators for ${symbol}`);
       return;
     }
 
-    // Store the daily RSI calculation with current timestamp
+    // Store the daily technical indicators calculation with current timestamp
     await db.insert(technicalIndicators).values({
       symbol,
       timestamp: new Date(),
       rsi: rsiValue.toString(),
-      // Set other indicators to null since this is a daily RSI-only calculation
-      macd_line: null,
-      macdSignal: null,
-      percent_b: null,
-      atr: null,
+      macd_line: macdResult.macd.toString(),
+      macdSignal: macdResult.signal?.toString() || null,
+      percent_b: bollingerResult.percentB.toString(),
+      atr: null, // ATR not calculated in this service
       createdAt: new Date(),
       updatedAt: new Date()
     });
 
-    logger.info(`📈 Daily RSI calculated for ${symbol}: ${rsiValue.toFixed(4)}`);
+    logger.info(`📈 Daily indicators calculated for ${symbol}: RSI=${rsiValue.toFixed(4)}, MACD=${macdResult.macd.toFixed(4)}, %B=${bollingerResult.percentB.toFixed(4)}`);
   }
 
   /**
@@ -171,6 +172,65 @@ export class DailyRSICalculatorService {
   }
 
   /**
+   * Calculate MACD using standard 12,26,9 parameters
+   */
+  private calculateMACD(closes: number[]): { macd: number; signal: number | null } | null {
+    if (closes.length < 35) return null; // Need enough data for 26-period EMA + 9-period signal
+
+    const ema12 = this.calculateEMA(closes, 12);
+    const ema26 = this.calculateEMA(closes, 26);
+    
+    if (ema12 === null || ema26 === null) return null;
+
+    const macd = ema12 - ema26;
+    
+    // For signal line, need more historical MACD values which we don't have in this simple implementation
+    // Signal line would require maintaining MACD history for 9-period EMA
+    return { macd, signal: null };
+  }
+
+  /**
+   * Calculate EMA using proper seeding
+   */
+  private calculateEMA(closes: number[], period: number): number | null {
+    if (closes.length < period * 2) return null;
+
+    const multiplier = 2 / (period + 1);
+    
+    // Seed with SMA of first 'period' values
+    let ema = closes.slice(0, period).reduce((sum, val) => sum + val, 0) / period;
+    
+    // Apply EMA to remaining values
+    for (let i = period; i < closes.length; i++) {
+      ema = (closes[i] * multiplier) + (ema * (1 - multiplier));
+    }
+    
+    return ema;
+  }
+
+  /**
+   * Calculate Bollinger Bands with %B position
+   */
+  private calculateBollingerBands(closes: number[], period: number, stdDev: number): { percentB: number } | null {
+    if (closes.length < period) return null;
+
+    const recentCloses = closes.slice(-period);
+    const mean = recentCloses.reduce((sum, val) => sum + val, 0) / period;
+    
+    // Calculate sample standard deviation (proper statistical method)
+    const variance = recentCloses.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (period - 1);
+    const std = Math.sqrt(variance);
+    
+    const upperBand = mean + (stdDev * std);
+    const lowerBand = mean - (stdDev * std);
+    
+    const currentPrice = closes[closes.length - 1];
+    const percentB = (currentPrice - lowerBand) / (upperBand - lowerBand);
+    
+    return { percentB: Math.max(0, Math.min(1, percentB)) }; // Bound between 0 and 1
+  }
+
+  /**
    * Clean up duplicate RSI entries from the same day
    * Keeps only the most recent calculation per day per symbol
    */
@@ -191,4 +251,4 @@ export class DailyRSICalculatorService {
   }
 }
 
-export const dailyRSICalculator = DailyRSICalculatorService.getInstance();
+export const dailyTechnicalCalculator = DailyTechnicalIndicatorsService.getInstance();
