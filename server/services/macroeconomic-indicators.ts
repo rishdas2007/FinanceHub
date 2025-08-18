@@ -385,22 +385,8 @@ export class MacroeconomicService {
           category: zData.category,
           releaseDate: zData.periodDate,
           period_date: zData.periodDate, // Add period_date field for table display
-          // CRITICAL FIX: Use YoY transformation for proper display values with fallback
-          currentReading: (() => {
-            if (yoyTransformation) {
-              return yoyTransformation.displayValue;
-            }
-            
-            // FALLBACK: Manual transformation for missing PPI/PCE series showing raw index values
-            if (needsManualTransformation(zData.metric, zData.currentValue) && zData.currentValue) {
-              // Rough YoY calculation: assume 2-3% inflation for PPI/PCE series as reasonable fallback
-              const estimatedYoY = 2.5; // Conservative estimate for missing data
-              logger.warn(`Using fallback transformation for ${zData.metric}: ${zData.currentValue} → ~${estimatedYoY}%`);
-              return `~${estimatedYoY.toFixed(1)}%`;
-            }
-            
-            return formatNumber(zData.currentValue, zData.unit, zData.metric);
-          })(),
+          // CONSISTENT FORMATTING: Use same formatNumber function for both current and prior readings
+          currentReading: formatNumber(zData.currentValue, zData.unit, zData.metric),
           priorReading: formatNumber(priorReading, zData.unit, zData.metric),
           varianceVsPrior: formatVariance(actualVariance, zData.unit, zData.metric), // Simple current - prior calculation
           zScore: zData.deltaAdjustedZScore, // Use delta-adjusted z-score instead of raw z-score
