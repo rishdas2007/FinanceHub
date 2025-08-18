@@ -178,8 +178,8 @@ router.get('/technical-clean', async (req, res) => {
         const historicalBBs: number[] = [];
         
         // Calculate rolling technical indicators from price history for statistical baseline
-        if (timeSeriesData.values && Array.isArray(timeSeriesData.values) && timeSeriesData.values.length >= 40) {
-          const allPrices = timeSeriesData.values.map((v: any) => parseFloat(v.close)).reverse();
+        if (timeSeriesResponse?.values && Array.isArray(timeSeriesResponse.values) && timeSeriesResponse.values.length >= 40) {
+          const allPrices = timeSeriesResponse.values.map((v: any) => parseFloat(v.close)).reverse();
           console.log(`🔍 ${symbol} Processing ${allPrices.length} price points for historical analysis`);
           
           // Calculate historical MACD values using same formula - simplified approach
@@ -195,7 +195,7 @@ router.get('/technical-clean', async (req, res) => {
             
             if (priceWindow.length >= 20) {
               const historicalBB = calculateBollingerBands(priceWindow);
-              if (historicalBB?.percB !== null) historicalBBs.push(historicalBB.percB);
+              if (historicalBB && historicalBB.percB !== null) historicalBBs.push(historicalBB.percB);
             }
           }
         }

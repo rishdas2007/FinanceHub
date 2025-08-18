@@ -1,45 +1,44 @@
-#!/usr/bin/env node
+// Test the Z-score methodology with sample data to verify fixes
+const fetch = require('node-fetch');
 
-/**
- * Test ETF Technical Metrics Clean Endpoint
- */
-
-async function testETFCleanEndpoint() {
-  console.log('🔍 Testing ETF Technical Clean endpoint...\n');
+async function testZScoreImplementation() {
+  console.log('🧪 Testing Z-score methodology fixes...');
   
   try {
     const response = await fetch('http://localhost:5000/api/etf/technical-clean');
+    const data = await response.json();
     
-    console.log(`Status: ${response.status}`);
-    console.log(`Content-Type: ${response.headers.get('content-type')}`);
+    console.log('API Response:', {
+      success: data.success,
+      dataCount: data.data?.length || 0,
+      timestamp: data.timestamp,
+      source: data.source
+    });
     
-    if (response.ok) {
-      const data = await response.json();
-      
-      console.log(`✅ Success: ${data.success}`);
-      console.log(`📊 ETF count: ${data.data?.length || 0}`);
-      console.log(`📡 Source: ${data.source}`);
-      
-      if (data.data && data.data.length > 0) {
-        console.log('\n📈 Sample ETF:');
-        const sample = data.data[0];
-        console.log(`   Symbol: ${sample.symbol}`);
-        console.log(`   Price: $${sample.price}`);
-        console.log(`   Change: ${sample.changePercent}%`);
-        console.log(`   RSI: ${sample.rsi || 'N/A'}`);
-        console.log(`   MACD: ${sample.macd || 'N/A'}`);
-        console.log(`   Z-Score: ${sample.zScore || 'N/A'}`);
-        console.log(`   Signal: ${sample.signal}`);
+    if (data.data && data.data.length > 0) {
+      const spy = data.data.find(etf => etf.symbol === 'SPY');
+      if (spy) {
+        console.log('SPY Z-score Analysis:', {
+          symbol: spy.symbol,
+          macd: spy.macd,
+          macdZScore: spy.macdZScore,
+          rsi: spy.rsi, 
+          rsiZScore: spy.rsiZScore,
+          compositeZScore: spy.zScore,
+          signal: spy.signal
+        });
+        
+        // Check if Z-scores are in reasonable range
+        const reasonableRange = Math.abs(spy.macdZScore) <= 3;
+        console.log(`Z-score in reasonable range (±3): ${reasonableRange ? '✅' : '❌'}`);
       }
-      
     } else {
-      const text = await response.text();
-      console.log('❌ Error response:', text);
+      console.log('❌ No ETF data available - likely API rate limits');
     }
     
   } catch (error) {
-    console.error('❌ Test failed:', error.message);
+    console.error('Test failed:', error.message);
   }
 }
 
-testETFCleanEndpoint().catch(console.error);
+testZScoreImplementation();
