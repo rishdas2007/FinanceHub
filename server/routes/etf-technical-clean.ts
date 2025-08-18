@@ -150,8 +150,9 @@ router.get('/technical-clean', async (req, res) => {
           maGap: null
         };
         
+        let timeSeriesData: any = null;
         if (timeSeriesResponse.ok) {
-          const timeSeriesData = await timeSeriesResponse.json();
+          timeSeriesData = await timeSeriesResponse.json();
           
           if (timeSeriesData.values && Array.isArray(timeSeriesData.values)) {
             const prices = timeSeriesData.values.map((v: any) => parseFloat(v.close)).reverse();
@@ -185,8 +186,7 @@ router.get('/technical-clean', async (req, res) => {
           }
         }
         
-        // Import historical MACD service for database-first approach
-        const { historicalMACDService } = await import('../services/historical-macd-service');
+        // Get database data for Z-score calculation
         
         // Get deduplicated historical data for consistent z-score calculation
         let historicalMACDs: number[] = [];
@@ -205,8 +205,8 @@ router.get('/technical-clean', async (req, res) => {
         }
         
         // Fallback to current price-based calculation if insufficient database data
-        if (historicalMACDs.length < 30 && timeSeriesResponse?.values && Array.isArray(timeSeriesResponse.values) && timeSeriesResponse.values.length >= 40) {
-          const allPrices = timeSeriesResponse.values.map((v: any) => parseFloat(v.close)).reverse();
+        if (historicalMACDs.length < 30 && timeSeriesData?.values && Array.isArray(timeSeriesData.values) && timeSeriesData.values.length >= 40) {
+          const allPrices = timeSeriesData.values.map((v: any) => parseFloat(v.close)).reverse();
           console.log(`🔍 ${symbol} Falling back to price-based calculation with ${allPrices.length} price points`);
           
           const priceBasedMACDs: number[] = [];
@@ -236,7 +236,7 @@ router.get('/technical-clean', async (req, res) => {
           if (priceBasedBBs.length > historicalBBs.length) historicalBBs = priceBasedBBs;
         }
         
-        // Final fallback to realistic market-based values
+        // Final fallback to realistic market-based values if insufficient data
         const finalHistoricalMACD = historicalMACDs.length >= 10 ? historicalMACDs : historicalMACDService.getRealisticMACDFallback(symbol);
         const finalHistoricalRSI = historicalRSIs.length >= 10 ? historicalRSIs : historicalMACDService.getRealisticRSIFallback();
         const finalHistoricalBB = historicalBBs.length >= 10 ? historicalBBs : historicalMACDService.getRealisticBBFallback();
