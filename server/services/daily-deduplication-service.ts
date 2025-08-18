@@ -1,223 +1,235 @@
 import { db } from '../db';
-import { historicalTechnicalIndicators } from '@shared/schema';
+import { historicalTechnicalIndicators } from '../../shared/schema';
 import { eq, and, sql, desc } from 'drizzle-orm';
-const logger = console;
+import logger from '../utils/logger';
+
+interface TechnicalIndicators {
+  rsi?: number | null;
+  macd?: number | null;
+  macdSignal?: number | null;
+  bollingerPercentB?: number | null;
+  ema12?: number | null;
+  ema26?: number | null;
+}
 
 /**
  * Daily Deduplication Service
- * Ensures exactly one data point per trading day for all ETF metrics
- * Prevents database corruption from multiple intraday calculations
+ * Prevents corruption by ensuring exactly one data point per trading day
  */
 export class DailyDeduplicationService {
   
   /**
-   * Check if we already have data for today for a given symbol
-   * Returns true if data exists (should skip storage), false if we should store
-   */
-  async shouldSkipStorage(symbol: string): Promise<boolean> {
-    try {
-      const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
-      
-      const existingRecords = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(historicalTechnicalIndicators)
-        .where(and(
-          eq(historicalTechnicalIndicators.symbol, symbol),
-          sql`DATE(${historicalTechnicalIndicators.date}) = DATE(${startOfDay})`
-        ));
-      
-      const recordCount = existingRecords[0]?.count || 0;
-      
-      if (recordCount > 0) {
-        logger.log(`📅 Daily data already exists for ${symbol} on ${startOfDay.toDateString()}, skipping storage`);
-        return true;
-      }
-      
-      return false;
-      
-    } catch (error) {
-      logger.error(`❌ Error checking daily data for ${symbol}:`, error);
-      return false; // If we can't check, allow storage
-    }
-  }
-  
-  /**
-   * Store technical indicators with daily deduplication logic
-   * Ensures only one record per symbol per trading day
+   * Store technical indicators with automatic deduplication
+   * Returns true if stored, false if duplicate prevented
    */
   async storeTechnicalIndicatorsWithDeduplication(
     symbol: string,
-    indicators: {
-      rsi?: number;
-      macd?: number;
-      macdSignal?: number;
-      percentB?: number;
-      atr?: number;
-      priceChange?: number;
-      maTrend?: number;
-    }
+    indicators: TechnicalIndicators
   ): Promise<boolean> {
     try {
-      // Check if we should skip storage due to existing daily data
-      const shouldSkip = await this.shouldSkipStorage(symbol);
-      if (shouldSkip) {
-        return false; // Storage skipped
+      // Check if we already have a record for today
+      const existsToday = await this.hasRecordForToday(symbol);
+      
+      if (existsToday) {
+        logger.debug(`⏭️ Skipping duplicate storage for ${symbol} - already stored today`);
+        return false;
       }
       
-      // Store the data since we don't have any for today
-      const now = new Date();
+      // Validate and sanitize indicators
+      const validatedIndicators = this.validateIndicators(indicators);
       
+      // Store the new record
       await db.insert(historicalTechnicalIndicators).values({
         symbol,
-        date: now,
-        rsi: indicators.rsi ? indicators.rsi.toString() : null,
-        macd: indicators.macd ? indicators.macd.toString() : null,
-        macdSignal: indicators.macdSignal ? indicators.macdSignal.toString() : null,
-        percentB: indicators.percentB ? indicators.percentB.toString() : null,
-        atr: indicators.atr ? indicators.atr.toString() : null,
-        priceChange: indicators.priceChange ? indicators.priceChange.toString() : null,
-        maTrend: indicators.maTrend ? indicators.maTrend.toString() : null,
+        date: new Date(),
+        rsi: validatedIndicators.rsi,
+        macd: validatedIndicators.macd,
+        macdSignal: validatedIndicators.macdSignal,
+        bollingerPercentB: validatedIndicators.bollingerPercentB,
+        // EMA fields would be added if they exist in schema
       });
       
-      logger.log(`✅ Stored daily technical indicators for ${symbol} on ${now.toDateString()}`);
-      return true; // Storage successful
+      logger.debug(`✅ Stored technical indicators for ${symbol}`);
+      return true;
       
     } catch (error) {
-      logger.error(`❌ Error storing deduplicated technical indicators for ${symbol}:`, error);
+      logger.error(`Error storing indicators for ${symbol}:`, error);
       return false;
     }
   }
   
   /**
-   * Clean up any existing duplicate records for today
-   * Keeps only the most recent record per symbol per day
+   * Check if a record already exists for today
    */
-  async cleanupDuplicatesForToday(symbols?: string[]): Promise<void> {
-    const symbolsToClean = symbols || [
-      'SPY', 'XLB', 'XLC', 'XLE', 'XLF', 'XLI', 'XLK', 'XLP', 'XLRE', 'XLU', 'XLV', 'XLY'
-    ];
-    
-    for (const symbol of symbolsToClean) {
-      try {
-        // Get today's date range
-        const today = new Date();
-        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
-        
-        // Find all records for today
-        const todaysRecords = await db
-          .select()
-          .from(historicalTechnicalIndicators)
-          .where(and(
+  private async hasRecordForToday(symbol: string): Promise<boolean> {
+    try {
+      const result = await db
+        .select({ count: sql`count(*)` })
+        .from(historicalTechnicalIndicators)
+        .where(
+          and(
             eq(historicalTechnicalIndicators.symbol, symbol),
-            sql`DATE(${historicalTechnicalIndicators.date}) = DATE(${startOfDay})`
-          ))
-          .orderBy(desc(historicalTechnicalIndicators.date));
-        
-        if (todaysRecords.length > 1) {
-          logger.warn(`🧹 Found ${todaysRecords.length} duplicate records for ${symbol} today, cleaning up`);
-          
-          // Keep the most recent record, delete the rest
-          const [keepRecord, ...deleteRecords] = todaysRecords;
-          
-          for (const record of deleteRecords) {
-            await db
-              .delete(historicalTechnicalIndicators)
-              .where(and(
-                eq(historicalTechnicalIndicators.symbol, symbol),
-                eq(historicalTechnicalIndicators.date, record.date)
-              ));
-          }
-          
-          logger.info(`✅ Cleaned up ${deleteRecords.length} duplicate records for ${symbol}, kept latest at ${keepRecord.date.toISOString()}`);
-        }
-        
-      } catch (error) {
-        logger.error(`❌ Error cleaning duplicates for ${symbol}:`, error);
-      }
+            sql`DATE(${historicalTechnicalIndicators.date}) = CURRENT_DATE`
+          )
+        );
+      
+      return Number(result[0]?.count || 0) > 0;
+      
+    } catch (error) {
+      logger.error(`Error checking existing record for ${symbol}:`, error);
+      return false; // Assume no record to allow storage attempt
     }
   }
   
   /**
-   * Get the current record count for today
-   * Useful for monitoring and verification
+   * Get count of today's records for a symbol
    */
   async getTodaysRecordCount(symbol: string): Promise<number> {
     try {
-      const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      
       const result = await db
-        .select({ count: sql<number>`count(*)` })
+        .select({ count: sql`count(*)` })
         .from(historicalTechnicalIndicators)
-        .where(and(
-          eq(historicalTechnicalIndicators.symbol, symbol),
-          sql`DATE(${historicalTechnicalIndicators.date}) = DATE(${startOfDay})`
-        ));
+        .where(
+          and(
+            eq(historicalTechnicalIndicators.symbol, symbol),
+            sql`DATE(${historicalTechnicalIndicators.date}) = CURRENT_DATE`
+          )
+        );
       
-      return result[0]?.count || 0;
+      return Number(result[0]?.count || 0);
       
     } catch (error) {
-      logger.error(`❌ Error getting record count for ${symbol}:`, error);
+      logger.error(`Error getting today's record count for ${symbol}:`, error);
       return 0;
     }
   }
   
   /**
-   * Verify daily deduplication across all ETFs
-   * Returns a summary of record counts per symbol for today
+   * Clean up duplicate records for a specific date
+   * Keeps only the latest record per day
    */
-  async verifyDailyDeduplication(): Promise<{ [symbol: string]: number }> {
-    const symbols = ['SPY', 'XLB', 'XLC', 'XLE', 'XLF', 'XLI', 'XLK', 'XLP', 'XLRE', 'XLU', 'XLV', 'XLY'];
-    const results: { [symbol: string]: number } = {};
-    
-    for (const symbol of symbols) {
-      results[symbol] = await this.getTodaysRecordCount(symbol);
+  async cleanupDuplicatesForDate(symbol: string, date: Date): Promise<void> {
+    try {
+      // Get the latest record for the specified date
+      const latestRecord = await db
+        .select()
+        .from(historicalTechnicalIndicators)
+        .where(
+          and(
+            eq(historicalTechnicalIndicators.symbol, symbol),
+            sql`DATE(${historicalTechnicalIndicators.date}) = DATE(${date.toISOString()})`
+          )
+        )
+        .orderBy(desc(historicalTechnicalIndicators.date))
+        .limit(1);
+      
+      if (latestRecord.length === 0) {
+        return; // No records to clean up
+      }
+      
+      // Delete all other records for the same day
+      await db
+        .delete(historicalTechnicalIndicators)
+        .where(
+          and(
+            eq(historicalTechnicalIndicators.symbol, symbol),
+            sql`DATE(${historicalTechnicalIndicators.date}) = DATE(${date.toISOString()})`,
+            sql`${historicalTechnicalIndicators.id} != ${latestRecord[0].id}`
+          )
+        );
+      
+      logger.info(`🧹 Cleaned up duplicates for ${symbol} on ${date.toDateString()}`);
+      
+    } catch (error) {
+      logger.error(`Error cleaning duplicates for ${symbol}:`, error);
     }
-    
-    const totalRecords = Object.values(results).reduce((sum, count) => sum + count, 0);
-    const symbolsWithMultiple = Object.entries(results).filter(([_, count]) => count > 1);
-    
-    logger.info(`📊 Daily Deduplication Verification:`);
-    logger.info(`  Total records today: ${totalRecords}`);
-    logger.info(`  Symbols with multiple records: ${symbolsWithMultiple.length}`);
-    
-    if (symbolsWithMultiple.length > 0) {
-      logger.warn(`⚠️ Symbols with duplicates:`, symbolsWithMultiple);
-    } else {
-      logger.info(`✅ All symbols have exactly one data point per trading day`);
-    }
-    
-    return results;
   }
   
   /**
-   * Market-aware storage decision
-   * Only allows storage during market hours or at market close
-   * Prevents multiple storage calls throughout the day
+   * Validate and sanitize technical indicator values
    */
-  async isStorageAllowed(): Promise<{ allowed: boolean; reason: string }> {
+  private validateIndicators(indicators: TechnicalIndicators): TechnicalIndicators {
+    const validated: TechnicalIndicators = {};
+    
+    // RSI should be 0-100
+    if (indicators.rsi !== null && indicators.rsi !== undefined) {
+      validated.rsi = Math.max(0, Math.min(100, indicators.rsi));
+    }
+    
+    // MACD can be any value but cap extreme values
+    if (indicators.macd !== null && indicators.macd !== undefined) {
+      validated.macd = Math.max(-50, Math.min(50, indicators.macd));
+    }
+    
+    // MACD Signal similar to MACD
+    if (indicators.macdSignal !== null && indicators.macdSignal !== undefined) {
+      validated.macdSignal = Math.max(-50, Math.min(50, indicators.macdSignal));
+    }
+    
+    // Bollinger %B should be 0-1
+    if (indicators.bollingerPercentB !== null && indicators.bollingerPercentB !== undefined) {
+      validated.bollingerPercentB = Math.max(0, Math.min(1, indicators.bollingerPercentB));
+    }
+    
+    // EMAs can be any positive value
+    if (indicators.ema12 !== null && indicators.ema12 !== undefined) {
+      validated.ema12 = Math.max(0, indicators.ema12);
+    }
+    
+    if (indicators.ema26 !== null && indicators.ema26 !== undefined) {
+      validated.ema26 = Math.max(0, indicators.ema26);
+    }
+    
+    return validated;
+  }
+  
+  /**
+   * Check if we should skip storage based on market conditions
+   */
+  shouldSkipStorage(symbol: string): boolean {
+    // Could implement logic to skip storage during market closure
+    // or for specific symbols, but for now always allow storage
+    return false;
+  }
+  
+  /**
+   * Check if market is currently open (basic implementation)
+   */
+  isMarketHours(): boolean {
     const now = new Date();
-    const hour = now.getHours();
-    const minute = now.getMinutes();
+    const utcHour = now.getUTCHours();
     
-    // Market hours: 9:30 AM - 4:00 PM ET (converted to local time)
-    const marketOpen = 9 * 60 + 30; // 9:30 AM in minutes
-    const marketClose = 16 * 60; // 4:00 PM in minutes
-    const currentMinutes = hour * 60 + minute;
-    
-    // Allow storage during market hours or within 1 hour after close
-    const afterHoursLimit = marketClose + 60; // 5:00 PM
-    
-    if (currentMinutes >= marketOpen && currentMinutes <= afterHoursLimit) {
-      return { allowed: true, reason: 'Within market hours or after-hours period' };
-    } else {
-      return { 
-        allowed: false, 
-        reason: `Outside trading hours (${hour}:${minute.toString().padStart(2, '0')}). Market: 9:30 AM - 5:00 PM ET` 
-      };
+    // Basic US market hours check (9:30 AM - 4:00 PM EST = 14:30 - 21:00 UTC)
+    // This is a simplified version - production would use proper market calendar
+    return utcHour >= 14 && utcHour < 21;
+  }
+  
+  /**
+   * Comprehensive cleanup for all duplicates of a symbol
+   */
+  async cleanupAllDuplicates(symbol: string): Promise<number> {
+    try {
+      // Use DISTINCT ON to keep only one record per day (the latest)
+      const cleanupQuery = sql`
+        DELETE FROM ${historicalTechnicalIndicators}
+        WHERE ${historicalTechnicalIndicators.id} NOT IN (
+          SELECT DISTINCT ON (DATE(${historicalTechnicalIndicators.date})) ${historicalTechnicalIndicators.id}
+          FROM ${historicalTechnicalIndicators}
+          WHERE ${historicalTechnicalIndicators.symbol} = ${symbol}
+          ORDER BY DATE(${historicalTechnicalIndicators.date}) DESC, ${historicalTechnicalIndicators.date} DESC
+        )
+        AND ${historicalTechnicalIndicators.symbol} = ${symbol}
+      `;
+      
+      const result = await db.execute(cleanupQuery);
+      const deletedCount = result.rowCount || 0;
+      
+      logger.info(`🧹 Cleaned up ${deletedCount} duplicate records for ${symbol}`);
+      return deletedCount;
+      
+    } catch (error) {
+      logger.error(`Error in comprehensive cleanup for ${symbol}:`, error);
+      return 0;
     }
   }
 }
