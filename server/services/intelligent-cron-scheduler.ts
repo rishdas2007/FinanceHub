@@ -86,6 +86,14 @@ export class IntelligentCronScheduler {
       await this.runJobSafely('daily-status', () => this.generateDailyStatusReport());
     });
 
+    // Schedule daily RSI calculation (4:15 PM ET on trading days)
+    this.scheduleJob('daily-rsi-calculation', '15 16 * * 1-5', async () => {
+      await this.runJobSafely('daily-rsi-calculation', async () => {
+        const { dailyRSICalculator } = await import('./daily-rsi-calculator');
+        await dailyRSICalculator.calculateDailyRSI();
+      });
+    });
+
     // OPTIMIZED: Schedule ETF metrics preloading (aggressive market-aware caching)
     this.scheduleJob('etf-preloader', '*/1 * * * *', async () => {
       const marketInfo = marketHoursDetector.getCurrentMarketStatus();
@@ -127,7 +135,7 @@ export class IntelligentCronScheduler {
     }, 5000);
 
     this.isInitialized = true;
-    logger.info('✅ Intelligent cron scheduler initialized with 7 jobs (including ETF preloader)');
+    logger.info('✅ Intelligent cron scheduler initialized with 8 jobs (including daily RSI calculation)');
   }
 
   private scheduleJob(name: string, cronExpression: string, jobFunction: () => Promise<void>): void {
