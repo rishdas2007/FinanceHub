@@ -66,13 +66,14 @@ export class HistoricalMACDServiceDeduplicated {
 
   /**
    * Get deduplicated historical Bollinger %B values (one per day)
+   * Filters out invalid 0.0 values and ensures proper 0-1 range
    */
   async getHistoricalPercentBValues(symbol: string, lookbackDays: number = 90): Promise<number[]> {
     try {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - lookbackDays);
       
-      // Use DISTINCT ON to get one record per day
+      // Use DISTINCT ON to get one record per day, filtering out invalid values
       const historicalData = await db.execute(sql`
         SELECT DISTINCT ON (DATE(date)) 
                percent_b::numeric as percent_b_value
@@ -80,13 +81,15 @@ export class HistoricalMACDServiceDeduplicated {
         WHERE symbol = ${symbol} 
           AND date >= ${cutoffDate}
           AND percent_b IS NOT NULL
+          AND percent_b > 0.0001
+          AND percent_b <= 1.5
         ORDER BY DATE(date) DESC, date DESC
         LIMIT ${lookbackDays}
       `);
       
       return historicalData.rows
         .map((row: any) => parseFloat(row.percent_b_value))
-        .filter(value => !isNaN(value));
+        .filter(value => !isNaN(value) && value > 0 && value <= 1.5);
         
     } catch (error) {
       console.error(`❌ Error fetching deduplicated %B data for ${symbol}:`, error);
@@ -143,10 +146,10 @@ export class HistoricalMACDServiceDeduplicated {
   }
 
   /**
-   * Get realistic Bollinger %B fallback parameters
+   * Get realistic Bollinger %B fallback parameters (0-1 scale)
    */
   getRealisticPercentBFallback(): { mean: number; stddev: number } {
-    return { mean: 50, stddev: 15 }; // Normalized 0-100 scale
+    return { mean: 0.5, stddev: 0.25 }; // Proper 0-1 scale: mean=0.5, stddev=0.25
   }
 
   /**
