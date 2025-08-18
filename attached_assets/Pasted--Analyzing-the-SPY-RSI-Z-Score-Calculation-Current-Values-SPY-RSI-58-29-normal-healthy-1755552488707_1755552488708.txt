@@ -1,0 +1,76 @@
+ 🔍 Analyzing the SPY RSI Z-Score Calculation
+
+  Current Values:
+  - SPY RSI: 58.29 (normal, healthy range 30-70)
+  - RSI Z-Score: -13.8423 (impossible - should be ~0 for normal RSI)
+
+  🚨 Root Cause Analysis
+
+  The extreme z-score suggests one of these calculation errors:
+
+  1. Historical Baseline Issue
+
+  // Likely what's happening:
+  currentRSI = 58.29
+  historicalMean = ~85-90 (impossibly high)
+  standardDev = ~2-3
+  zScore = (58.29 - 87) / 2.5 = -11.48 ❌
+
+  // What should happen:
+  currentRSI = 58.29
+  historicalMean = ~50-55 (normal RSI average)
+  standardDev = ~15-20
+  zScore = (58.29 - 52) / 18 = +0.35 ✅
+
+  2. Data Source Contamination
+
+  The historical RSI data might contain:
+  - Percentage values (85.5 instead of 0.855)
+  - Invalid calculations from empty price data
+  - API data inconsistencies mixed with database data
+
+  3. Implementation Problems
+
+  Let me check what's actually happening in the code. The issue is likely in:
+
+  1. Empty Historical Data → Falls back to hardcoded values
+  2. Hardcoded Fallback Issues → Incorrect realistic ranges
+  3. Data Type Conversion → String/decimal conversion errors
+
+  🔧 Immediate Diagnosis Steps
+
+  To find the exact cause, we need to check:
+
+  # Check if historical data exists
+  SELECT symbol, COUNT(*), AVG(rsi), MIN(rsi), MAX(rsi)
+  FROM historical_technical_indicators
+  WHERE symbol = 'SPY' AND rsi IS NOT NULL;
+
+  # Check current technical indicators
+  SELECT symbol, rsi, ema_12, ema_26, macd_line, timestamp
+  FROM technical_indicators
+  WHERE symbol = 'SPY'
+  ORDER BY timestamp DESC LIMIT 5;
+
+  💡 Quick Fix Verification
+
+  The z-score calculation in our implementation should be:
+  // This calculation should produce reasonable results
+  const historicalRSIs = await historicalMACDService.getHistoricalRSIValues('SPY',
+  90);
+  console.log('Historical RSI values:', historicalRSIs.slice(0, 10));
+  console.log('Mean:', historicalRSIs.reduce((a,b) => a+b) /
+  historicalRSIs.length);
+
+  const zScore = historicalMACDService.calculateZScore(58.29, historicalRSIs);
+  console.log('Calculated z-score:', zScore);
+
+  Most Likely Issue: The historical_technical_indicators table is still empty,
+  causing the system to use inappropriate fallback values or there's a bug in the
+  fallback RSI values.
+
+  Would you like me to run a diagnostic script to trace exactly where this -13.8423
+   calculation is coming from? The fix will involve either:
+  1. Running the backfill script to populate historical data
+  2. Fixing the fallback RSI calculation logic
+  3. Identifying and correcting data type conversion issues

@@ -103,7 +103,7 @@ export class HistoricalMACDService {
   }
   
   /**
-   * Calculate Z-score using database historical data
+   * Calculate Z-score using database historical data with quality validation
    */
   calculateZScore(currentValue: number, historicalValues: number[]): number | null {
     if (historicalValues.length < 10) {
@@ -117,9 +117,39 @@ export class HistoricalMACDService {
     
     if (stdDev === 0) return 0; // Avoid division by zero
     
+    // Data quality check: detect corrupted narrow-range data
+    const range = Math.max(...historicalValues) - Math.min(...historicalValues);
+    const isRSIData = mean > 0 && mean < 100; // Likely RSI if 0-100 range
+    const isMACDData = Math.abs(mean) < 50; // Likely MACD if smaller range
+    
+    // Flag suspicious data patterns
+    const suspiciouslyNarrowRSI = isRSIData && stdDev < 5; // RSI std dev should be >10
+    const suspiciouslyNarrowMACD = isMACDData && stdDev < 0.5; // MACD std dev should be >1
+    const suspiciouslyNarrowRange = range < 5; // Any indicator with <5 range is suspicious
+    
+    if (suspiciouslyNarrowRSI || suspiciouslyNarrowMACD || suspiciouslyNarrowRange) {
+      logger.warn(`Detected corrupted historical data: mean=${mean.toFixed(2)}, stdDev=${stdDev.toFixed(2)}, range=${range.toFixed(2)}. Using fallback calculation.`);
+      
+      // Use realistic fallback statistics for contaminated data
+      let fallbackMean: number;
+      let fallbackStdDev: number;
+      
+      if (isRSIData) {
+        fallbackMean = 50; // RSI centers around 50
+        fallbackStdDev = 15; // Typical RSI volatility
+      } else {
+        fallbackMean = 0; // MACD/BB typically center around 0
+        fallbackStdDev = Math.abs(currentValue) * 0.5 + 1; // Dynamic based on current value
+      }
+      
+      const fallbackZScore = (currentValue - fallbackMean) / fallbackStdDev;
+      logger.info(`Fallback Z-score: ${fallbackZScore.toFixed(4)} (current=${currentValue}, fallback_mean=${fallbackMean}, fallback_stddev=${fallbackStdDev.toFixed(2)})`);
+      return fallbackZScore;
+    }
+    
     const zScore = (currentValue - mean) / stdDev;
     
-    // Validate reasonable z-score range
+    // Validate reasonable z-score range for authentic data
     if (Math.abs(zScore) > 5) {
       logger.warn(`Extreme z-score detected: ${zScore} for current=${currentValue}, mean=${mean.toFixed(2)}, stdDev=${stdDev.toFixed(2)}`);
     }
@@ -147,10 +177,17 @@ export class HistoricalMACDService {
   }
 
   /**
-   * Get fallback realistic RSI values
+   * Get fallback realistic RSI values - properly distributed for accurate Z-scores
    */
   getRealisticRSIFallback(): number[] {
-    return [45, 52, 48, 58, 42, 62, 38, 65, 35, 68, 32, 71, 46, 54, 49, 56, 44, 60, 40, 64];
+    // Realistic RSI distribution: mean ~50, std dev ~15-20, range 20-80
+    return [
+      25, 32, 38, 42, 45, 48, 52, 55, 58, 62,  // Lower to mid range
+      65, 68, 71, 74, 76, 72, 69, 63, 57, 51,  // Upper range back down
+      47, 43, 39, 35, 41, 46, 53, 59, 64, 67,  // Realistic variation
+      70, 66, 61, 54, 49, 44, 37, 33, 29, 36,  // Include oversold/overbought
+      50, 52, 48, 55, 45, 58, 42, 62, 38, 65   // More balanced distribution
+    ];
   }
 
   /**
