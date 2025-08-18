@@ -273,9 +273,14 @@ router.get('/technical-clean', async (req, res) => {
         if (bbZScore !== null) scores.push(bbZScore);
         
         if (scores.length > 0) {
-          compositeZScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
-          // Cap extreme values for more reasonable trading signals
-          compositeZScore = Math.max(-3, Math.min(3, compositeZScore));
+          const rawComposite = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+          // Remove artificial Z-score capping to show authentic statistical values
+          // Statistical significance: |z| > 2.58 = 99% confidence, |z| > 3.29 = 99.9% confidence
+          compositeZScore = Math.round(rawComposite * 10000) / 10000; // Precision to 4 decimal places
+          
+          if (symbol === 'SPY') {
+            console.log(`🔬 SPY Composite Z-Score Debug: scores=[${scores.join(', ')}], raw=${rawComposite}, final=${compositeZScore}`);
+          }
         }
         
         const etfResult = {
