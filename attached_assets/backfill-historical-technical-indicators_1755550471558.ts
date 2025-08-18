@@ -47,13 +47,13 @@ export async function backfillHistoricalTechnicalIndicators() {
             date: record.timestamp,
             rsi: record.rsi,
             macd: record.macd_line,        // Map macd_line to macd
-            macdSignal: record.macdSignal, // Map macdSignal to macd_signal
-            percentB: record.percent_b,
+            macd_signal: record.macdSignal, // Map macdSignal to macd_signal
+            percent_b: record.percent_b,
             atr: record.atr,
-            priceChange: null, // Not available from technical_indicators table
-            maTrend: null,     // Not available from technical_indicators table
-            createdAt: new Date(),
-            updatedAt: new Date()
+            price_change: null, // Not available from technical_indicators table
+            ma_trend: null,     // Not available from technical_indicators table
+            created_at: new Date(),
+            updated_at: new Date()
           });
           backfilledForSymbol++;
         }
@@ -80,7 +80,7 @@ export async function backfillHistoricalTechnicalIndicators() {
   // Verify results
   console.log('🔍 Verifying backfill results...');
   for (const symbol of ETF_SYMBOLS.slice(0, 3)) { // Check first 3 symbols
-    const count = await db.select({ count: 'count(*)' as any })
+    const count = await db.select({ count: 'count(*)' })
       .from(historicalTechnicalIndicators)
       .where(eq(historicalTechnicalIndicators.symbol, symbol));
     
@@ -89,7 +89,7 @@ export async function backfillHistoricalTechnicalIndicators() {
 }
 
 // Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (require.main === module) {
   backfillHistoricalTechnicalIndicators()
     .then(() => {
       console.log('✅ Backfill completed successfully');
