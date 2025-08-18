@@ -21,6 +21,9 @@ interface ETFTechnicalData {
   
   // Z-scores for signals
   zScore: number | null;
+  rsiZScore: number | null;
+  macdZScore: number | null;
+  bbZScore: number | null;
   signal: 'BUY' | 'SELL' | 'HOLD';
   
   // Moving averages
@@ -194,8 +197,8 @@ export const ETFTechnicalMetricsClean = () => {
                         <div className="text-gray-300">
                           {formatTechnical(etf.rsi)}
                           {etf.rsi && (
-                            <div className="text-xs text-gray-500">
-                              Z: N/A
+                            <div className={`text-xs ${getZScoreColor(etf.rsiZScore)}`}>
+                              Z: {formatZScore(etf.rsiZScore)}
                             </div>
                           )}
                         </div>
@@ -205,8 +208,8 @@ export const ETFTechnicalMetricsClean = () => {
                         <div className="text-gray-300">
                           {formatTechnical(etf.macd)}
                           {etf.macd && (
-                            <div className="text-xs text-gray-500">
-                              Z: N/A
+                            <div className={`text-xs ${getZScoreColor(etf.macdZScore)}`}>
+                              Z: {formatZScore(etf.macdZScore)}
                             </div>
                           )}
                         </div>
@@ -216,8 +219,8 @@ export const ETFTechnicalMetricsClean = () => {
                         <div className="text-gray-300">
                           {etf.bollingerPercB ? formatPercent(etf.bollingerPercB * 100) : 'N/A'}
                           {etf.bollingerPercB && (
-                            <div className="text-xs text-gray-500">
-                              Z: N/A
+                            <div className={`text-xs ${getZScoreColor(etf.bbZScore)}`}>
+                              Z: {formatZScore(etf.bbZScore)}
                             </div>
                           )}
                         </div>
@@ -226,11 +229,9 @@ export const ETFTechnicalMetricsClean = () => {
                       <td className="text-right py-3">
                         <div className="text-gray-300">
                           {formatPercent(etf.maGap)}
-                          {etf.maGap && (
-                            <div className="text-xs text-gray-500">
-                              Z: N/A
-                            </div>
-                          )}
+                          <div className="text-xs text-gray-500">
+                            Z: N/A
+                          </div>
                         </div>
                       </td>
                     </tr>
