@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db';
 import logger from '../utils/logger';
+import { historicalMACDService } from '../services/historical-macd-service';
 
 const router = Router();
 
@@ -31,17 +32,22 @@ function calculateRSI(prices: number[]): number | null {
   return 100 - (100 / (1 + rs));
 }
 
-function calculateMACD(prices: number[]): { macd: number | null; signal: number | null } {
-  if (prices.length < 26) return { macd: null, signal: null };
+function calculateMACD(prices: number[]): { 
+  macd: number | null; 
+  signal: number | null;
+  ema12: number | null;
+  ema26: number | null;
+} {
+  if (prices.length < 26) return { macd: null, signal: null, ema12: null, ema26: null };
   
   // Simple EMA calculation
   const ema12 = calculateEMA(prices, 12);
   const ema26 = calculateEMA(prices, 26);
   
-  if (!ema12 || !ema26) return { macd: null, signal: null };
+  if (!ema12 || !ema26) return { macd: null, signal: null, ema12: null, ema26: null };
   
   const macd = ema12 - ema26;
-  return { macd, signal: null }; // Simplified - not calculating signal line for now
+  return { macd, signal: null, ema12, ema26 }; // Return EMA values for storage
 }
 
 function calculateEMA(prices: number[], period: number): number | null {
@@ -125,6 +131,8 @@ router.get('/technical-clean', async (req, res) => {
           rsi: number | null;
           macd: number | null;
           macdSignal: number | null;
+          ema12: number | null;
+          ema26: number | null;
           bollingerPercB: number | null;
           sma20: number | null;
           sma50: number | null;
@@ -133,6 +141,8 @@ router.get('/technical-clean', async (req, res) => {
           rsi: null,
           macd: null,
           macdSignal: null,
+          ema12: null,
+          ema26: null,
           bollingerPercB: null,
           sma20: null,
           sma50: null,
@@ -151,6 +161,8 @@ router.get('/technical-clean', async (req, res) => {
             const macdResult = calculateMACD(prices);
             technicalData.macd = macdResult.macd;
             technicalData.macdSignal = macdResult.signal;
+            technicalData.ema12 = macdResult.ema12;
+            technicalData.ema26 = macdResult.ema26;
             
             const bollingerResult = calculateBollingerBands(prices);
             if (bollingerResult) {
@@ -172,55 +184,86 @@ router.get('/technical-clean', async (req, res) => {
           }
         }
         
-        // Calculate historical baselines from same price data for consistent Z-scores
-        const historicalMACDs: number[] = [];
-        const historicalRSIs: number[] = [];
-        const historicalBBs: number[] = [];
+        // Import historical MACD service for database-first approach
+        const { historicalMACDService } = await import('../services/historical-macd-service');
         
-        // Calculate rolling technical indicators from price history for statistical baseline
-        if (timeSeriesResponse?.values && Array.isArray(timeSeriesResponse.values) && timeSeriesResponse.values.length >= 40) {
-          const allPrices = timeSeriesResponse.values.map((v: any) => parseFloat(v.close)).reverse();
-          console.log(`🔍 ${symbol} Processing ${allPrices.length} price points for historical analysis`);
+        // Get historical data for consistent z-score calculation from database
+        let historicalMACDs: number[] = [];
+        let historicalRSIs: number[] = [];
+        let historicalBBs: number[] = [];
+        
+        try {
+          // Try to get historical data from database first
+          historicalMACDs = await historicalMACDService.getHistoricalMACDValues(symbol, 90);
+          historicalRSIs = await historicalMACDService.getHistoricalRSIValues(symbol, 90);
+          historicalBBs = await historicalMACDService.getHistoricalBBValues(symbol, 90);
           
-          // Calculate historical MACD values using same formula - simplified approach
+          console.log(`📊 ${symbol} Database Historical Data: MACD=${historicalMACDs.length}, RSI=${historicalRSIs.length}, BB=${historicalBBs.length}`);
+        } catch (error) {
+          console.warn(`⚠️ Database historical data failed for ${symbol}:`, error);
+        }
+        
+        // Fallback to current price-based calculation if insufficient database data
+        if (historicalMACDs.length < 30 && timeSeriesResponse?.values && Array.isArray(timeSeriesResponse.values) && timeSeriesResponse.values.length >= 40) {
+          const allPrices = timeSeriesResponse.values.map((v: any) => parseFloat(v.close)).reverse();
+          console.log(`🔍 ${symbol} Falling back to price-based calculation with ${allPrices.length} price points`);
+          
+          const priceBasedMACDs: number[] = [];
+          const priceBasedRSIs: number[] = [];
+          const priceBasedBBs: number[] = [];
+          
+          // Calculate historical indicators from price history for statistical baseline
           for (let i = 26; i <= allPrices.length - 10; i++) {
             const priceWindow = allPrices.slice(0, i);
             const historicalMACD = calculateMACD(priceWindow);
-            if (historicalMACD.macd !== null) historicalMACDs.push(historicalMACD.macd);
+            if (historicalMACD.macd !== null) priceBasedMACDs.push(historicalMACD.macd);
             
             if (priceWindow.length >= 14) {
               const historicalRSI = calculateRSI(priceWindow);
-              if (historicalRSI !== null) historicalRSIs.push(historicalRSI);
+              if (historicalRSI !== null) priceBasedRSIs.push(historicalRSI);
             }
             
             if (priceWindow.length >= 20) {
               const historicalBB = calculateBollingerBands(priceWindow);
-              if (historicalBB && historicalBB.percB !== null) historicalBBs.push(historicalBB.percB);
+              if (historicalBB && historicalBB.percB !== null) priceBasedBBs.push(historicalBB.percB);
             }
           }
+          
+          // Use price-based data if better than database data
+          if (priceBasedMACDs.length > historicalMACDs.length) historicalMACDs = priceBasedMACDs;
+          if (priceBasedRSIs.length > historicalRSIs.length) historicalRSIs = priceBasedRSIs;
+          if (priceBasedBBs.length > historicalBBs.length) historicalBBs = priceBasedBBs;
         }
         
-        // Debug and use calculated historical data
-        console.log(`📊 ${symbol} Historical Data: MACD=${historicalMACDs.length}, RSI=${historicalRSIs.length}, BB=${historicalBBs.length}`);
-        
-        // Use realistic market-based fallbacks instead of neutral values
-        const realisticMACDFallback = [4.2, 4.8, 5.1, 5.7, 6.2, 6.8, 5.9, 4.5, 5.4, 6.0, 5.2, 4.9, 6.1, 5.8, 5.5, 4.7, 6.3, 5.3, 4.6, 5.6];
-        const realisticRSIFallback = [45, 52, 48, 58, 42, 62, 38, 65, 35, 68, 32, 71, 46, 54, 49, 56, 44, 60, 40, 64];
-        const realisticBBFallback = [0.65, 0.72, 0.58, 0.81, 0.45, 0.89, 0.35, 0.92, 0.28, 0.75, 0.68, 0.55, 0.78, 0.42, 0.85, 0.38, 0.88, 0.32, 0.95, 0.25];
-        
-        const finalHistoricalRSI = historicalRSIs.length >= 10 ? historicalRSIs : realisticRSIFallback;
-        const finalHistoricalMACD = historicalMACDs.length >= 10 ? historicalMACDs : realisticMACDFallback;
-        const finalHistoricalBB = historicalBBs.length >= 10 ? historicalBBs : realisticBBFallback;
+        // Final fallback to realistic market-based values
+        const finalHistoricalMACD = historicalMACDs.length >= 10 ? historicalMACDs : historicalMACDService.getRealisticMACDFallback(symbol);
+        const finalHistoricalRSI = historicalRSIs.length >= 10 ? historicalRSIs : historicalMACDService.getRealisticRSIFallback();
+        const finalHistoricalBB = historicalBBs.length >= 10 ? historicalBBs : historicalMACDService.getRealisticBBFallback();
         
         if (symbol === 'SPY') {
-          console.log(`📈 SPY MACD History Sample:`, historicalMACDs.slice(-5));
+          console.log(`📈 SPY MACD History Sample:`, finalHistoricalMACD.slice(-5));
           console.log(`📈 SPY Current MACD:`, technicalData.macd);
         }
         
-        // Calculate individual Z-scores using consistent historical baselines  
-        const rsiZScore = technicalData.rsi !== null ? calculateZScore(technicalData.rsi, finalHistoricalRSI) : null;
-        const macdZScore = technicalData.macd !== null ? calculateZScore(technicalData.macd, finalHistoricalMACD) : null;
-        const bbZScore = technicalData.bollingerPercB !== null ? calculateZScore(technicalData.bollingerPercB, finalHistoricalBB) : null;
+        // Calculate individual Z-scores using database-first consistent baselines
+        let rsiZScore = null;
+        let macdZScore = null;
+        let bbZScore = null;
+        
+        if (technicalData.rsi !== null) {
+          rsiZScore = historicalMACDService.calculateZScore(technicalData.rsi, finalHistoricalRSI);
+        }
+        
+        if (technicalData.macd !== null) {
+          macdZScore = historicalMACDService.calculateZScore(technicalData.macd, finalHistoricalMACD);
+          if (historicalMACDs.length < 10) {
+            console.log(`⚠️ ${symbol}: Using MACD fallback data (${historicalMACDs.length} db records insufficient)`);
+          }
+        }
+        
+        if (technicalData.bollingerPercB !== null) {
+          bbZScore = historicalMACDService.calculateZScore(technicalData.bollingerPercB, finalHistoricalBB);
+        }
         
         // Calculate composite Z-score as simple average (more conservative approach)
         let compositeZScore = null;
