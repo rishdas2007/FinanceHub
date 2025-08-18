@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db } from '../db';
 import logger from '../utils/logger';
 import { historicalMACDService } from '../services/historical-macd-service';
+import { historicalMACDServiceDeduplicated } from '../services/historical-macd-service-deduplicated';
 
 const router = Router();
 
@@ -187,20 +188,20 @@ router.get('/technical-clean', async (req, res) => {
         // Import historical MACD service for database-first approach
         const { historicalMACDService } = await import('../services/historical-macd-service');
         
-        // Get historical data for consistent z-score calculation from database
+        // Get deduplicated historical data for consistent z-score calculation
         let historicalMACDs: number[] = [];
         let historicalRSIs: number[] = [];
         let historicalBBs: number[] = [];
         
         try {
-          // Try to get historical data from database first
-          historicalMACDs = await historicalMACDService.getHistoricalMACDValues(symbol, 90);
-          historicalRSIs = await historicalMACDService.getHistoricalRSIValues(symbol, 90);
-          historicalBBs = await historicalMACDService.getHistoricalBBValues(symbol, 90);
+          // Use deduplicated service for clean data (one record per day)
+          historicalMACDs = await historicalMACDServiceDeduplicated.getHistoricalMACDValues(symbol, 90);
+          historicalRSIs = await historicalMACDServiceDeduplicated.getHistoricalRSIValues(symbol, 90);
+          historicalBBs = await historicalMACDServiceDeduplicated.getHistoricalPercentBValues(symbol, 90);
           
-          console.log(`📊 ${symbol} Database Historical Data: MACD=${historicalMACDs.length}, RSI=${historicalRSIs.length}, BB=${historicalBBs.length}`);
+          console.log(`📊 ${symbol} Deduplicated Historical Data: MACD=${historicalMACDs.length}, RSI=${historicalRSIs.length}, BB=${historicalBBs.length}`);
         } catch (error) {
-          console.warn(`⚠️ Database historical data failed for ${symbol}:`, error);
+          console.warn(`⚠️ Deduplicated historical data failed for ${symbol}:`, error);
         }
         
         // Fallback to current price-based calculation if insufficient database data
@@ -245,24 +246,21 @@ router.get('/technical-clean', async (req, res) => {
           console.log(`📈 SPY Current MACD:`, technicalData.macd);
         }
         
-        // Calculate individual Z-scores using database-first consistent baselines
+        // Calculate individual Z-scores using deduplicated service with fallback logic
         let rsiZScore = null;
         let macdZScore = null;
         let bbZScore = null;
         
         if (technicalData.rsi !== null) {
-          rsiZScore = historicalMACDService.calculateZScore(technicalData.rsi, finalHistoricalRSI);
+          rsiZScore = await historicalMACDServiceDeduplicated.calculateZScoreWithFallback(symbol, technicalData.rsi, 'rsi');
         }
         
         if (technicalData.macd !== null) {
-          macdZScore = historicalMACDService.calculateZScore(technicalData.macd, finalHistoricalMACD);
-          if (historicalMACDs.length < 10) {
-            console.log(`⚠️ ${symbol}: Using MACD fallback data (${historicalMACDs.length} db records insufficient)`);
-          }
+          macdZScore = await historicalMACDServiceDeduplicated.calculateZScoreWithFallback(symbol, technicalData.macd, 'macd');
         }
         
         if (technicalData.bollingerPercB !== null) {
-          bbZScore = historicalMACDService.calculateZScore(technicalData.bollingerPercB, finalHistoricalBB);
+          bbZScore = await historicalMACDServiceDeduplicated.calculateZScoreWithFallback(symbol, technicalData.bollingerPercB, 'percent_b');
         }
         
         // Calculate composite Z-score as simple average (more conservative approach)
