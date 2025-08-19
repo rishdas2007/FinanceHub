@@ -221,6 +221,14 @@ app.use((req, res, next) => {
     const { performanceOptimizationRoutes } = await import('./routes/performance-optimization');
     app.use('/api/performance/v3', performanceOptimizationRoutes);
 
+    // Clean ETF Caching Implementation (Production Fix)
+    const etfCachedCleanRoutes = await import('./routes/etf-cached-clean');
+    app.use('/api/etf', etfCachedCleanRoutes.default);
+    
+    // Initialize ETF Cache Cron Service
+    const { etfCacheCronService } = await import('./services/etf-cache-cron-clean');
+    etfCacheCronService.initialize();
+
     // Register original routes (maintain backward compatibility)
     const server = await registerRoutes(app);
 
