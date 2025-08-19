@@ -1,5 +1,5 @@
-import { FinancialDataService } from './financial-data.js';
-import { db } from '../db.js';
+import { FinancialDataService } from './financial-data';
+import { db } from '../db';
 import { 
   historicalStockData,
   stockData,
@@ -7,9 +7,9 @@ import {
   historicalSectorData,
   historicalMarketSentiment,
   dataCollectionAudit
-} from '@shared/schema.js';
+} from '@shared/schema';
 import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
-import { ETF_SYMBOLS, API_RATE_LIMITS } from '@shared/constants.js';
+import { ETF_SYMBOLS, API_RATE_LIMITS } from '@shared/constants';
 
 interface CollectionStats {
   totalRecords: number;

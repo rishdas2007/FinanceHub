@@ -1,4 +1,4 @@
-import { db } from '../db.js';
+import { db } from '../db';
 import { sql } from 'drizzle-orm';
 import { logger } from '../utils/logger';
 import { cacheService } from './cache-unified';

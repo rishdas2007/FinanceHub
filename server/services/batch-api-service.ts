@@ -1,4 +1,4 @@
-import { logger } from '../middleware/logging.js';
+import { logger } from '../middleware/logging';
 import { createRateLimitTracker } from '@shared/utils/apiHelpers';
 
 interface BatchRequest {

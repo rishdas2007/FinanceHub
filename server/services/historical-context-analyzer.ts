@@ -1,4 +1,4 @@
-import { db } from '../db.js';
+import { db } from '../db';
 import { historicalEconomicData, stockData, technicalIndicators, marketSentiment } from '@shared/schema';
 import { desc, eq, sql, and, gte, lte } from 'drizzle-orm';
 

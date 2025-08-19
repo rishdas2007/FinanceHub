@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm';
-import { db } from '../db.js';
-import { logger } from '../utils/logger.js';
-import { cacheService } from './cache-unified.js';
-import { EconomicInsightClassifier } from './economic-insight-classifier.js';
+import { db } from '../db';
+import { logger } from '../utils/logger';
+import { cacheService } from './cache-unified';
+import { EconomicInsightClassifier } from './economic-insight-classifier';
 
 // New "Economic Pulse" Score Interfaces
 export interface DataQualityMetrics {
@@ -577,7 +577,7 @@ export class EconomicHealthCalculator {
       .sort((a, b) => b.absImpact - a.absImpact)
       .slice(0, 3)
       .map(item => {
-        const direction = item.impact > 0 ? '+' : '';
+        const direction = item.impact > 0 ? '+' : ';
         return `${this.formatComponentName(item.component)}: ${direction}${item.impact.toFixed(1)} points`;
       });
   }

@@ -1,5 +1,5 @@
 import { logger } from '../../shared/utils/logger';
-import { db } from '../db.js';
+import { db } from '../db';
 import { eq, desc, max, sql } from 'drizzle-orm';
 
 interface DataFreshnessCheck {

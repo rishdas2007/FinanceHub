@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { db } from '../db.js';
+import { db } from '../db';
 import { sql } from 'drizzle-orm';
-import { logger } from '../utils/logger.js';
+import { logger } from '../utils/logger';
 
 const router = Router();
 

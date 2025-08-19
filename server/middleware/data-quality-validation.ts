@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { DataContractValidator, DataQualityError } from '../../shared/validation/data-contracts.js';
-import { ContractRegistry } from '../../shared/validation/contract-registry.js';
-import { logger } from '../utils/logger.js';
+import { DataContractValidator, DataQualityError } from '../../shared/validation/data-contracts';
+import { ContractRegistry } from '../../shared/validation/contract-registry';
+import { logger } from '../utils/logger';
 
 export interface DataQualityMiddlewareOptions {
   contractName: string;

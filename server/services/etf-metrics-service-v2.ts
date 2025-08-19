@@ -1,7 +1,7 @@
-import { logger } from '../utils/logger.js';
-import { ZScoreDataQualityValidator, ZScoreValidationResult } from './data-quality/zscore-validator.js';
-import { DataSufficiencyGates } from './data-quality/sufficiency-gates.js';
-import { ETFMetric } from '../../shared/validation/etf-contracts.js';
+import { logger } from '../utils/logger';
+import { ZScoreDataQualityValidator, ZScoreValidationResult } from './data-quality/zscore-validator';
+import { DataSufficiencyGates } from './data-quality/sufficiency-gates';
+import { ETFMetric } from '../../shared/validation/etf-contracts';
 // Database pool configuration removed for startup optimization
 
 export interface ETFMetricsV2Response {

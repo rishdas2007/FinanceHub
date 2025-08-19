@@ -1,5 +1,5 @@
 import { logger } from '../../shared/utils/logger';
-import { db } from '../db.js';
+import { db } from '../db';
 import { sql } from 'drizzle-orm';
 
 interface YoYTransformation {

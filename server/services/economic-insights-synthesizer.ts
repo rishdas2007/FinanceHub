@@ -1,6 +1,6 @@
-import { logger } from '../utils/logger.js';
-import { cacheService } from './cache-unified.js';
-import type { EconomicHealthScore } from './economic-health-calculator.js';
+import { logger } from '../utils/logger';
+import { cacheService } from './cache-unified';
+import type { EconomicHealthScore } from './economic-health-calculator';
 
 export interface EconomicInsights {
   narrative: string;
@@ -76,7 +76,7 @@ export class EconomicInsightsSynthesizer {
   private async getLatestEconomicIndicators(): Promise<Array<{metric: string, zScore: number, category: string}>> {
     try {
       // Import the indicators service to get latest data
-      const { economicIndicatorsService } = await import('./economic-indicators.js');
+      const { economicIndicatorsService } = await import('./economic-indicators');
       const data = await economicIndicatorsService.getEconomicIndicators();
       
       return data.indicators || [];

@@ -4,7 +4,7 @@
  */
 
 import { logger } from '../utils/logger';
-import { db } from '../db.js';
+import { db } from '../db';
 
 interface CacheEntry<T> {
   data: T;

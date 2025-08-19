@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { CURATED_SERIES } from '../services/fred-api-service-incremental.js';
-import { emergencyCircuitBreaker } from '../services/emergency-circuit-breaker.js';
-import { logger } from '../utils/logger.js';
+import { CURATED_SERIES } from '../services/fred-api-service-incremental';
+import { emergencyCircuitBreaker } from '../services/emergency-circuit-breaker';
+import { logger } from '../utils/logger';
 
 const router = Router();
 

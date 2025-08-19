@@ -4,7 +4,7 @@
  * Prevents database corruption from repeated intraday calculations
  */
 
-import { db } from '../db.js';
+import { db } from '../db';
 import { technicalIndicators, historicalTechnicalIndicators } from '@shared/schema';
 import { eq, desc, and, gte } from 'drizzle-orm';
 import { logger } from '../middleware/logging';

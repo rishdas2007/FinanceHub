@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { db } from '../db.js';
+import { db } from '../db';
 import { economicIndicatorsHistory } from '../../shared/schema';
 import { eq, and, asc } from 'drizzle-orm';
 import { economicDataTransformer } from '../services/economic-data-transformer';

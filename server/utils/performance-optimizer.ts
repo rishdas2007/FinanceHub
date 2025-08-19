@@ -1,6 +1,6 @@
 import { performance } from 'perf_hooks';
 import os from 'os';
-import { logger } from './logger.js';
+import { logger } from './logger';
 
 interface SystemMetrics {
   memoryUsage: NodeJS.MemoryUsage;

@@ -3,7 +3,7 @@ import { DataQualityValidator } from '../services/data-quality-validator';
 import { dataLineageTracker } from '../services/data-lineage-tracker';
 import { enhancedFredService } from '../services/enhanced-fred-service';
 import { logger } from '../../shared/utils/logger';
-import { db } from '../db.js';
+import { db } from '../db';
 import { sql } from 'drizzle-orm';
 
 const router = express.Router();

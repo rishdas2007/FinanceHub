@@ -247,7 +247,7 @@ export class CodeQualityScanner {
     /\.spec\./
   ];
 
-  private readonly supportedExtensions = ['.ts', '.js', '.tsx', '.jsx'];
+  private readonly supportedExtensions = ['.ts', '', '.tsx', '.jsx'];
 
   /**
    * Scan directory for code quality issues

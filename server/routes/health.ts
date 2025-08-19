@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { healthCheckHandler, DatabaseHealthChecker } from '../middleware/database-health-check.js';
+import { healthCheckHandler, DatabaseHealthChecker } from '../middleware/database-health-check';
 
 const router = Router();
 
@@ -111,7 +111,7 @@ function generateHealthRecommendations(result: any): string[] {
 async function performETFHealthCheck(): Promise<{ healthy: boolean; details: any }> {
   try {
     // Import ETF fallback service to check data availability
-    const { ETFMetricsFallbackService } = await import('../services/etf-metrics-fallback.js');
+    const { ETFMetricsFallbackService } = await import('../services/etf-metrics-fallback');
     const fallbackService = new ETFMetricsFallbackService();
     
     const hasPrecomputed = await fallbackService.hasPrecomputedFeatures();

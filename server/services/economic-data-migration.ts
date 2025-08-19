@@ -1,10 +1,10 @@
 // Migration service to populate the 3-layer economic data model
 // Seeds metadata and transforms existing economic data
 
-import { db } from '../db.js';
-import { econSeriesDef } from '../../shared/economic-data-model.js';
-import { economicDataStandardizer } from './economic-data-standardizer.js';
-import { logger } from '../../shared/utils/logger.js';
+import { db } from '../db';
+import { econSeriesDef } from '../../shared/economic-data-model';
+import { economicDataStandardizer } from './economic-data-standardizer';
+import { logger } from '../../shared/utils/logger';
 
 interface SeriesDefinition {
   seriesId: string;

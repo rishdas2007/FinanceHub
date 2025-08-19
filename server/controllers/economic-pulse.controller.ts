@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { sql } from 'drizzle-orm';
-import { db } from '../db.js';
+import { db } from '../db';
 import { getCache, setCache } from '../cache/unified-dashboard-cache';
 
 // Removed getSparkline12M function - no longer needed

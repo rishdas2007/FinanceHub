@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { EconomicCorrelationAnalyzer } from '../services/economic-correlation-analyzer.js';
-import { DynamicThresholdService } from '../services/dynamic-threshold-service.js';
-import { logger } from '../../shared/utils/logger.js';
+import { EconomicCorrelationAnalyzer } from '../services/economic-correlation-analyzer';
+import { DynamicThresholdService } from '../services/dynamic-threshold-service';
+import { logger } from '../../shared/utils/logger';
 
 const router = Router();
 const correlationAnalyzer = new EconomicCorrelationAnalyzer();

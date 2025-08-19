@@ -1,4 +1,4 @@
-import { logger } from './logger.js';
+import { logger } from './logger';
 import { performance } from 'perf_hooks';
 
 interface ResourceLimits {

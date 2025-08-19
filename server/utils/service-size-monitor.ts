@@ -41,7 +41,7 @@ export class ServiceSizeMonitor {
       const files = await fs.readdir(servicesPath);
       
       for (const file of files) {
-        if (file.endsWith('.ts') || file.endsWith('.js')) {
+        if (file.endsWith('.ts') || file.endsWith('')) {
           const filePath = path.join(servicesPath, file);
           const report = await this.analyzeService(filePath, file);
           reports.push(report);

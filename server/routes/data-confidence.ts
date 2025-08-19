@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { DataConfidenceService } from '../services/data-confidence-service.js';
-import { logger } from '../utils/logger.js';
+import { DataConfidenceService } from '../services/data-confidence-service';
+import { logger } from '../utils/logger';
 
 const router = Router();
 const dataConfidenceService = new DataConfidenceService();

@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { EconomicHealthFallback } from '../services/economic-health-fallback.js';
-import { StatisticalHealthCalculator } from '../services/statistical-health-calculator.js';
-import { economicDataFreshnessMonitor } from '../services/economic-data-freshness-monitor.js';
-import { logger } from '../utils/logger.js';
-import type { EconomicHealthScore } from '../services/economic-health-fallback.js';
+import { EconomicHealthFallback } from '../services/economic-health-fallback';
+import { StatisticalHealthCalculator } from '../services/statistical-health-calculator';
+import { economicDataFreshnessMonitor } from '../services/economic-data-freshness-monitor';
+import { logger } from '../utils/logger';
+import type { EconomicHealthScore } from '../services/economic-health-fallback';
 
 const router = Router();
 const healthCalculator = new EconomicHealthFallback();

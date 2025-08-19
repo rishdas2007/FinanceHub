@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { EconomicRegimeDetector } from '../services/economic-regime-detector.js';
-import { SectorImpactAnalyzer } from '../services/sector-impact-analyzer.js';
-import { logger } from '../utils/logger.js';
+import { EconomicRegimeDetector } from '../services/economic-regime-detector';
+import { SectorImpactAnalyzer } from '../services/sector-impact-analyzer';
+import { logger } from '../utils/logger';
 
 const router = Router();
 const regimeDetector = new EconomicRegimeDetector();

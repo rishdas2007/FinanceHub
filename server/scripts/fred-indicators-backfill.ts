@@ -5,7 +5,7 @@
  */
 
 import { logger } from '../utils/logger';
-import { db } from '../db.js';
+import { db } from '../db';
 import { economicIndicatorsCurrent } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 

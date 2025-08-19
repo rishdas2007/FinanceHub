@@ -1,4 +1,4 @@
-import { db } from '../db.js';
+import { db } from '../db';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

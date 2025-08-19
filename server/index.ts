@@ -445,7 +445,7 @@ app.use((req, res, next) => {
               try {
                 // Load comprehensive historical data collector (if exists)
                 try {
-                  const { comprehensiveHistoricalCollector } = await import('./services/comprehensive-historical-collector.js');
+                  const { comprehensiveHistoricalCollector } = await import('./services/comprehensive-historical-collector');
                   log('🎯 Historical data collector loaded (delayed startup)');
                 } catch (error) {
                   log('📊 Historical data collector not available (optional)');
@@ -453,7 +453,7 @@ app.use((req, res, next) => {
                 
                 // Load historical data intelligence (if exists)
                 try {
-                  const { historicalDataIntelligence } = await import('./services/historical-data-intelligence.js');
+                  const { historicalDataIntelligence } = await import('./services/historical-data-intelligence');
                   log('🧠 Historical data intelligence loaded (delayed startup)');
                 } catch (error) {
                   log('📊 Historical data intelligence not available (optional)');

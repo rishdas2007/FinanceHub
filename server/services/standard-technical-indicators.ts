@@ -4,7 +4,7 @@
  * This service provides clean separation between raw indicator values and Z-scores
  */
 
-import { db } from '../db.js';
+import { db } from '../db';
 import { historicalStockData } from '@shared/schema';
 import { eq, desc } from 'drizzle-orm';
 import { logger } from '../middleware/logging';

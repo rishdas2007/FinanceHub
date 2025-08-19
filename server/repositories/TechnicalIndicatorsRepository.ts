@@ -1,4 +1,4 @@
-import { db } from '../db.js';
+import { db } from '../db';
 import { technicalIndicators, TechnicalIndicators, InsertTechnicalIndicators } from '../../shared/schema';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { DATABASE_CONFIG } from '../../shared/config/constants';

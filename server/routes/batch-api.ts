@@ -1,6 +1,6 @@
 import express from 'express';
-import { logger } from '../middleware/logging.js';
-import { batchAPIService } from '../services/batch-api-service.js';
+import { logger } from '../middleware/logging';
+import { batchAPIService } from '../services/batch-api-service';
 
 const router = express.Router();
 

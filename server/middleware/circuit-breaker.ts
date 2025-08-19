@@ -3,7 +3,7 @@
  * Provides graceful degradation when performance degrades
  */
 
-import { logger } from '../utils/logger.js';
+import { logger } from '../utils/logger';
 
 interface CircuitBreakerConfig {
   failureThreshold: number;

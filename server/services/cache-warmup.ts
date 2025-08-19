@@ -1,8 +1,8 @@
 // Advanced cache warmup service for critical performance endpoints
 // Ensures frequently accessed data is always cached and ready
 
-import { getCache, setCache } from '../cache/unified-dashboard-cache.js';
-import { db } from '../db.js';
+import { getCache, setCache } from '../cache/unified-dashboard-cache';
+import { db } from '../db';
 import { sql } from 'drizzle-orm';
 
 export class CacheWarmupService {

@@ -1,7 +1,7 @@
 // Database Health Check Middleware - RCA Implementation
 // Implements startup schema validation and runtime health checks
 
-import { db } from '../db.js';
+import { db } from '../db';
 import { sql } from 'drizzle-orm';
 
 interface SchemaCheckResult {

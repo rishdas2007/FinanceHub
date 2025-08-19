@@ -3,7 +3,7 @@
  * Sets and enforces performance budgets for component render times
  */
 
-import { logger } from '../utils/logger.js';
+import { logger } from '../utils/logger';
 
 interface PerformanceBudget {
   name: string;

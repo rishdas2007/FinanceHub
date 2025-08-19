@@ -9,7 +9,7 @@
  */
 
 import { fredApiServiceIncremental } from '../services/fred-api-service-incremental';
-import { db } from '../db.js';
+import { db } from '../db';
 import { economicIndicatorsHistory } from '../../shared/schema';
 import { eq, desc } from 'drizzle-orm';
 import { logger } from '../../shared/utils/logger';

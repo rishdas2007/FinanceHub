@@ -1,9 +1,9 @@
 // ETF Metrics Fallback Service - RCA Implementation
 // Provides robust fallback when equity_features_daily is empty
 
-import { db } from '../db.js';
+import { db } from '../db';
 import { sql } from 'drizzle-orm';
-import { stockData, technicalIndicators } from '../../shared/schema.js';
+import { stockData, technicalIndicators } from '../../shared/schema';
 import { eq, desc, and, gte } from 'drizzle-orm';
 
 interface ETFMetricsResult {

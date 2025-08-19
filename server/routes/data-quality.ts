@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { ZScoreDataQualityValidator } from '../services/data-quality/zscore-validator.js';
-import { DataSufficiencyGates } from '../services/data-quality/sufficiency-gates.js';
-import { CircuitBreakerRegistry } from '../services/data-quality/circuit-breaker.js';
-import { ContractRegistry } from '../../shared/validation/contract-registry.js';
-import { logger } from '../utils/logger.js';
+import { ZScoreDataQualityValidator } from '../services/data-quality/zscore-validator';
+import { DataSufficiencyGates } from '../services/data-quality/sufficiency-gates';
+import { CircuitBreakerRegistry } from '../services/data-quality/circuit-breaker';
+import { ContractRegistry } from '../../shared/validation/contract-registry';
+import { logger } from '../utils/logger';
 
 const router = Router();
 

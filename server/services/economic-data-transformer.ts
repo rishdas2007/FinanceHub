@@ -1,4 +1,4 @@
-import { db } from '../db.js';
+import { db } from '../db';
 import { economicIndicatorsHistory } from '../../shared/schema';
 import { and, eq, gte, lte, desc, asc } from 'drizzle-orm';
 import { logger } from '../middleware/logging';

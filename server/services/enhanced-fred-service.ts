@@ -1,7 +1,7 @@
 import { logger } from '../../shared/utils/logger';
 import { DataQualityValidator } from './data-quality-validator';
 import { dataLineageTracker } from './data-lineage-tracker';
-import { db } from '../db.js';
+import { db } from '../db';
 import { sql } from 'drizzle-orm';
 import { CURATED_SERIES } from './fred-api-service-incremental';
 

@@ -1,4 +1,4 @@
-import { db } from '../db.js';
+import { db } from '../db';
 import { stockData, technicalIndicators, InsertStockData, InsertTechnicalIndicators } from '../../shared/schema';
 import { logger } from '../utils/logger';
 import { DATABASE_CONFIG } from '../../shared/config/constants';

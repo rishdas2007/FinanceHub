@@ -103,6 +103,6 @@ export class EnvironmentValidator {
 
   isConfigured(key: keyof Environment): boolean {
     const config = this.getConfig();
-    return config[key] !== undefined && config[key] !== '';
+    return config[key] !== undefined && config[key] !== ';
   }
 }

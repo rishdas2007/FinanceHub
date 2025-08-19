@@ -1,4 +1,4 @@
-import { db } from '../db.js';
+import { db } from '../db';
 import { sql } from 'drizzle-orm';
 import { economicStatisticalAlerts } from '../../shared/schema';
 
@@ -169,7 +169,7 @@ export class EconomicStatisticalAnalysisService {
             alertsToInsert.push(alertMetric);
             
             // Use dynamic threshold instead of static 1.0
-            const { DynamicThresholdService } = await import('./dynamic-threshold-service.js');
+            const { DynamicThresholdService } = await import('./dynamic-threshold-service');
             const thresholdService = new DynamicThresholdService();
             const thresholdCheck = await thresholdService.exceedsThreshold(metric, zScore);
             
