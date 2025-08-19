@@ -258,6 +258,10 @@ export class FREDRecentIndicatorsService {
   // Step 5: GPT Analysis
   private async analyzeWithOpenAI(prompt: string): Promise<string> {
     try {
+      if (!openai) {
+        throw new Error('OpenAI client not initialized - missing API key');
+      }
+      
       const response = await openai.chat.completions.create({
         model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
         messages: [

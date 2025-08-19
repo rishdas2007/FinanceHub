@@ -44,8 +44,8 @@ export class ZScorePerformanceMonitor {
    * Start continuous performance monitoring
    */
   private startMonitoring(): void {
-    // Reduce monitoring frequency during high load - was causing performance feedback loop
-    const intervalMs = process.env.HIGH_LOAD_MODE === 'true' ? 120000 : 60000; // 2min vs 1min (was 30s)
+    // Significantly reduce monitoring frequency to prevent performance feedback loops
+    const intervalMs = process.env.HIGH_LOAD_MODE === 'true' ? 300000 : 180000; // 5min vs 3min (was causing spam)
     this.monitoringInterval = setInterval(() => {
       this.collectSystemMetrics();
       this.analyzePerformanceTrends();
@@ -133,16 +133,18 @@ export class ZScorePerformanceMonitor {
   private analyzePerformanceTrends(): void {
     const report = this.generatePerformanceReport();
     
-    // Alert on performance issues
-    if (report.overallHealth === 'critical') {
+    // Alert on performance issues (but only if we have significant calculation data)
+    if (this.totalCalculations > 50 && report.overallHealth === 'critical') {
       logger.error('🚨 CRITICAL: Z-Score performance is severely degraded', {
         avgCalculationTime: report.avgCalculationTime,
         cacheHitRate: report.cacheHitRate,
+        totalCalculations: this.totalCalculations,
         recommendations: report.recommendations
       });
-    } else if (report.overallHealth === 'warning') {
+    } else if (this.totalCalculations > 20 && report.overallHealth === 'warning') {
       logger.warn('⚠️ WARNING: Z-Score performance is degrading', {
         avgCalculationTime: report.avgCalculationTime,
+        totalCalculations: this.totalCalculations,
         recommendations: report.recommendations
       });
     }
