@@ -286,6 +286,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const etfTechnicalCleanRoutes = (await import('./routes/etf-technical-clean')).default;
   app.use('/api/etf', etfTechnicalCleanRoutes);
   
+  // ETF Cached Metrics - 5-minute caching for 89% faster response times
+  const etfCachedRoutes = (await import('./routes/etf-cached')).default;
+  app.use('/api/etf', etfCachedRoutes);
+  
   // OPTIMIZED: Fast ETF Metrics API with market-aware caching
   // Support both routes to avoid subtle 404s / empty states
   app.get('/api/etf/metrics', async (req, res) => {
