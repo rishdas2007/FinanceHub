@@ -84,12 +84,7 @@ const MomentumAnalysis = () => {
       </div>
     </div>
   );
-      
-      return 0;
-    });
-  };
-
-  const getMomentumColor = (momentum: string) => {
+export default MomentumAnalysis;
     switch (momentum) {
       case 'bullish': return 'text-green-600 bg-green-50 border-green-200';
       case 'bearish': return 'text-red-600 bg-red-50 border-red-200';
