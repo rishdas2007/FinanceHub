@@ -241,7 +241,7 @@ app.use((req, res, next) => {
     });
 
     process.on('unhandledRejection', (reason, promise) => {
-      log('❌ Unhandled Rejection at:', String(promise), 'reason:', String(reason));
+      log(`❌ Unhandled Rejection at: ${String(promise)} reason: ${String(reason)}`);
     });
 
     // importantly only setup vite in development and after
