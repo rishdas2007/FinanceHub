@@ -91,8 +91,8 @@ export const ETFTechnicalMetricsClean = () => {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const { data, isLoading, error, refetch } = useQuery<ETFTechnicalResponse>({
-    queryKey: ['/api/etf/robust', refreshKey],
-    queryFn: () => fetch('/api/etf/robust').then(res => {
+    queryKey: ['/api/etf/technical-clean', refreshKey],
+    queryFn: () => fetch('/api/etf/technical-clean').then(res => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
     }),
