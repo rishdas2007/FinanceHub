@@ -1,0 +1,26 @@
+                                            Table "public.economic_indicators_current"
+      Column       |            Type             | Collation | Nullable |                         Default                         
+-------------------+-----------------------------+-----------+----------+---------------------------------------------------------
+ id                | integer                     |           | not null | nextval('economic_indicators_current_id_seq'::regclass)
+ series_id         | text                        |           | not null | 
+ metric            | text                        |           | not null | 
+ category          | text                        |           | not null | 
+ type              | text                        |           | not null | 
+ frequency         | text                        |           | not null | 
+ value_numeric     | numeric(15,4)               |           | not null | 
+ period_date_desc  | text                        |           | not null | 
+ release_date_desc | text                        |           | not null | 
+ period_date       | timestamp without time zone |           | not null | 
+ release_date      | timestamp without time zone |           | not null | 
+ unit              | text                        |           | not null | 
+ is_latest         | boolean                     |           | not null | true
+ updated_at        | timestamp without time zone |           | not null | now()
+Indexes:
+    "economic_indicators_current_pkey" PRIMARY KEY, btree (id)
+    "current_is_latest_idx" btree (is_latest)
+    "current_series_id_idx" btree (series_id)
+    "idx_econ_current_latest" btree (series_id, is_latest, period_date DESC) WHERE is_latest = true
+    "idx_econ_current_series_period" btree (series_id, period_date DESC) INCLUDE (value_numeric, unit)
+    "idx_economic_current_metric" btree (metric, period_date DESC)
+    "unique_series_period" UNIQUE CONSTRAINT, btree (series_id, period_date)
+

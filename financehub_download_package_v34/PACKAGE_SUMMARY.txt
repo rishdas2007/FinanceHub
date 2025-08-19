@@ -1,0 +1,19 @@
+=== FINANCEHUB PRO v34 DOWNLOAD PACKAGE ===
+Generated: Tue Aug 19 02:56:45 AM UTC 2025
+Total Files: 449
+Database Size: 17M
+Package Size: 22M
+
+CONTENTS:
+total 17192
+drwxr-xr-x 1 runner runner      476 Aug 19 02:56 .
+drwxr-xr-x 1 runner runner     5586 Aug 19 02:56 ..
+drwxr-xr-x 1 runner runner      306 Aug 19 02:56 codebase
+-rw-r--r-- 1 runner runner 17449556 Aug 19 02:56 database_complete_export_v34.sql
+-rw-r--r-- 1 runner runner        0 Aug 19 02:56 economic_indicators_current.csv
+-rw-r--r-- 1 runner runner      170 Aug 19 02:56 etf_metrics_latest.csv
+-rw-r--r-- 1 runner runner      100 Aug 19 02:55 historical_market_sentiment_recent.csv
+-rw-r--r-- 1 runner runner   115448 Aug 19 02:56 historical_technical_indicators_recent.csv
+-rw-r--r-- 1 runner runner      152 Aug 19 02:56 PACKAGE_SUMMARY.txt
+-rw-r--r-- 1 runner runner     4806 Aug 19 02:56 README_DOWNLOAD_PACKAGE.md
+-rw-r--r-- 1 runner runner     1975 Aug 19 02:56 table_structures.txt
