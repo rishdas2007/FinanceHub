@@ -1,7 +1,7 @@
-import { DataContractValidator } from '../../../shared/validation/data-contracts.js';
-import { ETF_METRICS_CONTRACT, ETFMetric } from '../../../shared/validation/etf-contracts.js';
-import { DataSufficiencyGates, DataSufficiencyResult } from './sufficiency-gates.js';
-import { logger } from '../../utils/logger.js';
+import { DataContractValidator } from '../../../shared/validation/data-contracts';
+import { ETF_METRICS_CONTRACT, ETFMetric } from '../../../shared/validation/etf-contracts';
+import { DataSufficiencyGates, DataSufficiencyResult } from './sufficiency-gates';
+import { logger } from '../../utils/logger';
 
 export interface ZScoreValidationResult {
   valid: boolean;

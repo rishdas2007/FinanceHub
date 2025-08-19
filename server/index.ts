@@ -57,7 +57,7 @@ if (!enhancedValidation.isValid) {
 }
 
 // Import and initialize database health check system - RCA Implementation
-import { validateDatabaseOnStartup, DatabaseHealthChecker } from './middleware/database-health-check.js';
+import { validateDatabaseOnStartup, DatabaseHealthChecker } from './middleware/database-health-check';
 import { logger } from './utils/logger';
 
 // Import advanced optimization middleware

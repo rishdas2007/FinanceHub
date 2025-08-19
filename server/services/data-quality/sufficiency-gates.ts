@@ -1,5 +1,5 @@
 // Database pool configuration removed for startup optimization
-import { logger } from '../../utils/logger.js';
+import { logger } from '../../utils/logger';
 
 export interface DataSufficiencyResult {
   sufficient: boolean;

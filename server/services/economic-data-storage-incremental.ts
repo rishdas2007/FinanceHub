@@ -1,4 +1,4 @@
-import { db } from '../db.js';
+import { db } from '../db';
 import { economicIndicatorsHistory, fredUpdateLog } from '../../shared/schema';
 import { eq, desc, and, max, sql } from 'drizzle-orm';
 import { logger } from '../../shared/utils/logger';
