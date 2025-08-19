@@ -290,6 +290,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const etfCachedRoutes = (await import('./routes/etf-cached')).default;
   app.use('/api/etf', etfCachedRoutes);
   
+  // ETF Robust Routes - v35 critical fixes with materialized view
+  const etfRobustRoutes = (await import('./routes/etf-robust')).default;
+  app.use('/api/etf', etfRobustRoutes);
+  
+  // ETF Monitoring Routes - Phase 4 monitoring
+  const etfMonitoringRoutes = (await import('./routes/etf-monitoring')).default;
+  app.use('/api/etf', etfMonitoringRoutes);
+  
   // OPTIMIZED: Fast ETF Metrics API with market-aware caching
   // Support both routes to avoid subtle 404s / empty states
   app.get('/api/etf/metrics', async (req, res) => {
