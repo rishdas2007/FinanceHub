@@ -1854,7 +1854,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
 
         // Send email using enhanced email service
-        const { EnhancedEmailService } = await import('./services/email-unified-enhanced.js');
+        const { EnhancedEmailService } = await import('./services/email-unified-enhanced');
         const emailService = EnhancedEmailService.getInstance();
         
         const success = await emailService.sendDashboardMatchingEmail(email, dashboardEmailData);
@@ -2031,7 +2031,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Import simplified email service
-      const { simplifiedEmailService } = await import('./services/email-simplified.js');
+      const { simplifiedEmailService } = await import('./services/email-simplified');
       
       // Generate HTML content (use private method via workaround)
       const htmlContent = (simplifiedEmailService as any).generateSimplifiedDashboardTemplate(emailData);
