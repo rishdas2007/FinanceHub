@@ -155,18 +155,9 @@ export class ETFCacheService {
         last_price,
         pct_change_1d,
         volume,
-        rsi,
-        macd,
-        bb_percent_b,
-        sma_50,
-        sma_200,
-        composite_zscore,
-        rsi_zscore,
-        macd_zscore,
-        signal,
-        cache_timestamp,
-        data_source
-      FROM public.etf_metrics_5min_cache
+        perf_5d,
+        perf_1m
+      FROM public.etf_metrics_latest
       WHERE symbol IN ('SPY','XLK','XLV','XLF','XLY','XLI','XLC','XLP','XLE','XLU','XLB','XLRE')
       ORDER BY symbol
     `);
@@ -183,17 +174,17 @@ export class ETFCacheService {
       price: parseFloat(row.last_price) || 0,
       changePercent: parseFloat(row.pct_change_1d) || 0,
       volume: row.volume ? parseInt(row.volume) : null,
-      rsi: row.rsi ? parseFloat(row.rsi) : null,
-      macd: row.macd ? parseFloat(row.macd) : null,
-      bollingerPercB: row.bb_percent_b ? parseFloat(row.bb_percent_b) : null,
-      sma50: row.sma_50 ? parseFloat(row.sma_50) : null,
-      sma200: row.sma_200 ? parseFloat(row.sma_200) : null,
-      zScore: row.composite_zscore ? parseFloat(row.composite_zscore) : null,
-      rsiZScore: row.rsi_zscore ? parseFloat(row.rsi_zscore) : null,
-      macdZScore: row.macd_zscore ? parseFloat(row.macd_zscore) : null,
-      bbZScore: null, // Not in current materialized view
-      signal: row.signal as 'BUY' | 'SELL' | 'HOLD' || 'HOLD',
-      lastUpdated: row.cache_timestamp ? new Date(row.cache_timestamp).toISOString() : new Date().toISOString(),
+      rsi: null, // Will be computed by fallback API
+      macd: null, // Will be computed by fallback API
+      bollingerPercB: null, // Will be computed by fallback API
+      sma50: null, // Will be computed by fallback API
+      sma200: null, // Will be computed by fallback API
+      zScore: null, // Will be computed by fallback API
+      rsiZScore: null, // Will be computed by fallback API
+      macdZScore: null, // Will be computed by fallback API
+      bbZScore: null, // Will be computed by fallback API
+      signal: 'HOLD', // Default signal
+      lastUpdated: new Date().toISOString(),
       source: 'materialized_view' as const
     }));
   }
