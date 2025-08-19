@@ -129,8 +129,8 @@ export class ETFCacheService {
    * Fetch fresh ETF metrics with materialized view fallback
    */
   private async fetchFreshETFMetrics(): Promise<ETFMetrics[]> {
-    // Skip materialized view in production - use Twelve Data API directly
-    console.log('📊 Fetching ETF data from Twelve Data API (production mode)');
+    // Production fix: Skip materialized view (empty), use API directly
+    console.log('📊 Using Twelve Data API directly (production optimization)');
     return await this.fetchFromTwelveDataAPI();
   }
 
