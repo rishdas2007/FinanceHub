@@ -129,18 +129,8 @@ export class ETFCacheService {
    * Fetch fresh ETF metrics with materialized view fallback
    */
   private async fetchFreshETFMetrics(): Promise<ETFMetrics[]> {
-    // Try materialized view first (fast)
-    try {
-      const mvData = await this.getFromMaterializedView();
-      if (mvData.length > 0) {
-        console.log(`📊 Served ${mvData.length} ETF metrics from materialized view`);
-        return mvData;
-      }
-    } catch (error) {
-      console.warn('⚠️ Materialized view failed, falling back to live API:', error);
-    }
-    
-    // Fallback to Twelve Data API
+    // Skip materialized view in production - use Twelve Data API directly
+    console.log('📊 Fetching ETF data from Twelve Data API (production mode)');
     return await this.fetchFromTwelveDataAPI();
   }
 
@@ -165,6 +155,7 @@ export class ETFCacheService {
     const rows = result.rows as any[];
     
     if (rows.length === 0) {
+      console.warn('⚠️ Materialized view is empty, will fallback to API');
       throw new Error('No data in materialized view');
     }
 
