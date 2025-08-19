@@ -7,7 +7,7 @@ export function useEtfMetrics(horizon = '60D') {
     queryKey: ['etf-metrics', horizon],
     queryFn: async () => {
       // Use enhanced fetch to handle 304 Not Modified responses
-      const json = await fetchJsonWith304(`/api/etf-metrics?horizon=${encodeURIComponent(horizon)}`);
+      const json = await fetchJsonWith304(`/api/etf/robust?horizon=${encodeURIComponent(horizon)}`);
       const { rows, meta } = normalizeEtfMetrics(json);
 
       // tiny prod-safe debug
