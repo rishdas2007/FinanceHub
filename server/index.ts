@@ -309,7 +309,7 @@ app.use((req, res, next) => {
       // Initialize cache warmup service (non-blocking)
       setTimeout(async () => {
         try {
-          const { CacheWarmupService } = await import('./services/cache-warmup.js');
+          const { CacheWarmupService } = await import('./services/cache-warmup');
           const cacheWarmup = new CacheWarmupService(logger);
           cacheWarmup.startWarmupSchedule();
           log('🔥 Cache warmup service initialized');
