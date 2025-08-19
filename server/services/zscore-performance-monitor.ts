@@ -139,13 +139,24 @@ export class ZScorePerformanceMonitor {
         avgCalculationTime: report.avgCalculationTime,
         cacheHitRate: report.cacheHitRate,
         totalCalculations: this.totalCalculations,
-        recommendations: report.recommendations
+        recommendations: report.recommendations,
+        triggerCondition: this.getHealthTriggerCondition()
       });
     } else if (this.totalCalculations > 20 && report.overallHealth === 'warning') {
       logger.warn('⚠️ WARNING: Z-Score performance is degrading', {
         avgCalculationTime: report.avgCalculationTime,
         totalCalculations: this.totalCalculations,
-        recommendations: report.recommendations
+        recommendations: report.recommendations,
+        triggerCondition: this.getHealthTriggerCondition()
+      });
+    } else if (report.overallHealth === 'critical') {
+      // Debug: Log why it's critical even with low calculation count
+      logger.debug('🔍 Z-Score Monitor: Critical state detected with low calculation count', {
+        totalCalculations: this.totalCalculations,
+        avgCalculationTime: report.avgCalculationTime,
+        cacheHitRate: report.cacheHitRate,
+        triggerCondition: this.getHealthTriggerCondition(),
+        suppressedAlert: true
       });
     }
   }
@@ -246,6 +257,23 @@ export class ZScorePerformanceMonitor {
   }
 
   /**
+   * Get detailed trigger condition for health assessment
+   */
+  private getHealthTriggerCondition(): string {
+    const avgTime = this.calculateAverageTime();
+    const cacheHitRate = this.calculateCacheHitRate();
+    const errorCount = Array.from(this.metrics.errorRates.values()).reduce((sum, count) => sum + count, 0);
+    const errorRate = this.totalCalculations > 0 ? (errorCount / this.totalCalculations) * 100 : 0;
+
+    const conditions = [];
+    if (avgTime > 10000) conditions.push(`avgTime: ${avgTime}ms > 10000ms`);
+    if (errorRate > 15) conditions.push(`errorRate: ${errorRate}% > 15%`);
+    if (cacheHitRate < 20) conditions.push(`cacheHitRate: ${cacheHitRate}% < 20%`);
+    
+    return conditions.length > 0 ? conditions.join(', ') : 'no trigger conditions met';
+  }
+
+  /**
    * Determine overall system health
    */
   private assessOverallHealth(): PerformanceReport['overallHealth'] {
@@ -253,6 +281,11 @@ export class ZScorePerformanceMonitor {
     const cacheHitRate = this.calculateCacheHitRate();
     const errorCount = Array.from(this.metrics.errorRates.values()).reduce((sum, count) => sum + count, 0);
     const errorRate = this.totalCalculations > 0 ? (errorCount / this.totalCalculations) * 100 : 0;
+
+    // Don't assess as critical if we have very few calculations (startup condition)
+    if (this.totalCalculations < 5) {
+      return 'good'; // Default to good during startup
+    }
 
     // Critical conditions - increased thresholds for production
     if (avgTime > 10000 || errorRate > 15 || cacheHitRate < 20) {
