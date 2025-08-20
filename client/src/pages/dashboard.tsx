@@ -6,6 +6,7 @@ import MacroeconomicIndicators from "@/components/MacroeconomicIndicators";
 
 import { StatisticalAlertSystem } from "@/components/StatisticalAlertSystem";
 import { EconomicPulseCheck } from "@/components/EconomicPulseCheck";
+import { MacroDashboard } from "@/components/MacroDashboard";
 
 
 import { lazy, Suspense } from "react";
@@ -78,6 +79,9 @@ export default function Dashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
+        {/* Macro Dashboard - GDP and Inflation Analysis */}
+        <MacroDashboard />
+
         {/* Enhanced Economic Health Dashboard - Original + Statistical Methods */}
 
 

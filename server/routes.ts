@@ -54,6 +54,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Economic health and data quality monitoring
   app.use('/api/economic-health', (await import('./routes/economic-health')).default);
   
+  // Macro dashboard endpoints - GDP and Inflation data
+  app.use('/api/macro', (await import('./routes/macro-dashboard')).default);
+  
   // PPI diagnostic endpoint
   app.use('/api/ppi-diagnostic', (await import('./routes/ppi-diagnostic')).default);
   
