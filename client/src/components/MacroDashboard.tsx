@@ -239,6 +239,59 @@ export function MacroDashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Real GDP Growth Chart */}
+          <div className="space-y-4">
+            <div className="text-center">
+              <h3 className="text-sm font-medium text-blue-400 mb-2">Real GDP Growth (% Quarterly)</h3>
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={quarterlyGDPData.slice().reverse()}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <XAxis 
+                      dataKey="quarter" 
+                      stroke="#9CA3AF" 
+                      fontSize={12}
+                      tickFormatter={(value) => value.replace(' ', '\n')}
+                    />
+                    <YAxis 
+                      stroke="#9CA3AF" 
+                      fontSize={12}
+                      domain={[-2, 4]}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#1F2937', 
+                        border: '1px solid #374151', 
+                        borderRadius: '6px',
+                        color: '#F3F4F6'
+                      }}
+                      formatter={(value: any) => [`${value}%`, 'Growth Rate']}
+                    />
+                    <Bar 
+                      dataKey="growth"
+                      fill="#10B981"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex justify-center space-x-6 mt-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-blue-400"></div>
+                  <span className="text-xs text-gray-400">Headline CPI</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-gain-green"></div>
+                  <span className="text-xs text-gray-400">Core PCE</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-0.5 bg-loss-red" style={{borderTop: '2px dashed'}}></div>
+                  <span className="text-xs text-gray-400">Fed Target</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Inflation Trends Chart */}
           <div className="space-y-4">
             <div className="text-center">
@@ -309,133 +362,9 @@ export function MacroDashboard() {
               </div>
             </div>
           </div>
-
-          {/* Real GDP Growth Chart */}
-          <div className="space-y-4">
-            <div className="text-center">
-              <h3 className="text-sm font-medium text-blue-400 mb-2">Real GDP Growth (%)</h3>
-              <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={quarterlyGDPData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis 
-                      dataKey="quarter" 
-                      stroke="#9CA3AF" 
-                      fontSize={12}
-                      tickFormatter={(value) => value.replace(' ', '\n')}
-                    />
-                    <YAxis stroke="#9CA3AF" fontSize={12} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#1F2937', 
-                        border: '1px solid #374151', 
-                        borderRadius: '6px',
-                        color: '#F3F4F6'
-                      }}
-                      formatter={(value: any) => [`${value}%`, 'Growth Rate']}
-                    />
-                    <Bar 
-                      dataKey="growth"
-                      fill="#10B981"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
         </div>
 
-        {/* Combined GDP and Inflation Data Table */}
-        <div className="mt-6 bg-gray-800/30 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-gray-300 mb-4">GDP & INFLATION DATA</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* GDP Section */}
-            <div>
-              <h5 className="text-xs font-medium text-blue-400 mb-3">QUARTERLY GDP (LAST 5 QUARTERS)</h5>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-700">
-                      <th className="text-left text-xs text-gray-400 font-medium py-2">QUARTER</th>
-                      {quarterlyGDPData.slice(-4).map((item: any, index: number) => (
-                        <th key={index} className="text-center text-xs text-gray-400 font-medium py-2">
-                          {item.quarter}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b border-gray-800">
-                      <td className="py-2 text-xs text-gray-300">Nominal GDP ($T)</td>
-                      {quarterlyGDPData.slice(-4).map((item: any, index: number) => (
-                        <td key={index} className="text-center text-xs text-white">
-                          {(item.nominal / 1000).toFixed(1)}
-                        </td>
-                      ))}
-                    </tr>
-                    <tr>
-                      <td className="py-2 text-xs text-gray-300">Real GDP Growth (%)</td>
-                      {quarterlyGDPData.slice(-4).map((item: any, index: number) => (
-                        <td key={index} className={`text-center text-xs ${item.growth >= 0 ? 'text-gain-green' : 'text-loss-red'}`}>
-                          {item.growth.toFixed(1)}
-                        </td>
-                      ))}
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
 
-            {/* Inflation Section */}
-            <div>
-              <h5 className="text-xs font-medium text-orange-400 mb-3">RECENT INFLATION DATA (LAST 4 MONTHS)</h5>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-700">
-                      <th className="text-left text-xs text-gray-400 font-medium py-2">MONTHS</th>
-                      {inflationTrendData.slice(-4).map((item: any, index: number) => (
-                        <th key={index} className="text-center text-xs text-gray-400 font-medium py-2">
-                          {item.month.toUpperCase()}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b border-gray-800">
-                      <td className="py-2 text-xs text-gray-300">Headline CPI (%)</td>
-                      {inflationTrendData.slice(-4).map((item: any, index: number) => (
-                        <td key={index} className="text-center text-xs text-white">
-                          {item.headline.toFixed(1)}
-                        </td>
-                      ))}
-                    </tr>
-                    <tr className="border-b border-gray-800">
-                      <td className="py-2 text-xs text-gray-300">Core PCE (%)</td>
-                      {inflationTrendData.slice(-4).map((item: any, index: number) => (
-                        <td key={index} className="text-center text-xs text-white">
-                          {item.core.toFixed(1)}
-                        </td>
-                      ))}
-                    </tr>
-                    <tr>
-                      <td className="py-2 text-xs text-gray-300">Fed Target (%)</td>
-                      {inflationTrendData.slice(-4).map((item: any, index: number) => (
-                        <td key={index} className="text-center text-xs text-white">
-                          {item.target.toFixed(1)}
-                        </td>
-                      ))}
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-          <p className="text-xs text-gray-400 mt-3 italic">
-            *Source: Bureau of Economic Analysis, Bureau of Labor Statistics, Federal Reserve
-          </p>
-        </div>
 
       </div>
     </div>
