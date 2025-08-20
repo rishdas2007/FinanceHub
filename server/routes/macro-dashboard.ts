@@ -15,7 +15,7 @@ router.get('/gdp-data', async (req, res) => {
       .select()
       .from(economicIndicatorsCurrent)
       .where(sql`series_id IN ('GDP', 'GDPC1', 'A191RL1Q225SBEA')`)
-      .orderBy(desc(economicIndicatorsCurrent.date))
+      .orderBy(desc(economicIndicatorsCurrent.periodDate))
       .limit(20);
 
     if (!gdpIndicators.length) {
@@ -39,10 +39,10 @@ router.get('/gdp-data', async (req, res) => {
       lastUpdated: new Date().toISOString(),
       indicators: gdpIndicators.map(item => ({
         seriesId: item.seriesId,
-        value: parseFloat(item.value) || 0,
-        date: item.date,
-        title: item.title,
-        units: item.units
+        value: parseFloat(item.valueNumeric) || 0,
+        date: item.periodDate,
+        title: item.metric,
+        units: item.unit
       }))
     };
 
@@ -72,7 +72,7 @@ router.get('/inflation-data', async (req, res) => {
       .select()
       .from(economicIndicatorsCurrent)
       .where(sql`series_id IN ('CPIAUCSL', 'CPILFESL', 'PCEPI', 'PCEPILFE')`)
-      .orderBy(desc(economicIndicatorsCurrent.date))
+      .orderBy(desc(economicIndicatorsCurrent.periodDate))
       .limit(24); // Last 6 months * 4 indicators
 
     if (!inflationIndicators.length) {
@@ -95,10 +95,10 @@ router.get('/inflation-data', async (req, res) => {
       lastUpdated: new Date().toISOString(),
       indicators: inflationIndicators.map(item => ({
         seriesId: item.seriesId,
-        value: parseFloat(item.value) || 0,
-        date: item.date,
-        title: item.title,
-        units: item.units
+        value: parseFloat(item.valueNumeric) || 0,
+        date: item.periodDate,
+        title: item.metric,
+        units: item.unit
       }))
     };
 
@@ -127,13 +127,9 @@ router.get('/quarterly-data', async (req, res) => {
     const quarterlyIndicators = await db
       .select()
       .from(economicIndicatorsCurrent)
-      .where(
-        and(
-          sql`series_id IN ('GDP', 'GDPC1', 'A191RL1Q225SBEA')`,
-          gte(economicIndicatorsCurrent.date, sql`NOW() - INTERVAL '18 months'`)
-        )
-      )
-      .orderBy(desc(economicIndicatorsCurrent.date));
+      .where(sql`series_id IN ('GDP', 'GDPC1', 'A191RL1Q225SBEA')`)
+      .orderBy(desc(economicIndicatorsCurrent.periodDate))
+      .limit(10);
 
     console.log(`✅ Found ${quarterlyIndicators.length} quarterly data points`);
 
@@ -152,10 +148,10 @@ router.get('/quarterly-data', async (req, res) => {
         quarters: quarterlyData,
         indicators: quarterlyIndicators.map(item => ({
           seriesId: item.seriesId,
-          value: parseFloat(item.value) || 0,
-          date: item.date,
-          title: item.title,
-          units: item.units
+          value: parseFloat(item.valueNumeric) || 0,
+          date: item.periodDate,
+          title: item.metric,
+          units: item.unit
         })),
         lastUpdated: new Date().toISOString()
       },
