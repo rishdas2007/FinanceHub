@@ -6,7 +6,7 @@ import MacroeconomicIndicators from "@/components/MacroeconomicIndicators";
 
 import { StatisticalAlertSystem } from "@/components/StatisticalAlertSystem";
 import { EconomicPulseCheck } from "@/components/EconomicPulseCheck";
-import ETFTechnicalMetricsClean from "@/components/ETFTechnicalMetricsClean";
+
 
 import { lazy, Suspense } from "react";
 
@@ -22,7 +22,7 @@ import { AAIISentiment } from "@/components/aaii-sentiment";
 import { GlobalRefreshButton } from "@/components/global-refresh-button";
 import { MarketStatusIndicator, MarketStatusIndicatorCompact } from "@/components/MarketStatusIndicator";
 
-import { QuickScanMetrics } from "@/components/NavigationHeader";
+
 
 
 
@@ -78,14 +78,6 @@ export default function Dashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
-        {/* 5-Second Market Scan */}
-        <QuickScanMetrics />
-
-
-
-        {/* ETF Technical Metrics - Clean implementation with fresh API data */}
-        <ETFTechnicalMetricsClean />
-
         {/* Enhanced Economic Health Dashboard - Original + Statistical Methods */}
 
 
