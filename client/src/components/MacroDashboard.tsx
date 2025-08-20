@@ -183,8 +183,8 @@ export function MacroDashboard() {
         
         result.push({
           month: monthStr,
-          headline: parseFloat(cpiItem?.annualChange) || 2.5,
-          core: parseFloat(coreItem?.annualChange) || 2.3,
+          headline: parseFloat(cpiItem?.annualChange || '2.5') || 2.5,
+          core: parseFloat(coreItem?.annualChange || '2.3') || 2.3,
           target: 2.0
         });
       }
@@ -277,16 +277,8 @@ export function MacroDashboard() {
               </div>
               <div className="flex justify-center space-x-6 mt-4">
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-400"></div>
-                  <span className="text-xs text-gray-400">Headline CPI</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-gain-green"></div>
-                  <span className="text-xs text-gray-400">Core PCE</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-0.5 bg-loss-red" style={{borderTop: '2px dashed'}}></div>
-                  <span className="text-xs text-gray-400">Fed Target</span>
+                  <div className="w-3 h-3 rounded bg-gain-green"></div>
+                  <span className="text-xs text-gray-400">Real GDP Growth</span>
                 </div>
               </div>
             </div>
