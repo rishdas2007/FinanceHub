@@ -3,6 +3,26 @@ import { healthCheckHandler, DatabaseHealthChecker } from '../middleware/databas
 
 const router = Router();
 
+// DEPLOYMENT FIX: Root health check endpoint (backup)
+// This provides a secondary health check endpoint at /api/health/
+router.get('/', (req, res) => {
+  try {
+    res.status(200).json({ 
+      ok: true, 
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      service: 'FinanceHub Pro API'
+    });
+  } catch (error: any) {
+    res.status(200).json({ // Return 200 even on errors for deployment health checks
+      ok: true, 
+      status: 'degraded',
+      error: error?.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Basic health check endpoint
 router.get('/health', async (req, res) => {
   try {

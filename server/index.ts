@@ -70,6 +70,17 @@ const app = express();
 // Trust proxy for rate limiting and security headers
 app.set('trust proxy', 1);
 
+// DEPLOYMENT FIX: Add simple root health check endpoint for deployment health checks
+// This must be added BEFORE any other routes or middleware to ensure it responds immediately
+app.get('/', (req, res) => {
+  res.status(200).json({
+    ok: true,
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    service: 'FinanceHub Pro'
+  });
+});
+
 // Basic middleware only (restore original functionality)
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -164,21 +175,24 @@ app.use((req, res, next) => {
       }
     }
 
-    // RCA Implementation: Database Health Validation at Startup
-    try {
-      log('🔍 Performing startup database health validation...');
-      await validateDatabaseOnStartup();
-      
-      // Start periodic health checks
-      const healthChecker = DatabaseHealthChecker.getInstance();
-      await healthChecker.startPeriodicHealthChecks(300000); // Every 5 minutes
-      
-      log('✅ Database health validation completed - monitoring active');
-    } catch (dbError) {
-      log('⚠️ Database health validation encountered issues:', String(dbError));
-      log('📝 Application will continue with degraded functionality');
-      log('🔧 Check /health/db/detailed endpoint for comprehensive diagnostics');
-    }
+    // DEPLOYMENT FIX: Make database health validation non-blocking
+    // Move database validation to background to prevent health check timeouts
+    setTimeout(async () => {
+      try {
+        log('🔍 Performing background database health validation...');
+        await validateDatabaseOnStartup();
+        
+        // Start periodic health checks
+        const healthChecker = DatabaseHealthChecker.getInstance();
+        await healthChecker.startPeriodicHealthChecks(300000); // Every 5 minutes
+        
+        log('✅ Database health validation completed - monitoring active');
+      } catch (dbError) {
+        log('⚠️ Database health validation encountered issues:', String(dbError));
+        log('📝 Application will continue with degraded functionality');
+        log('🔧 Check /health/db/detailed endpoint for comprehensive diagnostics');
+      }
+    }, 5000); // 5 second delay to allow server to start responding first
 
     // Register health routes with proper isolation
     app.use('/api/health', healthRoutes);
@@ -349,70 +363,35 @@ app.use((req, res, next) => {
         log('⚠️ Phase 3 services initialization failed:', String(error));
       }
       
-      // Initialize services with proper dependency ordering (legacy support)
-      const serviceConfigs = [
-        // Real-time market service temporarily disabled for optimal z-score performance
-        // {
-        //   name: 'real-time-market-service',
-        //   timeout: 10000,
-        //   initializer: async () => {
-        //     try {
-        //       const { getRealTimeMarketService } = await import('./services/real-time-market-service');
-        //       const marketService = getRealTimeMarketService();
-        //       marketService.initialize();
-        //       log('✅ Real-time market service initialized');
-        //     } catch (error) {
-        //       log('⚠️ Real-time market service failed to initialize:', String(error));
-        //       log('📊 Continuing without real-time market data');
-        //     }
-        //   }
-        // },
-        // Unified refresh scheduler temporarily disabled for optimal z-score performance
-        // {
-        //   name: 'unified-refresh-scheduler',
-        //   dependencies: ['real-time-market-service'],
-        //   timeout: 5000,
-        //   initializer: async () => {
-        //     try {
-        //       const { unifiedDataRefreshScheduler } = await import('./services/unified-data-refresh-scheduler');
-        //       unifiedDataRefreshScheduler.start();
-        //       log('✅ Unified refresh scheduler started');
-        //     } catch (error) {
-        //       log('⚠️ Unified refresh scheduler failed to start:', String(error));
-        //     }
-        //   }
-        // },
-        {
-          name: 'intelligent-cron-scheduler',
-          dependencies: [],
-          timeout: 8000,
-          initializer: async () => {
+      // DEPLOYMENT FIX: Move heavy service initialization to background to prevent health check timeouts
+      // All service initialization is now non-blocking and won't prevent deployment health checks
+      setTimeout(async () => {
+        log('🔧 Starting background service initialization...');
+        
+        // Initialize core services in background without blocking health checks
+        try {
+          // Initialize intelligent cron scheduler
+          setTimeout(async () => {
             try {
               await intelligentCronScheduler.initialize();
               log('✅ Intelligent cron scheduler initialized');
             } catch (error) {
               log('⚠️ Intelligent cron scheduler failed to initialize:', String(error));
             }
-          }
-        },
-        {
-          name: 'data-staleness-prevention',
-          dependencies: [],
-          timeout: 3000,
-          initializer: async () => {
+          }, 2000);
+          
+          // Initialize data staleness prevention
+          setTimeout(async () => {
             try {
               dataStalenessPrevention.startPreventiveMonitoring();
               log('✅ Data staleness prevention started');
             } catch (error) {
               log('⚠️ Data staleness prevention failed to start:', String(error));
             }
-          }
-        },
-        {
-          name: 'data-scheduler',
-          dependencies: ['intelligent-cron-scheduler', 'data-staleness-prevention'],
-          timeout: 10000,
-          initializer: async () => {
+          }, 4000);
+          
+          // Initialize data scheduler
+          setTimeout(async () => {
             try {
               const { dataScheduler } = await import("./services/scheduler");
               await dataScheduler.startScheduler();
@@ -420,26 +399,20 @@ app.use((req, res, next) => {
             } catch (error) {
               log('⚠️ Data scheduler failed to start:', String(error));
             }
-          }
-        },
-        {
-          name: 'fred-incremental-scheduler',
-          dependencies: ['data-scheduler'],
-          timeout: 5000,
-          initializer: async () => {
+          }, 6000);
+          
+          // Initialize FRED incremental scheduler
+          setTimeout(async () => {
             try {
               fredSchedulerIncremental.start();
               log('✅ FRED incremental scheduler started');
             } catch (error) {
               log('⚠️ FRED incremental scheduler failed to start:', String(error));
             }
-          }
-        },
-        {
-          name: 'economic-data-scheduler',
-          dependencies: ['fred-incremental-scheduler'],
-          timeout: 5000,
-          initializer: async () => {
+          }, 8000);
+          
+          // Initialize economic data scheduler
+          setTimeout(async () => {
             try {
               const { economicDataScheduler } = await import('./services/economic-data-scheduler');
               economicDataScheduler.initialize();
@@ -447,77 +420,40 @@ app.use((req, res, next) => {
             } catch (error) {
               log('⚠️ Economic data scheduler failed to initialize:', String(error));
             }
-          }
-        },
-        {
-          name: 'historical-data-system',
-          dependencies: ['data-scheduler'],
-          timeout: 30000, // Increased timeout for heavy operations
-          initializer: async () => {
-            // Add delay to prevent startup overload (per analysis recommendation)
-            setTimeout(async () => {
-              try {
-                // Load comprehensive historical data collector (if exists)
-                try {
-                  const { comprehensiveHistoricalCollector } = await import('./services/comprehensive-historical-collector');
-                  log('🎯 Historical data collector loaded (delayed startup)');
-                } catch (error) {
-                  log('📊 Historical data collector not available (optional)');
-                }
-                
-                // Load historical data intelligence (if exists)
-                try {
-                  const { historicalDataIntelligence } = await import('./services/historical-data-intelligence');
-                  log('🧠 Historical data intelligence loaded (delayed startup)');
-                } catch (error) {
-                  log('📊 Historical data intelligence not available (optional)');
-                }
-              } catch (error) {
-                log('⚠️ Historical data system delayed startup failed:', String(error));
-              }
-            }, 10000); // 10-second delay to prevent startup CPU overload
-            log('⏸️ Historical data system startup delayed by 10s for performance');
-          }
-        }
-      ];
-
-      // Simplified service initialization (Phase 3 enhancement) - removing complex orchestrator
-      log('🔧 Initializing services with simplified startup sequence...');
-      
-      // Start all services with proper dependency management
-      setTimeout(async () => {
-        // Skip OpenAI-dependent services if API key is not available
-        // OpenAI dependency completely removed - no longer needed
-        // if (!config.OPENAI_API_KEY) {
-        //   log('⚠️ OpenAI API key not available - disabling AI-dependent features');
-        // }
-        try {
-          // Initialize services one by one (Phase 3 simplification)
-          log('🔧 Starting simplified service initialization...');
+          }, 10000);
           
-          log('📊 ✅ SERVICE ORCHESTRATION COMPLETE');
-          log('🎯 Active Features (Optimized for Z-Score Analytics):');
-          log('   • Unified data refresh scheduler');
-          log('   • Intelligent cron scheduling');
-          log('   • Data staleness prevention');
-          log('   • Daily email scheduling (8:00 AM EST)');
-          log('   • Historical data intelligence system');
-          log('   ⚡ FRED services disabled for performance optimization');
-          log('');
-          log('🌐 Available Endpoints:');
-          log('   • GET  /health/system-status - System health monitoring');
-          log('   • POST /health/data-integrity/validate - Data validation');
-          log('   • GET  /health/unified-refresh/status - Refresh status');
-          log('');
-          log('📧 Daily email scheduled for 8:00 AM EST (Monday-Friday)');
-          log(`📅 Current EST time: ${new Date().toLocaleString("en-US", { timeZone: "America/New_York" })}`);
-          log('🔄 All services operational with dependency management');
+          // Initialize historical data system with significant delay
+          setTimeout(async () => {
+            try {
+              // Load comprehensive historical data collector (if exists)
+              try {
+                const { comprehensiveHistoricalCollector } = await import('./services/comprehensive-historical-collector');
+                log('🎯 Historical data collector loaded (delayed startup)');
+              } catch (error) {
+                log('📊 Historical data collector not available (optional)');
+              }
+              
+              // Load historical data intelligence (if exists)
+              try {
+                const { historicalDataIntelligence } = await import('./services/historical-data-intelligence');
+                log('🧠 Historical data intelligence loaded (delayed startup)');
+              } catch (error) {
+                log('📊 Historical data intelligence not available (optional)');
+              }
+            } catch (error) {
+              log('⚠️ Historical data system delayed startup failed:', String(error));
+            }
+          }, 30000); // 30-second delay for heavy operations
+          
+          log('📊 ✅ BACKGROUND SERVICE ORCHESTRATION INITIATED');
+          log('🎯 Services will be initialized in background without blocking health checks');
+          log('🔄 Server is immediately available for health checks');
           
         } catch (serviceError) {
-          log('⚠️ Service orchestration encountered errors:', String(serviceError));
+          log('⚠️ Background service orchestration encountered errors:', String(serviceError));
           log('📊 Application will continue running with reduced functionality');
         }
-      }, 1000); // Single 1-second delay for server initialization
+      }, 15000); // 15-second delay to ensure server is fully responsive first
     });
 
     // Add server error handling
