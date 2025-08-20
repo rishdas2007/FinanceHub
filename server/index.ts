@@ -70,9 +70,9 @@ const app = express();
 // Trust proxy for rate limiting and security headers
 app.set('trust proxy', 1);
 
-// DEPLOYMENT FIX: Add simple root health check endpoint for deployment health checks
-// This must be added BEFORE any other routes or middleware to ensure it responds immediately
-app.get('/', (req, res) => {
+// DEPLOYMENT FIX: Add health check endpoint for deployment (but NOT on root path)
+// This preserves the root path for the React frontend
+app.get('/health', (req, res) => {
   res.status(200).json({
     ok: true,
     status: 'healthy',
