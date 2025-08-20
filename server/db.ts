@@ -6,9 +6,15 @@ import * as schema from "@shared/schema";
 neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+  const errorMessage = "DATABASE_URL must be set. Did you forget to provision a database?";
+  console.error("❌ Database Configuration Error:", errorMessage);
+  
+  if (process.env.NODE_ENV === 'production') {
+    console.error("🚨 Production deployment requires DATABASE_URL to be set in Deployments → Environment Variables");
+    console.error("📝 Please add DATABASE_URL in the Replit Deployments configuration panel");
+  }
+  
+  throw new Error(errorMessage);
 }
 
 export const pool = new Pool({

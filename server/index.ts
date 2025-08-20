@@ -156,7 +156,9 @@ app.use((req, res, next) => {
       log('❌ Environment validation failed - this will cause deployment issues');
       if (process.env.NODE_ENV === 'production') {
         log('🚨 Production deployment requires all environment variables to be set in Deployments configuration panel');
-        log('⚠️ Continuing with minimal configuration for deployment testing');
+        log('📋 Required variables: DATABASE_URL, FRED_API_KEY, TWELVE_DATA_API_KEY');
+        log('💡 Add these in: Deployments → Environment Variables');
+        log('⚠️ Attempting to continue with available configuration...');
       } else {
         log('⚠️ Continuing in development mode with missing environment variables');
       }
@@ -180,6 +182,10 @@ app.use((req, res, next) => {
 
     // Register health routes with proper isolation
     app.use('/api/health', healthRoutes);
+    
+    // Register deployment health check routes
+    const deploymentHealthRoutes = await import('./routes/deployment-health');
+    app.use('/api/deployment', deploymentHealthRoutes.default);
     
     // Register enhanced routes with versioning
     app.use('/api/v1', v1Routes);
@@ -235,13 +241,18 @@ app.use((req, res, next) => {
     // Global uncaught exception handler for production safety
     process.on('uncaughtException', (error) => {
       log('❌ Uncaught Exception:', error.message);
+      log('📝 Stack:', error.stack);
       if (process.env.NODE_ENV === 'production') {
-        setTimeout(() => process.exit(1), 1000);
+        log('🚨 Production error - server will restart in 2 seconds');
+        setTimeout(() => process.exit(1), 2000);
       }
     });
 
     process.on('unhandledRejection', (reason, promise) => {
       log(`❌ Unhandled Rejection at: ${String(promise)} reason: ${String(reason)}`);
+      if (process.env.NODE_ENV === 'production') {
+        log('🚨 Production unhandled promise rejection logged');
+      }
     });
 
     // importantly only setup vite in development and after
@@ -289,11 +300,14 @@ app.use((req, res, next) => {
       }
     }
 
-    server.listen({
+    // Production-safe server configuration
+    const listenOptions = {
       port,
       host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
+      ...(process.env.NODE_ENV !== 'production' && { reusePort: true })
+    };
+
+    server.listen(listenOptions, () => {
       log(`🚀 FinanceHub Pro serving on port ${port}`);
       log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
       log(`🔗 Server URL: http://0.0.0.0:${port}`);
