@@ -14,6 +14,9 @@ interface ETFTechnicalMetric {
   bollingerPercB: number | null;
   sma50: number | null;
   sma200: number | null;
+  zScore: number | null;
+  rsiZScore: number | null;
+  bbZScore: number | null;
   signal: 'BUY' | 'SELL' | 'HOLD';
   lastUpdated: string;
   source: string;
@@ -42,7 +45,14 @@ const formatMAGap = (sma50: number | null, sma200: number | null): string => {
   return `${gap.toFixed(2)}%`;
 };
 
-
+const getZScoreColor = (zScore: number | null): string => {
+  if (zScore === null || zScore === undefined) return 'text-gray-400';
+  if (zScore >= 2) return 'text-red-400'; // Overbought
+  if (zScore >= 1) return 'text-orange-400'; // Slightly high
+  if (zScore <= -2) return 'text-green-400'; // Oversold
+  if (zScore <= -1) return 'text-blue-400'; // Slightly low
+  return 'text-yellow-400'; // Neutral
+};
 
 const getSignalColor = (signal: string): string => {
   switch (signal) {
@@ -78,8 +88,8 @@ export function ETFTechnicalMetricsTable() {
   });
 
   // Extract data from the response structure - handle both array and object responses
-  const metrics = Array.isArray(rawData) ? rawData : (rawData?.data || []);
-  const lastUpdated = rawData?.timestamp || new Date().toISOString();
+  const metrics: ETFTechnicalMetric[] = Array.isArray(rawData) ? rawData : ((rawData as ETFMetricsResponse)?.data || []);
+  const lastUpdated = (rawData as ETFMetricsResponse)?.timestamp || new Date().toISOString();
   
   // Debug logging to understand the data structure
   console.log('ETF Raw Data:', rawData);
@@ -172,7 +182,7 @@ export function ETFTechnicalMetricsTable() {
   }
 
   // Count signals for summary
-  const signalCounts = metrics.reduce((acc, etf) => {
+  const signalCounts = metrics.reduce((acc: Record<string, number>, etf: ETFTechnicalMetric) => {
     acc[etf.signal] = (acc[etf.signal] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -215,7 +225,7 @@ export function ETFTechnicalMetricsTable() {
               </tr>
             </thead>
             <tbody>
-              {metrics.map((etf) => (
+              {metrics.map((etf: ETFTechnicalMetric) => (
                 <tr 
                   key={etf.symbol} 
                   className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
@@ -243,6 +253,11 @@ export function ETFTechnicalMetricsTable() {
                   {/* RSI Column */}
                   <td className="py-3 px-2 text-right">
                     <div className="text-white">{formatValue(etf.rsi, 1)}</div>
+                    {etf.rsiZScore && (
+                      <div className="text-xs text-gray-500">
+                        Z: {formatValue(etf.rsiZScore, 2)}
+                      </div>
+                    )}
                   </td>
                   
                   {/* %B Column */}
@@ -254,6 +269,11 @@ export function ETFTechnicalMetricsTable() {
                     }`}>
                       {formatPercentage(etf.bollingerPercB)}
                     </div>
+                    {etf.bbZScore && (
+                      <div className="text-xs text-gray-500">
+                        Z: {formatValue(etf.bbZScore, 2)}
+                      </div>
+                    )}
                   </td>
                   
                   {/* MA Gap Column */}
@@ -281,7 +301,7 @@ export function ETFTechnicalMetricsTable() {
         {/* Source and Performance Info */}
         <div className="mt-4 pt-3 border-t border-gray-800 flex justify-between items-center text-xs text-gray-500">
           <div>
-            Data source: {rawData?.source || 'Unknown'} • 
+            Data source: {(rawData as ETFMetricsResponse)?.source || 'Unknown'} • 
             Last updated: {lastUpdated ? new Date(lastUpdated).toLocaleString() : 'Unknown'}
           </div>
           <button 
