@@ -11,14 +11,9 @@ interface ETFTechnicalMetric {
   changePercent: number;
   volume: number | null;
   rsi: number | null;
-  macd: number | null;
   bollingerPercB: number | null;
   sma50: number | null;
   sma200: number | null;
-  zScore: number | null;
-  rsiZScore: number | null;
-  macdZScore: number | null;
-  bbZScore: number | null;
   signal: 'BUY' | 'SELL' | 'HOLD';
   lastUpdated: string;
   source: string;
@@ -47,14 +42,7 @@ const formatMAGap = (sma50: number | null, sma200: number | null): string => {
   return `${gap.toFixed(2)}%`;
 };
 
-const getZScoreColor = (zScore: number | null): string => {
-  if (zScore === null || zScore === undefined) return 'text-gray-400';
-  if (zScore >= 2) return 'text-red-400'; // Overbought
-  if (zScore >= 1) return 'text-orange-400'; // Slightly high
-  if (zScore <= -2) return 'text-green-400'; // Oversold
-  if (zScore <= -1) return 'text-blue-400'; // Slightly low
-  return 'text-yellow-400'; // Neutral
-};
+
 
 const getSignalColor = (signal: string): string => {
   switch (signal) {
@@ -113,9 +101,7 @@ export function ETFTechnicalMetricsTable() {
         <CardContent>
           <div className="space-y-3">
             {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} className="animate-pulse grid grid-cols-7 gap-4">
-                <div className="h-4 bg-gray-700 rounded"></div>
-                <div className="h-4 bg-gray-700 rounded"></div>
+              <div key={i} className="animate-pulse grid grid-cols-5 gap-4">
                 <div className="h-4 bg-gray-700 rounded"></div>
                 <div className="h-4 bg-gray-700 rounded"></div>
                 <div className="h-4 bg-gray-700 rounded"></div>
@@ -222,10 +208,8 @@ export function ETFTechnicalMetricsTable() {
             <thead>
               <tr className="border-b border-gray-700 text-gray-300">
                 <th className="text-left py-3 px-2 font-medium">Symbol</th>
-                <th className="text-right py-3 px-2 font-medium">Z-Score</th>
                 <th className="text-center py-3 px-2 font-medium">Signal</th>
                 <th className="text-right py-3 px-2 font-medium">RSI</th>
-                <th className="text-right py-3 px-2 font-medium">MACD</th>
                 <th className="text-right py-3 px-2 font-medium">%B</th>
                 <th className="text-right py-3 px-2 font-medium">MA Gap</th>
               </tr>
@@ -246,18 +230,6 @@ export function ETFTechnicalMetricsTable() {
                     </div>
                   </td>
                   
-                  {/* Z-Score Column */}
-                  <td className="py-3 px-2 text-right">
-                    <div className={`font-semibold ${getZScoreColor(etf.zScore)}`}>
-                      {formatValue(etf.zScore, 4)}
-                    </div>
-                    {etf.zScore && (
-                      <div className="text-xs text-gray-500">
-                        Z: {formatValue(etf.zScore, 2)}
-                      </div>
-                    )}
-                  </td>
-                  
                   {/* Signal Column */}
                   <td className="py-3 px-2 text-center">
                     <Badge 
@@ -271,23 +243,6 @@ export function ETFTechnicalMetricsTable() {
                   {/* RSI Column */}
                   <td className="py-3 px-2 text-right">
                     <div className="text-white">{formatValue(etf.rsi, 1)}</div>
-                    {etf.rsiZScore && (
-                      <div className="text-xs text-gray-500">
-                        Z: {formatValue(etf.rsiZScore, 2)}
-                      </div>
-                    )}
-                  </td>
-                  
-                  {/* MACD Column */}
-                  <td className="py-3 px-2 text-right">
-                    <div className={`${etf.macd && etf.macd > 0 ? 'text-green-400' : etf.macd && etf.macd < 0 ? 'text-red-400' : 'text-gray-400'}`}>
-                      {formatValue(etf.macd, 3)}
-                    </div>
-                    {etf.macdZScore && (
-                      <div className="text-xs text-gray-500">
-                        Z: {formatValue(etf.macdZScore, 2)}
-                      </div>
-                    )}
                   </td>
                   
                   {/* %B Column */}
@@ -299,11 +254,6 @@ export function ETFTechnicalMetricsTable() {
                     }`}>
                       {formatPercentage(etf.bollingerPercB)}
                     </div>
-                    {etf.bbZScore && (
-                      <div className="text-xs text-gray-500">
-                        Z: {formatValue(etf.bbZScore, 2)}
-                      </div>
-                    )}
                   </td>
                   
                   {/* MA Gap Column */}
