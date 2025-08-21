@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { etfCacheServiceRobust } from '../services/etf-cache-service-robust';
+import { etfLiveDataService } from '../services/etf-live-data-service';
 
 const router = Router();
 
@@ -13,8 +14,24 @@ router.get('/robust', async (req, res) => {
   try {
     console.log('🔍 Robust ETF endpoint called');
     
-    // Get ETF metrics using robust service
-    const result = await etfCacheServiceRobust.getETFMetrics();
+    // Try live data first, fallback to cache if API issues
+    console.log('🔍 Trying live data fetch first...');
+    let result;
+    
+    try {
+      result = await etfLiveDataService.getLiveETFMetrics();
+      
+      // Check if we got real data (not all zeros)
+      const hasRealData = result.data.some(etf => etf.price > 0);
+      
+      if (!hasRealData) {
+        console.log('⚠️ Live API returned zeros - falling back to cached data');
+        result = await etfCacheServiceRobust.getETFMetrics();
+      }
+    } catch (error) {
+      console.log('❌ Live API failed - falling back to cached data:', error);
+      result = await etfCacheServiceRobust.getETFMetrics();
+    }
     
     const responseTime = Date.now() - startTime;
     console.log(`📊 Robust ETF response: ${result.data.length} ETFs, ${responseTime}ms, source: ${result.source}`);
