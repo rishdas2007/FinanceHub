@@ -43,6 +43,9 @@ import {
   gracefulShutdown 
 } from "./middleware/error-handler";
 
+// Production deployment safeguards
+import { productionHealthCheck, staticFileValidation, deploymentStatusCheck, errorRecoveryMiddleware } from "./middleware/production-safeguards";
+
 // Environment validation
 import { EnvironmentValidator } from './utils/environment-validation';
 
@@ -70,14 +73,21 @@ const app = express();
 // Trust proxy for rate limiting and security headers
 app.set('trust proxy', 1);
 
-// DEPLOYMENT FIX: Add health check endpoint for deployment (but NOT on root path)
-// This preserves the root path for the React frontend
+// Production safeguards and health checks
+app.use(productionHealthCheck);
+app.use(staticFileValidation);
+
+// Enhanced health check endpoint with deployment validation
 app.get('/health', (req, res) => {
-  res.status(200).json({
-    ok: true,
-    status: 'healthy',
+  const deploymentStatus = deploymentStatusCheck();
+  res.status(deploymentStatus.healthy ? 200 : 500).json({
+    ok: deploymentStatus.healthy,
+    status: deploymentStatus.healthy ? 'healthy' : 'unhealthy',
     timestamp: new Date().toISOString(),
-    service: 'FinanceHub Pro'
+    service: 'FinanceHub Pro',
+    deployment: deploymentStatus.checks,
+    environment: process.env.NODE_ENV || 'unknown',
+    uptime: process.uptime()
   });
 });
 
@@ -289,6 +299,9 @@ app.use((req, res, next) => {
       });
     });
 
+    // Production error recovery middleware
+    app.use(errorRecoveryMiddleware);
+    
     // CRITICAL: Global error handler (must be after all routes)
     app.use(errorHandler);
     
