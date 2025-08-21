@@ -89,9 +89,9 @@ export function ETFTechnicalMetricsTable() {
     refetchInterval: 30000, // 30 seconds
   });
 
-  // Extract data from the response structure and add debug logging
-  const metrics = rawData?.data || [];
-  const lastUpdated = rawData?.timestamp;
+  // Extract data from the response structure - handle both array and object responses
+  const metrics = Array.isArray(rawData) ? rawData : (rawData?.data || []);
+  const lastUpdated = rawData?.timestamp || new Date().toISOString();
   
   // Debug logging to understand the data structure
   console.log('ETF Raw Data:', rawData);
