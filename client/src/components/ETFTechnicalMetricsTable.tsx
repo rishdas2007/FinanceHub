@@ -84,14 +84,21 @@ export function ETFTechnicalMetricsTable() {
     isLoading, 
     error,
     refetch
-  } = useQuery<ETFMetricsResponse>({
+  } = useQuery({
     queryKey: ['/api/etf/robust'],
     refetchInterval: 30000, // 30 seconds
   });
 
-  // Extract data from the response structure
+  // Extract data from the response structure and add debug logging
   const metrics = rawData?.data || [];
   const lastUpdated = rawData?.timestamp;
+  
+  // Debug logging to understand the data structure
+  console.log('ETF Raw Data:', rawData);
+  console.log('ETF Metrics Length:', metrics?.length);
+  console.log('First ETF Sample:', metrics?.[0]);
+  console.log('Is Loading:', isLoading);
+  console.log('Error:', error);
 
   if (isLoading) {
     return (
@@ -164,6 +171,8 @@ export function ETFTechnicalMetricsTable() {
         <CardContent>
           <div className="text-center p-8 text-gray-400">
             <p>No ETF technical metrics available</p>
+            <p className="text-xs mt-2">Raw data: {JSON.stringify(rawData)}</p>
+            <p className="text-xs mt-1">Metrics length: {metrics?.length || 'undefined'}</p>
             <button 
               onClick={() => refetch()}
               className="mt-3 text-xs px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
