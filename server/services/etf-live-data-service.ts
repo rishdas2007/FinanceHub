@@ -185,7 +185,7 @@ export class ETFLiveDataService {
   }
 
   /**
-   * Calculate Z-scores from technical indicators
+   * Calculate Z-scores from technical indicators (RSI and Bollinger %B only)
    */
   private calculateZScores(technical: any): {
     overall: number | null;
@@ -197,16 +197,16 @@ export class ETFLiveDataService {
       // Calculate RSI Z-score (RSI mean=50, stddev=15)
       const rsiZScore = technical.rsi ? (Number(technical.rsi) - 50) / 15 : null;
       
-      // Calculate MACD Z-score (simplified)
+      // Calculate MACD Z-score (for display only, not used in signal calculation)
       const macdZScore = technical.macd ? Number(technical.macd) * 10 : null;
       
       // Calculate Bollinger %B Z-score
       const bbZScore = technical.percent_b ? (Number(technical.percent_b) - 0.5) * 4 : null;
       
-      // Calculate overall Z-score as weighted average
-      const scores = [rsiZScore, macdZScore, bbZScore].filter(s => s !== null);
-      const overallZScore = scores.length > 0 
-        ? scores.reduce((sum, score) => sum + score!, 0) / scores.length 
+      // Calculate overall Z-score using ONLY RSI and Bollinger %B
+      const signalScores = [rsiZScore, bbZScore].filter(s => s !== null);
+      const overallZScore = signalScores.length > 0 
+        ? signalScores.reduce((sum, score) => sum + score!, 0) / signalScores.length 
         : null;
       
       return {
