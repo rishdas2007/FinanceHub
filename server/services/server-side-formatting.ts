@@ -208,13 +208,13 @@ export class ServerSideFormattingService {
 
   private formatChange(value: number): string {
     if (isNaN(value)) return 'N/A';
-    const sign = value >= 0 ? '+' : ';
+    const sign = value >= 0 ? '+' : '';
     return `${sign}${this.formatCurrency(value)}`;
   }
 
   private formatPercentage(value: number, includeSign: boolean = false): string {
     if (isNaN(value)) return 'N/A';
-    const sign = includeSign && value >= 0 ? '+' : ';
+    const sign = includeSign && value >= 0 ? '+' : '';
     return `${sign}${value.toFixed(2)}%`;
   }
 
@@ -288,7 +288,7 @@ export class ServerSideFormattingService {
   private formatVariance(variance: number, unit?: string): string {
     if (isNaN(variance)) return 'N/A';
     
-    const sign = variance >= 0 ? '+' : ';
+    const sign = variance >= 0 ? '+' : '';
     const formattedValue = this.formatEconomicValue(Math.abs(variance), unit);
     
     return `${sign}${formattedValue} vs prior`;
@@ -297,7 +297,7 @@ export class ServerSideFormattingService {
   private formatZScore(zScore: number): string {
     if (isNaN(zScore)) return 'N/A';
     
-    const sign = zScore >= 0 ? '+' : ';
+    const sign = zScore >= 0 ? '+' : '';
     return `${sign}${zScore.toFixed(1)}σ`;
   }
 

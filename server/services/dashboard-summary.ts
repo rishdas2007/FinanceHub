@@ -219,7 +219,7 @@ Keep insights concise but substantive. Use specific data points with bold format
     const spy = momentum.momentumStrategies.find((s: any) => s.ticker === 'SPY');
     const sectors = momentum.momentumStrategies.filter((s: any) => s.ticker !== 'SPY').slice(0, 5);
     
-    let summary = spy ? `SPY: **${spy.momentum}** momentum, RSI **${spy.rsi}**, 1-day **${spy.oneDayChange}%**\n` : ';
+    let summary = spy ? `SPY: **${spy.momentum}** momentum, RSI **${spy.rsi}**, 1-day **${spy.oneDayChange}%**\n` : '';
     summary += sectors.map((s: any) => 
       `${s.sector}: **${s.momentum}**, RSI **${s.rsi}**, 1-day **${s.oneDayChange}%**`
     ).join('\n');

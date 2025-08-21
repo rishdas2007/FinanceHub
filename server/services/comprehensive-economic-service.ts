@@ -294,7 +294,7 @@ class ComprehensiveEconomicService {
         return false;
       }
       seen.add(key);
-      return reading.actual !== null && reading.actual !== ';
+      return reading.actual !== null && reading.actual !== '';
     });
   }
 

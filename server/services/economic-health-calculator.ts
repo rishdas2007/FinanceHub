@@ -577,7 +577,7 @@ export class EconomicHealthCalculator {
       .sort((a, b) => b.absImpact - a.absImpact)
       .slice(0, 3)
       .map(item => {
-        const direction = item.impact > 0 ? '+' : ';
+        const direction = item.impact > 0 ? '+' : '';
         return `${this.formatComponentName(item.component)}: ${direction}${item.impact.toFixed(1)} points`;
       });
   }

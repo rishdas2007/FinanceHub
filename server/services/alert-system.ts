@@ -189,7 +189,7 @@ export class AlertSystem {
   private generateAlertMessage(rule: AlertRule, value: number): string {
     const condition = rule.condition === 'above' ? 'exceeded' : 'fell below';
     const unit = rule.metric.includes('time') ? 'ms' : 
-                rule.metric.includes('rate') ? '%' : ';
+                rule.metric.includes('rate') ? '%' : '';
     
     return `${rule.name}: ${rule.metric} ${condition} threshold (${value}${unit} vs ${rule.threshold}${unit})`;
   }
