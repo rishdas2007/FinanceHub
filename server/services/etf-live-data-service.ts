@@ -228,8 +228,45 @@ export class ETFLiveDataService {
   private calculateSignal(zScore: number | null): 'BUY' | 'SELL' | 'HOLD' {
     if (!zScore || isNaN(zScore)) return 'HOLD';
     
+    console.log(`🔍 [Z-SCORE DEBUG] Input Z-score: ${zScore}, Signal thresholds: BUY<-1.5, SELL>1.5`);
+    
     if (zScore > 1.5) return 'SELL';
     if (zScore < -1.5) return 'BUY';
+    return 'HOLD';
+  }
+
+  /**
+   * Calculate trading signal using technical analysis rules (PROPOSED NEW METHOD)
+   * RSI: <30 = BUY, >70 = SELL
+   * Bollinger %B: >1.0 = SELL (overbought), <0.0 = BUY (oversold)
+   */
+  private calculateTechnicalSignal(rsi: number | null, bollingerPercB: number | null, symbol: string): 'BUY' | 'SELL' | 'HOLD' {
+    console.log(`🔍 [TECHNICAL DEBUG] ${symbol} - RSI: ${rsi}, Bollinger %B: ${bollingerPercB}`);
+    
+    let signals: string[] = [];
+    
+    // RSI signals
+    if (rsi !== null) {
+      if (rsi < 30) signals.push('RSI:BUY');
+      else if (rsi > 70) signals.push('RSI:SELL');
+      else signals.push('RSI:HOLD');
+    }
+    
+    // Bollinger %B signals  
+    if (bollingerPercB !== null) {
+      if (bollingerPercB > 1.0) signals.push('BB:SELL');
+      else if (bollingerPercB < 0.0) signals.push('BB:BUY');
+      else signals.push('BB:HOLD');
+    }
+    
+    console.log(`🔍 [TECHNICAL DEBUG] ${symbol} - Individual signals: ${signals.join(', ')}`);
+    
+    // Signal consensus logic
+    const buySignals = signals.filter(s => s.includes('BUY')).length;
+    const sellSignals = signals.filter(s => s.includes('SELL')).length;
+    
+    if (buySignals > sellSignals) return 'BUY';
+    if (sellSignals > buySignals) return 'SELL';
     return 'HOLD';
   }
 }

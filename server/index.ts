@@ -108,6 +108,11 @@ app.use('/api', (req: Request, res: Response, next: NextFunction) => {
     res.setHeader('Content-Type', 'application/json');
   }
 
+  // Add diagnostic logging for economic data routes
+  if (req.url.includes('recent-economic') || req.url.includes('fred-recent')) {
+    console.log(`🔍 [ECONOMIC ROUTE DEBUG] ${req.method} ${req.url} - Content-Type: ${res.getHeader('Content-Type')}`);
+  }
+
   // Override res.send to always ensure JSON response for API routes
   const originalSend = res.send;
   res.send = function(data: any) {
@@ -117,6 +122,7 @@ app.use('/api', (req: Request, res: Response, next: NextFunction) => {
         res.setHeader('Content-Type', 'application/json');
       } catch (e) {
         // If it's not valid JSON, treat it as an error response
+        console.log(`🔍 [JSON CONVERSION DEBUG] Converting non-JSON response to JSON for ${req.url}`);
         return originalSend.call(this, JSON.stringify({ error: data }));
       }
     }
