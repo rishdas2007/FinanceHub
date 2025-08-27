@@ -17,9 +17,9 @@ export function MoodDataSources() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch economic data
+  // Fetch economic data - Fixed route to use authentic FRED data endpoint
   const { data: economicData, isLoading: economicLoading, refetch: refetchEconomic } = useQuery({
-    queryKey: ['/api/recent-economic'],
+    queryKey: ['/api/fred-recent-readings'],
     staleTime: 5 * 60 * 1000,
   });
 

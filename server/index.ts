@@ -261,6 +261,10 @@ app.use((req, res, next) => {
     const etfCachedCleanRoutes = await import('./routes/etf-cached-clean');
     app.use('/api/etf', etfCachedCleanRoutes.default);
     
+    // Register economic data backfill routes
+    const economicBackfillRoutes = await import('./routes/economic-backfill-routes.js');
+    app.use('/api/economic', economicBackfillRoutes.default);
+    
     // Initialize ETF Cache Cron Service
     const { etfCacheCronService } = await import('./services/etf-cache-cron-clean');
     etfCacheCronService.initialize();
