@@ -3,9 +3,21 @@
 ## Overview
 FinanceHub Pro is a comprehensive financial dashboard application for individual investors and financial professionals. It provides real-time market data, technical analysis, AI-powered market insights, and financial tracking. The platform emphasizes enterprise-grade data integrity and cost-effectiveness by leveraging authentic government and market data, minimizing reliance on expensive AI for core data processing. Its vision is to be a robust and reliable financial analysis tool.
 
-**Current Version**: 35.0  
-**Status**: Production Ready  
+**Current Version**: 36.0  
+**Status**: Production Ready - FRED Economic Indicators Expanded  
 **Documentation**: Complete technical design document available in `TECHNICAL_DESIGN_DOCUMENT.md`
+
+## Recent Changes (Version 36.0 - August 2025)
+**Major Feature**: FRED Economic Indicators Expansion
+- Successfully eliminated 68% of duplicate economic indicators (127→41 unique indicators)  
+- Added 4 new high-priority economic indicators from user's August 2025 document:
+  - TB1YR: 1-Year Treasury Rate
+  - MORTGAGE30US: 30-Year Mortgage Rate  
+  - CPILFENS: Core CPI (NSA)
+  - NHSUSSPT: New Home Sales Units
+- Implemented comprehensive data validation and API error handling
+- Total system expansion from 41 to 45 unique economic indicators
+- All new indicators validated with authentic FRED API data
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.

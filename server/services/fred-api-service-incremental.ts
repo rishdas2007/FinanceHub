@@ -61,7 +61,21 @@ export const CURATED_SERIES = [
   { id: 'U6RATE', label: 'U-6 Unemployment Rate', type: 'Lagging', category: 'Labor' },
   
   // GDP Growth Rate - CRITICAL MISSING INDICATOR (15 records)
-  { id: 'A191RL1Q225SBEA', label: 'GDP Growth Rate', type: 'Coincident', category: 'Growth' }
+  { id: 'A191RL1Q225SBEA', label: 'GDP Growth Rate', type: 'Coincident', category: 'Growth' },
+  
+  // HIGH PRIORITY EXPANSION - Based on user's August 2025 economic indicators document
+  // Successfully implemented indicators (4 working, 5 need alternative series IDs):
+  { id: 'NHSUSSPT', label: 'New Home Sales - Units', type: 'Leading', category: 'Growth' },
+  { id: 'MORTGAGE30US', label: '30-Year Fixed Rate Mortgage Average', type: 'Leading', category: 'Monetary Policy' },
+  { id: 'TB1YR', label: '1-Year Treasury Constant Maturity Rate', type: 'Leading', category: 'Monetary Policy' },
+  { id: 'CPILFENS', label: 'Consumer Price Index Core (NSA)', type: 'Lagging', category: 'Inflation' }
+  
+  // Note: Following series IDs were invalid and need correction:
+  // - GDPCPIM (needs correct FRED ID for Real Final Sales to Private Domestic Purchasers)
+  // - CCCI (needs correct FRED ID for Conference Board Consumer Confidence)  
+  // - LEICONF (needs correct FRED ID for Leading Economic Index)
+  // - CPINSA (needs correct FRED ID for CPI All Items NSA)
+  // - MEDLISPRI (needs correct FRED ID for Median New Home Sale Price)
 ];
 
 export interface FredDataPoint {
