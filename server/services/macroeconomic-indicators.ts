@@ -222,7 +222,13 @@ export class MacroeconomicService {
       const { liveZScoreCalculator } = await import('./live-zscore-calculator');
       const { economicYoYTransformer } = await import('./economic-yoy-transformer');
       
-      // Calculate live z-scores (never cached)
+      // DEDUPLICATION FIX: Get fresh backfilled data first to prioritize over legacy
+      logger.info('🔍 Checking for fresh backfilled indicators to prioritize over legacy data');
+      const freshBackfilledData = await this.getFreshBackfilledIndicators();
+      const backfilledSeriesIds = new Set(freshBackfilledData.map(item => item.seriesId));
+      logger.info(`📊 Found ${freshBackfilledData.length} fresh backfilled indicators: ${Array.from(backfilledSeriesIds).join(', ')}`);
+      
+      // Calculate live z-scores (never cached) but exclude duplicates from backfill
       const liveZScoreData = await liveZScoreCalculator.calculateLiveZScores();
       
       if (!liveZScoreData || liveZScoreData.length === 0) {
@@ -231,10 +237,25 @@ export class MacroeconomicService {
       }
       
       logger.info(`📊 Calculated ${liveZScoreData.length} live z-scores from database`);
+      
+      // DEDUPLICATION FIX: Filter out duplicates where we have fresh backfilled data
+      const deduplicatedZScoreData = liveZScoreData.filter(zData => {
+        const isDuplicate = backfilledSeriesIds.has(zData.seriesId);
+        if (isDuplicate) {
+          logger.info(`🗑️ Filtering out duplicate from live z-score: ${zData.seriesId} - ${zData.metric} (using fresh backfilled data instead)`);
+        }
+        return !isDuplicate;
+      });
+      
+      logger.info(`📊 After deduplication: ${deduplicatedZScoreData.length} unique live z-scores + ${freshBackfilledData.length} fresh indicators`);
+      
+      // Combine both data sources without duplicates
+      const combinedData = [...deduplicatedZScoreData, ...freshBackfilledData];
+      logger.info(`📊 Total combined indicators: ${combinedData.length}`);
 
       // FILTER OUT EXTREME Z-SCORES (above 3 or below -3) as requested by user
       // Check BOTH main Z-score AND delta Z-score (trend) for extreme values
-      const filteredZScoreData = liveZScoreData.filter((zData) => {
+      const filteredZScoreData = combinedData.filter((zData) => {
         const mainZScore = zData.deltaAdjustedZScore;
         const deltaZScore = zData.deltaZScore;
         
@@ -255,7 +276,7 @@ export class MacroeconomicService {
         return isWithinAcceptableRange;
       });
       
-      logger.info(`📊 Filtered out ${liveZScoreData.length - filteredZScoreData.length} indicators with extreme Z-scores (|z| > 3 OR |trend| > 3)`);
+      logger.info(`📊 Filtered out ${combinedData.length - filteredZScoreData.length} indicators with extreme Z-scores (|z| > 3 OR |trend| > 3)`);
       logger.info(`📊 Remaining indicators after filtering: ${filteredZScoreData.length}`);
 
       const indicators = await Promise.all(filteredZScoreData.map(async (zData) => {
@@ -433,6 +454,77 @@ export class MacroeconomicService {
     } catch (error) {
       logger.error('Failed to get fallback macroeconomic data:', String(error));
       throw error;
+    }
+  }
+
+  /**
+   * Get fresh backfilled indicators from economic_indicators_current table
+   * These take priority over legacy historical data to avoid duplicates
+   */
+  private async getFreshBackfilledIndicators(): Promise<any[]> {
+    try {
+      const result = await db.execute(sql`
+        SELECT DISTINCT
+          series_id as "seriesId",
+          metric,
+          value_numeric as "currentValue", 
+          period_date as "periodDate",
+          category,
+          'Leading' as type,  -- Default type for backfilled data
+          unit,
+          -- Calculate basic z-scores for fresh data (simplified approach)
+          (value_numeric - AVG(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW)) / 
+          NULLIF(STDDEV(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW), 0) as "deltaAdjustedZScore",
+          
+          LAG(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date) as "priorValue",
+          
+          -- Calculate rolling historical mean and std for z-score calculation
+          AVG(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) as "historicalMean",
+          NULLIF(STDDEV(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW), 0) as "historicalStd",
+          
+          -- Delta z-score (change from prior period)
+          0 as "deltaZScore",  -- Simplified for fresh data
+          0 as "deltaHistoricalMean",
+          1 as "deltaHistoricalStd",
+          
+          1 as "directionality",  -- Default positive directionality
+          'monthly' as "frequency"
+          
+        FROM economic_indicators_current 
+        WHERE updated_at >= NOW() - INTERVAL '2 hours'  -- Recently backfilled data
+          AND value_numeric IS NOT NULL
+          AND period_date IS NOT NULL
+        ORDER BY period_date DESC
+      `);
+
+      const freshIndicators = result.rows.map((row: any) => ({
+        seriesId: row.seriesId,
+        metric: row.metric,
+        currentValue: parseFloat(row.currentValue) || 0,
+        historicalMean: parseFloat(row.historicalMean) || 0,
+        historicalStd: parseFloat(row.historicalStd) || 1,
+        zScore: parseFloat(row.deltaAdjustedZScore) || 0,
+        deltaAdjustedZScore: parseFloat(row.deltaAdjustedZScore) || 0,
+        priorValue: parseFloat(row.priorValue) || 0,
+        varianceFromMean: (parseFloat(row.currentValue) || 0) - (parseFloat(row.historicalMean) || 0),
+        varianceFromPrior: (parseFloat(row.currentValue) || 0) - (parseFloat(row.priorValue) || 0),
+        periodDate: row.periodDate,
+        category: row.category,
+        type: row.type,
+        unit: row.unit || '',
+        directionality: row.directionality,
+        deltaZScore: parseFloat(row.deltaZScore) || 0,
+        deltaHistoricalMean: parseFloat(row.deltaHistoricalMean) || 0,
+        deltaHistoricalStd: parseFloat(row.deltaHistoricalStd) || 1,
+        frequency: row.frequency
+      }));
+
+      logger.info(`📊 Found ${freshIndicators.length} fresh backfilled indicators`);
+      return freshIndicators;
+      
+    } catch (error) {
+      logger.error('Failed to get fresh backfilled indicators:', String(error));
+      return [];
     }
   }
 }
