@@ -464,37 +464,41 @@ export class MacroeconomicService {
   private async getFreshBackfilledIndicators(): Promise<any[]> {
     try {
       const result = await db.execute(sql`
-        SELECT DISTINCT
-          series_id as "seriesId",
-          metric,
-          value_numeric as "currentValue", 
-          period_date as "periodDate",
-          category,
-          'Leading' as type,  -- Default type for backfilled data
-          unit,
-          -- Calculate basic z-scores for fresh data (simplified approach)
-          (value_numeric - AVG(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW)) / 
-          NULLIF(STDDEV(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW), 0) as "deltaAdjustedZScore",
-          
-          LAG(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date) as "priorValue",
-          
-          -- Calculate rolling historical mean and std for z-score calculation
-          AVG(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) as "historicalMean",
-          NULLIF(STDDEV(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW), 0) as "historicalStd",
-          
-          -- Delta z-score (change from prior period)
-          0 as "deltaZScore",  -- Simplified for fresh data
-          0 as "deltaHistoricalMean",
-          1 as "deltaHistoricalStd",
-          
-          1 as "directionality",  -- Default positive directionality
-          'monthly' as "frequency"
-          
-        FROM economic_indicators_current 
-        WHERE updated_at >= NOW() - INTERVAL '2 hours'  -- Recently backfilled data
-          AND value_numeric IS NOT NULL
-          AND period_date IS NOT NULL
-        ORDER BY period_date DESC
+        WITH latest_per_series AS (
+          SELECT DISTINCT ON (series_id)
+            series_id as "seriesId",
+            metric,
+            value_numeric as "currentValue", 
+            period_date as "periodDate",
+            category,
+            'Leading' as type,  -- Default type for backfilled data
+            unit,
+            -- Calculate basic z-scores for fresh data (simplified approach)
+            (value_numeric - AVG(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW)) / 
+            NULLIF(STDDEV(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW), 0) as "deltaAdjustedZScore",
+            
+            LAG(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date) as "priorValue",
+            
+            -- Calculate rolling historical mean and std for z-score calculation
+            AVG(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) as "historicalMean",
+            NULLIF(STDDEV(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW), 0) as "historicalStd",
+            
+            -- Delta z-score (change from prior period)
+            0 as "deltaZScore",  -- Simplified for fresh data
+            0 as "deltaHistoricalMean",
+            1 as "deltaHistoricalStd",
+            
+            1 as "directionality",  -- Default positive directionality
+            'monthly' as "frequency"
+            
+          FROM economic_indicators_current 
+          WHERE updated_at >= NOW() - INTERVAL '2 hours'  -- Recently backfilled data
+            AND value_numeric IS NOT NULL
+            AND period_date IS NOT NULL
+          ORDER BY series_id, period_date DESC  -- Get latest record per series_id
+        )
+        SELECT * FROM latest_per_series
+        ORDER BY "periodDate" DESC
       `);
 
       const freshIndicators = result.rows.map((row: any) => ({
@@ -519,7 +523,12 @@ export class MacroeconomicService {
         frequency: row.frequency
       }));
 
-      logger.info(`📊 Found ${freshIndicators.length} fresh backfilled indicators`);
+      logger.info(`📊 Found ${freshIndicators.length} fresh backfilled indicators (latest records only)`);
+      
+      // Debug log to show which indicators were deduplicated
+      freshIndicators.forEach(indicator => {
+        logger.info(`🔍 Fresh indicator: ${indicator.seriesId} - ${indicator.metric} (${indicator.periodDate})`);
+      });
       return freshIndicators;
       
     } catch (error) {
