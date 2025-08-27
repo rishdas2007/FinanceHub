@@ -3,6 +3,10 @@
 ## Overview
 FinanceHub Pro is a comprehensive financial dashboard application for individual investors and financial professionals. It provides real-time market data, technical analysis, AI-powered market insights, and financial tracking. The platform emphasizes enterprise-grade data integrity and cost-effectiveness by leveraging authentic government and market data, minimizing reliance on expensive AI for core data processing. Its vision is to be a robust and reliable financial analysis tool.
 
+**Current Version**: 35.0  
+**Status**: Production Ready  
+**Documentation**: Complete technical design document available in `TECHNICAL_DESIGN_DOCUMENT.md`
+
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 UI Preference: Clean, actionable interface without overly technical explanations that don't provide user value.
@@ -59,6 +63,8 @@ The application uses a monorepo architecture with `client/` (React frontend), `s
 - **Z-Score Data Deduplication Fix**: Comprehensive solution to historical data corruption affecting all 12 ETFs with 79-93% duplicate records. Implemented daily aggregation using DISTINCT ON (DATE(date)) SQL queries, enhanced data quality validation, and automatic fallback to realistic market parameters. Successfully restored authentic Z-score calculations with statistical validity. Fixed Bollinger %B scale issue from 0-100 to proper 0-1 scale with filtered invalid values, ensuring exactly one data point per trading day as required.
 - **ETF 5-Minute Caching Infrastructure**: Enterprise-grade caching solution achieving 99.5% performance improvement (12.6s → 55ms) with dual-layer architecture (memory + materialized view), 95% API call reduction through 5-minute background refresh cycles, sub-millisecond cache hits, comprehensive monitoring, and production-ready reliability with graceful fallbacks.
 - **ETF v35 Critical Fixes Implementation**: Complete 4-phase implementation providing robust ETF data services with multiple fallback strategies, comprehensive monitoring, and frontend integration. Fixed stale data issue by migrating frontend from `/api/etf-metrics` to `/api/etf/robust` endpoint, ensuring live market data instead of 2-week-old fallback data. Includes health checks, performance tracking, and enterprise-grade error handling.
+- **Monorepo Organization & Documentation**: Comprehensive technical design document created covering all subsystems, APIs, and architecture decisions. Legacy implementation files archived to `scripts/archive/` for clean codebase. Complete README with quick start guide and development instructions.
+- **Signal Calculation Refinement**: MACD completely removed from trading signal calculation. Signals now use only average of RSI Z-score and Bollinger %B Z-score for improved accuracy and reduced computational overhead.
 
 ### Database Design
 The schema includes key tables for: `users`, `stock_data`, `market_sentiment`, `technical_indicators`, `ai_analysis`, `economic_events`, `fredUpdateLog`, `economicIndicatorsCurrent`, `historical_sector_data`, `historical_technical_indicators`, `historical_market_sentiment`, `historical_economic_data`, `economic_data_audit`, `data_collection_audit`. Also includes `etf_metrics_latest` materialized view for performance.
