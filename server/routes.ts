@@ -246,13 +246,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ORDER BY series_id, period_date DESC
       `;
 
-      // Also get historical data for calculating prior values and statistics
+      // Get comprehensive historical data for statistical calculations (2+ years for weekly data)
       const historicalFredData = await sql`
         SELECT series_id, value_numeric, period_date
         FROM economic_indicators_current 
         WHERE series_id IN ('CCSA', 'ICSA')
           AND unit = 'Thousands'
-          AND period_date >= NOW() - INTERVAL '3 months'
+          AND period_date >= NOW() - INTERVAL '2 years'
         ORDER BY series_id, period_date DESC
       `;
       
@@ -288,25 +288,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const sortedData = data.sort((a, b) => new Date(b.date) - new Date(a.date));
         const values = sortedData.map(d => d.value);
         
+        console.log(`🔍 [Z-SCORE ANALYSIS] ${seriesId}: Available data points: ${values.length}`);
+        console.log(`🔍 [Z-SCORE ANALYSIS] ${seriesId}: Date range: ${sortedData[sortedData.length-1]?.date} to ${sortedData[0]?.date}`);
+        console.log(`🔍 [Z-SCORE ANALYSIS] ${seriesId}: Raw values: [${values.slice(0, 5).map(v => v.toLocaleString()).join(', ')}${values.length > 5 ? '...' : ''}]`);
+        
         if (values.length >= 2) {
           const current = values[0];
           const prior = values[1];
+          
+          // Calculate statistics
           const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-          const variance = values.reduce((sum, val) => Math.pow(val - mean, 2), 0) / values.length;
-          const std = Math.sqrt(variance);
-          const zScore = std > 0 ? (current - mean) / std : 0;
+          const sampleVariance = values.reduce((sum, val) => Math.pow(val - mean, 2), 0) / (values.length - 1); // Sample variance (N-1)
+          const populationVariance = values.reduce((sum, val) => Math.pow(val - mean, 2), 0) / values.length; // Population variance (N)
+          const sampleStd = Math.sqrt(sampleVariance);
+          const populationStd = Math.sqrt(populationVariance);
+          
+          const sampleZScore = sampleStd > 0 ? (current - mean) / sampleStd : 0;
+          const populationZScore = populationStd > 0 ? (current - mean) / populationStd : 0;
+          
+          // Data quality checks
+          const minValue = Math.min(...values);
+          const maxValue = Math.max(...values);
+          const range = maxValue - minValue;
+          const coefficientOfVariation = mean !== 0 ? (sampleStd / Math.abs(mean)) * 100 : 0;
+          
+          console.log(`📊 [Z-SCORE ANALYSIS] ${seriesId}: Sample size check: ${values.length} (minimum recommended: 30 for weekly data)`);
+          console.log(`📊 [Z-SCORE ANALYSIS] ${seriesId}: Mean=${mean.toLocaleString()}, Range=${minValue.toLocaleString()}-${maxValue.toLocaleString()}`);
+          console.log(`📊 [Z-SCORE ANALYSIS] ${seriesId}: Sample STD=${sampleStd.toLocaleString()}, Population STD=${populationStd.toLocaleString()}`);
+          console.log(`📊 [Z-SCORE ANALYSIS] ${seriesId}: Sample Z-Score=${sampleZScore.toFixed(2)}, Population Z-Score=${populationZScore.toFixed(2)}`);
+          console.log(`📊 [Z-SCORE ANALYSIS] ${seriesId}: Coefficient of Variation=${coefficientOfVariation.toFixed(1)}% (high volatility if >25%)`);
+          
+          // Use sample standard deviation for more conservative estimates
+          const finalZScore = sampleZScore;
+          const deltaZScore = sampleStd > 0 ? ((current - prior) / sampleStd) : 0;
+          
+          // Extreme z-score warning
+          if (Math.abs(finalZScore) > 10) {
+            console.log(`⚠️ [Z-SCORE WARNING] ${seriesId}: Extreme Z-Score detected (${finalZScore.toFixed(2)}). Possible causes:`);
+            console.log(`   - Insufficient sample size (${values.length} vs recommended 30+)`);
+            console.log(`   - High volatility (CV: ${coefficientOfVariation.toFixed(1)}%)`);
+            console.log(`   - Outlier or data quality issue`);
+          }
           
           historicalStats.set(seriesId, {
             current,
             prior,
             mean,
-            std,
-            zScore,
+            std: sampleStd,
+            zScore: finalZScore,
             priorReading: `${(prior / 1000).toFixed(1)}M`,
-            deltaZScore: std > 0 ? ((current - prior) / std) : 0
+            deltaZScore,
+            sampleSize: values.length,
+            coefficientOfVariation,
+            dataQualityWarning: Math.abs(finalZScore) > 10 || values.length < 20
           });
           
-          console.log(`📊 [FRED STATS] ${seriesId}: Current=${current.toLocaleString()}, Prior=${prior.toLocaleString()}, Z-Score=${zScore.toFixed(2)}`);
+          console.log(`📊 [FRED STATS] ${seriesId}: Current=${current.toLocaleString()}, Prior=${prior.toLocaleString()}, Z-Score=${finalZScore.toFixed(2)} (${values.length} samples)`);
+        } else {
+          console.log(`⚠️ [Z-SCORE WARNING] ${seriesId}: Insufficient data points (${values.length}) for reliable z-score calculation`);
         }
       });
       
