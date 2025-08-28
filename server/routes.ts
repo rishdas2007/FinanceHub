@@ -626,8 +626,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const diagnosticSample = rawData.indicators.slice(0, 5);
         console.log('🔍 [DIAGNOSTIC] Sample indicators BEFORE formatting:');
         diagnosticSample.forEach(ind => {
-          console.log(`🔍 [DIAGNOSTIC] ${ind.seriesId}: currentReading="${ind.currentReading}", priorReading="${ind.priorReading}", unit="${ind.unit}", rawCurrentValue="${ind.rawCurrentValue}"`);
+          console.log(`🔍 [DIAGNOSTIC] ${ind.seriesId}: currentReading="${ind.currentReading}", priorReading="${ind.priorReading}", unit="${ind.unit}", rawCurrentValue="${ind.rawCurrentValue}", rawPriorValue="${ind.rawPriorValue}"`);
         });
+        
+        // DIAGNOSTIC: Check for duplicate entries
+        const seriesDateMap = new Map();
+        const duplicates = [];
+        rawData.indicators.forEach(ind => {
+          const key = `${ind.seriesId}-${ind.period_date}`;
+          if (seriesDateMap.has(key)) {
+            duplicates.push({
+              seriesId: ind.seriesId,
+              date: ind.period_date,
+              metric1: seriesDateMap.get(key).metric,
+              metric2: ind.metric
+            });
+          } else {
+            seriesDateMap.set(key, ind);
+          }
+        });
+        
+        if (duplicates.length > 0) {
+          console.warn('🚨 [DUPLICATE DETECTION] Found duplicate entries:');
+          duplicates.forEach(dup => {
+            console.warn(`🚨 [DUPLICATE] ${dup.seriesId} (${dup.date}): "${dup.metric1}" vs "${dup.metric2}"`);
+          });
+          
+          // Remove duplicates by keeping the first occurrence of each seriesId-date combination
+          const uniqueIndicators = [];
+          const seenKeys = new Set();
+          
+          rawData.indicators.forEach(indicator => {
+            const key = `${indicator.seriesId}-${indicator.period_date}`;
+            if (!seenKeys.has(key)) {
+              seenKeys.add(key);
+              uniqueIndicators.push(indicator);
+            } else {
+              console.log(`🗑️ [DUPLICATE REMOVAL] Removing duplicate: ${indicator.seriesId} (${indicator.period_date})`);
+            }
+          });
+          
+          const removedCount = rawData.indicators.length - uniqueIndicators.length;
+          rawData.indicators = uniqueIndicators;
+          console.log(`✅ [DUPLICATE CLEANUP] Removed ${removedCount} duplicates, ${uniqueIndicators.length} unique indicators remain`);
+        } else {
+          console.log('✅ [DUPLICATE CHECK] No duplicates detected');
+        }
         
         rawData.indicators = rawData.indicators.map(indicator => {
           if (indicator.rawCurrentValue && indicator.unit) {
@@ -638,6 +682,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             let formattedPriorReading = indicator.priorReading;
             if (indicator.rawPriorValue && indicator.unit) {
               formattedPriorReading = formatValueByUnit(indicator.rawPriorValue, indicator.unit, indicator.seriesId);
+              console.log(`🔄 [PRIOR FORMATTING] ${indicator.seriesId}: "${indicator.priorReading}" → "${formattedPriorReading}" (${indicator.unit})`);
+            } else if (indicator.priorReading && indicator.unit) {
+              // Fallback: format existing prior reading if it's a valid number
+              const priorValue = parseFloat(indicator.priorReading);
+              if (!isNaN(priorValue)) {
+                formattedPriorReading = formatValueByUnit(priorValue, indicator.unit, indicator.seriesId);
+                console.log(`🔄 [PRIOR FALLBACK] ${indicator.seriesId}: "${indicator.priorReading}" → "${formattedPriorReading}" (${indicator.unit})`);
+              } else {
+                console.log(`⚠️ [PRIOR SKIP] ${indicator.seriesId}: Cannot parse prior reading "${indicator.priorReading}" as number`);
+              }
             }
             
             // Always apply smart formatting (even if it looks the same)
