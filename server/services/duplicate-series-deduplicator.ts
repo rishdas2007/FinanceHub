@@ -13,82 +13,136 @@ export class DuplicateSeriesDeduplicator {
     'ICSA', // Initial Claims - keep raw version only
   ]);
   
-  // Preferred metric names for deduplicated series
+  // Preferred metric names for deduplicated series (delta-adjusted format)
   private static readonly PREFERRED_METRICS: Record<string, string> = {
-    'CCSA': 'Continued Claims (Insured Unemployment)',
-    'ICSA': 'Initial Claims'
+    'CCSA': 'Continuing Jobless Claims (Δ-adjusted)',
+    'ICSA': 'Initial Jobless Claims (Δ-adjusted)'
   };
   
   /**
-   * Filter out duplicate delta-adjusted versions
+   * Transform raw versions to match delta-adjusted format and remove duplicates
    */
   static deduplicateMetrics(indicators: any[]): any[] {
-    logger.info('🔧 Running series deduplication filter');
+    logger.info('🔧 Running series deduplication filter - preferring delta-adjusted format');
     
     const filteredIndicators: any[] = [];
-    const seenSeriesIds = new Set<string>();
+    const processedSeries = new Set<string>();
     const removedDuplicates: string[] = [];
+    const transformedIndicators: string[] = [];
     
+    // First pass: collect all delta-adjusted versions
     for (const indicator of indicators) {
       const seriesId = indicator.seriesId;
       const metric = indicator.metric;
       
-      // Check if this is a problematic duplicate
       if (this.SINGLE_VERSION_SERIES.has(seriesId)) {
-        
-        // If we've already seen this series ID, check which version to keep
-        if (seenSeriesIds.has(seriesId)) {
-          
-          // Remove delta-adjusted versions (they contain "Δ-adjusted")
-          if (metric.includes('(Δ-adjusted)') || metric.includes('Δ-adjusted')) {
-            removedDuplicates.push(`${metric} (${seriesId})`);
-            logger.info(`🗑️  Removing duplicate delta-adjusted: ${metric}`);
-            continue; // Skip this duplicate
-          }
-          
-          // If current entry is raw and we already have delta-adjusted, replace it
-          const existingIndex = filteredIndicators.findIndex(
-            (existing) => existing.seriesId === seriesId
-          );
-          
-          if (existingIndex !== -1) {
-            const existingMetric = filteredIndicators[existingIndex].metric;
-            if (existingMetric.includes('(Δ-adjusted)')) {
-              // Replace delta-adjusted with raw version
-              filteredIndicators[existingIndex] = indicator;
-              removedDuplicates.push(`${existingMetric} (${seriesId}) - replaced with raw`);
-              logger.info(`🔄 Replaced delta-adjusted with raw: ${metric}`);
-            }
-          }
-          
-        } else {
-          // First time seeing this series ID
-          seenSeriesIds.add(seriesId);
-          
-          // Skip delta-adjusted versions if they come first
-          if (metric.includes('(Δ-adjusted)') || metric.includes('Δ-adjusted')) {
-            logger.info(`⏭️  Skipping delta-adjusted (waiting for raw): ${metric}`);
-            continue;
-          }
-          
+        // If this is a delta-adjusted version, keep it and mark series as processed
+        if (metric.includes('(Δ-adjusted)') || metric.includes('Δ-adjusted')) {
           filteredIndicators.push(indicator);
+          processedSeries.add(seriesId);
+          logger.info(`✅ Keeping delta-adjusted version: ${metric}`);
         }
-        
       } else {
         // Not a problematic series, include as-is
         filteredIndicators.push(indicator);
       }
     }
     
+    // Second pass: handle raw versions for series that don't have delta-adjusted
+    for (const indicator of indicators) {
+      const seriesId = indicator.seriesId;
+      const metric = indicator.metric;
+      
+      if (this.SINGLE_VERSION_SERIES.has(seriesId) && !processedSeries.has(seriesId)) {
+        // This is a raw version and we don't have delta-adjusted for this series
+        if (!metric.includes('(Δ-adjusted)') && !metric.includes('Δ-adjusted')) {
+          // Transform raw to delta-adjusted format
+          const transformedIndicator = this.transformToStandardFormat(indicator);
+          filteredIndicators.push(transformedIndicator);
+          processedSeries.add(seriesId);
+          transformedIndicators.push(`${metric} → ${transformedIndicator.metric}`);
+          logger.info(`🔄 Transformed raw to delta-adjusted: ${metric} → ${transformedIndicator.metric}`);
+        }
+      }
+    }
+    
+    // Third pass: mark removed duplicates
+    for (const indicator of indicators) {
+      const seriesId = indicator.seriesId;
+      const metric = indicator.metric;
+      
+      if (this.SINGLE_VERSION_SERIES.has(seriesId)) {
+        // If this is a raw version and we have processed this series (either kept delta-adjusted or transformed)
+        if (!metric.includes('(Δ-adjusted)') && !metric.includes('Δ-adjusted') && processedSeries.has(seriesId)) {
+          removedDuplicates.push(`${metric} (${seriesId}) - raw version removed in favor of delta-adjusted`);
+        }
+      }
+    }
+    
+    logger.info('✅ Deduplication complete', {
+      originalCount: indicators.length,
+      finalCount: filteredIndicators.length,
+      removedCount: removedDuplicates.length,
+      transformedCount: transformedIndicators.length
+    });
+    
     if (removedDuplicates.length > 0) {
-      logger.info('✅ Deduplication complete:', {
-        originalCount: indicators.length,
-        finalCount: filteredIndicators.length,
-        removedDuplicates
-      });
+      logger.info('Removed duplicates:', removedDuplicates);
+    }
+    
+    if (transformedIndicators.length > 0) {
+      logger.info('Transformed indicators:', transformedIndicators);
     }
     
     return filteredIndicators;
+  }
+  
+  /**
+   * Transform raw indicators to match delta-adjusted format
+   */
+  private static transformToStandardFormat(indicator: any): any {
+    const seriesId = indicator.seriesId;
+    
+    if (seriesId === 'CCSA') {
+      return {
+        ...indicator,
+        metric: 'Continuing Jobless Claims (Δ-adjusted)',
+        unit: 'Percent',
+        currentReading: this.convertToMillionsFormat(indicator.currentReading)
+      };
+    }
+    
+    if (seriesId === 'ICSA') {
+      return {
+        ...indicator,
+        metric: 'Initial Jobless Claims (Δ-adjusted)',
+        unit: 'Percent', 
+        currentReading: this.convertToMillionsFormat(indicator.currentReading)
+      };
+    }
+    
+    return indicator;
+  }
+  
+  /**
+   * Convert thousands format to millions format (e.g., "1,972,000.0" → "1972.0M")
+   */
+  private static convertToMillionsFormat(currentReading: string): string {
+    try {
+      // Remove commas and parse as number
+      const numericValue = parseFloat(currentReading.replace(/,/g, ''));
+      
+      if (isNaN(numericValue)) {
+        return currentReading; // Return original if can't parse
+      }
+      
+      // Convert to millions and format
+      const millionsValue = numericValue / 1000;
+      return `${millionsValue.toFixed(1)}M`;
+    } catch (error) {
+      logger.warn(`Failed to convert ${currentReading} to millions format:`, error);
+      return currentReading;
+    }
   }
   
   /**
