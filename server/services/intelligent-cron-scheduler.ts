@@ -49,8 +49,12 @@ export class IntelligentCronScheduler {
 
     // Schedule economic data updates (every 30-60 minutes based on market hours)
     this.scheduleJob('economic-updates', '*/30 * * * *', async () => {
+      logger.info('🔍 [FRED DIAGNOSTIC] Economic update cron job triggered');
       if (this.shouldRunEconomicUpdate()) {
+        logger.info('✅ [FRED DIAGNOSTIC] Should run economic update: true - executing fetchEconomicReadings');
         await this.runJobSafely('economic-updates', () => backgroundDataFetcher.fetchEconomicReadings());
+      } else {
+        logger.info('⏭️ [FRED DIAGNOSTIC] Should run economic update: false - skipping this cycle');
       }
     });
 
@@ -212,7 +216,7 @@ export class IntelligentCronScheduler {
     const lastUpdate = unifiedDashboardCache.get('economic-readings-background')?.timestamp || new Date(0).getTime();
     const shouldUpdate = marketHoursDetector.shouldUpdateNow(new Date(lastUpdate), 'economic');
     
-    logger.debug(`🔍 Economic update check: ${shouldUpdate} (market: ${marketStatus.session})`);
+    logger.info(`🔍 [FRED DIAGNOSTIC] Economic update check: shouldUpdate=${shouldUpdate}, market=${marketStatus.session}, lastUpdate=${new Date(lastUpdate).toISOString()}`);
     return shouldUpdate;
   }
 

@@ -93,21 +93,27 @@ export class BackgroundDataFetcher {
 
     while (retryCount < this.retryDelays.length) {
       try {
-        logger.info(`📊 Fetching economic readings (attempt ${retryCount + 1})`);
+        logger.info(`📊 [FRED DIAGNOSTIC] Fetching economic readings (attempt ${retryCount + 1})`);
+        logger.info(`🔍 [FRED DIAGNOSTIC] FIXED - Target endpoint: /api/macroeconomic-indicators`);
         
         const fetch = (await import('node-fetch')).default;
-        const response = await fetch('http://localhost:5000/api/recent-economic-openai', {
+        const response = await fetch('http://localhost:5000/api/macroeconomic-indicators', {
           timeout: 15000
         } as any);
 
+        logger.info(`🔍 [FRED DIAGNOSTIC] Response status: ${response.status} ${response.statusText}`);
+
         if (!response.ok) {
+          logger.error(`❌ [FRED DIAGNOSTIC] HTTP Error: ${response.status} ${response.statusText}`);
+          logger.error(`🔍 [FRED DIAGNOSTIC] This endpoint may not exist or is failing`);
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
         const data = await response.json();
         const duration = Date.now() - startTime;
 
-        logger.info(`✅ Economic readings fetched successfully in ${duration}ms`);
+        logger.info(`✅ [FRED DIAGNOSTIC] Economic readings fetched successfully in ${duration}ms`);
+        logger.info(`🔍 [FRED DIAGNOSTIC] Response data keys: ${Object.keys(data).join(', ')}`);
         
         // Store in cache
         unifiedDashboardCache.set('economic-readings-background', data, 3600000); // 1hr
@@ -123,7 +129,9 @@ export class BackgroundDataFetcher {
         retryCount++;
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
         
-        logger.warn(`❌ Economic readings fetch failed (attempt ${retryCount}): ${errorMsg}`);
+        logger.error(`❌ [FRED DIAGNOSTIC] Economic readings fetch failed (attempt ${retryCount}): ${errorMsg}`);
+        logger.error(`🔍 [FRED DIAGNOSTIC] Failed endpoint: /api/macroeconomic-indicators`);
+        logger.error(`🔍 [FRED DIAGNOSTIC] Check FRED API key and database connectivity`);
         
         if (retryCount < this.retryDelays.length) {
           await this.delay(this.retryDelays[retryCount - 1]);

@@ -1049,6 +1049,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Cache management endpoints removed (file deleted)
 
+  // FRED Scheduling Diagnostic Test Endpoint
+  app.get('/api/test-fred-scheduler', async (req, res) => {
+    try {
+      logger.info('🔍 [FRED TEST] Manual FRED scheduler test triggered');
+      
+      const { backgroundDataFetcher } = await import('./services/background-data-fetcher');
+      const result = await backgroundDataFetcher.fetchEconomicReadings();
+      
+      res.json({
+        success: result.success,
+        message: 'FRED scheduler test completed',
+        result: {
+          success: result.success,
+          timestamp: result.timestamp,
+          retryCount: result.retryCount,
+          error: result.error || 'None',
+          data: result.data ? `${Object.keys(result.data).length} keys received` : 'No data'
+        },
+        diagnostic: 'This endpoint tests the fixed /api/macroeconomic-indicators integration',
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      logger.error('❌ [FRED TEST] Test failed:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // Market status endpoint with timezone-aware implementation
   app.get("/api/market-status", async (req, res) => {
     try {
