@@ -253,24 +253,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ORDER BY series_id, period_date DESC
       `;
 
-      // Get comprehensive historical data for statistical calculations
+      // CRITICAL: Use rich historical_economic_data table for comprehensive statistics
+      // This table contains 22-728 records per indicator vs 1-7 in economic_indicators_current
       const historicalFredData = await sql`
-        SELECT series_id, value_numeric, period_date, unit
-        FROM economic_indicators_current 
+        SELECT series_id, value, period_date, frequency
+        FROM historical_economic_data 
         WHERE series_id = ANY(${allSeriesIds})
-          AND period_date >= NOW() - INTERVAL '2 years'
+          AND period_date >= NOW() - INTERVAL '3 years'
+          AND value IS NOT NULL
         ORDER BY series_id, period_date DESC
       `;
       
-      console.log(`🔍 [FRED PRIORITY] Found ${rawFredData.length} authentic FRED raw records`);
-      console.log(`🔍 [FRED PRIORITY] Found ${historicalFredData.length} historical FRED records for statistics`);
+      console.log(`🔍 [UNIVERSAL VALIDATION] Found ${historicalFredData.length} comprehensive historical records from historical_economic_data table`);
+      
+      console.log(`🔍 [UNIVERSAL VALIDATION] Found ${rawFredData.length} current FRED records`);
+      console.log(`🔍 [UNIVERSAL VALIDATION] Found ${historicalFredData.length} comprehensive historical records`);
       
       if (rawFredData.length === 0) {
-        console.log('⚠️ [FRED PRIORITY] No recent FRED raw data found, using existing data');
+        console.log('⚠️ [UNIVERSAL VALIDATION] No recent FRED raw data found, using existing data');
         return indicators;
       }
       
-      // Create map of latest FRED raw data
+      // Create map of latest FRED raw data for current values
       const fredRawMap = new Map();
       rawFredData.forEach(row => {
         if (!fredRawMap.has(row.series_id) || 
@@ -279,30 +283,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      // Calculate historical statistics for each series
+      // UNIVERSAL STATISTICAL PROCESSING: Group comprehensive historical data by series
       const historicalStats = new Map();
       const groupedHistorical = historicalFredData.reduce((acc, row) => {
         if (!acc[row.series_id]) acc[row.series_id] = [];
         acc[row.series_id].push({
-          value: Number(row.value_numeric),
-          date: row.period_date
+          value: Number(row.value),
+          date: row.period_date,
+          frequency: row.frequency
         });
         return acc;
       }, {});
+      
+      console.log(`🔍 [UNIVERSAL VALIDATION] Processing ${Object.keys(groupedHistorical).length} indicators with historical data`);
 
+      // UNIVERSAL STATISTICAL PROCESSING for all indicators with historical data
       Object.entries(groupedHistorical).forEach(([seriesId, data]) => {
         const sortedData = data.sort((a, b) => new Date(b.date) - new Date(a.date));
         const values = sortedData.map(d => d.value);
+        const frequency = sortedData[0]?.frequency || 'unknown';
         
-        console.log(`🔍 [Z-SCORE ANALYSIS] ${seriesId}: Available data points: ${values.length}`);
-        console.log(`🔍 [Z-SCORE ANALYSIS] ${seriesId}: Date range: ${sortedData[sortedData.length-1]?.date} to ${sortedData[0]?.date}`);
-        console.log(`🔍 [Z-SCORE ANALYSIS] ${seriesId}: Raw values: [${values.slice(0, 5).map(v => v.toLocaleString()).join(', ')}${values.length > 5 ? '...' : ''}]`);
+        console.log(`🔍 [UNIVERSAL ANALYSIS] ${seriesId}: Available data points: ${values.length} (${frequency})`);
+        console.log(`🔍 [UNIVERSAL ANALYSIS] ${seriesId}: Date range: ${sortedData[sortedData.length-1]?.date} to ${sortedData[0]?.date}`);
+        console.log(`🔍 [UNIVERSAL ANALYSIS] ${seriesId}: Raw values: [${values.slice(0, 5).map(v => v.toLocaleString()).join(', ')}${values.length > 5 ? '...' : ''}]`);
         
         if (values.length >= 2) {
           const current = values[0];
           const prior = values[1];
           
-          // Calculate statistics
+          // Frequency-aware statistical processing
+          const frequencyMinimums = {
+            'daily': 50,      // Daily data: need 50+ points for robust stats
+            'weekly': 20,     // Weekly data: need 20+ points  
+            'monthly': 12,    // Monthly data: need 12+ points
+            'quarterly': 8,   // Quarterly data: need 8+ points
+            'annual': 5       // Annual data: need 5+ points
+          };
+          
+          const minRequired = frequencyMinimums[frequency.toLowerCase()] || 20; // Default fallback
+          
+          // Calculate comprehensive statistics
           const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
           const sampleVariance = values.reduce((sum, val) => Math.pow(val - mean, 2), 0) / (values.length - 1); // Sample variance (N-1)
           const populationVariance = values.reduce((sum, val) => Math.pow(val - mean, 2), 0) / values.length; // Population variance (N)
@@ -318,11 +338,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const range = maxValue - minValue;
           const coefficientOfVariation = mean !== 0 ? (sampleStd / Math.abs(mean)) * 100 : 0;
           
-          console.log(`📊 [Z-SCORE ANALYSIS] ${seriesId}: Sample size check: ${values.length} (minimum recommended: 30 for weekly data)`);
-          console.log(`📊 [Z-SCORE ANALYSIS] ${seriesId}: Mean=${mean.toLocaleString()}, Range=${minValue.toLocaleString()}-${maxValue.toLocaleString()}`);
-          console.log(`📊 [Z-SCORE ANALYSIS] ${seriesId}: Sample STD=${sampleStd.toLocaleString()}, Population STD=${populationStd.toLocaleString()}`);
-          console.log(`📊 [Z-SCORE ANALYSIS] ${seriesId}: Sample Z-Score=${sampleZScore.toFixed(2)}, Population Z-Score=${populationZScore.toFixed(2)}`);
-          console.log(`📊 [Z-SCORE ANALYSIS] ${seriesId}: Coefficient of Variation=${coefficientOfVariation.toFixed(1)}% (high volatility if >25%)`);
+          console.log(`📊 [UNIVERSAL ANALYSIS] ${seriesId}: Sample size check: ${values.length} (minimum required: ${minRequired} for ${frequency} data)`);
+          console.log(`📊 [UNIVERSAL ANALYSIS] ${seriesId}: Mean=${mean.toLocaleString()}, Range=${minValue.toLocaleString()}-${maxValue.toLocaleString()}`);
+          console.log(`📊 [UNIVERSAL ANALYSIS] ${seriesId}: Sample STD=${sampleStd.toLocaleString()}, Population STD=${populationStd.toLocaleString()}`);
+          console.log(`📊 [UNIVERSAL ANALYSIS] ${seriesId}: Sample Z-Score=${sampleZScore.toFixed(2)}, Population Z-Score=${populationZScore.toFixed(2)}`);
+          console.log(`📊 [UNIVERSAL ANALYSIS] ${seriesId}: Coefficient of Variation=${coefficientOfVariation.toFixed(1)}% (high volatility if >25%)`);
           
           // Use sample standard deviation for more conservative estimates
           const finalZScore = sampleZScore;
@@ -333,14 +353,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let validatedDeltaZScore = deltaZScore;
           let validationWarning = null;
           
-          // Check for insufficient sample size (weekly data needs minimum 20-30 points)
-          if (values.length < 20) {
+          // Universal frequency-aware validation for insufficient sample sizes
+          if (values.length < minRequired) {
             validationWarning = `INSUFFICIENT_SAMPLE_SIZE`;
-            // Use conservative fallback: normalize based on typical claims volatility
-            const typicalClaimsStd = seriesId === 'CCSA' ? 50000 : 15000; // Historical volatility estimates
-            validatedZScore = (current - mean) / typicalClaimsStd;
-            validatedDeltaZScore = (current - prior) / typicalClaimsStd;
-            console.log(`⚠️ [Z-SCORE VALIDATION] ${seriesId}: Using fallback calculation due to insufficient sample (${values.length} < 20)`);
+            
+            // Frequency-specific conservative fallback estimates based on economic indicator volatility
+            const fallbackStdRatios = {
+              'daily': 0.02,     // Daily: 2% historical volatility (rates, bonds)
+              'weekly': 0.05,    // Weekly: 5% historical volatility (claims, surveys)  
+              'monthly': 0.08,   // Monthly: 8% historical volatility (inflation, employment)
+              'quarterly': 0.12, // Quarterly: 12% historical volatility (GDP, earnings)
+              'annual': 0.15     // Annual: 15% historical volatility (long-term trends)
+            };
+            
+            const fallbackRatio = fallbackStdRatios[frequency.toLowerCase()] || 0.10; // Default 10%
+            const fallbackStd = Math.abs(mean) * fallbackRatio;
+            
+            validatedZScore = fallbackStd > 0 ? (current - mean) / fallbackStd : 0;
+            validatedDeltaZScore = fallbackStd > 0 ? (current - prior) / fallbackStd : 0;
+            
+            console.log(`⚠️ [UNIVERSAL VALIDATION] ${seriesId}: Using fallback calculation for ${frequency} data (${values.length} < ${minRequired})`);
             console.log(`   Original Z-Score: ${finalZScore.toFixed(2)} → Fallback Z-Score: ${validatedZScore.toFixed(2)}`);
           }
           
@@ -371,9 +403,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             fallbackApplied: validationWarning !== null
           });
           
-          console.log(`📊 [FRED STATS] ${seriesId}: Current=${current.toLocaleString()}, Prior=${prior.toLocaleString()}, Final Z-Score=${validatedZScore.toFixed(2)} (${values.length} samples)`);
+          console.log(`📊 [UNIVERSAL STATS] ${seriesId}: Current=${current.toLocaleString()}, Prior=${prior.toLocaleString()}, Final Z-Score=${validatedZScore.toFixed(2)} (${values.length} ${frequency} samples)`);
           if (validationWarning) {
-            console.log(`🔧 [VALIDATION] ${seriesId}: Applied ${validationWarning} correction`);
+            console.log(`🔧 [UNIVERSAL VALIDATION] ${seriesId}: Applied ${validationWarning} correction for ${frequency} data`);
           }
         } else {
           console.log(`⚠️ [Z-SCORE WARNING] ${seriesId}: Insufficient data points (${values.length}) for reliable z-score calculation`);
@@ -435,7 +467,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return indicator;
       });
       
-      console.log(`✅ [FRED PRIORITY] Applied FRED source priority to ${fredRawMap.size} indicators`);
+      console.log(`✅ [UNIVERSAL VALIDATION] Applied universal statistical validation to ${fredRawMap.size} indicators`);
+      console.log(`🔍 [UNIVERSAL VALIDATION] Historical data utilized: ${historicalStats.size} indicators with rich statistical context`);
       return updatedIndicators;
       
     } catch (error) {
@@ -475,7 +508,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // FRED API SOURCE PRIORITY FIX: Replace with authentic FRED raw data
       if (rawData?.indicators) {
         console.log('🎯 [FRED PRIORITY] Applying FRED API source authority priority...');
-        rawData.indicators = await applyFredApiSourcePriority(rawData.indicators);
+        rawData.indicators = await applyUniversalStatisticalValidation(rawData.indicators);
         console.log('✅ [FRED PRIORITY] FRED API source priority applied');
       }
       

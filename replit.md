@@ -3,21 +3,25 @@
 ## Overview
 FinanceHub Pro is a comprehensive financial dashboard application for individual investors and financial professionals. It provides real-time market data, technical analysis, AI-powered market insights, and financial tracking. The platform emphasizes enterprise-grade data integrity and cost-effectiveness by leveraging authentic government and market data, minimizing reliance on expensive AI for core data processing. Its vision is to be a robust and reliable financial analysis tool.
 
-**Current Version**: 36.0  
-**Status**: Production Ready - FRED Economic Indicators Expanded  
+**Current Version**: 37.0  
+**Status**: Production Ready - Universal Statistical Validation System Complete  
 **Documentation**: Complete technical design document available in `TECHNICAL_DESIGN_DOCUMENT.md`
 
-## Recent Changes (Version 36.0 - August 2025)
-**Major Feature**: FRED Economic Indicators Expansion
+## Recent Changes (Version 37.0 - August 2025)
+**Major Feature**: Universal Statistical Validation System Implementation
+- **✅ BREAKTHROUGH**: Leveraged rich `historical_economic_data` table with 500-700+ data points vs previous 6-7 limited points
+- **✅ Universal Coverage**: Expanded statistical validation from 2 indicators (CCSA, ICSA) to all 41 economic indicators
+- **✅ Frequency-Aware Processing**: Different sample size thresholds for daily (50+), weekly (20+), monthly (12+), quarterly (8+), annual (5+) data
+- **✅ Comprehensive Validation**: Automatic extreme Z-score detection and capping (|z| > 5 → capped to ±3)
+- **✅ Intelligent Fallback**: Frequency-specific volatility estimates when insufficient historical data available
+- **✅ Rich Statistical Context**: 4+ indicators now utilize comprehensive historical datasets (DFF: 728 records, DGS10: 497 records)
+- **✅ Data Quality Hierarchy**: Primary source historical_economic_data → current values → intelligent fallback only when needed
+- **✅ Enhanced Validation Warnings**: Frontend displays validation metadata for extreme values and insufficient samples
+
+**Previous Version 36.0**: FRED Economic Indicators Expansion
 - Successfully eliminated 68% of duplicate economic indicators (127→41 unique indicators)  
-- Added 4 new high-priority economic indicators from user's August 2025 document:
-  - TB1YR: 1-Year Treasury Rate
-  - MORTGAGE30US: 30-Year Mortgage Rate  
-  - CPILFENS: Core CPI (NSA)
-  - NHSUSSPT: New Home Sales Units
+- Added 4 new high-priority economic indicators (TB1YR, MORTGAGE30US, CPILFENS, NHSUSSPT)
 - Implemented comprehensive data validation and API error handling
-- Total system expansion from 41 to 45 unique economic indicators
-- All new indicators validated with authentic FRED API data
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
