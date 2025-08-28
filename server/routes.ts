@@ -242,15 +242,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Prioritize authentic FRED data over OpenAI fallback
       const rawData = await macroeconomicService.getAuthenticEconomicData();
       
+      // DIAGNOSTIC LOGGING: Validate assumptions before merger
+      console.log('🔍 [MERGER DEBUG] Pre-merger diagnostic check...');
+      console.log('🔍 [MERGER DEBUG] Raw data exists:', !!rawData?.indicators);
+      console.log('🔍 [MERGER DEBUG] Indicators count:', rawData?.indicators?.length || 0);
+      
+      // Log Claims data specifically to check input
+      const claimsData = rawData?.indicators?.filter(i => 
+        i.metric?.toLowerCase().includes('claims') || i.seriesId?.match(/^(CCSA|ICSA)$/)
+      ) || [];
+      console.log('🔍 [MERGER DEBUG] Claims data found:', claimsData.length);
+      claimsData.forEach(claim => {
+        console.log(`🔍 [MERGER DEBUG] ${claim.seriesId}: ${claim.currentReading} (${claim.unit}) - ${claim.metric}`);
+      });
+      
       // Apply time series merger to combine recent raw data with historical delta-adjusted data
       if (rawData?.indicators) {
+        console.log('🔥 [MERGER EXECUTION] Starting TimeSeriesMerger.mergeTimeSeriesData()...');
         const originalCount = rawData.indicators.length;
-        rawData.indicators = TimeSeriesMerger.mergeTimeSeriesData(rawData.indicators);
+        
+        try {
+          rawData.indicators = TimeSeriesMerger.mergeTimeSeriesData(rawData.indicators);
+          console.log('✅ [MERGER EXECUTION] TimeSeriesMerger completed successfully');
+        } catch (error) {
+          console.error('❌ [MERGER EXECUTION] TimeSeriesMerger failed:', error);
+        }
+        
         const finalCount = rawData.indicators.length;
         
         if (originalCount !== finalCount) {
           console.log(`🔧 Time series merger applied: ${originalCount} → ${finalCount} indicators`);
         }
+        
+        // Log Claims data after merger to check output
+        const postMergerClaims = rawData.indicators.filter(i => 
+          i.metric?.toLowerCase().includes('claims') || i.seriesId?.match(/^(CCSA|ICSA)$/)
+        );
+        console.log('🔍 [MERGER DEBUG] Post-merger Claims data:', postMergerClaims.length);
+        postMergerClaims.forEach(claim => {
+          console.log(`🔍 [MERGER DEBUG] POST: ${claim.seriesId}: ${claim.currentReading} (${claim.unit}) - convertedFrom: ${claim.convertedFrom || 'none'}`);
+        });
         
         // Validate merger results
         const validation = TimeSeriesMerger.validateMergerResults(rawData.indicators, rawData.indicators);
@@ -283,12 +314,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { cacheService } = await import('./services/cache-unified');
       cacheService.clear();
       
+      // Also clear the specific FRED cache key
+      cacheService.delete('fred-economic-data-latest');
+      
       const rawData = await macroeconomicService.getAuthenticEconomicData();
+      
+      // DIAGNOSTIC LOGGING: Validate refresh assumptions
+      console.log('🔍 [REFRESH MERGER DEBUG] Pre-refresh merger diagnostic check...');
+      console.log('🔍 [REFRESH MERGER DEBUG] Raw data exists:', !!rawData?.indicators);
       
       // Apply time series merger to combine recent raw data with historical delta-adjusted data
       if (rawData?.indicators) {
+        console.log('🔥 [REFRESH MERGER] Starting TimeSeriesMerger.mergeTimeSeriesData()...');
         const originalCount = rawData.indicators.length;
-        rawData.indicators = TimeSeriesMerger.mergeTimeSeriesData(rawData.indicators);
+        
+        try {
+          rawData.indicators = TimeSeriesMerger.mergeTimeSeriesData(rawData.indicators);
+          console.log('✅ [REFRESH MERGER] TimeSeriesMerger completed successfully');
+        } catch (error) {
+          console.error('❌ [REFRESH MERGER] TimeSeriesMerger failed:', error);
+        }
+        
         const finalCount = rawData.indicators.length;
         
         if (originalCount !== finalCount) {

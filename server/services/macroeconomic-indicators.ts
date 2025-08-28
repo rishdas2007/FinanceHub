@@ -10,7 +10,10 @@ interface MacroeconomicData {
 }
 
 export class MacroeconomicService {
-  private readonly CACHE_KEY = `fred-delta-adjusted-v${Date.now()}`;
+  private generateCacheKey(): string {
+    // Generate dynamic cache key based on current time to ensure fresh data after refresh
+    return `fred-delta-adjusted-v${Date.now()}`;
+  }
   
   /**
    * Get historical data for economic indicators (for charts)
@@ -188,8 +191,9 @@ export class MacroeconomicService {
     try {
       const { cacheService } = await import('./cache-unified');
       
-      // Check memory cache first  
-      const cached = cacheService.get(this.CACHE_KEY) as MacroeconomicData | null;
+      // Use static cache key for retrieving cached data
+      const staticCacheKey = 'fred-economic-data-latest';
+      const cached = cacheService.get(staticCacheKey) as MacroeconomicData | null;
       if (cached) {
         logger.debug('Returning cached FRED economic data');
         return cached;
@@ -198,8 +202,8 @@ export class MacroeconomicService {
       // Get data with live z-score calculations
       const databaseData = await this.getDataFromDatabase();
       if (databaseData && databaseData.indicators.length > 0) {
-        // Cache database result for 30 minutes
-        cacheService.set(this.CACHE_KEY, databaseData, 30 * 60 * 1000);
+        // Cache database result for 30 minutes using static key
+        cacheService.set(staticCacheKey, databaseData, 30 * 60 * 1000);
         
         logger.info(`✅ Live z-score database data ready: ${databaseData.indicators.length} indicators`);
         return databaseData;
