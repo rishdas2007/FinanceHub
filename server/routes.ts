@@ -236,10 +236,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('🔍 Fast Dashboard Route: GET /api/macroeconomic-indicators');
       const { macroeconomicService } = await import('./services/macroeconomic-indicators');
-      // Prioritize authentic FRED data over OpenAI fallback
-      const data = await macroeconomicService.getAuthenticEconomicData();
+      const { DuplicateSeriesDeduplicator } = await import('./services/duplicate-series-deduplicator');
       
-      res.json(data);
+      const startTime = Date.now();
+      // Prioritize authentic FRED data over OpenAI fallback
+      const rawData = await macroeconomicService.getAuthenticEconomicData();
+      
+      // Apply deduplication filter to remove CCSA/ICSA delta-adjusted duplicates
+      if (rawData?.indicators) {
+        const originalCount = rawData.indicators.length;
+        rawData.indicators = DuplicateSeriesDeduplicator.deduplicateMetrics(rawData.indicators);
+        const finalCount = rawData.indicators.length;
+        
+        if (originalCount !== finalCount) {
+          console.log(`🔧 Deduplication applied: ${originalCount} → ${finalCount} indicators`);
+        }
+        
+        // Generate validation report
+        DuplicateSeriesDeduplicator.generateValidationReport(rawData.indicators);
+      }
+      
+      const responseTime = Date.now() - startTime;
+      console.log(`📊 Macroeconomic indicators response time: ${responseTime}ms`);
+      
+      res.json(rawData);
       
     } catch (error) {
       console.error('Failed to get macroeconomic indicators:', error);
@@ -254,15 +274,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('🔍 Fast Dashboard Route: POST /api/macroeconomic-indicators/refresh');
       const { macroeconomicService } = await import('./services/macroeconomic-indicators');
+      const { DuplicateSeriesDeduplicator } = await import('./services/duplicate-series-deduplicator');
+      
       // Clear cache and get fresh data
       const { cacheService } = await import('./services/cache-unified');
       cacheService.clear();
       
-      const data = await macroeconomicService.getAuthenticEconomicData();
+      const rawData = await macroeconomicService.getAuthenticEconomicData();
+      
+      // Apply deduplication filter to remove CCSA/ICSA delta-adjusted duplicates
+      if (rawData?.indicators) {
+        const originalCount = rawData.indicators.length;
+        rawData.indicators = DuplicateSeriesDeduplicator.deduplicateMetrics(rawData.indicators);
+        const finalCount = rawData.indicators.length;
+        
+        if (originalCount !== finalCount) {
+          console.log(`🔧 Refresh deduplication applied: ${originalCount} → ${finalCount} indicators`);
+        }
+      }
       
       res.json({
         success: true,
-        data,
+        data: rawData,
         message: 'Macroeconomic data refreshed successfully',
         timestamp: new Date().toISOString()
       });
