@@ -237,17 +237,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { neon } = await import('@neondatabase/serverless');
       const sql = neon(process.env.DATABASE_URL!);
       
-      // Get authentic FRED raw data for Claims indicators  
+      // Get authentic FRED raw data for Claims indicators with historical context
       const rawFredData = await sql`
         SELECT series_id, metric, period_date, value_numeric, unit, updated_at
         FROM economic_indicators_current 
         WHERE series_id IN ('CCSA', 'ICSA')
           AND unit = 'Thousands'
-          AND updated_at >= NOW() - INTERVAL '48 hours'
+        ORDER BY series_id, period_date DESC
+      `;
+
+      // Also get historical data for calculating prior values and statistics
+      const historicalFredData = await sql`
+        SELECT series_id, value_numeric, period_date
+        FROM economic_indicators_current 
+        WHERE series_id IN ('CCSA', 'ICSA')
+          AND unit = 'Thousands'
+          AND period_date >= NOW() - INTERVAL '3 months'
         ORDER BY series_id, period_date DESC
       `;
       
       console.log(`🔍 [FRED PRIORITY] Found ${rawFredData.length} authentic FRED raw records`);
+      console.log(`🔍 [FRED PRIORITY] Found ${historicalFredData.length} historical FRED records for statistics`);
       
       if (rawFredData.length === 0) {
         console.log('⚠️ [FRED PRIORITY] No recent FRED raw data found, using existing data');
@@ -262,25 +272,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fredRawMap.set(row.series_id, row);
         }
       });
+
+      // Calculate historical statistics for each series
+      const historicalStats = new Map();
+      const groupedHistorical = historicalFredData.reduce((acc, row) => {
+        if (!acc[row.series_id]) acc[row.series_id] = [];
+        acc[row.series_id].push({
+          value: Number(row.value_numeric),
+          date: row.period_date
+        });
+        return acc;
+      }, {});
+
+      Object.entries(groupedHistorical).forEach(([seriesId, data]) => {
+        const sortedData = data.sort((a, b) => new Date(b.date) - new Date(a.date));
+        const values = sortedData.map(d => d.value);
+        
+        if (values.length >= 2) {
+          const current = values[0];
+          const prior = values[1];
+          const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+          const variance = values.reduce((sum, val) => Math.pow(val - mean, 2), 0) / values.length;
+          const std = Math.sqrt(variance);
+          const zScore = std > 0 ? (current - mean) / std : 0;
+          
+          historicalStats.set(seriesId, {
+            current,
+            prior,
+            mean,
+            std,
+            zScore,
+            priorReading: `${(prior / 1000).toFixed(1)}M`,
+            deltaZScore: std > 0 ? ((current - prior) / std) : 0
+          });
+          
+          console.log(`📊 [FRED STATS] ${seriesId}: Current=${current.toLocaleString()}, Prior=${prior.toLocaleString()}, Z-Score=${zScore.toFixed(2)}`);
+        }
+      });
       
-      // Apply FRED API source priority: replace with authentic raw data
+      // Apply FRED API source priority: update current values and apply calculated historical context
       const updatedIndicators = indicators.map(indicator => {
         if (fredRawMap.has(indicator.seriesId)) {
           const fredRaw = fredRawMap.get(indicator.seriesId);
+          const stats = historicalStats.get(indicator.seriesId);
           
-          console.log(`🎯 [FRED PRIORITY] Replacing ${indicator.seriesId}: ${indicator.currentReading} → ${fredRaw.value_numeric.toLocaleString()} ${fredRaw.unit}`);
+          console.log(`🎯 [FRED PRIORITY] Updating ${indicator.seriesId}: ${indicator.currentReading} → ${fredRaw.value_numeric.toLocaleString()} ${fredRaw.unit}`);
+          console.log(`🔍 [FRED PRIORITY] Historical stats available for ${indicator.seriesId}: ${stats ? 'YES' : 'NO'}`);
           
-          return {
-            ...indicator,
-            currentReading: fredRaw.value_numeric.toLocaleString(),
-            rawCurrentValue: fredRaw.value_numeric,
-            unit: fredRaw.unit,
-            period_date: fredRaw.period_date,
-            releaseDate: fredRaw.period_date, // Use period_date as release date for FRED
-            metric: fredRaw.metric, // Use original FRED metric name
-            sourceAuthority: 'fred_api',
-            fredApiOverride: true
-          };
+          if (stats) {
+            console.log(`✨ [FRED PRIORITY] Applying calculated stats: priorReading=${stats.priorReading}, zScore=${stats.zScore.toFixed(2)}, deltaZScore=${stats.deltaZScore.toFixed(2)}`);
+            
+            return {
+              ...indicator, // Keep basic fields
+              // Update with authentic FRED current data and calculated historical context
+              currentReading: `${(fredRaw.value_numeric / 1000).toFixed(1)}M`,
+              rawCurrentValue: fredRaw.value_numeric,
+              currentValue: fredRaw.value_numeric,
+              period_date: fredRaw.period_date,
+              releaseDate: fredRaw.period_date,
+              metric: indicator.metric || fredRaw.metric,
+              sourceAuthority: 'fred_api',
+              fredApiOverride: true,
+              // Apply calculated historical context from FRED raw data
+              priorReading: stats.priorReading,
+              historicalMean: stats.mean,
+              historicalStd: stats.std,
+              zScore: stats.zScore,
+              deltaZScore: stats.deltaZScore,
+              varianceFromMean: fredRaw.value_numeric - stats.mean,
+              varianceFromPrior: fredRaw.value_numeric - stats.prior
+            };
+          } else {
+            console.log(`🔍 [FRED PRIORITY] No historical stats available, preserving existing context: priorReading=${indicator.priorReading}, zScore=${indicator.zScore}, deltaZScore=${indicator.deltaZScore}`);
+            return {
+              ...indicator,
+              currentReading: `${(fredRaw.value_numeric / 1000).toFixed(1)}M`,
+              rawCurrentValue: fredRaw.value_numeric,
+              currentValue: fredRaw.value_numeric,
+              period_date: fredRaw.period_date,
+              releaseDate: fredRaw.period_date,
+              metric: indicator.metric || fredRaw.metric,
+              sourceAuthority: 'fred_api',
+              fredApiOverride: true
+            };
+          }
         }
         return indicator;
       });
