@@ -236,24 +236,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('🔍 Fast Dashboard Route: GET /api/macroeconomic-indicators');
       const { macroeconomicService } = await import('./services/macroeconomic-indicators');
-      const { DuplicateSeriesDeduplicator } = await import('./services/duplicate-series-deduplicator');
+      const { TimeSeriesMerger } = await import('./services/time-series-merger');
       
       const startTime = Date.now();
       // Prioritize authentic FRED data over OpenAI fallback
       const rawData = await macroeconomicService.getAuthenticEconomicData();
       
-      // Apply deduplication filter to remove CCSA/ICSA delta-adjusted duplicates
+      // Apply time series merger to combine recent raw data with historical delta-adjusted data
       if (rawData?.indicators) {
         const originalCount = rawData.indicators.length;
-        rawData.indicators = DuplicateSeriesDeduplicator.deduplicateMetrics(rawData.indicators);
+        rawData.indicators = TimeSeriesMerger.mergeTimeSeriesData(rawData.indicators);
         const finalCount = rawData.indicators.length;
         
         if (originalCount !== finalCount) {
-          console.log(`🔧 Deduplication applied: ${originalCount} → ${finalCount} indicators`);
+          console.log(`🔧 Time series merger applied: ${originalCount} → ${finalCount} indicators`);
         }
         
-        // Generate validation report
-        DuplicateSeriesDeduplicator.generateValidationReport(rawData.indicators);
+        // Validate merger results
+        const validation = TimeSeriesMerger.validateMergerResults(rawData.indicators, rawData.indicators);
+        if (!validation.isValid) {
+          console.warn('⚠️ Time series merger validation issues:', validation.issues);
+        }
       }
       
       const responseTime = Date.now() - startTime;
@@ -274,7 +277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('🔍 Fast Dashboard Route: POST /api/macroeconomic-indicators/refresh');
       const { macroeconomicService } = await import('./services/macroeconomic-indicators');
-      const { DuplicateSeriesDeduplicator } = await import('./services/duplicate-series-deduplicator');
+      const { TimeSeriesMerger } = await import('./services/time-series-merger');
       
       // Clear cache and get fresh data
       const { cacheService } = await import('./services/cache-unified');
@@ -282,14 +285,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const rawData = await macroeconomicService.getAuthenticEconomicData();
       
-      // Apply deduplication filter to remove CCSA/ICSA delta-adjusted duplicates
+      // Apply time series merger to combine recent raw data with historical delta-adjusted data
       if (rawData?.indicators) {
         const originalCount = rawData.indicators.length;
-        rawData.indicators = DuplicateSeriesDeduplicator.deduplicateMetrics(rawData.indicators);
+        rawData.indicators = TimeSeriesMerger.mergeTimeSeriesData(rawData.indicators);
         const finalCount = rawData.indicators.length;
         
         if (originalCount !== finalCount) {
-          console.log(`🔧 Refresh deduplication applied: ${originalCount} → ${finalCount} indicators`);
+          console.log(`🔧 Refresh time series merger applied: ${originalCount} → ${finalCount} indicators`);
         }
       }
       
