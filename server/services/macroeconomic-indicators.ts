@@ -242,24 +242,40 @@ export class MacroeconomicService {
       
       logger.info(`📊 Calculated ${liveZScoreData.length} live z-scores from database`);
       
-      // DEDUPLICATION FIX: Filter out duplicates where we have fresh backfilled data
+      // MERGE CANDIDATE DETECTION: For TimeSeriesMerger, allow BOTH raw and delta-adjusted data
+      const timeSeriesMergeCandidates = new Set(['CCSA', 'ICSA']); // Claims data
+      
+      // MODIFIED: Keep duplicates for merge candidates, deduplicate others
       const deduplicatedZScoreData = liveZScoreData.filter(zData => {
         const isDuplicate = backfilledSeriesIds.has(zData.seriesId);
-        if (isDuplicate) {
+        const isMergeCandidate = timeSeriesMergeCandidates.has(zData.seriesId);
+        
+        if (isDuplicate && !isMergeCandidate) {
           logger.info(`🗑️ Filtering out duplicate from live z-score: ${zData.seriesId} - ${zData.metric} (using fresh backfilled data instead)`);
+          return false;
         }
-        return !isDuplicate;
+        
+        if (isDuplicate && isMergeCandidate) {
+          logger.info(`🔄 Keeping potential merge candidate: ${zData.seriesId} - ${zData.metric} (for TimeSeriesMerger)`);
+          return true;
+        }
+        
+        return true;
       });
       
-      logger.info(`📊 After deduplication: ${deduplicatedZScoreData.length} unique live z-scores + ${freshBackfilledData.length} fresh indicators`);
+      logger.info(`📊 After selective deduplication: ${deduplicatedZScoreData.length} indicators (merge candidates preserved) + ${freshBackfilledData.length} fresh indicators`);
       
-      // Combine both data sources without duplicates
+      // Combine both data sources with merge candidates preserved
       const combinedData = [...deduplicatedZScoreData, ...freshBackfilledData];
       logger.info(`📊 Total combined indicators: ${combinedData.length}`);
 
+      // FRED API SOURCE PRIORITY: Applied at route level in routes.ts
+      const fredPriorityData = combinedData; // Pass through - priority logic handled at route level
+      logger.info(`📊 Data ready for route-level FRED source priority: ${fredPriorityData.length} indicators`);
+
       // FILTER OUT EXTREME Z-SCORES (above 3 or below -3) as requested by user
       // Check BOTH main Z-score AND delta Z-score (trend) for extreme values
-      const filteredZScoreData = combinedData.filter((zData) => {
+      const filteredZScoreData = fredPriorityData.filter((zData) => {
         const mainZScore = zData.deltaAdjustedZScore;
         const deltaZScore = zData.deltaZScore;
         
@@ -280,7 +296,7 @@ export class MacroeconomicService {
         return isWithinAcceptableRange;
       });
       
-      logger.info(`📊 Filtered out ${combinedData.length - filteredZScoreData.length} indicators with extreme Z-scores (|z| > 3 OR |trend| > 3)`);
+      logger.info(`📊 Filtered out ${fredPriorityData.length - filteredZScoreData.length} indicators with extreme Z-scores (|z| > 3 OR |trend| > 3)`);
       logger.info(`📊 Remaining indicators after filtering: ${filteredZScoreData.length}`);
 
       const indicators = await Promise.all(filteredZScoreData.map(async (zData) => {
@@ -540,6 +556,8 @@ export class MacroeconomicService {
       return [];
     }
   }
+
+  // FRED API source priority is now handled at the route level in routes.ts
 }
 
 export const macroeconomicService = new MacroeconomicService();

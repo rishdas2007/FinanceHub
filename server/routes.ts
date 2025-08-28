@@ -231,6 +231,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Debug transformation endpoint
   app.use('/api', debugTransformationRoutes);
 
+  // FRED API SOURCE PRIORITY IMPLEMENTATION
+  async function applyFredApiSourcePriority(indicators: any[]): Promise<any[]> {
+    try {
+      const { neon } = await import('@neondatabase/serverless');
+      const sql = neon(process.env.DATABASE_URL!);
+      
+      // Get authentic FRED raw data for Claims indicators  
+      const rawFredData = await sql`
+        SELECT series_id, metric, period_date, value_numeric, unit, updated_at
+        FROM economic_indicators_current 
+        WHERE series_id IN ('CCSA', 'ICSA')
+          AND unit = 'Thousands'
+          AND updated_at >= NOW() - INTERVAL '48 hours'
+        ORDER BY series_id, period_date DESC
+      `;
+      
+      console.log(`🔍 [FRED PRIORITY] Found ${rawFredData.length} authentic FRED raw records`);
+      
+      if (rawFredData.length === 0) {
+        console.log('⚠️ [FRED PRIORITY] No recent FRED raw data found, using existing data');
+        return indicators;
+      }
+      
+      // Create map of latest FRED raw data
+      const fredRawMap = new Map();
+      rawFredData.forEach(row => {
+        if (!fredRawMap.has(row.series_id) || 
+            new Date(row.period_date) > new Date(fredRawMap.get(row.series_id).period_date)) {
+          fredRawMap.set(row.series_id, row);
+        }
+      });
+      
+      // Apply FRED API source priority: replace with authentic raw data
+      const updatedIndicators = indicators.map(indicator => {
+        if (fredRawMap.has(indicator.seriesId)) {
+          const fredRaw = fredRawMap.get(indicator.seriesId);
+          
+          console.log(`🎯 [FRED PRIORITY] Replacing ${indicator.seriesId}: ${indicator.currentReading} → ${fredRaw.value_numeric.toLocaleString()} ${fredRaw.unit}`);
+          
+          return {
+            ...indicator,
+            currentReading: fredRaw.value_numeric.toLocaleString(),
+            rawCurrentValue: fredRaw.value_numeric,
+            unit: fredRaw.unit,
+            period_date: fredRaw.period_date,
+            releaseDate: fredRaw.period_date, // Use period_date as release date for FRED
+            metric: fredRaw.metric, // Use original FRED metric name
+            sourceAuthority: 'fred_api',
+            fredApiOverride: true
+          };
+        }
+        return indicator;
+      });
+      
+      console.log(`✅ [FRED PRIORITY] Applied FRED source priority to ${fredRawMap.size} indicators`);
+      return updatedIndicators;
+      
+    } catch (error) {
+      console.error('❌ [FRED PRIORITY] Failed to apply FRED source priority:', error);
+      return indicators; // Return original data if failed
+    }
+  }
+
   // Macroeconomic Indicators API - prioritizes FRED data with OpenAI fallback
   app.get('/api/macroeconomic-indicators', async (req, res) => {
     try {
@@ -247,14 +310,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🔍 [MERGER DEBUG] Raw data exists:', !!rawData?.indicators);
       console.log('🔍 [MERGER DEBUG] Indicators count:', rawData?.indicators?.length || 0);
       
-      // Log Claims data specifically to check input
+      // Log Claims data specifically to check input AND source information
       const claimsData = rawData?.indicators?.filter(i => 
         i.metric?.toLowerCase().includes('claims') || i.seriesId?.match(/^(CCSA|ICSA)$/)
       ) || [];
       console.log('🔍 [MERGER DEBUG] Claims data found:', claimsData.length);
       claimsData.forEach(claim => {
         console.log(`🔍 [MERGER DEBUG] ${claim.seriesId}: ${claim.currentReading} (${claim.unit}) - ${claim.metric}`);
+        console.log(`🔍 [SOURCE DEBUG] ${claim.seriesId}: releaseDate=${claim.releaseDate}, period_date=${claim.period_date}`);
+        console.log(`🔍 [SOURCE DEBUG] ${claim.seriesId}: rawCurrentValue=${claim.rawCurrentValue}, source=${claim.source || 'unknown'}`);
+        console.log(`🔍 [SOURCE DEBUG] ${claim.seriesId}: type=${claim.type}, category=${claim.category}`);
       });
+      
+      // FRED API SOURCE PRIORITY FIX: Replace with authentic FRED raw data
+      if (rawData?.indicators) {
+        console.log('🎯 [FRED PRIORITY] Applying FRED API source authority priority...');
+        rawData.indicators = await applyFredApiSourcePriority(rawData.indicators);
+        console.log('✅ [FRED PRIORITY] FRED API source priority applied');
+      }
       
       // Apply time series merger to combine recent raw data with historical delta-adjusted data
       if (rawData?.indicators) {

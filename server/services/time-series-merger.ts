@@ -123,14 +123,40 @@ export class TimeSeriesMerger {
   
   /**
    * Merge raw and delta-adjusted indicators
+   * PRIORITIZES FRED API data by source authority before temporal comparison
    */
   private static mergeRawAndDeltaAdjusted(seriesId: string, raw: TimeSeriesDataPoint, delta: TimeSeriesDataPoint): TimeSeriesDataPoint {
     logger.info(`🔄 Merging raw and delta-adjusted data for ${seriesId}`);
     
+    // NEW: Check for FRED API source authority priority
+    const rawIsFredData = this.isFredApiData(raw);
+    const deltaIsFredData = this.isFredApiData(delta);
+    
     // Convert raw data to match delta-adjusted format
     const convertedRaw = this.convertRawToStandardFormat(seriesId, raw);
     
-    // Determine which data is more recent
+    // FRED API SOURCE PRIORITY: FRED data always wins over calculated data
+    if (rawIsFredData && !deltaIsFredData) {
+      logger.info(`🎯 Using FRED API raw data (source authority): ${seriesId} from FRED > calculated`);
+      return {
+        ...convertedRaw,
+        historicalSource: delta.metric,
+        mergedFrom: 'fred_raw_data_converted',
+        sourceAuthority: 'fred_api'
+      } as TimeSeriesDataPoint;
+    }
+    
+    if (deltaIsFredData && !rawIsFredData) {
+      logger.info(`🎯 Using FRED API delta-adjusted data (source authority): ${seriesId} from FRED > calculated`);
+      return {
+        ...delta,
+        recentDataAvailable: raw.currentReading,
+        mergedFrom: 'fred_delta_data_prioritized',
+        sourceAuthority: 'fred_api'
+      } as TimeSeriesDataPoint;
+    }
+    
+    // If both are FRED or both are calculated, fall back to temporal logic
     const rawDate = this.parseDate(raw.releaseDate || raw.period_date);
     const deltaDate = this.parseDate(delta.releaseDate || delta.period_date);
     
@@ -139,7 +165,6 @@ export class TimeSeriesMerger {
       logger.info(`📊 Using converted raw data (more recent): ${raw.releaseDate} > ${delta.releaseDate}`);
       return {
         ...convertedRaw,
-        // Preserve historical context in metadata
         historicalSource: delta.metric,
         mergedFrom: 'raw_data_appended_to_historical'
       } as TimeSeriesDataPoint;
@@ -147,7 +172,6 @@ export class TimeSeriesMerger {
       logger.info(`📊 Using delta-adjusted data: ${delta.releaseDate} >= ${raw.releaseDate}`);
       return {
         ...delta,
-        // Note that newer raw data exists
         recentDataAvailable: raw.currentReading,
         mergedFrom: 'delta_adjusted_with_raw_available'
       } as TimeSeriesDataPoint;
@@ -209,6 +233,31 @@ export class TimeSeriesMerger {
    */
   private static isDeltaAdjusted(metric: string): boolean {
     return metric.includes('(Δ-adjusted)') || metric.includes('Δ-adjusted');
+  }
+  
+  /**
+   * Helper method to detect FRED API data by source authority
+   * Checks for recent fetch timestamp indicating direct FRED API data
+   */
+  private static isFredApiData(indicator: TimeSeriesDataPoint): boolean {
+    // Method 1: Check if data has rawCurrentValue indicating FRED source
+    if (indicator.rawCurrentValue && typeof indicator.rawCurrentValue === 'number') {
+      return true;
+    }
+    
+    // Method 2: Check if current reading format suggests FRED raw data (thousands format)
+    const reading = String(indicator.currentReading || '');
+    if (reading.includes('000') || reading.includes(',')) {
+      return true;
+    }
+    
+    // Method 3: Check if period_date is different from releaseDate (FRED pattern)
+    if (indicator.period_date && indicator.releaseDate && 
+        indicator.period_date !== indicator.releaseDate) {
+      return true;
+    }
+    
+    return false;
   }
   
   /**
