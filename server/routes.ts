@@ -231,6 +231,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Debug transformation endpoint
   app.use('/api', debugTransformationRoutes);
 
+  // Smart number formatting based on unit type
+  function formatValueByUnit(value: any, unit: string, seriesId: string): string {
+    const numValue = parseFloat(value);
+    
+    // Normalize unit variations to standard types
+    const normalizedUnit = unit?.toLowerCase().trim();
+    
+    console.log(`🔢 [FORMATTING] ${seriesId}: Raw value=${numValue}, Unit="${unit}" (normalized: "${normalizedUnit}")`);
+    
+    // Unit-based formatting logic
+    if (normalizedUnit?.includes('percent') || normalizedUnit === '%') {
+      // Percentage values: display as-is with appropriate decimal places
+      const formatted = numValue < 10 ? numValue.toFixed(2) : numValue.toFixed(1);
+      console.log(`📊 [FORMATTING] ${seriesId}: Percentage formatting ${numValue} → "${formatted}"`);
+      return formatted;
+    } else if (normalizedUnit?.includes('thousands')) {
+      // Thousands: convert to millions if large, otherwise keep as-is
+      if (numValue >= 1000) {
+        const formatted = `${(numValue / 1000).toFixed(1)}M`;
+        console.log(`📊 [FORMATTING] ${seriesId}: Thousands→Millions formatting ${numValue} → "${formatted}"`);
+        return formatted;
+      } else {
+        const formatted = `${numValue.toFixed(0)}K`;
+        console.log(`📊 [FORMATTING] ${seriesId}: Thousands formatting ${numValue} → "${formatted}"`);
+        return formatted;
+      }
+    } else if (normalizedUnit?.includes('index')) {
+      // Index values: display with 1 decimal place
+      const formatted = numValue.toFixed(1);
+      console.log(`📊 [FORMATTING] ${seriesId}: Index formatting ${numValue} → "${formatted}"`);
+      return formatted;
+    } else if (normalizedUnit?.includes('millions') || normalizedUnit?.includes('billion')) {
+      // Already in millions/billions: display as-is
+      const formatted = numValue.toFixed(1);
+      console.log(`📊 [FORMATTING] ${seriesId}: Large unit formatting ${numValue} → "${formatted}"`);
+      return formatted;
+    } else {
+      // Default: intelligent formatting based on value range
+      if (numValue >= 1000000) {
+        const formatted = `${(numValue / 1000000).toFixed(1)}M`;
+        console.log(`📊 [FORMATTING] ${seriesId}: Auto-millions formatting ${numValue} → "${formatted}"`);
+        return formatted;
+      } else if (numValue >= 1000) {
+        const formatted = `${(numValue / 1000).toFixed(1)}K`;
+        console.log(`📊 [FORMATTING] ${seriesId}: Auto-thousands formatting ${numValue} → "${formatted}"`);
+        return formatted;
+      } else {
+        const formatted = numValue.toFixed(2);
+        console.log(`📊 [FORMATTING] ${seriesId}: Standard formatting ${numValue} → "${formatted}"`);
+        return formatted;
+      }
+    }
+  }
+
   // UNIVERSAL STATISTICAL VALIDATION SYSTEM
   async function applyUniversalStatisticalValidation(indicators: any[]): Promise<any[]> {
     try {
@@ -424,15 +478,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (stats) {
             console.log(`✨ [FRED PRIORITY] Applying calculated stats: priorReading=${stats.priorReading}, zScore=${stats.zScore.toFixed(2)}, deltaZScore=${stats.deltaZScore.toFixed(2)}`);
             
+            // Use smart unit-aware formatting
+            const smartCurrentReading = formatValueByUnit(fredRaw.value_numeric, fredRaw.unit, indicator.seriesId);
+            
             return {
               ...indicator, // Keep basic fields
               // Update with authentic FRED current data and calculated historical context
-              currentReading: `${(fredRaw.value_numeric / 1000).toFixed(1)}M`,
+              currentReading: smartCurrentReading,
               rawCurrentValue: fredRaw.value_numeric,
               currentValue: fredRaw.value_numeric,
               period_date: fredRaw.period_date,
               releaseDate: fredRaw.period_date,
               metric: indicator.metric || fredRaw.metric,
+              unit: fredRaw.unit, // Update unit from FRED source
               sourceAuthority: 'fred_api',
               fredApiOverride: true,
               // Apply calculated and validated historical context from FRED raw data
@@ -451,14 +509,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             };
           } else {
             console.log(`🔍 [FRED PRIORITY] No historical stats available, preserving existing context: priorReading=${indicator.priorReading}, zScore=${indicator.zScore}, deltaZScore=${indicator.deltaZScore}`);
+            
+            // Use smart unit-aware formatting
+            const smartCurrentReading = formatValueByUnit(fredRaw.value_numeric, fredRaw.unit, indicator.seriesId);
+            
             return {
               ...indicator,
-              currentReading: `${(fredRaw.value_numeric / 1000).toFixed(1)}M`,
+              currentReading: smartCurrentReading,
               rawCurrentValue: fredRaw.value_numeric,
               currentValue: fredRaw.value_numeric,
               period_date: fredRaw.period_date,
               releaseDate: fredRaw.period_date,
               metric: indicator.metric || fredRaw.metric,
+              unit: fredRaw.unit, // Update unit from FRED source
               sourceAuthority: 'fred_api',
               fredApiOverride: true
             };
@@ -544,6 +607,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!validation.isValid) {
           console.warn('⚠️ Time series merger validation issues:', validation.issues);
         }
+        
+        // Apply universal smart formatting to ALL indicators
+        console.log('🔢 [UNIVERSAL FORMATTING] Applying smart formatting to all indicators...');
+        rawData.indicators = rawData.indicators.map(indicator => {
+          if (indicator.rawCurrentValue && indicator.unit) {
+            const originalReading = indicator.currentReading;
+            const smartFormatted = formatValueByUnit(indicator.rawCurrentValue, indicator.unit, indicator.seriesId);
+            
+            // Only update if formatting actually changed the value
+            if (smartFormatted !== originalReading) {
+              console.log(`🔄 [UNIVERSAL FORMATTING] ${indicator.seriesId}: "${originalReading}" → "${smartFormatted}" (${indicator.unit})`);
+              return {
+                ...indicator,
+                currentReading: smartFormatted
+              };
+            }
+          }
+          return indicator;
+        });
+        console.log('✅ [UNIVERSAL FORMATTING] Smart formatting applied to all indicators');
       }
       
       const responseTime = Date.now() - startTime;
