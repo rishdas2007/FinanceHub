@@ -240,10 +240,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     console.log(`🔢 [FORMATTING] ${seriesId}: Raw value=${numValue}, Unit="${unit}" (normalized: "${normalizedUnit}")`);
     
-    // Unit-based formatting logic
+    // Unit-based formatting logic with proper unit suffixes
     if (normalizedUnit?.includes('percent') || normalizedUnit === '%') {
-      // Percentage values: display as-is with appropriate decimal places
-      const formatted = numValue < 10 ? numValue.toFixed(2) : numValue.toFixed(1);
+      // Percentage values: display with % suffix
+      const formatted = `${numValue < 10 ? numValue.toFixed(2) : numValue.toFixed(1)}%`;
       console.log(`📊 [FORMATTING] ${seriesId}: Percentage formatting ${numValue} → "${formatted}"`);
       return formatted;
     } else if (normalizedUnit?.includes('thousands')) {
@@ -258,15 +258,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return formatted;
       }
     } else if (normalizedUnit?.includes('index')) {
-      // Index values: display with 1 decimal place
+      // Index values: display with 1 decimal place (no suffix for clarity)
       const formatted = numValue.toFixed(1);
       console.log(`📊 [FORMATTING] ${seriesId}: Index formatting ${numValue} → "${formatted}"`);
       return formatted;
     } else if (normalizedUnit?.includes('millions') || normalizedUnit?.includes('billion')) {
-      // Already in millions/billions: display as-is
-      const formatted = numValue.toFixed(1);
+      // Already in millions/billions: display with M suffix
+      const formatted = `${numValue.toFixed(1)}M`;
       console.log(`📊 [FORMATTING] ${seriesId}: Large unit formatting ${numValue} → "${formatted}"`);
       return formatted;
+    } else if (normalizedUnit?.includes('dollars')) {
+      // Dollar amounts: add $ prefix and appropriate scale
+      if (numValue >= 1000) {
+        const formatted = `$${(numValue / 1000).toFixed(1)}B`;
+        console.log(`📊 [FORMATTING] ${seriesId}: Dollar billions formatting ${numValue} → "${formatted}"`);
+        return formatted;
+      } else {
+        const formatted = `$${numValue.toFixed(1)}M`;
+        console.log(`📊 [FORMATTING] ${seriesId}: Dollar millions formatting ${numValue} → "${formatted}"`);
+        return formatted;
+      }
     } else {
       // Default: intelligent formatting based on value range
       if (numValue >= 1000000) {
@@ -610,22 +621,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Apply universal smart formatting to ALL indicators
         console.log('🔢 [UNIVERSAL FORMATTING] Applying smart formatting to all indicators...');
+        
+        // DIAGNOSTIC: Log sample indicators before formatting
+        const diagnosticSample = rawData.indicators.slice(0, 5);
+        console.log('🔍 [DIAGNOSTIC] Sample indicators BEFORE formatting:');
+        diagnosticSample.forEach(ind => {
+          console.log(`🔍 [DIAGNOSTIC] ${ind.seriesId}: currentReading="${ind.currentReading}", priorReading="${ind.priorReading}", unit="${ind.unit}", rawCurrentValue="${ind.rawCurrentValue}"`);
+        });
+        
         rawData.indicators = rawData.indicators.map(indicator => {
           if (indicator.rawCurrentValue && indicator.unit) {
             const originalReading = indicator.currentReading;
             const smartFormatted = formatValueByUnit(indicator.rawCurrentValue, indicator.unit, indicator.seriesId);
             
-            // Only update if formatting actually changed the value
+            // Format prior reading if available
+            let formattedPriorReading = indicator.priorReading;
+            if (indicator.rawPriorValue && indicator.unit) {
+              formattedPriorReading = formatValueByUnit(indicator.rawPriorValue, indicator.unit, indicator.seriesId);
+            }
+            
+            // Always apply smart formatting (even if it looks the same)
             if (smartFormatted !== originalReading) {
               console.log(`🔄 [UNIVERSAL FORMATTING] ${indicator.seriesId}: "${originalReading}" → "${smartFormatted}" (${indicator.unit})`);
-              return {
-                ...indicator,
-                currentReading: smartFormatted
-              };
             }
+            
+            return {
+              ...indicator,
+              currentReading: smartFormatted,  // Always use the smart formatted value
+              priorReading: formattedPriorReading
+            };
           }
           return indicator;
         });
+        
+        // DIAGNOSTIC: Log sample indicators after formatting  
+        const diagnosticSampleAfter = rawData.indicators.slice(0, 5);
+        console.log('🔍 [DIAGNOSTIC] Sample indicators AFTER formatting:');
+        diagnosticSampleAfter.forEach(ind => {
+          console.log(`🔍 [DIAGNOSTIC] ${ind.seriesId}: currentReading="${ind.currentReading}", priorReading="${ind.priorReading}", unit="${ind.unit}"`);
+        });
+        
         console.log('✅ [UNIVERSAL FORMATTING] Smart formatting applied to all indicators');
       }
       
