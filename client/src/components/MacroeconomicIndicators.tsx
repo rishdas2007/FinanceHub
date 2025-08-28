@@ -940,7 +940,17 @@ const MacroeconomicIndicators: React.FC = () => {
                       {MacroFormatUtils.formatIndicatorValue(indicator.currentReading, indicator.metric)}
                     </td>
                     <td className="text-right py-3 px-2">
-                      {MacroFormatUtils.formatZScore(indicator.zScore ?? null)}
+                      <div className="flex items-center justify-end gap-1">
+                        {MacroFormatUtils.formatZScore(indicator.zScore ?? null)}
+                        {indicator.fallbackApplied && (
+                          <span 
+                            className="text-yellow-400 text-xs cursor-help" 
+                            title={`Statistical validation applied: ${indicator.dataQualityWarning} (Sample size: ${indicator.sampleSize || 'N/A'})`}
+                          >
+                            ⚠️
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="text-right py-3 px-2">
                       {MacroFormatUtils.formatZScore(indicator.deltaZScore ?? null)}

@@ -322,12 +322,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const finalZScore = sampleZScore;
           const deltaZScore = sampleStd > 0 ? ((current - prior) / sampleStd) : 0;
           
-          // Extreme z-score warning
-          if (Math.abs(finalZScore) > 10) {
-            console.log(`⚠️ [Z-SCORE WARNING] ${seriesId}: Extreme Z-Score detected (${finalZScore.toFixed(2)}). Possible causes:`);
-            console.log(`   - Insufficient sample size (${values.length} vs recommended 30+)`);
-            console.log(`   - High volatility (CV: ${coefficientOfVariation.toFixed(1)}%)`);
-            console.log(`   - Outlier or data quality issue`);
+          // Statistical validation and fallback logic
+          let validatedZScore = finalZScore;
+          let validatedDeltaZScore = deltaZScore;
+          let validationWarning = null;
+          
+          // Check for insufficient sample size (weekly data needs minimum 20-30 points)
+          if (values.length < 20) {
+            validationWarning = `INSUFFICIENT_SAMPLE_SIZE`;
+            // Use conservative fallback: normalize based on typical claims volatility
+            const typicalClaimsStd = seriesId === 'CCSA' ? 50000 : 15000; // Historical volatility estimates
+            validatedZScore = (current - mean) / typicalClaimsStd;
+            validatedDeltaZScore = (current - prior) / typicalClaimsStd;
+            console.log(`⚠️ [Z-SCORE VALIDATION] ${seriesId}: Using fallback calculation due to insufficient sample (${values.length} < 20)`);
+            console.log(`   Original Z-Score: ${finalZScore.toFixed(2)} → Fallback Z-Score: ${validatedZScore.toFixed(2)}`);
+          }
+          
+          // Check for extreme z-scores (absolute value > 5 is unusual for economic data)
+          else if (Math.abs(finalZScore) > 5) {
+            validationWarning = `EXTREME_Z_SCORE`;
+            // Cap extreme z-scores to prevent display issues
+            const maxZScore = 3;
+            validatedZScore = Math.sign(finalZScore) * Math.min(Math.abs(finalZScore), maxZScore);
+            validatedDeltaZScore = Math.sign(deltaZScore) * Math.min(Math.abs(deltaZScore), maxZScore);
+            console.log(`⚠️ [Z-SCORE VALIDATION] ${seriesId}: Extreme Z-Score capped for display`);
+            console.log(`   Original: ${finalZScore.toFixed(2)} → Capped: ${validatedZScore.toFixed(2)}`);
+            console.log(`   Possible causes: High volatility (CV: ${coefficientOfVariation.toFixed(1)}%), outlier data, or regime change`);
           }
           
           historicalStats.set(seriesId, {
@@ -335,15 +355,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             prior,
             mean,
             std: sampleStd,
-            zScore: finalZScore,
+            zScore: validatedZScore,
             priorReading: `${(prior / 1000).toFixed(1)}M`,
-            deltaZScore,
+            deltaZScore: validatedDeltaZScore,
             sampleSize: values.length,
             coefficientOfVariation,
-            dataQualityWarning: Math.abs(finalZScore) > 10 || values.length < 20
+            dataQualityWarning: validationWarning,
+            originalZScore: finalZScore, // Keep original for reference
+            fallbackApplied: validationWarning !== null
           });
           
-          console.log(`📊 [FRED STATS] ${seriesId}: Current=${current.toLocaleString()}, Prior=${prior.toLocaleString()}, Z-Score=${finalZScore.toFixed(2)} (${values.length} samples)`);
+          console.log(`📊 [FRED STATS] ${seriesId}: Current=${current.toLocaleString()}, Prior=${prior.toLocaleString()}, Final Z-Score=${validatedZScore.toFixed(2)} (${values.length} samples)`);
+          if (validationWarning) {
+            console.log(`🔧 [VALIDATION] ${seriesId}: Applied ${validationWarning} correction`);
+          }
         } else {
           console.log(`⚠️ [Z-SCORE WARNING] ${seriesId}: Insufficient data points (${values.length}) for reliable z-score calculation`);
         }
@@ -372,14 +397,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
               metric: indicator.metric || fredRaw.metric,
               sourceAuthority: 'fred_api',
               fredApiOverride: true,
-              // Apply calculated historical context from FRED raw data
+              // Apply calculated and validated historical context from FRED raw data
               priorReading: stats.priorReading,
               historicalMean: stats.mean,
               historicalStd: stats.std,
               zScore: stats.zScore,
               deltaZScore: stats.deltaZScore,
               varianceFromMean: fredRaw.value_numeric - stats.mean,
-              varianceFromPrior: fredRaw.value_numeric - stats.prior
+              varianceFromPrior: fredRaw.value_numeric - stats.prior,
+              // Statistical validation metadata
+              sampleSize: stats.sampleSize,
+              dataQualityWarning: stats.dataQualityWarning,
+              fallbackApplied: stats.fallbackApplied,
+              originalZScore: stats.originalZScore
             };
           } else {
             console.log(`🔍 [FRED PRIORITY] No historical stats available, preserving existing context: priorReading=${indicator.priorReading}, zScore=${indicator.zScore}, deltaZScore=${indicator.deltaZScore}`);
