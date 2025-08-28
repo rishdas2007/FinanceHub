@@ -1049,6 +1049,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Cache management endpoints removed (file deleted)
 
+  // ETF Rate Limiting Test Endpoint
+  app.get('/api/test-etf-rate-limit', async (req, res) => {
+    try {
+      console.log('🔍 [ETF RATE LIMIT TEST] Manual test for intermittent failures');
+      
+      // Simulate multiple rapid requests to potentially trigger rate limiting
+      const requests = [];
+      const requestCount = 5;
+      
+      for (let i = 0; i < requestCount; i++) {
+        requests.push(
+          fetch('http://localhost:5000/api/etf/robust')
+            .then(res => res.json())
+            .catch(err => ({ error: err.message, requestIndex: i }))
+        );
+      }
+      
+      const results = await Promise.all(requests);
+      
+      const summary = {
+        totalRequests: requestCount,
+        successfulRequests: results.filter(r => r.success && r.data?.length > 0).length,
+        failedRequests: results.filter(r => !r.success || r.data?.length === 0).length,
+        errorRequests: results.filter(r => r.error).length,
+        results: results.map((r, i) => ({
+          index: i,
+          success: r.success,
+          dataLength: r.data?.length || 0,
+          source: r.source,
+          error: r.error || null
+        }))
+      };
+      
+      console.log('🔍 [ETF RATE LIMIT TEST] Results:', summary);
+      
+      res.json({
+        success: true,
+        message: 'ETF rate limiting test completed',
+        summary,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('❌ [ETF RATE LIMIT TEST] Test failed:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // FRED Scheduling Diagnostic Test Endpoint
   app.get('/api/test-fred-scheduler', async (req, res) => {
     try {

@@ -91,12 +91,27 @@ export function ETFTechnicalMetricsTable() {
   const metrics: ETFTechnicalMetric[] = Array.isArray(rawData) ? rawData : ((rawData as ETFMetricsResponse)?.data || []);
   const lastUpdated = (rawData as ETFMetricsResponse)?.timestamp || new Date().toISOString();
   
-  // Debug logging to understand the data structure
-  console.log('ETF Raw Data:', rawData);
-  console.log('ETF Metrics Length:', metrics?.length);
-  console.log('First ETF Sample:', metrics?.[0]);
-  console.log('Is Loading:', isLoading);
-  console.log('Error:', error);
+  // Enhanced diagnostic logging for production debugging
+  console.log('🔍 [ETF DIAGNOSTIC] Raw Data:', rawData);
+  console.log('🔍 [ETF DIAGNOSTIC] Metrics Length:', metrics?.length);
+  console.log('🔍 [ETF DIAGNOSTIC] First ETF Sample:', metrics?.[0]);
+  console.log('🔍 [ETF DIAGNOSTIC] Is Loading:', isLoading);
+  console.log('🔍 [ETF DIAGNOSTIC] Error:', error);
+  console.log('🔍 [ETF DIAGNOSTIC] Data Type:', typeof rawData);
+  console.log('🔍 [ETF DIAGNOSTIC] Is Array:', Array.isArray(rawData));
+  console.log('🔍 [ETF DIAGNOSTIC] Response Structure:', rawData ? Object.keys(rawData) : 'null/undefined');
+  
+  // Log potential API failures
+  if (!isLoading && !error && (!metrics || metrics.length === 0)) {
+    console.error('🚨 [ETF DIAGNOSTIC] Silent Failure Detected:', {
+      rawData,
+      rawDataType: typeof rawData,
+      isArray: Array.isArray(rawData),
+      hasData: Boolean(rawData),
+      metricsExtracted: metrics,
+      timestamp: new Date().toISOString()
+    });
+  }
 
   if (isLoading) {
     return (
@@ -167,8 +182,14 @@ export function ETFTechnicalMetricsTable() {
         <CardContent>
           <div className="text-center p-8 text-gray-400">
             <p>No ETF technical metrics available</p>
-            <p className="text-xs mt-2">Raw data: {JSON.stringify(rawData)}</p>
+            <p className="text-xs mt-2 text-red-400">
+              🚨 DIAGNOSTIC: Raw data type: {typeof rawData} | Is array: {Array.isArray(rawData) ? 'yes' : 'no'}
+            </p>
+            <p className="text-xs mt-1">Raw data: {JSON.stringify(rawData)?.substring(0, 200)}...</p>
             <p className="text-xs mt-1">Metrics length: {metrics?.length || 'undefined'}</p>
+            <p className="text-xs mt-1 text-yellow-400">
+              This suggests API rate limiting or server error
+            </p>
             <button 
               onClick={() => refetch()}
               className="mt-3 text-xs px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"

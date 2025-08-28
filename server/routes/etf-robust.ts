@@ -12,29 +12,67 @@ router.get('/robust', async (req, res) => {
   const startTime = Date.now();
   
   try {
-    console.log('🔍 Robust ETF endpoint called');
+    console.log('🔍 [ETF DIAGNOSTIC] Robust ETF endpoint called');
+    console.log('🔍 [ETF DIAGNOSTIC] Request headers:', req.headers['user-agent']?.substring(0, 50));
+    console.log('🔍 [ETF DIAGNOSTIC] Request timestamp:', new Date().toISOString());
     
     // Try live data first, fallback to cache if API issues
-    console.log('🔍 Trying live data fetch first...');
+    console.log('🔍 [ETF DIAGNOSTIC] Trying live data fetch first...');
     let result;
     
     try {
+      const liveDataStartTime = Date.now();
       result = await etfLiveDataService.getLiveETFMetrics();
+      const liveDataDuration = Date.now() - liveDataStartTime;
+      
+      console.log('✅ [ETF DIAGNOSTIC] Live API call completed:', {
+        duration: `${liveDataDuration}ms`,
+        dataLength: result.data.length,
+        hasSuccess: result.success,
+        source: result.source
+      });
       
       // Check if we got real data (not all zeros)
       const hasRealData = result.data.some(etf => etf.price > 0);
       
       if (!hasRealData) {
-        console.log('⚠️ Live API returned zeros - falling back to cached data');
+        console.error('🚨 [ETF DIAGNOSTIC] Live API returned zeros - data corruption detected:', {
+          responseData: result,
+          firstETF: result.data[0],
+          allPricesZero: result.data.every(etf => etf.price === 0)
+        });
         result = await etfCacheServiceRobust.getETFMetrics();
       }
     } catch (error) {
-      console.log('❌ Live API failed - falling back to cached data:', error);
+      console.error('❌ [ETF DIAGNOSTIC] Live API failed - capturing error details:', {
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        stack: error instanceof Error ? error.stack : 'No stack trace',
+        timestamp: new Date().toISOString()
+      });
+      
+      // Check if this is a rate limiting error
+      if (error instanceof Error && error.message.includes('429')) {
+        console.error('🚨 [ETF DIAGNOSTIC] RATE LIMITING DETECTED - Twelve Data API hit limits');
+      } else if (error instanceof Error && error.message.includes('500')) {
+        console.error('🚨 [ETF DIAGNOSTIC] SERVER ERROR DETECTED - Internal server error from API');
+      }
+      
       result = await etfCacheServiceRobust.getETFMetrics();
     }
     
     const responseTime = Date.now() - startTime;
-    console.log(`📊 Robust ETF response: ${result.data.length} ETFs, ${responseTime}ms, source: ${result.source}`);
+    console.log(`📊 [ETF DIAGNOSTIC] Final response: ${result.data.length} ETFs, ${responseTime}ms, source: ${result.source}`);
+    
+    // Additional diagnostics for production debugging
+    if (result.data.length === 0) {
+      console.error('🚨 [ETF DIAGNOSTIC] ZERO DATA RESPONSE - This will cause frontend error:', {
+        resultSuccess: result.success,
+        resultSource: result.source,
+        resultError: result.error,
+        responseTime: `${responseTime}ms`
+      });
+    }
     
     // Add performance metadata
     const response = {
@@ -49,10 +87,18 @@ router.get('/robust', async (req, res) => {
     res.json(response);
     
   } catch (error) {
-    console.error('❌ Robust ETF endpoint error:', error);
+    console.error('❌ [ETF DIAGNOSTIC] Robust ETF endpoint critical error:', {
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      errorType: error instanceof Error ? error.constructor.name : typeof error,
+      stack: error instanceof Error ? error.stack : 'No stack trace',
+      responseTime: `${Date.now() - startTime}ms`,
+      timestamp: new Date().toISOString()
+    });
     
     // Emergency fallback response
     const responseTime = Date.now() - startTime;
+    
+    console.error('🚨 [ETF DIAGNOSTIC] RETURNING EMPTY DATA RESPONSE - This will trigger frontend error state');
     
     res.status(200).json({
       success: false,
