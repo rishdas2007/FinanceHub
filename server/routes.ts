@@ -231,27 +231,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Debug transformation endpoint
   app.use('/api', debugTransformationRoutes);
 
-  // FRED API SOURCE PRIORITY IMPLEMENTATION
-  async function applyFredApiSourcePriority(indicators: any[]): Promise<any[]> {
+  // UNIVERSAL STATISTICAL VALIDATION SYSTEM
+  async function applyUniversalStatisticalValidation(indicators: any[]): Promise<any[]> {
     try {
       const { neon } = await import('@neondatabase/serverless');
       const sql = neon(process.env.DATABASE_URL!);
       
-      // Get authentic FRED raw data for Claims indicators with historical context
+      // Extract all unique series IDs from indicators for universal validation
+      const allSeriesIds = indicators
+        .map(ind => ind.seriesId)
+        .filter(Boolean)
+        .filter((value, index, self) => self.indexOf(value) === index); // Unique values
+      
+      console.log(`🔍 [UNIVERSAL VALIDATION] Starting statistical validation for ${allSeriesIds.length} series:`, allSeriesIds.slice(0, 10));
+      
+      // Get authentic FRED raw data for ALL indicators with historical context
       const rawFredData = await sql`
         SELECT series_id, metric, period_date, value_numeric, unit, updated_at
         FROM economic_indicators_current 
-        WHERE series_id IN ('CCSA', 'ICSA')
-          AND unit = 'Thousands'
+        WHERE series_id = ANY(${allSeriesIds})
         ORDER BY series_id, period_date DESC
       `;
 
-      // Get comprehensive historical data for statistical calculations (2+ years for weekly data)
+      // Get comprehensive historical data for statistical calculations
       const historicalFredData = await sql`
-        SELECT series_id, value_numeric, period_date
+        SELECT series_id, value_numeric, period_date, unit
         FROM economic_indicators_current 
-        WHERE series_id IN ('CCSA', 'ICSA')
-          AND unit = 'Thousands'
+        WHERE series_id = ANY(${allSeriesIds})
           AND period_date >= NOW() - INTERVAL '2 years'
         ORDER BY series_id, period_date DESC
       `;
