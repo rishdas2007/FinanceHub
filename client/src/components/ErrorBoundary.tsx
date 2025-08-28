@@ -1,6 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface Props {
   children: ReactNode;
@@ -11,130 +11,81 @@ interface Props {
 interface State {
   hasError: boolean;
   error?: Error;
-  errorId?: string;
+  errorInfo?: ErrorInfo;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  private retryCount = 0;
-  private maxRetries = 3;
-
-  public state: State = {
-    hasError: false
-  };
-
-  public static getDerivedStateFromError(error: Error): State {
-    return {
-      hasError: true,
-      error,
-      errorId: `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    };
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log error to monitoring service
-    this.logErrorToService(error, errorInfo);
-    
-    // Call optional error handler
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('[MACRO DEBUG] React Error Boundary:', {
+      error: error.message,
+      componentStack: errorInfo.componentStack,
+      timestamp: new Date().toISOString(),
+      stack: error.stack
+    });
+
+    // Call custom error handler if provided
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }
+
+    this.setState({ error, errorInfo });
   }
 
-  private logErrorToService(error: Error, errorInfo: ErrorInfo) {
-    // Enhanced error logging with context
-    const errorDetails = {
-      errorId: this.state.errorId,
-      message: error.message,
-      stack: error.stack,
-      componentStack: errorInfo.componentStack,
-      timestamp: new Date().toISOString(),
-      url: window.location.href,
-      userAgent: navigator.userAgent,
-      retryCount: this.retryCount
-    };
-
-    // Log to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('ErrorBoundary caught an error:', errorDetails);
-    }
-
-    // Send to monitoring service (implement based on your monitoring solution)
-    this.sendToMonitoring(errorDetails);
-  }
-
-  private async sendToMonitoring(errorDetails: any) {
-    try {
-      // Example: Send to your monitoring endpoint
-      await fetch('/api/monitoring/errors', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(errorDetails),
-      });
-    } catch (error) {
-      // Fail silently to avoid infinite error loops
-      console.warn('Failed to send error to monitoring service:', error);
-    }
-  }
-
-  private handleRetry = () => {
-    if (this.retryCount < this.maxRetries) {
-      this.retryCount++;
-      this.setState({ hasError: false, error: undefined });
-    } else {
-      // Reload the page as last resort
-      window.location.reload();
-    }
+  handleReset = () => {
+    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
   };
 
-  public render() {
+  render() {
     if (this.state.hasError) {
-      // Custom fallback UI
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
-      // Default error UI
       return (
-        <Card className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800 max-w-2xl mx-auto mt-8">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-red-700 dark:text-red-300">
-              <AlertTriangle className="h-5 w-5" />
-              <span>Something went wrong</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-red-600 dark:text-red-400 text-sm">
-              {process.env.NODE_ENV === 'development' 
-                ? this.state.error?.message 
-                : 'An unexpected error occurred. Our team has been notified.'}
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={this.handleRetry}
-                className="flex items-center space-x-2 px-4 py-2 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-md hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
-                disabled={this.retryCount >= this.maxRetries}
-              >
-                <RefreshCw className="h-4 w-4" />
-                <span>
-                  {this.retryCount >= this.maxRetries ? 'Reload Page' : `Try Again (${this.retryCount}/${this.maxRetries})`}
-                </span>
-              </button>
-              
-              {process.env.NODE_ENV === 'development' && (
-                <details className="text-xs text-gray-600 dark:text-gray-400">
-                  <summary className="cursor-pointer">Error Details</summary>
-                  <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded overflow-x-auto">
-                    {this.state.error?.stack}
-                  </pre>
-                </details>
-              )}
-            </div>
-
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              Error ID: {this.state.errorId}
+        <Card className="border-red-500/20 bg-red-500/5">
+          <CardContent className="p-6">
+            <div className="flex items-start space-x-3">
+              <AlertCircle className="h-6 w-6 text-red-400 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-medium text-red-400 mb-2">
+                  Something went wrong
+                </h3>
+                <p className="text-sm text-gray-300 mb-4">
+                  The economic indicators table encountered an error. This has been logged for investigation.
+                </p>
+                {process.env.NODE_ENV === 'development' && this.state.error && (
+                  <details className="mb-4">
+                    <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300">
+                      Error Details (Development)
+                    </summary>
+                    <pre className="text-xs text-red-300 mt-2 p-3 bg-red-950/20 rounded border border-red-500/20 overflow-auto">
+                      {this.state.error.message}
+                      {this.state.error.stack && (
+                        <>
+                          {'\n\nStack Trace:\n'}
+                          {this.state.error.stack}
+                        </>
+                      )}
+                    </pre>
+                  </details>
+                )}
+                <button
+                  onClick={this.handleReset}
+                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-md hover:bg-blue-500/20 transition-colors"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Try Again
+                </button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -143,42 +94,4 @@ export class ErrorBoundary extends Component<Props, State> {
 
     return this.props.children;
   }
-}
-
-// Specific error boundaries for different sections
-export function APIErrorBoundary({ children }: { children: ReactNode }) {
-  return (
-    <ErrorBoundary
-      fallback={
-        <Card className="bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800">
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2 text-yellow-700 dark:text-yellow-300">
-              <AlertTriangle className="h-5 w-5" />
-              <span>Unable to load data. Please check your connection and try again.</span>
-            </div>
-          </CardContent>
-        </Card>
-      }
-    >
-      {children}
-    </ErrorBoundary>
-  );
-}
-
-export function ChartErrorBoundary({ children }: { children: ReactNode }) {
-  return (
-    <ErrorBoundary
-      fallback={
-        <Card className="bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-          <CardContent className="p-6 text-center">
-            <div className="text-gray-500 dark:text-gray-400">
-              Chart temporarily unavailable
-            </div>
-          </CardContent>
-        </Card>
-      }
-    >
-      {children}
-    </ErrorBoundary>
-  );
 }

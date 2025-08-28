@@ -5,6 +5,7 @@ import { BatchSparklineCell } from './BatchSparklineCell';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, AlertCircle, RefreshCw, Search, Filter, ChevronUp, ChevronDown, BarChart3 } from 'lucide-react';
 import { EconomicChartModal } from './EconomicChartModal';
+import { ErrorBoundary } from './ErrorBoundary';
 // Removed SparklineCell import - using BatchSparklineCell for performance
 
 
@@ -259,12 +260,68 @@ const MacroeconomicIndicators: React.FC = () => {
 
   const queryClient = useQueryClient();
 
+  // Enhanced logging for production debugging
+  React.useEffect(() => {
+    console.log('[MACRO DEBUG] Component mounted/updated', {
+      timestamp: new Date().toISOString(),
+      memoryUsage: (performance as any).memory ? {
+        used: Math.round((performance as any).memory.usedJSHeapSize / 1024 / 1024) + 'MB',
+        total: Math.round((performance as any).memory.totalJSHeapSize / 1024 / 1024) + 'MB'
+      } : 'not available'
+    });
+
+    // Memory leak detection - cleanup interval on unmount
+    const interval = setInterval(() => {
+      console.log('[MACRO DEBUG] Component still alive:', {
+        timestamp: new Date().toISOString(),
+        memoryUsage: (performance as any).memory ? {
+          used: Math.round((performance as any).memory.usedJSHeapSize / 1024 / 1024) + 'MB',
+          total: Math.round((performance as any).memory.totalJSHeapSize / 1024 / 1024) + 'MB'
+        } : 'not available'
+      });
+    }, 30000);
+    
+    return () => {
+      console.log('[MACRO DEBUG] Component unmounting');
+      clearInterval(interval);
+    };
+  }, []);
+
   const { data: macroData, isLoading, error, refetch } = useQuery<MacroData>({
     queryKey: ['macroeconomic-indicators'],
     queryFn: async () => {
       const response = await fetch('/api/macroeconomic-indicators');
       if (!response.ok) throw new Error('Failed to fetch macro data');
       return response.json();
+    },
+    onSuccess: (data) => {
+      console.log('[MACRO DEBUG] API Response:', {
+        indicatorCount: data.indicators?.length,
+        duplicateCheck: data.indicators?.reduce((acc: Record<string, number>, curr) => {
+          const key = curr.metric + curr.period_date;
+          acc[key] = (acc[key] || 0) + 1;
+          return acc;
+        }, {}),
+        firstFiveIndicators: data.indicators?.slice(0, 5),
+        timestamp: new Date().toISOString()
+      });
+      
+      // Check for duplicate entries that might cause table issues
+      const duplicates = Object.entries(data.indicators?.reduce((acc: Record<string, number>, curr) => {
+        const key = curr.metric + curr.period_date;
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {}) || {}).filter(([, count]) => count > 1);
+      
+      if (duplicates.length > 0) {
+        console.warn('[MACRO DEBUG] DUPLICATE ENTRIES DETECTED:', duplicates);
+      }
+    },
+    onError: (error) => {
+      console.error('[MACRO DEBUG] API Error:', {
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
     },
     refetchInterval: false, // Disable automatic refetching
     staleTime: 5 * 60 * 1000, // 5 minutes - standardized
@@ -355,9 +412,52 @@ const MacroeconomicIndicators: React.FC = () => {
     }
   };
 
+  // Enhanced data validation to prevent crashes
+  const validateIndicatorData = (indicators: MacroIndicator[] | undefined): MacroIndicator[] => {
+    if (!indicators || !Array.isArray(indicators)) {
+      console.warn('[MACRO DEBUG] Invalid indicators data received:', indicators);
+      return [];
+    }
+    
+    return indicators.filter((indicator, index) => {
+      // Validate required fields
+      if (!indicator.metric || typeof indicator.metric !== 'string') {
+        console.warn(`[MACRO DEBUG] Invalid indicator at index ${index}: missing or invalid metric`, indicator);
+        return false;
+      }
+      
+      // Ensure all required fields have safe values
+      if (!indicator.type || !indicator.category) {
+        console.warn(`[MACRO DEBUG] Invalid indicator at index ${index}: missing type or category`, indicator);
+        return false;
+      }
+      
+      return true;
+    });
+  };
+
   // Enhanced filter and sort indicators with new filtering options
   const filteredAndSortedIndicators = (() => {
-    let filtered = macroData?.indicators.filter(indicator => {
+    console.log('[MACRO DEBUG] Filtering indicators...', {
+      hasData: !!macroData,
+      hasIndicators: !!macroData?.indicators,
+      indicatorCount: macroData?.indicators?.length
+    });
+    
+    if (!macroData || !macroData.indicators) {
+      console.log('[MACRO DEBUG] No data available for filtering');
+      return [];
+    }
+    
+    // Validate and clean data first
+    const validatedIndicators = validateIndicatorData(macroData.indicators);
+    console.log('[MACRO DEBUG] Validated indicators:', {
+      original: macroData.indicators.length,
+      validated: validatedIndicators.length,
+      dropped: macroData.indicators.length - validatedIndicators.length
+    });
+    
+    let filtered = validatedIndicators.filter(indicator => {
       const matchesCategory = activeCategory === 'All' || indicator.category === activeCategory;
       const matchesSearch = indicator.metric.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType = typeFilter === 'all' || indicator.type === typeFilter;
@@ -694,6 +794,20 @@ const MacroeconomicIndicators: React.FC = () => {
         </CardHeader>
         <CardContent className="max-h-[600px] overflow-y-auto">
           <div className="overflow-x-auto">
+            <ErrorBoundary 
+              onError={(error, errorInfo) => {
+                console.error('[MACRO TABLE ERROR]', {
+                  error: error.message,
+                  stack: error.stack,
+                  componentStack: errorInfo.componentStack,
+                  timestamp: new Date().toISOString(),
+                  data: { 
+                    indicatorCount: macroData?.indicators?.length,
+                    filteredCount: filteredAndSortedIndicators?.length
+                  }
+                });
+              }}
+            >
             <table className="w-full table-auto">
               <thead className="sticky top-0 z-10">
                 <tr className="border-b border-financial-border bg-financial-card">
@@ -841,6 +955,7 @@ const MacroeconomicIndicators: React.FC = () => {
                 ))}
               </tbody>
             </table>
+            </ErrorBoundary>
             {filteredAndSortedIndicators.length === 0 && (
               <div className="text-center py-8 text-gray-400">
                 No indicators match your current filters
