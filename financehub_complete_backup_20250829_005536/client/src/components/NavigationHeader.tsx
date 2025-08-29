@@ -1,0 +1,158 @@
+import { useState } from "react";
+import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { 
+  BarChart3, 
+  TrendingUp, 
+  Activity, 
+  Bell, 
+  Settings, 
+  Menu, 
+  X 
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { MarketStatusIndicator, MarketStatusIndicatorCompact } from "./MarketStatusIndicator";
+
+const navigationItems = [
+  {
+    name: "Dashboard",
+    href: "/",
+    icon: BarChart3,
+    description: "Overview and key metrics"
+  },
+  {
+    name: "ETFs",
+    href: "/etfs",
+    icon: TrendingUp,
+    description: "Deep technical analysis"
+  },
+  {
+    name: "Economy",
+    href: "/economy",
+    icon: Activity,
+    description: "Macro indicators focus"
+  },
+  {
+    name: "Alerts",
+    href: "/alerts",
+    icon: Bell,
+    description: "Notification management"
+  },
+  {
+    name: "Settings",
+    href: "/settings",
+    icon: Settings,
+    description: "User preferences"
+  }
+];
+
+export function NavigationHeader() {
+  const [location] = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  return (
+    <>
+      <nav className="bg-financial-gray border-b border-financial-border sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo and Brand */}
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="h-8 w-8 text-gain-green" />
+                <div>
+                  <h1 className="text-xl font-bold text-white">FinanceHub Pro</h1>
+                  <p className="text-xs text-gray-400 hidden sm:block">Advanced Market Analytics</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center space-x-1">
+              {navigationItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location === item.href;
+                
+                return (
+                  <Link key={item.name} href={item.href}>
+                    <a
+                      className={cn(
+                        "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                        isActive
+                          ? "bg-gain-green/10 text-gain-green border border-gain-green/20"
+                          : "text-gray-300 hover:text-white hover:bg-financial-card border border-transparent"
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{item.name}</span>
+                    </a>
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Market Status and Mobile Menu */}
+            <div className="flex items-center space-x-4">
+              {/* Market Status - Desktop */}
+              <div className="hidden md:block">
+                <MarketStatusIndicator />
+              </div>
+              
+              {/* Market Status - Mobile */}
+              <div className="md:hidden">
+                <MarketStatusIndicatorCompact />
+              </div>
+
+              {/* Mobile Menu Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="lg:hidden text-gray-400 hover:text-white"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              >
+                {isMobileMenuOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <Menu className="h-5 w-5" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Navigation Menu */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden border-t border-financial-border bg-financial-dark">
+            <div className="px-4 py-2 space-y-1">
+              {navigationItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location === item.href;
+                
+                return (
+                  <Link key={item.name} href={item.href}>
+                    <a
+                      className={cn(
+                        "flex items-center space-x-3 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200",
+                        isActive
+                          ? "bg-gain-green/10 text-gain-green border border-gain-green/20"
+                          : "text-gray-300 hover:text-white hover:bg-financial-card border border-transparent"
+                      )}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Icon className="h-5 w-5" />
+                      <div>
+                        <div>{item.name}</div>
+                        <div className="text-xs text-gray-400">{item.description}</div>
+                      </div>
+                    </a>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </nav>
+    </>
+  );
+}
+
