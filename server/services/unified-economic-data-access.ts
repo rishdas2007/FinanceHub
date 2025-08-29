@@ -138,7 +138,8 @@ export class UnifiedEconomicDataAccess {
   }
 
   /**
-   * Get data from current table with column mapping
+   * Get data from current table with column mapping and TIME SERIES GROUPING
+   * CRITICAL FIX: Group by series_id and period_date to create proper time series
    */
   private async getFromCurrentTable(
     seriesIds?: string[], 
@@ -148,20 +149,23 @@ export class UnifiedEconomicDataAccess {
       const whereClause = seriesIds && seriesIds.length > 0 ? 
         sql`WHERE series_id = ANY(${seriesIds})` : sql``;
       
+      // MAIN FIX: Use DISTINCT ON to get latest record per series_id + period_date combination
+      // This fixes the duplicate series_id issue by creating proper time series
       const result = await db.execute(sql`
-        SELECT 
+        SELECT DISTINCT ON (series_id, period_date)
           series_id as "seriesId",
-          metric,                   -- Already correct column name
+          metric,
           category,
           type,
           frequency,
           unit,
-          value_numeric as "value", -- Column name mapping
+          value_numeric as "value",
           period_date as "periodDate",
-          release_date as "releaseDate"
+          release_date as "releaseDate",
+          updated_at
         FROM economic_indicators_current
         ${whereClause}
-        ORDER BY series_id, period_date DESC
+        ORDER BY series_id, period_date DESC, updated_at DESC
       `);
 
       const indicators: UnifiedEconomicIndicator[] = result.rows.map(row => ({
@@ -177,7 +181,21 @@ export class UnifiedEconomicDataAccess {
         source: 'current' as const
       }));
 
-      logger.info(`📊 [CURRENT TABLE] Retrieved ${indicators.length} records`);
+      logger.info(`📊 [CURRENT TABLE] Retrieved ${indicators.length} records (deduplicated by series_id + period_date)`);
+      
+      // Log time series statistics for debugging
+      const seriesStats = indicators.reduce((acc, indicator) => {
+        if (!acc[indicator.seriesId]) {
+          acc[indicator.seriesId] = 0;
+        }
+        acc[indicator.seriesId]++;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      Object.entries(seriesStats).forEach(([seriesId, count]) => {
+        logger.info(`📈 [TIME SERIES] ${seriesId}: ${count} data points`);
+      });
+      
       return indicators;
       
     } catch (error) {

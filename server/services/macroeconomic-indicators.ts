@@ -301,11 +301,11 @@ export class MacroeconomicService {
       // Try multiple query strategies
       let result: any = null;
 
-      // Strategy 1: Direct series_id match
+      // Strategy 1: Direct series_id match with TIME SERIES DEDUPLICATION
       for (const term of searchTerms) {
         try {
           result = await db.execute(sql`
-            SELECT 
+            SELECT DISTINCT ON (period_date)
               period_date as date, 
               value_numeric as value, 
               series_id as metric,
@@ -313,12 +313,12 @@ export class MacroeconomicService {
               frequency
             FROM economic_indicators_current 
             WHERE UPPER(series_id) = UPPER(${term})
-            ORDER BY period_date DESC
+            ORDER BY period_date DESC, updated_at DESC
             LIMIT ${months * 20}
           `);
 
           if (result.rows && result.rows.length > 0) {
-            console.log(`✅ Found data with series_id: ${term}`);
+            console.log(`✅ Found data with series_id: ${term} (${result.rows.length} time series points)`);
             break;
           }
         } catch (error) {
@@ -326,12 +326,12 @@ export class MacroeconomicService {
         }
       }
 
-      // Strategy 2: Partial series_id match
+      // Strategy 2: Partial series_id match with TIME SERIES DEDUPLICATION
       if (!result?.rows || result.rows.length === 0) {
         for (const term of searchTerms) {
           try {
             result = await db.execute(sql`
-              SELECT 
+              SELECT DISTINCT ON (period_date)
                 period_date as date, 
                 value_numeric as value, 
                 series_id as metric,
@@ -339,12 +339,12 @@ export class MacroeconomicService {
                 frequency
               FROM economic_indicators_current 
               WHERE UPPER(series_id) LIKE '%' || UPPER(${term}) || '%'
-              ORDER BY period_date DESC
+              ORDER BY period_date DESC, updated_at DESC
               LIMIT ${months * 20}
             `);
 
             if (result.rows && result.rows.length > 0) {
-              console.log(`✅ Found data with partial series_id match: ${term}`);
+              console.log(`✅ Found data with partial series_id match: ${term} (${result.rows.length} time series points)`);
               break;
             }
           } catch (error) {
@@ -573,8 +573,26 @@ export class MacroeconomicService {
       const combinedData = [...deduplicatedZScoreData, ...freshBackfilledData];
       logger.info(`📊 Total combined indicators: ${combinedData.length}`);
 
+      // FINAL DEDUPLICATION: Ensure only latest record per series_id for dashboard display
+      const finalDeduplicatedData = new Map<string, any>();
+      combinedData.forEach(indicator => {
+        const existing = finalDeduplicatedData.get(indicator.seriesId);
+        if (!existing || new Date(indicator.periodDate) > new Date(existing.periodDate)) {
+          finalDeduplicatedData.set(indicator.seriesId, indicator);
+        }
+      });
+      
+      const uniqueIndicators = Array.from(finalDeduplicatedData.values());
+      logger.info(`📊 After final deduplication: ${uniqueIndicators.length} unique series (was ${combinedData.length})`);
+      
+      // Log the deduplication results
+      const duplicatesRemoved = combinedData.length - uniqueIndicators.length;
+      if (duplicatesRemoved > 0) {
+        logger.info(`🗑️ Removed ${duplicatesRemoved} duplicate time series entries to show latest per series_id only`);
+      }
+
       // FRED API SOURCE PRIORITY: Applied at route level in routes.ts
-      const fredPriorityData = combinedData; // Pass through - priority logic handled at route level
+      const fredPriorityData = uniqueIndicators; // Use deduplicated data - priority logic handled at route level
       logger.info(`📊 Data ready for route-level FRED source priority: ${fredPriorityData.length} indicators`);
 
       // FILTER OUT EXTREME Z-SCORES (above 3 or below -3) as requested by user
@@ -814,45 +832,73 @@ export class MacroeconomicService {
 
   /**
    * Get fresh backfilled indicators from economic_indicators_current table
-   * These take priority over legacy historical data to avoid duplicates
+   * FIXED: Create proper time series instead of just latest records
    */
   private async getFreshBackfilledIndicators(): Promise<any[]> {
     try {
+      // CRITICAL FIX: Get ALL time series data, not just latest per series_id
+      // Group by series_id + period_date to eliminate duplicates while preserving time series
       const result = await db.execute(sql`
-        WITH latest_per_series AS (
-          SELECT DISTINCT ON (series_id)
+        WITH deduplicated_series AS (
+          SELECT DISTINCT ON (series_id, period_date)
+            series_id,
+            metric,
+            value_numeric,
+            period_date,
+            category,
+            type,
+            unit,
+            updated_at
+          FROM economic_indicators_current 
+          WHERE updated_at >= NOW() - INTERVAL '2 hours'  -- Recently backfilled data
+            AND value_numeric IS NOT NULL
+            AND period_date IS NOT NULL
+          ORDER BY series_id, period_date DESC, updated_at DESC  -- Get latest version of each series_id + period_date combination
+        ),
+        
+        time_series_with_stats AS (
+          SELECT 
             series_id as "seriesId",
             metric,
             value_numeric as "currentValue", 
             period_date as "periodDate",
             category,
-            'Leading' as type,  -- Default type for backfilled data
+            COALESCE(type, 'Leading') as type,  -- Default type for backfilled data
             unit,
-            -- Calculate basic z-scores for fresh data (simplified approach)
+            
+            -- Calculate proper z-scores across the FULL time series (not just latest point)
             (value_numeric - AVG(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW)) / 
             NULLIF(STDDEV(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW), 0) as "deltaAdjustedZScore",
             
+            -- Calculate prior values for each point in the time series
             LAG(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date) as "priorValue",
             
             -- Calculate rolling historical mean and std for z-score calculation
             AVG(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) as "historicalMean",
             NULLIF(STDDEV(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW), 0) as "historicalStd",
             
-            -- Delta z-score (change from prior period)
-            0 as "deltaZScore",  -- Simplified for fresh data
-            0 as "deltaHistoricalMean",
-            1 as "deltaHistoricalStd",
+            -- Delta z-score (period-to-period change z-score)
+            CASE 
+              WHEN LAG(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date) IS NOT NULL
+              THEN (value_numeric - LAG(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date)) / 
+                   NULLIF(STDDEV(value_numeric - LAG(value_numeric) OVER (PARTITION BY series_id ORDER BY period_date)) 
+                          OVER (PARTITION BY series_id ORDER BY period_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW), 0)
+              ELSE 0
+            END as "deltaZScore",
             
             1 as "directionality",  -- Default positive directionality
-            'monthly' as "frequency"
+            'monthly' as "frequency",
             
-          FROM economic_indicators_current 
-          WHERE updated_at >= NOW() - INTERVAL '2 hours'  -- Recently backfilled data
-            AND value_numeric IS NOT NULL
-            AND period_date IS NOT NULL
-          ORDER BY series_id, period_date DESC  -- Get latest record per series_id
+            -- Add row number to identify latest record per series for current reading
+            ROW_NUMBER() OVER (PARTITION BY series_id ORDER BY period_date DESC) as rn
+            
+          FROM deduplicated_series
         )
-        SELECT * FROM latest_per_series
+        
+        -- Return ONLY the latest record per series_id for current dashboard display
+        -- but now it's calculated using the full time series context
+        SELECT * FROM time_series_with_stats
+        WHERE rn = 1  -- Latest record per series_id only
         ORDER BY "periodDate" DESC
       `);
 

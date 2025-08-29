@@ -9,7 +9,9 @@
       "Bash(npm run build:*)",
       "Bash(psql:*)",
       "Bash(npx tsx:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(pkill:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

@@ -302,6 +302,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // UNIVERSAL STATISTICAL VALIDATION SYSTEM
   async function applyUniversalStatisticalValidation(indicators: any[]): Promise<any[]> {
     try {
+      // CRITICAL FIX: Check for duplicates before processing
+      console.log(`🔍 [ROOT CAUSE DEBUG] Input indicators array length: ${indicators.length}`);
+      const seriesIdCounts = indicators.reduce((acc, ind) => {
+        acc[ind.seriesId] = (acc[ind.seriesId] || 0) + 1;
+        return acc;
+      }, {});
+      const duplicateSeriesIds = Object.entries(seriesIdCounts)
+        .filter(([_, count]) => count > 1)
+        .map(([seriesId, count]) => `${seriesId}:${count}`)
+        .slice(0, 10); // Show first 10
+      
+      if (duplicateSeriesIds.length > 0) {
+        console.log(`🚨 [ROOT CAUSE] INFINITE LOOP SOURCE: ${duplicateSeriesIds.length} series have duplicates: ${duplicateSeriesIds.join(', ')}`);
+      }
+
+      // CRITICAL FIX: Deduplicate indicators array to prevent infinite processing
+      // Keep only the latest entry per series_id + period_date combination
+      const deduplicatedIndicators = new Map();
+      indicators.forEach(indicator => {
+        const key = `${indicator.seriesId}_${indicator.period_date}`;
+        const existing = deduplicatedIndicators.get(key);
+        if (!existing || new Date(indicator.releaseDate || indicator.period_date) > new Date(existing.releaseDate || existing.period_date)) {
+          deduplicatedIndicators.set(key, indicator);
+        }
+      });
+      
+      const uniqueIndicators = Array.from(deduplicatedIndicators.values());
+      console.log(`🔧 [INFINITE LOOP FIX] Deduplicated ${indicators.length} → ${uniqueIndicators.length} indicators (removed ${indicators.length - uniqueIndicators.length} duplicates)`);
+      
+      // Use deduplicated array for all processing
+      indicators = uniqueIndicators;
+
       const { neon } = await import('@neondatabase/serverless');
       const sql = neon(process.env.DATABASE_URL!);
       
@@ -546,6 +578,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`✅ [UNIVERSAL VALIDATION] Applied universal statistical validation to ${fredRawMap.size} indicators`);
       console.log(`🔍 [UNIVERSAL VALIDATION] Historical data utilized: ${historicalStats.size} indicators with rich statistical context`);
+      console.log(`🎯 [INFINITE LOOP FIX] Final output: ${updatedIndicators.length} indicators (should match deduplicated count)`);
       return updatedIndicators;
       
     } catch (error) {
@@ -597,6 +630,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           rawData.indicators = TimeSeriesMerger.mergeTimeSeriesData(rawData.indicators);
           console.log('✅ [MERGER EXECUTION] TimeSeriesMerger completed successfully');
+          
+          // CRITICAL FIX: Final deduplication after TimeSeriesMerger to ensure no duplicates
+          const finalDeduplicationMap = new Map();
+          rawData.indicators.forEach(indicator => {
+            const key = `${indicator.seriesId}_${indicator.period_date}`;
+            const existing = finalDeduplicationMap.get(key);
+            if (!existing || new Date(indicator.releaseDate || indicator.period_date) > new Date(existing.releaseDate || existing.period_date)) {
+              finalDeduplicationMap.set(key, indicator);
+            }
+          });
+          
+          const preDeduplicationCount = rawData.indicators.length;
+          rawData.indicators = Array.from(finalDeduplicationMap.values());
+          const postDeduplicationCount = rawData.indicators.length;
+          
+          if (preDeduplicationCount !== postDeduplicationCount) {
+            console.log(`🔧 [FINAL DEDUPLICATION] TimeSeriesMerger re-introduced duplicates: ${preDeduplicationCount} → ${postDeduplicationCount} (removed ${preDeduplicationCount - postDeduplicationCount} duplicates)`);
+          }
+          
         } catch (error) {
           console.error('❌ [MERGER EXECUTION] TimeSeriesMerger failed:', error);
         }
@@ -760,6 +812,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const originalCount = rawData.indicators.length;
         
         try {
+          // CRITICAL FIX: Apply same deduplication as main route to prevent infinite loop
+          const preDeduplicationCount = rawData.indicators.length;
+          const refreshDeduplicationMap = new Map();
+          rawData.indicators.forEach(indicator => {
+            const key = `${indicator.seriesId}_${indicator.period_date}`;
+            const existing = refreshDeduplicationMap.get(key);
+            if (!existing || new Date(indicator.releaseDate || indicator.period_date) > new Date(existing.releaseDate || existing.period_date)) {
+              refreshDeduplicationMap.set(key, indicator);
+            }
+          });
+          rawData.indicators = Array.from(refreshDeduplicationMap.values());
+          console.log(`🔧 [REFRESH DEDUPLICATION] Before TimeSeriesMerger: ${preDeduplicationCount} → ${rawData.indicators.length} indicators (removed ${preDeduplicationCount - rawData.indicators.length} duplicates)`);
+          
           rawData.indicators = TimeSeriesMerger.mergeTimeSeriesData(rawData.indicators);
           console.log('✅ [REFRESH MERGER] TimeSeriesMerger completed successfully');
         } catch (error) {
