@@ -13,11 +13,6 @@ import { ETFTechnicalMetricsTable } from "@/components/ETFTechnicalMetricsTable"
 import { lazy, Suspense } from "react";
 
 // Lazy load non-critical components for performance
-const EconomicHealthScoreAppendix = lazy(() => 
-  import("@/components/EconomicHealthScoreAppendix").then(module => ({
-    default: module.EconomicHealthScoreAppendix
-  }))
-);
 
 
 import { AAIISentiment } from "@/components/aaii-sentiment";
@@ -98,23 +93,6 @@ export default function Dashboard() {
         {/* Macroeconomic Indicators Module - now includes AI Economic Analysis */}
         <MacroeconomicIndicators />
 
-        {/* Economic Health Score Components - Appendix */}
-        <Suspense fallback={
-          <div className="bg-gray-900/95 backdrop-blur rounded-lg border border-gray-700 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Activity className="h-5 w-5 text-blue-400 animate-pulse" />
-              <h3 className="text-lg font-semibold text-white">Economic Health Analysis</h3>
-              <span className="text-sm text-blue-400">Loading...</span>
-            </div>
-            <div className="space-y-3">
-              {[1,2,3].map(i => (
-                <div key={i} className="h-8 bg-gray-800 rounded animate-pulse" />
-              ))}
-            </div>
-          </div>
-        }>
-          <EconomicHealthScoreAppendix />
-        </Suspense>
 
       </div>
 
