@@ -9,7 +9,7 @@ packages = ["glibcLocales", "jq"]
 [deployment]
 deploymentTarget = "autoscale"
 build = ["npm", "run", "build"]
-run = ["npm", "run", "start"]
+run = ["node", "start-production.js"]  # ← Production-safe
 
 [[ports]]
 localPort = 3000
