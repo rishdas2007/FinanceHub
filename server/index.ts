@@ -322,18 +322,18 @@ app.use((req, res, next) => {
     gracefulShutdown(server);
 
     // ALWAYS serve the app on the port specified in the environment variable PORT
-    // Other ports are firewalled. Default to 5000 if not specified.
+    // Cloud Run requires port 80. Default to 80 if not specified.
     // this serves both the API and the client.
     // It is the only port that is not firewalled.
-    const port = parseInt(process.env.PORT || '5000', 10);
+    const port = parseInt(process.env.PORT || '80', 10);
     
     // Validate port configuration for deployment
     if (isNaN(port) || port < 1 || port > 65535) {
-      const errorMsg = `❌ Invalid port configuration: ${process.env.PORT}. Using default port 5000.`;
+      const errorMsg = `❌ Invalid port configuration: ${process.env.PORT}. Using default port 80.`;
       log(errorMsg);
       // Don't throw in production - use fallback
       if (process.env.NODE_ENV === 'production') {
-        log('⚠️ Using fallback port 5000 for production deployment');
+        log('⚠️ Using fallback port 80 for Cloud Run deployment');
       }
     }
 

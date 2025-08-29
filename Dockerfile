@@ -22,11 +22,11 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Expose port
-EXPOSE 5000
+# Expose port 80 for Cloud Run compatibility
+EXPOSE 80
 
 # Set environment to production
 ENV NODE_ENV=production
 
-# Start the application
-CMD ["npm", "start"]
+# Start the application using production script
+CMD ["node", "start-production.js"]
