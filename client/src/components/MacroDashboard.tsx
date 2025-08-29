@@ -118,10 +118,10 @@ export function MacroDashboard() {
     if (!quarterlyData?.success || !quarterlyData?.data) {
       // Fallback data if API fails
       return [
-        { quarter: 'Q2 2025', nominal: 689.0, real: 634.0, growth: 2.8 },
-        { quarter: 'Q1 2025', nominal: 685.0, real: 632.0, growth: 1.6 },
-        { quarter: 'Q4 2024', nominal: 682.0, real: 630.0, growth: 3.1 },
-        { quarter: 'Q3 2024', nominal: 679.0, real: 627.0, growth: 2.4 },
+        { quarter: 'Q2 2025', nominal: 689.0, real: 634.0, growth: 3.3 },
+        { quarter: 'Q1 2025', nominal: 685.0, real: 632.0, growth: -0.5 },
+        { quarter: 'Q4 2024', nominal: 682.0, real: 630.0, growth: 2.3 },
+        { quarter: 'Q3 2024', nominal: 679.0, real: 627.0, growth: 2.8 },
         { quarter: 'Q2 2024', nominal: 676.0, real: 624.0, growth: 3.0 }
       ];
     }
