@@ -66,6 +66,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Unified Pipeline Diagnostics (for production troubleshooting)
   app.use('/api/unified-diagnostics', (await import('./routes/unified-pipeline-diagnostics')).default);
   
+  // Schema Validation (for analyzing data conformance before implementation)
+  app.use('/api/schema-validation', (await import('./routes/schema-validation')).default);
+  
   // Phase 3: Manual Economic Data Refresh Endpoint
   app.post('/api/admin/refresh-economic-data', async (req, res) => {
     try {
@@ -179,6 +182,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Economic Health Dashboard endpoints
   app.use('/api/economic-health', (await import('./routes/economic-health')).default);
   
+  // Economic Calendar - FRED API integrated calendar with historical data
+  app.use('/api/economic-calendar', (await import('./routes/economic-calendar')).default);
+  
   // Enhanced Economic Indicators with 3-Layer Data Model (76,441+ records)
   app.use('/api', (await import('./routes/enhanced-economic-indicators')).default);
   
@@ -214,22 +220,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/economic', (await import('./routes/economic-correlation')).default);
   
   // Authentic FRED Economic Data API - prioritized endpoint
-  app.get('/api/fred-economic-data', async (req, res) => {
-    try {
-      console.log('🔍 FRED API Route: GET /api/fred-economic-data');
-      const { macroeconomicService } = await import('./services/macroeconomic-indicators');
-      const data = await macroeconomicService.getAuthenticEconomicData();
-      
-      res.json(data);
-      
-    } catch (error) {
-      console.error('Failed to get FRED economic data:', error);
-      res.status(500).json({
-        error: 'Failed to fetch Federal Reserve economic data',
-        timestamp: new Date().toISOString()
-      });
-    }
-  });
 
   // Debug transformation endpoint
   app.use('/api', debugTransformationRoutes);
@@ -587,273 +577,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
 
-  // Macroeconomic Indicators API - prioritizes FRED data with OpenAI fallback
-  app.get('/api/macroeconomic-indicators', async (req, res) => {
-    try {
-      console.log('🔍 Fast Dashboard Route: GET /api/macroeconomic-indicators');
-      const { macroeconomicService } = await import('./services/macroeconomic-indicators');
-      const { TimeSeriesMerger } = await import('./services/time-series-merger');
-      
-      const startTime = Date.now();
-      // Prioritize authentic FRED data over OpenAI fallback
-      const rawData = await macroeconomicService.getAuthenticEconomicData();
-      
-      // DIAGNOSTIC LOGGING: Validate assumptions before merger
-      console.log('🔍 [MERGER DEBUG] Pre-merger diagnostic check...');
-      console.log('🔍 [MERGER DEBUG] Raw data exists:', !!rawData?.indicators);
-      console.log('🔍 [MERGER DEBUG] Indicators count:', rawData?.indicators?.length || 0);
-      
-      // Log Claims data specifically to check input AND source information
-      const claimsData = rawData?.indicators?.filter(i => 
-        i.metric?.toLowerCase().includes('claims') || i.seriesId?.match(/^(CCSA|ICSA)$/)
-      ) || [];
-      console.log('🔍 [MERGER DEBUG] Claims data found:', claimsData.length);
-      claimsData.forEach(claim => {
-        console.log(`🔍 [MERGER DEBUG] ${claim.seriesId}: ${claim.currentReading} (${claim.unit}) - ${claim.metric}`);
-        console.log(`🔍 [SOURCE DEBUG] ${claim.seriesId}: releaseDate=${claim.releaseDate}, period_date=${claim.period_date}`);
-        console.log(`🔍 [SOURCE DEBUG] ${claim.seriesId}: rawCurrentValue=${claim.rawCurrentValue}, source=${claim.source || 'unknown'}`);
-        console.log(`🔍 [SOURCE DEBUG] ${claim.seriesId}: type=${claim.type}, category=${claim.category}`);
-      });
-      
-      // FRED API SOURCE PRIORITY FIX: Replace with authentic FRED raw data
-      if (rawData?.indicators) {
-        console.log('🎯 [FRED PRIORITY] Applying FRED API source authority priority...');
-        rawData.indicators = await applyUniversalStatisticalValidation(rawData.indicators);
-        console.log('✅ [FRED PRIORITY] FRED API source priority applied');
-      }
-      
-      // Apply time series merger to combine recent raw data with historical delta-adjusted data
-      if (rawData?.indicators) {
-        console.log('🔥 [MERGER EXECUTION] Starting TimeSeriesMerger.mergeTimeSeriesData()...');
-        const originalCount = rawData.indicators.length;
-        
-        try {
-          rawData.indicators = TimeSeriesMerger.mergeTimeSeriesData(rawData.indicators);
-          console.log('✅ [MERGER EXECUTION] TimeSeriesMerger completed successfully');
-          
-          // CRITICAL FIX: Final deduplication after TimeSeriesMerger to ensure no duplicates
-          const finalDeduplicationMap = new Map();
-          rawData.indicators.forEach(indicator => {
-            const key = `${indicator.seriesId}_${indicator.period_date}`;
-            const existing = finalDeduplicationMap.get(key);
-            if (!existing || new Date(indicator.releaseDate || indicator.period_date) > new Date(existing.releaseDate || existing.period_date)) {
-              finalDeduplicationMap.set(key, indicator);
-            }
-          });
-          
-          const preDeduplicationCount = rawData.indicators.length;
-          rawData.indicators = Array.from(finalDeduplicationMap.values());
-          const postDeduplicationCount = rawData.indicators.length;
-          
-          if (preDeduplicationCount !== postDeduplicationCount) {
-            console.log(`🔧 [FINAL DEDUPLICATION] TimeSeriesMerger re-introduced duplicates: ${preDeduplicationCount} → ${postDeduplicationCount} (removed ${preDeduplicationCount - postDeduplicationCount} duplicates)`);
-          }
-          
-        } catch (error) {
-          console.error('❌ [MERGER EXECUTION] TimeSeriesMerger failed:', error);
-        }
-        
-        const finalCount = rawData.indicators.length;
-        
-        if (originalCount !== finalCount) {
-          console.log(`🔧 Time series merger applied: ${originalCount} → ${finalCount} indicators`);
-        }
-        
-        // Log Claims data after merger to check output
-        const postMergerClaims = rawData.indicators.filter(i => 
-          i.metric?.toLowerCase().includes('claims') || i.seriesId?.match(/^(CCSA|ICSA)$/)
-        );
-        console.log('🔍 [MERGER DEBUG] Post-merger Claims data:', postMergerClaims.length);
-        postMergerClaims.forEach(claim => {
-          console.log(`🔍 [MERGER DEBUG] POST: ${claim.seriesId}: ${claim.currentReading} (${claim.unit}) - convertedFrom: ${claim.convertedFrom || 'none'}`);
-        });
-        
-        // Validate merger results
-        const validation = TimeSeriesMerger.validateMergerResults(rawData.indicators, rawData.indicators);
-        if (!validation.isValid) {
-          console.warn('⚠️ Time series merger validation issues:', validation.issues);
-        }
-        
-        // Apply universal smart formatting to ALL indicators
-        console.log('🔢 [UNIVERSAL FORMATTING] Applying smart formatting to all indicators...');
-        
-        // DIAGNOSTIC: Log sample indicators before formatting
-        const diagnosticSample = rawData.indicators.slice(0, 5);
-        console.log('🔍 [DIAGNOSTIC] Sample indicators BEFORE formatting:');
-        diagnosticSample.forEach(ind => {
-          console.log(`🔍 [DIAGNOSTIC] ${ind.seriesId}: currentReading="${ind.currentReading}", priorReading="${ind.priorReading}", unit="${ind.unit}", rawCurrentValue="${ind.rawCurrentValue}", rawPriorValue="${ind.rawPriorValue}"`);
-        });
-        
-        // DIAGNOSTIC: Check for duplicate entries
-        const seriesDateMap = new Map();
-        const duplicates = [];
-        rawData.indicators.forEach(ind => {
-          const key = `${ind.seriesId}-${ind.period_date}`;
-          if (seriesDateMap.has(key)) {
-            duplicates.push({
-              seriesId: ind.seriesId,
-              date: ind.period_date,
-              metric1: seriesDateMap.get(key).metric,
-              metric2: ind.metric
-            });
-          } else {
-            seriesDateMap.set(key, ind);
-          }
-        });
-        
-        if (duplicates.length > 0) {
-          console.warn('🚨 [DUPLICATE DETECTION] Found duplicate entries:');
-          duplicates.forEach(dup => {
-            console.warn(`🚨 [DUPLICATE] ${dup.seriesId} (${dup.date}): "${dup.metric1}" vs "${dup.metric2}"`);
-          });
-          
-          // Remove duplicates by keeping the first occurrence of each seriesId-date combination
-          const uniqueIndicators = [];
-          const seenKeys = new Set();
-          
-          rawData.indicators.forEach(indicator => {
-            const key = `${indicator.seriesId}-${indicator.period_date}`;
-            if (!seenKeys.has(key)) {
-              seenKeys.add(key);
-              uniqueIndicators.push(indicator);
-            } else {
-              console.log(`🗑️ [DUPLICATE REMOVAL] Removing duplicate: ${indicator.seriesId} (${indicator.period_date})`);
-            }
-          });
-          
-          const removedCount = rawData.indicators.length - uniqueIndicators.length;
-          rawData.indicators = uniqueIndicators;
-          console.log(`✅ [DUPLICATE CLEANUP] Removed ${removedCount} duplicates, ${uniqueIndicators.length} unique indicators remain`);
-        } else {
-          console.log('✅ [DUPLICATE CHECK] No duplicates detected');
-        }
-        
-        rawData.indicators = rawData.indicators.map(indicator => {
-          if (indicator.rawCurrentValue && indicator.unit) {
-            const originalReading = indicator.currentReading;
-            const smartFormatted = formatValueByUnit(indicator.rawCurrentValue, indicator.unit, indicator.seriesId);
-            
-            // Format prior reading if available
-            let formattedPriorReading = indicator.priorReading;
-            if (indicator.rawPriorValue && indicator.unit) {
-              formattedPriorReading = formatValueByUnit(indicator.rawPriorValue, indicator.unit, indicator.seriesId);
-              console.log(`🔄 [PRIOR FORMATTING] ${indicator.seriesId}: "${indicator.priorReading}" → "${formattedPriorReading}" (${indicator.unit})`);
-            } else if (indicator.priorReading && indicator.unit) {
-              // Fallback: format existing prior reading if it's a valid number
-              const priorValue = parseFloat(indicator.priorReading);
-              if (!isNaN(priorValue)) {
-                formattedPriorReading = formatValueByUnit(priorValue, indicator.unit, indicator.seriesId);
-                console.log(`🔄 [PRIOR FALLBACK] ${indicator.seriesId}: "${indicator.priorReading}" → "${formattedPriorReading}" (${indicator.unit})`);
-              } else {
-                console.log(`⚠️ [PRIOR SKIP] ${indicator.seriesId}: Cannot parse prior reading "${indicator.priorReading}" as number`);
-              }
-            }
-            
-            // Always apply smart formatting (even if it looks the same)
-            if (smartFormatted !== originalReading) {
-              console.log(`🔄 [UNIVERSAL FORMATTING] ${indicator.seriesId}: "${originalReading}" → "${smartFormatted}" (${indicator.unit})`);
-            }
-            
-            return {
-              ...indicator,
-              currentReading: smartFormatted,  // Always use the smart formatted value
-              priorReading: formattedPriorReading
-            };
-          }
-          return indicator;
-        });
-        
-        // DIAGNOSTIC: Log sample indicators after formatting  
-        const diagnosticSampleAfter = rawData.indicators.slice(0, 5);
-        console.log('🔍 [DIAGNOSTIC] Sample indicators AFTER formatting:');
-        diagnosticSampleAfter.forEach(ind => {
-          console.log(`🔍 [DIAGNOSTIC] ${ind.seriesId}: currentReading="${ind.currentReading}", priorReading="${ind.priorReading}", unit="${ind.unit}"`);
-        });
-        
-        console.log('✅ [UNIVERSAL FORMATTING] Smart formatting applied to all indicators');
-      }
-      
-      const responseTime = Date.now() - startTime;
-      console.log(`📊 Macroeconomic indicators response time: ${responseTime}ms`);
-      
-      res.json(rawData);
-      
-    } catch (error) {
-      console.error('Failed to get macroeconomic indicators:', error);
-      res.status(500).json({
-        error: 'Failed to fetch macroeconomic indicators',
-        timestamp: new Date().toISOString()
-      });
-    }
-  });
-
-  app.post('/api/macroeconomic-indicators/refresh', async (req, res) => {
-    try {
-      console.log('🔍 Fast Dashboard Route: POST /api/macroeconomic-indicators/refresh');
-      const { macroeconomicService } = await import('./services/macroeconomic-indicators');
-      const { TimeSeriesMerger } = await import('./services/time-series-merger');
-      
-      // Clear cache and get fresh data
-      const { cacheService } = await import('./services/cache-unified');
-      cacheService.clear();
-      
-      // Also clear the specific FRED cache key
-      cacheService.delete('fred-economic-data-latest');
-      
-      const rawData = await macroeconomicService.getAuthenticEconomicData();
-      
-      // DIAGNOSTIC LOGGING: Validate refresh assumptions
-      console.log('🔍 [REFRESH MERGER DEBUG] Pre-refresh merger diagnostic check...');
-      console.log('🔍 [REFRESH MERGER DEBUG] Raw data exists:', !!rawData?.indicators);
-      
-      // Apply time series merger to combine recent raw data with historical delta-adjusted data
-      if (rawData?.indicators) {
-        console.log('🔥 [REFRESH MERGER] Starting TimeSeriesMerger.mergeTimeSeriesData()...');
-        const originalCount = rawData.indicators.length;
-        
-        try {
-          // CRITICAL FIX: Apply same deduplication as main route to prevent infinite loop
-          const preDeduplicationCount = rawData.indicators.length;
-          const refreshDeduplicationMap = new Map();
-          rawData.indicators.forEach(indicator => {
-            const key = `${indicator.seriesId}_${indicator.period_date}`;
-            const existing = refreshDeduplicationMap.get(key);
-            if (!existing || new Date(indicator.releaseDate || indicator.period_date) > new Date(existing.releaseDate || existing.period_date)) {
-              refreshDeduplicationMap.set(key, indicator);
-            }
-          });
-          rawData.indicators = Array.from(refreshDeduplicationMap.values());
-          console.log(`🔧 [REFRESH DEDUPLICATION] Before TimeSeriesMerger: ${preDeduplicationCount} → ${rawData.indicators.length} indicators (removed ${preDeduplicationCount - rawData.indicators.length} duplicates)`);
-          
-          rawData.indicators = TimeSeriesMerger.mergeTimeSeriesData(rawData.indicators);
-          console.log('✅ [REFRESH MERGER] TimeSeriesMerger completed successfully');
-        } catch (error) {
-          console.error('❌ [REFRESH MERGER] TimeSeriesMerger failed:', error);
-        }
-        
-        const finalCount = rawData.indicators.length;
-        
-        if (originalCount !== finalCount) {
-          console.log(`🔧 Refresh time series merger applied: ${originalCount} → ${finalCount} indicators`);
-        }
-      }
-      
-      res.json({
-        success: true,
-        data: rawData,
-        message: 'Macroeconomic data refreshed successfully',
-        timestamp: new Date().toISOString()
-      });
-      
-    } catch (error) {
-      console.error('Failed to refresh macroeconomic indicators:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to refresh macroeconomic indicators',
-        timestamp: new Date().toISOString()
-      });
-    }
-  });
   
   // Health endpoints first - ensure they're not overridden
   const healthRoutes = (await import('./routes/health')).default;
@@ -1241,9 +964,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sectorsResponse = await fetch(`${req.protocol}://${req.get('host')}/api/sectors`);
       const sectorsData = await sectorsResponse.json();
       
-      // Get economic data from macroeconomic-indicators endpoint (same as Economic Indicators uses)
-      const economicResponse = await fetch(`${req.protocol}://${req.get('host')}/api/macroeconomic-indicators`);
-      const economicData = await economicResponse.json();
+      // Economic data no longer available - using ETF data only
       
       // Get momentum data from momentum-analysis endpoint for technical signals
       const momentumResponse = await fetch(`${req.protocol}://${req.get('host')}/api/momentum-analysis`);
@@ -1424,62 +1145,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }));
   }
 
-  // Economic indicator historical chart data endpoint
-  app.get('/api/economic-indicators/:id/history', async (req, res) => {
-    try {
-      const { id } = req.params;
-      const months = parseInt(req.query.months as string) || 12;
-      console.log(`📊 Economic chart data request: ${id} (${months}M)`);
-      
-      const { macroeconomicService } = await import('./services/macroeconomic-indicators');
-      const historicalData = await macroeconomicService.getHistoricalIndicatorData(id, months);
-      
-      if (!historicalData) {
-        console.warn(`⚠️ No historical data found for indicator: ${id}`);
-        return res.status(404).json({
-          success: false,
-          error: 'No data available for this indicator',
-          timestamp: new Date().toISOString()
-        });
-      }
-
-      // Add before res.json()
-      console.log(`📊 Returning economic data for ${id}:`, {
-        dataPoints: historicalData.data?.length || 0,
-        sampleData: historicalData.data?.slice(0, 3) || []
-      });
-
-      // FIX: Ensure data is in correct format
-      const responseData = {
-        success: true,
-        indicator: id,
-        data: validateChartData(historicalData.data || [], id),
-        metadata: {
-          source: 'FRED',
-          units: historicalData.units || '',
-          frequency: historicalData.frequency || 'Monthly',
-          lastUpdate: historicalData.lastUpdate || new Date().toISOString(),
-          count: historicalData.data?.length || 0
-        }
-      };
-
-      // Validate data format before sending
-      if (!responseData.data || !Array.isArray(responseData.data)) {
-        console.warn(`⚠️ Invalid data format for ${id}`);
-        responseData.data = [];
-      }
-
-      res.json(responseData);
-      
-    } catch (error) {
-      console.error('Economic chart data error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to get economic chart data',
-        timestamp: new Date().toISOString()
-      });
-    }
-  });
 
   // Chart export endpoint
   app.get('/api/charts/export/:format/:id', async (req, res) => {
@@ -1487,26 +1152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { format, id } = req.params;
       const timeRange = req.query.timeRange as string || '12M';
       
-      if (format === 'csv') {
-        const { macroeconomicService } = await import('./services/macroeconomic-indicators');
-        const months = timeRange === '3M' ? 3 : timeRange === '6M' ? 6 : timeRange === '12M' ? 12 : 24;
-        const data = await macroeconomicService.getHistoricalIndicatorData(id, months);
-        
-        if (!data) {
-          return res.status(404).json({ error: 'Data not found' });
-        }
-        
-        // Generate CSV
-        const csvHeader = 'Date,Value\n';
-        const csvRows = data.data.map((row: any) => `${row.date},${row.value}`).join('\n');
-        const csvContent = csvHeader + csvRows;
-        
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', `attachment; filename="${id}_${timeRange}.csv"`);
-        res.send(csvContent);
-      } else {
-        res.status(400).json({ error: 'PNG export not implemented yet' });
-      }
+      res.status(404).json({ error: 'Economic data export no longer available' });
       
     } catch (error) {
       console.error('Export error:', error);

@@ -95,18 +95,15 @@ export class UnifiedDataRefreshScheduler {
       }
 
       // Check for stale data (older than 24 hours on weekdays)
+      // Check both historical indicators and economic calendar
       const staleData = await db.execute(sql`
-        SELECT 
-          series_id,
-          metric_name,
-          MAX(period_date) as latest_date,
-          COUNT(*) as record_count
-        FROM economic_indicators_history 
-        WHERE period_date < CURRENT_DATE - INTERVAL '1 day'
+        SELECT 'calendar' as source, series_id, metric_name, MAX(release_date) as latest_date, COUNT(*) as record_count
+        FROM economic_calendar 
+        WHERE release_date < CURRENT_DATE - INTERVAL '2 days'
         GROUP BY series_id, metric_name
-        HAVING MAX(period_date) < CURRENT_DATE - INTERVAL '1 day'
+        HAVING MAX(release_date) < CURRENT_DATE - INTERVAL '2 days'
         ORDER BY latest_date ASC
-        LIMIT 10
+        LIMIT 5
       `);
 
       const staleCount = staleData.rows?.length || 0;
@@ -140,6 +137,17 @@ export class UnifiedDataRefreshScheduler {
       // 2. Trigger FRED incremental update
       await fredApiServiceIncremental.performIncrementalUpdate();
       logger.info('📊 FRED incremental update completed');
+
+      // 2.5. Update Economic Calendar data (daily releases only)
+      try {
+        const { economicCalendarService } = await import('./economic-calendar-service');
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        await economicCalendarService.processAllSeries(thirtyDaysAgo);
+        logger.info('📅 Economic Calendar update completed (last 30 days)');
+      } catch (calendarError) {
+        logger.error('❌ Economic Calendar update failed:', calendarError);
+        // Don't fail entire refresh if calendar update fails
+      }
 
       // 3. Validate data integrity (skip if method doesn't exist)
       try {

@@ -2,12 +2,11 @@
 
 
 import { SPYBaseline } from "@/components/SPYBaseline";
-import EconomicIndicatorsTable from "@/components/EconomicIndicatorsTable";
 
 import { StatisticalAlertSystem } from "@/components/StatisticalAlertSystem";
-import { EconomicPulseCheck } from "@/components/EconomicPulseCheck";
 import { MacroDashboard } from "@/components/MacroDashboard";
 import { ETFTechnicalMetricsTable } from "@/components/ETFTechnicalMetricsTable";
+import { EconomicCalendar } from "@/components/EconomicCalendar";
 
 
 import { lazy, Suspense } from "react";
@@ -81,17 +80,16 @@ export default function Dashboard() {
         {/* Macro Dashboard - GDP and Inflation Analysis */}
         <MacroDashboard />
 
+        {/* Economic Calendar - FRED API integrated calendar */}
+        <EconomicCalendar />
+
         {/* Enhanced Economic Health Dashboard - Original + Statistical Methods */}
 
 
-        {/* Economic Analysis - 2x5 grid above Momentum Analysis */}
-        <EconomicPulseCheck />
 
 
 
 
-        {/* Economic Indicators Table - Clean, simple table with all requested columns */}
-        <EconomicIndicatorsTable />
 
 
       </div>

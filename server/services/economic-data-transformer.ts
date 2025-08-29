@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { economicIndicatorsHistory } from '../../shared/schema';
+import { economicCalendar } from '../../shared/schema';
 import { and, eq, gte, lte, desc, asc } from 'drizzle-orm';
 import { logger } from '../middleware/logging';
 
@@ -28,15 +28,15 @@ export class EconomicDataTransformer {
 
       const yearAgoData = await db
         .select()
-        .from(economicIndicatorsHistory)
+        .from(economicCalendar)
         .where(
           and(
-            eq(economicIndicatorsHistory.seriesId, seriesId),
-            gte(economicIndicatorsHistory.periodDate, yearAgoDate),
-            lte(economicIndicatorsHistory.periodDate, new Date(yearAgoDate.getTime() + 30 * 24 * 60 * 60 * 1000)) // +30 days window
+            eq(economicCalendar.seriesId, seriesId),
+            gte(economicCalendar.periodDate, yearAgoDate),
+            lte(economicCalendar.periodDate, new Date(yearAgoDate.getTime() + 30 * 24 * 60 * 60 * 1000)) // +30 days window
           )
         )
-        .orderBy(desc(economicIndicatorsHistory.periodDate))
+        .orderBy(desc(economicCalendar.periodDate))
         .limit(1);
 
       if (!yearAgoData.length) {
@@ -44,7 +44,7 @@ export class EconomicDataTransformer {
         return null;
       }
 
-      const yearAgoValue = parseFloat(yearAgoData[0].value.toString());
+      const yearAgoValue = parseFloat(yearAgoData[0].actualValue.toString());
 
       // Calculate YoY percentage change
       const yoyChange = ((currentValue - yearAgoValue) / yearAgoValue) * 100;

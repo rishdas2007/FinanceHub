@@ -12,7 +12,9 @@
       "Bash(curl:*)",
       "Bash(pkill:*)",
       "Bash(npx tsc:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(sed:*)",
+      "Bash(npx drizzle-kit:*)"
     ],
     "deny": [],
     "ask": []
