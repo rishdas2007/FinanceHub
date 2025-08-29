@@ -40,37 +40,55 @@ const MacroFormatUtils = {
    * Format economic indicator value with proper units and spacing
    */
   formatIndicatorValue: (value: number | string | null, metric: string, unit?: string): string => {
-    if (value === null || value === undefined) return 'N/A';
+    console.log(`🔍 [FRONTEND FORMAT DEBUG] ${metric}: input value=${JSON.stringify(value)} (type: ${typeof value}), unit=${unit}`);
+    
+    if (value === null || value === undefined) {
+      console.log(`🔍 [FRONTEND FORMAT DEBUG] ${metric}: returning N/A (null/undefined)`);
+      return 'N/A';
+    }
     
     // If value is already a formatted string (from backend), return it as-is
     // Backend already applies proper formatting with units
     if (typeof value === 'string') {
+      console.log(`🔍 [FRONTEND FORMAT DEBUG] ${metric}: returning backend string as-is: "${value}"`);
       return value; // Backend provides pre-formatted strings like "$720.1M", "2.1%", etc.
     }
     
-    if (isNaN(value as number)) return 'N/A';
+    if (isNaN(value as number)) {
+      console.log(`🔍 [FRONTEND FORMAT DEBUG] ${metric}: value is NaN, returning N/A`);
+      return 'N/A';
+    }
 
     const metricLower = metric.toLowerCase();
+    console.log(`🔍 [FRONTEND FORMAT DEBUG] ${metric}: processing number ${value}, metricLower="${metricLower}"`);
     
     // Special handling for specific metrics that need fixed formatting
     if (metricLower.includes('durable goods orders')) {
       // Should show as 311.8B (billions), value comes as 311.8 
-      return `${MacroFormatUtils.formatNumber(value, 1)}B`;
+      const formatted = `${MacroFormatUtils.formatNumber(value, 1)}B`;
+      console.log(`🔍 [FRONTEND FORMAT DEBUG] ${metric}: durable goods rule → ${formatted}`);
+      return formatted;
     }
     
     if (metricLower.includes('existing home sales') && value >= 1000000) {
       // Convert 3930000 to 3.93M
-      return `${MacroFormatUtils.formatNumber(value / 1000000, 2)}M`;
+      const formatted = `${MacroFormatUtils.formatNumber(value / 1000000, 2)}M`;
+      console.log(`🔍 [FRONTEND FORMAT DEBUG] ${metric}: existing home sales rule → ${formatted}`);
+      return formatted;
     }
     
     if (metricLower.includes('continuing jobless claims') && value >= 1000000) {
       // Convert 1955000 to 1.95M
-      return `${MacroFormatUtils.formatNumber(value / 1000000, 2)}M`;
+      const formatted = `${MacroFormatUtils.formatNumber(value / 1000000, 2)}M`;
+      console.log(`🔍 [FRONTEND FORMAT DEBUG] ${metric}: continuing jobless claims rule → ${formatted}`);
+      return formatted;
     }
     
     if (metricLower.includes('initial jobless claims') && value >= 100000) {
       // Convert 217000 to 217K
-      return `${MacroFormatUtils.formatNumber(value / 1000, 0)}K`;
+      const formatted = `${MacroFormatUtils.formatNumber(value / 1000, 0)}K`;
+      console.log(`🔍 [FRONTEND FORMAT DEBUG] ${metric}: initial jobless claims rule → ${formatted}`);
+      return formatted;
     }
     
     // Use unit from data if provided and clean

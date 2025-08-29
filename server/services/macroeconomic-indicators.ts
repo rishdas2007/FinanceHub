@@ -321,23 +321,55 @@ export class MacroeconomicService {
         };
 
         // Enhanced unit-based formatting function with metric-specific handling
-        const formatNumber = (value: number | null | undefined, unit: string, metric: string): string => {
+        const formatNumber = (value: number | null | undefined, unit: string, metric: string, label: string = '', seriesId: string = ''): string => {
+          logger.error(`🚨🚨🚨 [FORMAT ENTRY] ${metric} ${label}: Called formatNumber with value=${value}, unit="${unit}", seriesId="${seriesId}"`);
+          
           if (value === null || value === undefined || isNaN(value)) {
+            logger.debug(`🔍 [FORMAT DEBUG] ${metric} ${label}: value is null/undefined/NaN`);
             return 'N/A';
           }
           const numValue = parseFloat(String(value));
-          if (isNaN(numValue)) return 'N/A';
+          if (isNaN(numValue)) {
+            logger.debug(`🔍 [FORMAT DEBUG] ${metric} ${label}: parsed value is NaN from ${value}`);
+            return 'N/A';
+          }
 
           // Handle specific metric formatting based on known patterns
           const metricLower = metric.toLowerCase();
+          logger.info(`🔍 [PATTERN DEBUG] Checking metric patterns for: "${metric}" (lower: "${metricLower}")`);
           
-          // Jobless Claims - always in thousands, format as K or M
-          if (metricLower.includes('jobless claims')) {
-            if (numValue >= 1000) {
-              return (numValue / 1000).toFixed(1) + 'M';
+          // Jobless Claims - UNIT-AWARE: Use seriesId for definitive matching
+          const isJoblessClaims = seriesId === 'ICSA' || seriesId === 'CCSA' || 
+                                 metricLower.includes('jobless claims') || metricLower.includes('jobless') || 
+                                 metric.includes('Claims');
+          logger.info(`🔍 [MATCH DEBUG] ${metric}: isJoblessClaims=${isJoblessClaims}, seriesId=${seriesId}`);
+          
+          if (isJoblessClaims) {
+            logger.error(`🚨 [JOBLESS CLAIMS] ENTERING JOBLESS CLAIMS FORMATTING FOR ${metric} ${label} seriesId=${seriesId}`);
+            let formatted;
+            
+            // CRITICAL DEBUG: Log exact unit matching for jobless claims
+            const unitLower = (unit || '').toLowerCase();
+            const unitMatches = unitLower.includes('thousand') || unitLower === 'thousands';
+            logger.error(`🚨 [JOBLESS DEBUG] ${metric} ${label}: raw=${numValue}, unit="${unit}" (${unitLower}), matches=${unitMatches}`);
+            
+            // Smart jobless claims formatting based on value scale
+            if (numValue >= 100000) {
+              // Raw count format (e.g., 235000 → 235K)
+              formatted = Math.round(numValue / 1000) + 'K';
+              logger.error(`🚨 [JOBLESS DEBUG] ${metric} ${label}: raw count format ${numValue} → ${formatted}`);
+            } else if (numValue >= 1000) {
+              // Already thousands but very high (e.g., 1972 → 1972K, but this is probably wrong data)
+              formatted = Math.round(numValue) + 'K';
+              logger.error(`🚨 [JOBLESS DEBUG] ${metric} ${label}: high thousands format ${numValue} → ${formatted}`);
             } else {
-              return numValue.toFixed(0) + 'K';
+              // Normal thousands format (e.g., 224 → 224K)
+              formatted = Math.round(numValue) + 'K';
+              logger.error(`🚨 [JOBLESS DEBUG] ${metric} ${label}: normal thousands format ${numValue} → ${formatted}`);
             }
+            
+            logger.error(`🚨 [JOBLESS CLAIMS] RETURNING: ${formatted} for ${metric} ${label}`);
+            return formatted;
           }
           
           // CRITICAL: Smart formatting for CPI/PPI/PCE based on value range
@@ -352,55 +384,119 @@ export class MacroeconomicService {
           }
 
           // Standard unit-based formatting
+          let formatted;
+          logger.error(`🚨 [UNIT SWITCH] ${metric} ${label}: Entering switch for unit="${unit}" (exact match test)`);
+          
+          // SPECIAL CASE: Handle jobless claims before switch statement
+          if ((seriesId === 'ICSA' || seriesId === 'CCSA') && (unit === 'Thousands' || unit === 'thousands')) {
+            if (numValue >= 100000) {
+              formatted = Math.round(numValue / 1000) + 'K';
+            } else {
+              formatted = Math.round(numValue) + 'K';
+            }
+            logger.error(`🚨 [JOBLESS OVERRIDE] ${metric} ${label}: ${numValue} → ${formatted}`);
+            return formatted;
+          }
+          
           switch (unit) {
             case 'percent':
-              return numValue.toFixed(1) + '%';
+              formatted = numValue.toFixed(1) + '%';
+              break;
             
             case 'thousands':
-              if (numValue >= 1000) {
-                return (numValue / 1000).toFixed(2) + 'M';
+              logger.error(`🚨 [THOUSANDS CASE HIT] ${metric} ${label}: seriesId=${seriesId}, numValue=${numValue}`);
+              // CRITICAL FIX: Special handling for jobless claims which should always be in K format
+              if (seriesId === 'ICSA' || seriesId === 'CCSA' || metricLower.includes('jobless')) {
+                // Always format jobless claims as K, handling both raw counts and pre-scaled values
+                if (numValue >= 100000) {
+                  // Raw count (e.g., 235000 → 235K)
+                  formatted = Math.round(numValue / 1000) + 'K';
+                  logger.error(`🚨 [THOUSANDS CASE] Jobless claims raw count: ${numValue} → ${formatted}`);
+                } else {
+                  // Already in thousands (e.g., 235 → 235K)
+                  formatted = Math.round(numValue) + 'K';
+                  logger.error(`🚨 [THOUSANDS CASE] Jobless claims thousands: ${numValue} → ${formatted}`);
+                }
               } else {
-                return numValue.toFixed(0) + 'K';
+                // Standard thousands formatting for other metrics
+                if (numValue >= 1000) {
+                  formatted = (numValue / 1000).toFixed(2) + 'M';
+                } else {
+                  formatted = numValue.toFixed(0) + 'K';
+                }
               }
+              break;
+              
+            case 'Thousands':
+              logger.error(`🚨 [Thousands CASE HIT] ${metric} ${label}: Capital T version`);
+              // Handle capital T version as well
+              if (seriesId === 'ICSA' || seriesId === 'CCSA' || metricLower.includes('jobless')) {
+                if (numValue >= 100000) {
+                  formatted = Math.round(numValue / 1000) + 'K';
+                } else {
+                  formatted = Math.round(numValue) + 'K';
+                }
+              } else {
+                if (numValue >= 1000) {
+                  formatted = (numValue / 1000).toFixed(2) + 'M';
+                } else {
+                  formatted = numValue.toFixed(0) + 'K';
+                }
+              }
+              break;
             
             case 'millions_dollars':
-              return '$' + numValue.toFixed(1) + 'M';
+              formatted = '$' + numValue.toFixed(1) + 'M';
+              break;
             
             case 'billions_dollars':
               if (numValue >= 1000) {
-                return '$' + (numValue / 1000).toFixed(2) + 'T';
+                formatted = '$' + (numValue / 1000).toFixed(2) + 'T';
               } else {
-                return '$' + numValue.toFixed(1) + 'B';
+                formatted = '$' + numValue.toFixed(1) + 'B';
               }
+              break;
             
             case 'chained_dollars':
-              return '$' + numValue.toFixed(2) + 'T';
+              formatted = '$' + numValue.toFixed(2) + 'T';
+              break;
             
             case 'index':
               // For CPI/PPI indices, treat as percentages
               if (metricLower.includes('cpi') || metricLower.includes('ppi')) {
-                return numValue.toFixed(1) + '%';
+                formatted = numValue.toFixed(1) + '%';
+              } else {
+                formatted = numValue.toFixed(1);
               }
-              return numValue.toFixed(1);
+              break;
             
             case 'basis_points':
-              return numValue.toFixed(0) + ' bps';
+              formatted = numValue.toFixed(0) + ' bps';
+              break;
             
             case 'dollars_per_hour':
-              return '$' + numValue.toFixed(2);
+              formatted = '$' + numValue.toFixed(2);
+              break;
             
             case 'hours':
-              return numValue.toFixed(1) + ' hrs';
+              formatted = numValue.toFixed(1) + ' hrs';
+              break;
             
             case 'months_supply':
-              return numValue.toFixed(1) + ' months';
+              formatted = numValue.toFixed(1) + ' months';
+              break;
             
             default:
-              return numValue.toLocaleString('en-US', {
+              logger.error(`🚨 [DEFAULT CASE] ${metric} ${label}: unit="${unit}" not matched, using default formatting`);
+              formatted = numValue.toLocaleString('en-US', {
                 minimumFractionDigits: 1,
                 maximumFractionDigits: 1
               });
+              break;
           }
+          
+          logger.info(`🔍 [FORMAT DEBUG] ${metric} ${label}: raw=${numValue}, unit=${unit}, formatted=${formatted} (unit rule: ${unit})`);
+          return formatted;
         };
 
         // Enhanced variance formatting for vs Prior calculation with metric context
@@ -427,8 +523,8 @@ export class MacroeconomicService {
           releaseDate: zData.periodDate,
           period_date: zData.periodDate, // Add period_date field for table display
           // CONSISTENT FORMATTING: Use same formatNumber function for both current and prior readings
-          currentReading: formatNumber(zData.currentValue, zData.unit, zData.metric),
-          priorReading: formatNumber(priorReading, zData.unit, zData.metric),
+          currentReading: formatNumber(zData.currentValue, zData.unit, zData.metric, 'CURRENT', zData.seriesId),
+          priorReading: formatNumber(priorReading, zData.unit, zData.metric, 'PRIOR', zData.seriesId),
           varianceVsPrior: formatVariance(actualVariance, zData.unit, zData.metric), // Simple current - prior calculation
           zScore: zData.deltaAdjustedZScore, // Use delta-adjusted z-score instead of raw z-score
           deltaZScore: zData.deltaZScore, // Period-to-period change z-score

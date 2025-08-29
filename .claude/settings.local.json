@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npx ts-node:*)",
-      "Bash(tsx:*)"
+      "Bash(tsx:*)",
+      "Bash(timeout 5 curl -s \"http://localhost:5000/api/macroeconomic-indicators\")",
+      "Bash(/dev/null)"
     ],
     "deny": [],
     "ask": []
