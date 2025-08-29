@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import compression from "compression";
 import cors from "cors";
-import { registerRoutes } from "./routes";
+import { registerRoutes } from "./routes.js";
 import { intelligentCronScheduler } from "./services/intelligent-cron-scheduler";
 import { fredSchedulerIncremental } from "./services/fred-scheduler-incremental";
 import { dataStalenessPrevention } from "./services/data-staleness-prevention";

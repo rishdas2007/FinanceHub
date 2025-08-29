@@ -14,7 +14,9 @@
       "Bash(npx tsc:*)",
       "Bash(timeout:*)",
       "Bash(sed:*)",
-      "Bash(npx drizzle-kit:*)"
+      "Bash(npx drizzle-kit:*)",
+      "Bash(find:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []
