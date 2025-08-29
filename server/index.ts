@@ -240,6 +240,10 @@ app.use((req, res, next) => {
     app.use('/api/monitoring', monitoringRoutes);
     app.use('/api/docs', docsRoutes);
     
+    // Enhanced Monitoring Integration - Comprehensive System Monitoring
+    const { monitoringIntegrationRoutes } = await import('./routes/monitoring-integration');
+    app.use('/api/monitoring/system', monitoringIntegrationRoutes);
+    
     // Quality Monitoring Routes (NEW)
     app.use('/api/quality', qualityRoutes);
     
@@ -272,9 +276,11 @@ app.use((req, res, next) => {
     const { performanceOptimizationRoutes } = await import('./routes/performance-optimization');
     app.use('/api/performance/v3', performanceOptimizationRoutes);
 
-    // Clean ETF Caching Implementation (Production Fix)
-    const etfCachedCleanRoutes = await import('./routes/etf-cached-clean');
-    app.use('/api/etf', etfCachedCleanRoutes.default);
+    // Clean ETF Caching Implementation (Production Fix) 
+    // COMMENTED OUT: This route conflicts with the robust ETF routes in routes.ts
+    // The cached-clean route returns null technical indicators, causing frontend errors
+    // const etfCachedCleanRoutes = await import('./routes/etf-cached-clean');
+    // app.use('/api/etf', etfCachedCleanRoutes.default);
     
     // Register economic data backfill routes
     const economicBackfillRoutes = await import('./routes/economic-backfill-routes.js');

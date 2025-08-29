@@ -45,23 +45,47 @@ To be a robust and reliable financial analysis tool that leverages authentic gov
 financehub-pro/
 ├── client/                 # React frontend application
 │   ├── src/
-│   │   ├── components/     # Reusable UI components
+│   │   ├── components/     # Reusable UI components (50+ components)
+│   │   │   ├── ui/        # shadcn/ui component library
+│   │   │   ├── market/    # Market-specific components
+│   │   │   ├── movers/    # ETF/Economic movers components
+│   │   │   └── v2/        # Next-generation components
 │   │   ├── pages/         # Route-based page components
 │   │   ├── lib/           # Utility functions and query client
-│   │   └── assets/        # Static assets
+│   │   ├── hooks/         # Custom React hooks
+│   │   ├── context/       # React context providers
+│   │   ├── adapters/      # Data adaptation layer
+│   │   ├── types/         # Frontend-specific TypeScript types
+│   │   └── utils/         # Frontend utilities
 ├── server/                 # Express.js backend API
-│   ├── routes/            # API endpoint definitions
-│   ├── services/          # Business logic and data processing
-│   ├── middleware/        # Express middleware functions
-│   ├── utils/             # Shared utilities and helpers
-│   └── types/             # TypeScript type definitions
+│   ├── routes/            # API endpoint definitions (30+ route files)
+│   ├── services/          # Business logic (80+ service files)
+│   ├── middleware/        # Express middleware (15+ middleware)
+│   ├── controllers/       # Request controllers
+│   ├── repositories/      # Data access layer
+│   ├── container/         # Dependency injection container
+│   ├── config/            # Configuration management
+│   ├── cache/             # Caching implementations
+│   ├── utils/             # Backend utilities
+│   ├── types/             # Backend TypeScript types
+│   └── public/            # Static assets for production
 ├── shared/                 # Common code between client and server
 │   ├── schema.ts          # Database schema (Drizzle ORM)
-│   ├── types.ts           # Shared TypeScript types
+│   ├── schema-v2.ts       # Next-generation schema
+│   ├── types/             # Shared TypeScript interfaces
+│   │   ├── api.ts         # API contracts
+│   │   ├── database-types.ts # Database type definitions
+│   │   └── financial-interfaces.ts # Financial data types
+│   ├── config/            # Shared configuration
+│   ├── utils/             # Shared utility functions
+│   ├── formatters/        # Data formatting utilities
+│   ├── validation/        # Data validation schemas
 │   └── dates.ts           # Universal date handling utilities
-├── database/              # Database configurations and migrations
-├── scripts/               # Deployment and utility scripts
-└── docs/                  # Documentation and guides
+├── migrations/            # Database migration files
+├── scripts/               # Utility and deployment scripts (40+ scripts)
+├── codebase-agents/       # Automated code quality and deployment safety
+├── tests/                 # Test suites and configurations
+└── attached_assets/       # Implementation guides and analysis documents
 ```
 
 ### Technology Stack
@@ -83,10 +107,13 @@ financehub-pro/
 - WebSocket integration for real-time data
 
 **Infrastructure:**
-- PostgreSQL database
+- PostgreSQL database (Neon serverless)
 - Redis caching (with in-memory fallback)
-- Background job processing
+- Background job processing with intelligent cron scheduler
 - Real-time WebSocket connections
+- SSH support for secure remote connections
+- Production-ready deployment with Node.js optimization
+- TypeScript execution in production environments
 
 ---
 
@@ -146,6 +173,18 @@ financehub-pro/
 - `ZScoreValidator`: Prevents impossible Z-score values
 - `HistoricalDataDeduplicator`: Removes duplicate records
 - `DataAuditTrail`: Tracks all data modifications
+- `CircuitBreakerService`: Prevents cascade failures
+- `SufficiencyGates`: Ensures minimum data requirements
+- `UnitTransformer`: Standardizes data units across sources
+
+### 6. Automated Code Quality & Deployment Safety
+**Purpose**: Ensures code quality and safe deployments
+
+**Components:**
+- `CodeQualityScanner`: Automated code analysis and quality reporting
+- `DeploymentSafetyAgent`: Pre-deployment validation and safety checks
+- Production safeguards and environment validation
+- Automated performance monitoring and alerting
 
 ---
 
@@ -209,18 +248,28 @@ financehub-pro/
 ### Internal API Endpoints
 
 **ETF Routes:**
-- `GET /api/etf/robust` - Live ETF technical metrics
+- `GET /api/etf/robust` - Live ETF technical metrics with fallbacks
 - `GET /api/etf/enhanced` - Enhanced ETF data with multiple fallbacks
+- `GET /api/etf/cached-clean` - Cached ETF metrics with 5-minute refresh
+- `GET /api/etf/technical-clean` - Clean technical indicator data
 
 **Economic Routes:**
 - `GET /api/economic-health/dashboard` - Economic health score
 - `GET /api/macro/gdp-data` - GDP indicators
 - `GET /api/macro/inflation-data` - Inflation metrics
 - `POST /api/econ/sparklines/batch` - Economic trend sparklines
+- `GET /api/fred-incremental` - Incremental FRED data updates
+- `GET /api/economic-correlation` - Economic indicator correlations
 
 **Market Routes:**
 - `GET /api/market-status` - Current market session status
 - `GET /api/momentum-analysis` - Sector momentum analysis
+- `GET /api/unified-dashboard` - Complete dashboard data in single call
+
+**System Routes:**
+- `GET /api/health` - System health checks
+- `GET /api/performance-monitoring` - Performance metrics
+- `GET /api/data-quality` - Data quality reports
 
 ---
 
@@ -272,20 +321,28 @@ const { data, isLoading, error } = useQuery({
 - Inversify container for service management
 - Interface-based abstractions for testability
 - Singleton pattern for stateful services
+- Service container with 20+ registered services
 
 **Error Handling:**
 - Structured error responses with Zod validation
 - Circuit breaker pattern for external API calls
 - Graceful degradation with fallback data
+- Production error analysis and monitoring
+- Standardized error handler middleware
 
 **Middleware Stack:**
 ```typescript
-app.use(helmet());              // Security headers
-app.use(cors());                // Cross-origin requests
-app.use(compression());         // Response compression
-app.use(rateLimiter);          // Rate limiting
-app.use(requestLogging);       // Structured logging
-app.use(productionSafeguards); // Production protection
+app.use(helmet());                    // Security headers
+app.use(cors());                      // Cross-origin requests
+app.use(compression());               // Response compression
+app.use(rateLimiter);                // Rate limiting
+app.use(requestLogging);             // Structured logging
+app.use(productionSafeguards);       // Production protection
+app.use(performanceMonitoring);     // Performance tracking
+app.use(dataQualityValidation);     // Data quality checks
+app.use(environmentValidation);     // Environment validation
+app.use(memoryOptimization);        // Memory management
+app.use(databaseHealthCheck);       // Database monitoring
 ```
 
 ### Background Processing
@@ -463,7 +520,15 @@ const signal = overallZScore > 1.5 ? 'SELL'
 
 ## Recent Architecture Changes
 
-### Version 35 (Current)
+### Version 36 (Current - Replit Optimized)
+- **Production Deployment**: SSH support and secure remote connections
+- **TypeScript Execution**: Full TypeScript support in production environments
+- **Node.js Optimization**: Enhanced startup diagnostics and port handling
+- **Code Quality Automation**: Deployment safety agents and code quality scanners
+- **Enhanced Middleware**: 15+ middleware components for production stability
+- **Service Architecture**: 80+ service files with dependency injection
+
+### Version 35
 - **MACD Removal**: Trading signals now use only RSI and Bollinger %B Z-scores
 - **Enhanced ETF Routes**: Multiple fallback strategies for data reliability
 - **5-Minute Caching**: ETF data cached with background refresh
@@ -497,6 +562,6 @@ This document should be updated whenever:
 - Performance optimizations are implemented
 - Security measures are enhanced
 
-**Last Updated**: August 27, 2025  
-**Version**: 35.0  
-**Next Review**: September 27, 2025
+**Last Updated**: August 29, 2025  
+**Version**: 36.0 (Replit Optimized)  
+**Next Review**: September 29, 2025

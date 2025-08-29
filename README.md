@@ -53,6 +53,10 @@ npm run db:push
 
 # Start development server
 npm run dev
+
+# For production deployment
+npm run build
+npm start
 ```
 
 ### 3. Required Environment Variables
@@ -77,6 +81,7 @@ SENDGRID_API_KEY=your_sendgrid_key (optional)
 - Database: PostgreSQL with Drizzle ORM
 - Caching: Intelligent multi-tier caching system
 - Data Sources: Twelve Data API, FRED API
+- Deployment: Production-ready with TypeScript execution and SSH support
 
 ## Performance Achievements
 - ETF metrics response time: <100ms (97% improvement)
@@ -90,6 +95,13 @@ All technical indicators and market data are derived from authentic sources:
 - Technical indicators calculated from actual price history
 - Economic data from official government sources (FRED)
 - No synthetic or mock data used
+
+## Recent Updates
+### Production Deployment Enhancements
+- **SSH Support**: Secure remote connections enabled for production environments
+- **Server Diagnostics**: Enhanced startup diagnostics and port handling for production
+- **TypeScript Execution**: Full TypeScript support in production deployments
+- **Node.js Optimization**: Updated deployment to use Node.js for optimal production execution
 
 ## Support
 This package contains the complete FinanceHub Pro implementation as of the backup date.

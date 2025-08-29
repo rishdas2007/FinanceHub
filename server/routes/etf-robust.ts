@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { etfCacheServiceRobust } from '../services/etf-cache-service-robust';
 import { etfLiveDataService } from '../services/etf-live-data-service';
+import { etfEnhancedLiveDataService } from '../services/etf-enhanced-live-data-service';
 
 const router = Router();
 
@@ -16,20 +17,21 @@ router.get('/robust', async (req, res) => {
     console.log('🔍 [ETF DIAGNOSTIC] Request headers:', req.headers['user-agent']?.substring(0, 50));
     console.log('🔍 [ETF DIAGNOSTIC] Request timestamp:', new Date().toISOString());
     
-    // Try live data first, fallback to cache if API issues
-    console.log('🔍 [ETF DIAGNOSTIC] Trying live data fetch first...');
+    // Try enhanced historical data first, fallback to cache if API issues
+    console.log('🔍 [ETF DIAGNOSTIC] Trying enhanced live data with historical statistics...');
     let result;
     
     try {
       const liveDataStartTime = Date.now();
-      result = await etfLiveDataService.getLiveETFMetrics();
+      result = await etfEnhancedLiveDataService.getEnhancedETFMetrics();
       const liveDataDuration = Date.now() - liveDataStartTime;
       
-      console.log('✅ [ETF DIAGNOSTIC] Live API call completed:', {
+      console.log('✅ [ETF DIAGNOSTIC] Enhanced live API call completed:', {
         duration: `${liveDataDuration}ms`,
         dataLength: result.data.length,
         hasSuccess: result.success,
-        source: result.source
+        source: result.source,
+        systemWarnings: result.systemWarnings?.length || 0
       });
       
       // Check if we got real data (not all zeros)
@@ -179,6 +181,44 @@ router.get('/robust/health', async (req, res) => {
       service_status: 'unhealthy',
       message: 'ETF service health check failed',
       error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * GET /api/etf/robust/data-sufficiency - Get data sufficiency report
+ */
+router.get('/robust/data-sufficiency', async (req, res) => {
+  try {
+    console.log('📊 ETF data sufficiency report requested');
+    
+    const sufficiencyReport = await etfEnhancedLiveDataService.getDataSufficiencySummary();
+    
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      dataSufficiency: sufficiencyReport,
+      explanation: {
+        overallStatus: sufficiencyReport.overallStatus,
+        description: sufficiencyReport.overallStatus === 'sufficient' ? 
+          'All ETFs have adequate historical data for reliable Z-score calculations' :
+          sufficiencyReport.overallStatus === 'partial' ?
+          'Some ETFs have limited historical data - Z-scores may be less reliable' :
+          'Insufficient historical data - Z-scores should be used with caution',
+        recommendation: sufficiencyReport.overallStatus === 'sufficient' ?
+          'Z-score analysis is reliable for investment decisions' :
+          'Consider data quality warnings when interpreting technical signals'
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Data sufficiency report error:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate data sufficiency report',
+      message: error instanceof Error ? error.message : 'Unknown error',
       timestamp: new Date().toISOString()
     });
   }

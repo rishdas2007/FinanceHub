@@ -7,8 +7,24 @@ import { DataQualityValidator } from './data-quality-validator';
 import { dataLineageTracker } from './data-lineage-tracker';
 import { economicDataTransformer } from './economic-data-transformer';
 
-// FRED API Configuration
-const FRED_API_KEY = process.env.FRED_API_KEY || 'afa2c5a53a8116fe3a6c6fb339101ca1';
+// FRED API Configuration with validation
+function getValidFredApiKey(): string {
+  const envKey = process.env.FRED_API_KEY;
+  const fallbackKey = 'afa2c5a53a8116fe3a6c6fb339101ca1';
+  
+  // Validate environment key format (32 character alphanumeric lowercase)
+  if (envKey && envKey.match(/^[a-z0-9]{32}$/)) {
+    return envKey;
+  }
+  
+  if (envKey && envKey.trim() !== '') {
+    logger.warn('Invalid FRED_API_KEY format detected, using fallback key');
+  }
+  
+  return fallbackKey;
+}
+
+const FRED_API_KEY = getValidFredApiKey();
 const FRED_BASE_URL = 'https://api.stlouisfed.org/fred';
 
 // COMPREHENSIVE CURATED SERIES - All valid FRED series with historical data (39 indicators)

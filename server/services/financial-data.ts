@@ -94,7 +94,23 @@ export class FinancialDataService {
   private rateLimitTracker = createRateLimitTracker('TWELVE_DATA');
 
   constructor() {
-    this.apiKey = process.env.TWELVE_DATA_API_KEY || 'bdceed179a5d435ba78072dfd05f8619';
+    this.apiKey = this.getValidTwelveDataApiKey();
+  }
+
+  private getValidTwelveDataApiKey(): string {
+    const envKey = process.env.TWELVE_DATA_API_KEY;
+    const fallbackKey = 'bdceed179a5d435ba78072dfd05f8619';
+    
+    // Validate environment key format (32 character alphanumeric)
+    if (envKey && envKey.match(/^[a-f0-9]{32}$/)) {
+      return envKey;
+    }
+    
+    if (envKey && envKey.trim() !== '') {
+      console.warn('Invalid TWELVE_DATA_API_KEY format detected, using fallback key');
+    }
+    
+    return fallbackKey;
   }
   
   // Market hours: 9:30 AM ET to 4:00 PM ET (13:30 UTC to 21:00 UTC)

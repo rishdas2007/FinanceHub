@@ -43,6 +43,8 @@ interface PerformanceMetric {
   isError: boolean;
   method?: string;
   queryCount?: number;
+  serviceDependencies?: string[];
+  dependencyLatencies?: { [service: string]: number };
 }
 
 /**
@@ -66,6 +68,24 @@ interface PerformanceSummary {
   p95ResponseTime: number;
   p99ResponseTime: number;
   requestsPerMinute: number;
+  serviceDependencies: ServiceDependencyMetrics[];
+  criticalPathAnalysis: CriticalPath[];
+}
+
+interface ServiceDependencyMetrics {
+  serviceName: string;
+  callCount: number;
+  averageLatency: number;
+  errorRate: number;
+  availability: number;
+  lastSeen: number;
+}
+
+interface CriticalPath {
+  endpoint: string;
+  totalLatency: number;
+  services: { name: string; latency: number; percentage: number }[];
+  bottleneck: string;
 }
 
 /**
@@ -124,9 +144,12 @@ export class PerformanceMonitor {
   private static instance: PerformanceMonitor;
   private metrics = new Map<string, PerformanceMetric[]>();
   private memoryTrends: MemoryTrend[] = [];
+  private serviceDependencies = new Map<string, ServiceDependencyMetrics>();
+  private dependencyCallHistory = new Map<string, { timestamp: number; latency: number; success: boolean }[]>();
   private readonly MAX_METRICS_PER_ENDPOINT = 1000;
   private readonly MEMORY_SAMPLE_INTERVAL = 30000; // 30 seconds
   private readonly SLOW_REQUEST_THRESHOLD = 1000; // 1 second
+  private readonly MAX_DEPENDENCY_HISTORY = 500;
 
   private constructor() {
     // Sample memory usage every 30 seconds
@@ -149,7 +172,7 @@ export class PerformanceMonitor {
   }
 
   /**
-   * Track API endpoint performance metrics
+   * Track API endpoint performance metrics with service dependencies
    * @method trackEndpoint
    * @param {string} endpoint - API endpoint path
    * @param {number} duration - Response time in milliseconds
@@ -157,8 +180,10 @@ export class PerformanceMonitor {
    * @param {number} memoryUsage - Memory usage delta in MB
    * @param {string} [method] - HTTP method
    * @param {number} [queryCount] - Database query count
+   * @param {string[]} [serviceDependencies] - Services called during request
+   * @param {{ [service: string]: number }} [dependencyLatencies] - Service call latencies
    * @example
-   * monitor.trackEndpoint('/api/market-data', 245, 200, 1.2, 'GET', 3);
+   * monitor.trackEndpoint('/api/market-data', 245, 200, 1.2, 'GET', 3, ['etf-service', 'cache-service'], { 'etf-service': 120, 'cache-service': 25 });
    */
   trackEndpoint(
     endpoint: string, 
@@ -166,7 +191,9 @@ export class PerformanceMonitor {
     statusCode: number, 
     memoryUsage: number,
     method?: string,
-    queryCount?: number
+    queryCount?: number,
+    serviceDependencies?: string[],
+    dependencyLatencies?: { [service: string]: number }
   ): void {
     const metric: PerformanceMetric = {
       timestamp: Date.now(),
@@ -176,7 +203,9 @@ export class PerformanceMonitor {
       memoryUsage,
       isError: statusCode >= 400,
       method,
-      queryCount
+      queryCount,
+      serviceDependencies,
+      dependencyLatencies
     };
 
     if (!this.metrics.has(endpoint)) {
@@ -191,6 +220,11 @@ export class PerformanceMonitor {
       endpointMetrics.shift();
     }
 
+    // Track service dependencies if provided
+    if (serviceDependencies && dependencyLatencies) {
+      this.trackServiceDependencies(serviceDependencies, dependencyLatencies, statusCode >= 400);
+    }
+
     // Log slow requests for immediate attention
     if (duration > this.SLOW_REQUEST_THRESHOLD) {
       logger.warn('Slow request detected', {
@@ -198,7 +232,8 @@ export class PerformanceMonitor {
         method,
         duration: `${duration}ms`,
         statusCode,
-        memoryDelta: `${memoryUsage.toFixed(2)}MB`
+        memoryDelta: `${memoryUsage.toFixed(2)}MB`,
+        serviceDependencies: serviceDependencies?.join(', ') || 'none'
       });
     }
 
@@ -210,6 +245,148 @@ export class PerformanceMonitor {
         duration: `${duration}ms`
       });
     }
+  }
+
+  /**
+   * Track service dependencies for performance analysis
+   * @method trackServiceDependencies
+   * @param {string[]} services - List of services called
+   * @param {{ [service: string]: number }} latencies - Service call latencies
+   * @param {boolean} hasError - Whether the request had an error
+   * @private
+   */
+  private trackServiceDependencies(services: string[], latencies: { [service: string]: number }, hasError: boolean): void {
+    const now = Date.now();
+    
+    services.forEach(serviceName => {
+      const latency = latencies[serviceName] || 0;
+      const callRecord = {
+        timestamp: now,
+        latency,
+        success: !hasError
+      };
+
+      // Update service dependency metrics
+      if (!this.serviceDependencies.has(serviceName)) {
+        this.serviceDependencies.set(serviceName, {
+          serviceName,
+          callCount: 0,
+          averageLatency: 0,
+          errorRate: 0,
+          availability: 100,
+          lastSeen: now
+        });
+      }
+
+      const serviceMetrics = this.serviceDependencies.get(serviceName)!;
+      serviceMetrics.callCount++;
+      serviceMetrics.averageLatency = ((serviceMetrics.averageLatency * (serviceMetrics.callCount - 1)) + latency) / serviceMetrics.callCount;
+      serviceMetrics.lastSeen = now;
+
+      // Update call history
+      if (!this.dependencyCallHistory.has(serviceName)) {
+        this.dependencyCallHistory.set(serviceName, []);
+      }
+      
+      const history = this.dependencyCallHistory.get(serviceName)!;
+      history.push(callRecord);
+      
+      // Keep only recent history
+      if (history.length > this.MAX_DEPENDENCY_HISTORY) {
+        history.shift();
+      }
+
+      // Calculate error rate and availability from recent history
+      const recentHistory = history.filter(call => now - call.timestamp < 60 * 60 * 1000); // Last hour
+      if (recentHistory.length > 0) {
+        const errors = recentHistory.filter(call => !call.success).length;
+        serviceMetrics.errorRate = (errors / recentHistory.length) * 100;
+        serviceMetrics.availability = 100 - serviceMetrics.errorRate;
+      }
+    });
+  }
+
+  /**
+   * Analyze critical paths for performance bottlenecks
+   * @method analyzeCriticalPaths
+   * @param {PerformanceMetric[]} metrics - Performance metrics to analyze
+   * @returns {CriticalPath[]} Critical path analysis
+   * @private
+   */
+  private analyzeCriticalPaths(metrics: PerformanceMetric[]): CriticalPath[] {
+    const criticalPaths: CriticalPath[] = [];
+    const endpointPaths = new Map<string, PerformanceMetric[]>();
+
+    // Group metrics by endpoint
+    metrics.forEach(metric => {
+      if (metric.serviceDependencies && metric.dependencyLatencies) {
+        if (!endpointPaths.has(metric.endpoint)) {
+          endpointPaths.set(metric.endpoint, []);
+        }
+        endpointPaths.get(metric.endpoint)!.push(metric);
+      }
+    });
+
+    // Analyze each endpoint's service dependencies
+    endpointPaths.forEach((endpointMetrics, endpoint) => {
+      const recentMetrics = endpointMetrics.slice(-10); // Last 10 requests
+      if (recentMetrics.length === 0) return;
+
+      // Calculate average service latencies for this endpoint
+      const serviceLatencies = new Map<string, number[]>();
+      recentMetrics.forEach(metric => {
+        if (metric.dependencyLatencies) {
+          Object.entries(metric.dependencyLatencies).forEach(([service, latency]) => {
+            if (!serviceLatencies.has(service)) {
+              serviceLatencies.set(service, []);
+            }
+            serviceLatencies.get(service)!.push(latency);
+          });
+        }
+      });
+
+      // Create critical path analysis
+      const services: { name: string; latency: number; percentage: number }[] = [];
+      let totalServiceLatency = 0;
+      let bottleneck = '';
+      let maxLatency = 0;
+
+      serviceLatencies.forEach((latencies, serviceName) => {
+        const avgLatency = latencies.reduce((sum, l) => sum + l, 0) / latencies.length;
+        totalServiceLatency += avgLatency;
+        
+        if (avgLatency > maxLatency) {
+          maxLatency = avgLatency;
+          bottleneck = serviceName;
+        }
+        
+        services.push({
+          name: serviceName,
+          latency: Math.round(avgLatency * 100) / 100,
+          percentage: 0 // Will be calculated after total is known
+        });
+      });
+
+      // Calculate percentages
+      services.forEach(service => {
+        service.percentage = Math.round((service.latency / totalServiceLatency) * 100 * 100) / 100;
+      });
+
+      // Sort by latency (highest first)
+      services.sort((a, b) => b.latency - a.latency);
+
+      const avgTotalLatency = recentMetrics.reduce((sum, m) => sum + m.duration, 0) / recentMetrics.length;
+
+      criticalPaths.push({
+        endpoint,
+        totalLatency: Math.round(avgTotalLatency * 100) / 100,
+        services,
+        bottleneck
+      });
+    });
+
+    // Sort by total latency (slowest first)
+    return criticalPaths.sort((a, b) => b.totalLatency - a.totalLatency);
   }
 
   /**
@@ -270,6 +447,14 @@ export class PerformanceMonitor {
     // Get recent memory trends
     const recentMemoryTrends = this.memoryTrends.filter(t => t.timestamp >= cutoff);
 
+    // Get service dependency metrics
+    const serviceDependencies = Array.from(this.serviceDependencies.values())
+      .filter(service => cutoff <= service.lastSeen)
+      .sort((a, b) => b.callCount - a.callCount);
+
+    // Analyze critical paths
+    const criticalPathAnalysis = this.analyzeCriticalPaths(allMetrics);
+
     return {
       totalRequests,
       averageResponseTime: Math.round(averageResponseTime * 100) / 100,
@@ -278,7 +463,9 @@ export class PerformanceMonitor {
       memoryTrend: recentMemoryTrends,
       p95ResponseTime: Math.round(p95ResponseTime * 100) / 100,
       p99ResponseTime: Math.round(p99ResponseTime * 100) / 100,
-      requestsPerMinute
+      requestsPerMinute,
+      serviceDependencies,
+      criticalPathAnalysis: criticalPathAnalysis.slice(0, 5) // Top 5 critical paths
     };
   }
 
@@ -352,7 +539,93 @@ export class PerformanceMonitor {
       });
     }
 
+    // Service dependency recommendations
+    const dependencyIssues = Array.from(this.serviceDependencies.values())
+      .filter(service => service.errorRate > 5 || service.averageLatency > 500);
+
+    dependencyIssues.forEach(service => {
+      if (service.errorRate > 10) {
+        recommendations.push({
+          type: 'service_dependency',
+          severity: 'critical',
+          description: `Service ${service.serviceName} has high error rate: ${service.errorRate.toFixed(1)}%`,
+          action: 'Investigate service health, implement circuit breaker, add retry logic',
+          impact: 90
+        });
+      } else if (service.averageLatency > 1000) {
+        recommendations.push({
+          type: 'service_dependency',
+          severity: 'high',
+          description: `Service ${service.serviceName} has high latency: ${service.averageLatency.toFixed(0)}ms`,
+          action: 'Optimize service performance, consider caching, review database queries',
+          impact: 75
+        });
+      }
+    });
+
     return recommendations.sort((a, b) => b.impact - a.impact);
+  }
+
+  /**
+   * Get service dependency health status
+   * @method getServiceDependencyHealth
+   * @returns {object} Service dependency health metrics
+   */
+  getServiceDependencyHealth(): {
+    overallHealth: 'healthy' | 'degraded' | 'unhealthy';
+    services: ServiceDependencyMetrics[];
+    summary: {
+      totalServices: number;
+      healthyServices: number;
+      degradedServices: number;
+      unhealthyServices: number;
+      avgLatency: number;
+      avgAvailability: number;
+    };
+  } {
+    const services = Array.from(this.serviceDependencies.values());
+    
+    if (services.length === 0) {
+      return {
+        overallHealth: 'healthy',
+        services: [],
+        summary: {
+          totalServices: 0,
+          healthyServices: 0,
+          degradedServices: 0,
+          unhealthyServices: 0,
+          avgLatency: 0,
+          avgAvailability: 100
+        }
+      };
+    }
+
+    const healthyServices = services.filter(s => s.availability >= 95 && s.averageLatency < 500).length;
+    const degradedServices = services.filter(s => s.availability >= 80 && s.availability < 95 || s.averageLatency >= 500 && s.averageLatency < 2000).length;
+    const unhealthyServices = services.filter(s => s.availability < 80 || s.averageLatency >= 2000).length;
+
+    const avgLatency = services.reduce((sum, s) => sum + s.averageLatency, 0) / services.length;
+    const avgAvailability = services.reduce((sum, s) => sum + s.availability, 0) / services.length;
+
+    let overallHealth: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+    if (unhealthyServices > 0 || avgAvailability < 80) {
+      overallHealth = 'unhealthy';
+    } else if (degradedServices > services.length * 0.3 || avgAvailability < 95) {
+      overallHealth = 'degraded';
+    }
+
+    return {
+      overallHealth,
+      services: services.sort((a, b) => a.availability - b.availability), // Sort by availability (lowest first)
+      summary: {
+        totalServices: services.length,
+        healthyServices,
+        degradedServices,
+        unhealthyServices,
+        avgLatency: Math.round(avgLatency * 100) / 100,
+        avgAvailability: Math.round(avgAvailability * 100) / 100
+      }
+    };
   }
 
   /**
