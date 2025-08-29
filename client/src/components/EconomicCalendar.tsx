@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 
 interface EconomicCalendarEntry {
+  id?: number;
   seriesId: string;
   metricName: string;
   category: string;
@@ -88,9 +89,24 @@ export function EconomicCalendar() {
 
       const response = await fetch(`/api/economic-calendar?${params}`);
       if (!response.ok) {
-        throw new Error(`Failed to fetch economic calendar: ${response.statusText}`);
+        const errorMessage = response.status === 404 
+          ? 'Economic calendar API endpoint not found'
+          : response.status === 500 
+          ? 'Server error while fetching economic data'
+          : response.status === 429
+          ? 'Too many requests - please try again later'
+          : `Failed to fetch economic calendar: ${response.statusText}`;
+        throw new Error(errorMessage);
       }
-      return response.json();
+      
+      const data = await response.json();
+      
+      // Validate response structure
+      if (!data.success) {
+        throw new Error(data.error || 'Invalid response from economic calendar API');
+      }
+      
+      return data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 10 * 60 * 1000, // Refetch every 10 minutes
@@ -103,19 +119,35 @@ export function EconomicCalendar() {
     // Format based on unit type
     if (unit.toLowerCase().includes('percent') || unit.toLowerCase() === '%') {
       return `${numValue.toFixed(2)}%`;
+    } else if (unit.toLowerCase().includes('billions of dollars')) {
+      return `$${numValue.toFixed(1)}B`;
     } else if (unit.toLowerCase().includes('billion')) {
       return `${(numValue / 1000).toFixed(2)}T`; // Convert to trillions for display
     } else if (unit.toLowerCase().includes('million')) {
       return `${(numValue / 1000).toFixed(1)}B`; // Convert to billions for display
+    } else if (unit.toLowerCase().includes('thousands')) {
+      // Handle case where value is already in thousands (like Initial Claims)
+      if (numValue >= 1000) {
+        return `${(numValue / 1000).toFixed(0)}M`;
+      } else {
+        return `${numValue.toFixed(0)}K`;
+      }
     } else if (unit.toLowerCase().includes('thousand')) {
       return `${numValue.toLocaleString()}K`;
     } else if (unit.toLowerCase().includes('dollar') && numValue > 1000) {
       return `$${(numValue / 1000).toFixed(1)}K`;
     } else if (unit.toLowerCase().includes('index')) {
       return numValue.toFixed(1);
+    } else if (unit.toLowerCase().includes('rate') || unit.toLowerCase().includes('percent')) {
+      return `${numValue.toFixed(2)}%`;
     }
     
-    return numValue.toLocaleString();
+    // For whole numbers, don't show decimals
+    if (numValue % 1 === 0) {
+      return numValue.toLocaleString();
+    }
+    
+    return numValue.toLocaleString(undefined, { maximumFractionDigits: 2 });
   };
 
   const formatVariance = (variance: string | null, variancePercent: string | null): {
@@ -189,7 +221,12 @@ export function EconomicCalendar() {
           </CardTitle>
           <div className="flex items-center space-x-2">
             <div className="text-sm text-blue-400 font-medium">
-              📊 {data?.pagination.total || 0} releases
+              📊 {data?.pagination.total ? data.pagination.total.toLocaleString() : 0} releases
+              {data?.data?.length && (
+                <span className="text-gray-500 ml-1">
+                  ({data.data.length} shown)
+                </span>
+              )}
             </div>
             <button
               onClick={() => refetch()}
@@ -203,12 +240,12 @@ export function EconomicCalendar() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4 sm:gap-3">
           {/* Time Range Filter */}
           <select
             value={dateRange}
             onChange={(e) => setDateRange(e.target.value)}
-            className="bg-financial-gray border border-financial-border rounded px-3 py-1 text-sm text-white"
+            className="bg-financial-gray border border-financial-border rounded px-3 py-1 text-sm text-white min-w-[120px] flex-shrink-0"
           >
             <option value="7">Last 7 days</option>
             <option value="30">Last 30 days</option>
@@ -220,7 +257,7 @@ export function EconomicCalendar() {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="bg-financial-gray border border-financial-border rounded px-3 py-1 text-sm text-white"
+            className="bg-financial-gray border border-financial-border rounded px-3 py-1 text-sm text-white min-w-[140px] flex-shrink-0"
           >
             <option value="">All Categories</option>
             {categories.map(category => (
@@ -232,7 +269,7 @@ export function EconomicCalendar() {
           <select
             value={selectedFrequency}
             onChange={(e) => setSelectedFrequency(e.target.value)}
-            className="bg-financial-gray border border-financial-border rounded px-3 py-1 text-sm text-white"
+            className="bg-financial-gray border border-financial-border rounded px-3 py-1 text-sm text-white min-w-[140px] flex-shrink-0"
           >
             <option value="">All Frequencies</option>
             {frequencies.map(freq => (
@@ -259,10 +296,30 @@ export function EconomicCalendar() {
 
       <CardContent className="p-0">
         {isLoading ? (
-          <div className="p-6 text-center">
-            <div className="animate-pulse flex items-center justify-center space-x-2">
-              <Clock className="h-4 w-4 text-blue-400" />
-              <span className="text-gray-400">Loading economic calendar...</span>
+          <div className="p-6">
+            <div className="text-center mb-4">
+              <div className="animate-pulse flex items-center justify-center space-x-2">
+                <Clock className="h-4 w-4 text-blue-400" />
+                <span className="text-gray-400">Loading economic calendar...</span>
+              </div>
+            </div>
+            {/* Loading skeleton */}
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="animate-pulse flex space-x-4 p-3 bg-financial-gray/20 rounded">
+                  <div className="flex-shrink-0">
+                    <div className="h-4 bg-financial-gray rounded w-16"></div>
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-financial-gray rounded w-1/2"></div>
+                    <div className="h-3 bg-financial-gray/70 rounded w-1/4"></div>
+                  </div>
+                  <div className="flex-shrink-0 space-y-2">
+                    <div className="h-4 bg-financial-gray rounded w-12"></div>
+                    <div className="h-3 bg-financial-gray/70 rounded w-8"></div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         ) : !data?.data?.length ? (
@@ -273,22 +330,22 @@ export function EconomicCalendar() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[600px]">
               <thead className="bg-financial-gray/50 border-b border-financial-border">
                 <tr>
-                  <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[100px]">
                     Date
                   </th>
-                  <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[200px]">
                     Metric
                   </th>
-                  <th className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[80px]">
                     Actual
                   </th>
-                  <th className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[80px]">
                     Previous
                   </th>
-                  <th className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[80px]">
                     Change
                   </th>
                 </tr>
@@ -299,7 +356,7 @@ export function EconomicCalendar() {
                   const categoryColors = CATEGORY_COLORS[entry.category as keyof typeof CATEGORY_COLORS] || CATEGORY_COLORS.Growth;
                   
                   return (
-                    <tr key={`${entry.seriesId}-${entry.periodDate}-${index}`} className="hover:bg-financial-gray/30 transition-colors">
+                    <tr key={entry.id ? `${entry.id}` : `${entry.seriesId}-${entry.periodDate}-${index}`} className="hover:bg-financial-gray/30 transition-colors">
                       <td className="py-3 px-4">
                         <div className="text-sm text-white font-medium">
                           {formatDate(entry.releaseDate)}
