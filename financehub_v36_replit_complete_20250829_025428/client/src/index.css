@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(20, 14.3%, 4.1%);
+  --muted: hsl(60, 4.8%, 95.9%);
+  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(20, 14.3%, 4.1%);
+  --border: hsl(20, 5.9%, 90%);
+  --input: hsl(20, 5.9%, 90%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(60, 4.8%, 95.9%);
+  --secondary-foreground: hsl(24, 9.8%, 10%);
+  --accent: hsl(60, 4.8%, 95.9%);
+  --accent-foreground: hsl(24, 9.8%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(20, 14.3%, 4.1%);
+  --radius: 0.5rem;
+  
+  /* Financial Dashboard Colors */
+  --financial-dark: hsl(0, 0%, 5.9%);
+  --financial-gray: hsl(0, 0%, 10.2%);
+  --financial-card: hsl(0, 0%, 17.6%);
+  --financial-border: hsl(0, 0%, 25.1%);
+  --gain-green: hsl(142, 71%, 45%);
+  --loss-red: hsl(0, 84%, 60%);
+  --warning-yellow: hsl(38, 92%, 50%);
+}
+
+.dark {
+  --background: hsl(0, 0%, 5.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(0, 0%, 14.9%);
+  --muted-foreground: hsl(0, 0%, 63.9%);
+  --popover: hsl(0, 0%, 5.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(0, 0%, 5.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(0, 0%, 14.9%);
+  --input: hsl(0, 0%, 14.9%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(0, 0%, 14.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(0, 0%, 14.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(0, 0%, 83.9%);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-financial-dark text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .financial-card {
+    @apply bg-financial-card border border-financial-border rounded-lg;
+  }
+  
+  .financial-button {
+    @apply bg-financial-card hover:bg-financial-border text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors;
+  }
+  
+  .gain-text {
+    @apply text-gain-green;
+  }
+  
+  .loss-text {
+    @apply text-loss-red;
+  }
+  
+  .warning-text {
+    @apply text-warning-yellow;
+  }
+  
+  .pulse-dot {
+    @apply w-2 h-2 rounded-full animate-pulse;
+  }
+}
+
+@layer utilities {
+  .bg-financial-dark {
+    background-color: var(--financial-dark);
+  }
+  
+  .bg-financial-gray {
+    background-color: var(--financial-gray);
+  }
+  
+  .bg-financial-card {
+    background-color: var(--financial-card);
+  }
+  
+  .border-financial-border {
+    border-color: var(--financial-border);
+  }
+  
+  .text-gain-green {
+    color: var(--gain-green);
+  }
+  
+  .text-loss-red {
+    color: var(--loss-red);
+  }
+  
+  .text-warning-yellow {
+    color: var(--warning-yellow);
+  }
+  
+  .bg-gain-green {
+    background-color: var(--gain-green);
+  }
+  
+  .bg-loss-red {
+    background-color: var(--loss-red);
+  }
+  
+  .bg-warning-yellow {
+    background-color: var(--warning-yellow);
+  }
+}
