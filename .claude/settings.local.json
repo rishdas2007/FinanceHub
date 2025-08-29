@@ -11,7 +11,8 @@
       "Bash(npx tsx:*)",
       "Bash(curl:*)",
       "Bash(pkill:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []

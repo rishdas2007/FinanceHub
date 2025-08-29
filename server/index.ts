@@ -54,9 +54,17 @@ import { schedulerOptimizer } from './services/scheduler-optimization';
 import { cachePerformanceMonitor } from './services/cache-performance-monitor';
 
 // Enhanced environment validation
+console.log('🔍 [STARTUP DEBUG] Starting environment validation...');
 const enhancedValidation = EnvironmentValidator.validateEnvironment();
+console.log('🔍 [STARTUP DEBUG] Environment validation result:', { 
+  isValid: enhancedValidation.isValid, 
+  hasCritical: enhancedValidation.critical?.length > 0,
+  databaseUrl: !!process.env.DATABASE_URL,
+  fredApiKey: !!process.env.FRED_API_KEY
+});
 if (!enhancedValidation.isValid) {
   console.error('🚨 Environment validation failed:', enhancedValidation.critical);
+  console.error('🚨 [STARTUP DEBUG] Server will likely fail to start due to environment issues');
 }
 
 // Import and initialize database health check system - RCA Implementation
@@ -68,10 +76,14 @@ import { databaseRollbackSafety } from './middleware/database-rollback-safety';
 import { memoryOptimizer } from './middleware/memory-optimization';
 import { apiResponseOptimizer } from './middleware/api-response-optimizer';
 
+console.log('🔍 [STARTUP DEBUG] Creating Express app...');
 const app = express();
+console.log('🔍 [STARTUP DEBUG] Express app created successfully');
 
 // Trust proxy for rate limiting and security headers
+console.log('🔍 [STARTUP DEBUG] Setting up Express configuration...');
 app.set('trust proxy', 1);
+console.log('🔍 [STARTUP DEBUG] Express configuration complete');
 
 // Production safeguards and health checks
 app.use(productionHealthCheck);
@@ -365,6 +377,7 @@ app.use((req, res, next) => {
     }
     
     log(`🚀 Starting FinanceHub Pro on port ${port} (${process.env.NODE_ENV} mode)`);
+    console.log('🔍 [STARTUP DEBUG] About to start server.listen()...');
 
     // Production-safe server configuration
     const listenOptions = {
@@ -372,8 +385,11 @@ app.use((req, res, next) => {
       host: "0.0.0.0",
       ...(process.env.NODE_ENV !== 'production' && { reusePort: true })
     };
+    
+    console.log('🔍 [STARTUP DEBUG] Listen options:', listenOptions);
 
     server.listen(listenOptions, () => {
+      console.log('🔍 [STARTUP DEBUG] Server.listen() callback executed - server is running!');
       log(`🚀 FinanceHub Pro serving on port ${port}`);
       log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
       log(`🔗 Server URL: http://0.0.0.0:${port}`);
