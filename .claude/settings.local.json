@@ -4,7 +4,11 @@
       "Bash(npx ts-node:*)",
       "Bash(tsx:*)",
       "Bash(timeout 5 curl -s \"http://localhost:5000/api/macroeconomic-indicators\")",
-      "Bash(/dev/null)"
+      "Bash(/dev/null)",
+      "Bash(grep:*)",
+      "Bash(npm run build:*)",
+      "Bash(psql:*)",
+      "Bash(npx tsx:*)"
     ],
     "deny": [],
     "ask": []

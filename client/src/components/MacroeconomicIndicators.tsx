@@ -3,8 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useBatchSparklines } from '../hooks/useBatchSparklines';
 import { BatchSparklineCell } from './BatchSparklineCell';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, AlertCircle, RefreshCw, Search, Filter, ChevronUp, ChevronDown, BarChart3 } from 'lucide-react';
-import { EconomicChartModal } from './EconomicChartModal';
+import { TrendingUp, TrendingDown, AlertCircle, RefreshCw, Search, Filter, ChevronUp, ChevronDown } from 'lucide-react';
 import { ErrorBoundary } from './ErrorBoundary';
 // Removed SparklineCell import - using BatchSparklineCell for performance
 
@@ -268,13 +267,6 @@ const MacroeconomicIndicators: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
-  const [selectedIndicator, setSelectedIndicator] = useState<{
-    id: string;
-    name: string;
-    unit?: string;
-    description?: string;
-    currentValue?: number;
-  } | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -915,22 +907,14 @@ const MacroeconomicIndicators: React.FC = () => {
               </thead>
               <tbody className="space-y-1">
                 {filteredAndSortedIndicators.map((indicator, index) => (
-                  <tr key={index} className="border-b border-financial-border hover:bg-financial-gray/50 transition-colors cursor-pointer"
-                      onClick={() => setSelectedIndicator({
-                        id: indicator.metric.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase(),
-                        name: indicator.metric,
-                        unit: indicator.unit,
-                        description: `${indicator.type} ${indicator.category} indicator`,
-                        currentValue: typeof indicator.currentReading === 'number' ? indicator.currentReading : undefined
-                      })}
+                  <tr key={index} className="border-b border-financial-border hover:bg-financial-gray/50 transition-colors"
                       data-testid={`indicator-row-${index}`}
                   >
                     <td className="py-3 px-2 w-1/5">
                       <div className="flex items-center gap-2">
                         <div>
-                          <div className="text-white font-medium text-sm break-words flex items-center gap-1">
+                          <div className="text-white font-medium text-sm break-words">
                             {indicator.metric}
-                            <BarChart3 className="h-3 w-3 text-blue-400 opacity-60" />
                           </div>
                           <div className="text-xs text-gray-400">
                             {indicator.releaseDate ? `Released: ${new Date(indicator.releaseDate).toLocaleDateString()}` : ''}
@@ -1000,18 +984,10 @@ const MacroeconomicIndicators: React.FC = () => {
           <strong className="text-blue-400"> Positive z-scores = Economic Strength, Negative z-scores = Economic Weakness.</strong> 
           Indicators marked "(Δ-adjusted)" have been inverted for consistent interpretation (e.g., lower unemployment rates show positive z-scores).
           <br />
-          <strong className="text-white">Interactive Charts:</strong> Click any indicator row to view detailed historical charts with multiple time ranges and export options.
+          <strong className="text-white">Economic Indicators:</strong> View real-time economic data with Z-score analysis and trend indicators.
         </p>
       </div>
 
-      {/* Economic Chart Modal */}
-      {selectedIndicator && (
-        <EconomicChartModal
-          isOpen={!!selectedIndicator}
-          onClose={() => setSelectedIndicator(null)}
-          metric={selectedIndicator}
-        />
-      )}
     </div>
   );
 };

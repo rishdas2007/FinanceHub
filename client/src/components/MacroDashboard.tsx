@@ -116,31 +116,28 @@ export function MacroDashboard() {
   // Process GDP data from FRED API
   const quarterlyGDPData = React.useMemo(() => {
     if (!quarterlyData?.success || !quarterlyData?.data) {
-      // Fallback data if API fails
+      // Fallback data if API fails - in chronological order Q2 2024 → Q2 2025
       return [
-        { quarter: 'Q2 2025', nominal: 689.0, real: 634.0, growth: 3.3 },
-        { quarter: 'Q1 2025', nominal: 685.0, real: 632.0, growth: -0.5 },
-        { quarter: 'Q4 2024', nominal: 682.0, real: 630.0, growth: 2.3 },
+        { quarter: 'Q2 2024', nominal: 676.0, real: 624.0, growth: 3.0 },
         { quarter: 'Q3 2024', nominal: 679.0, real: 627.0, growth: 2.8 },
-        { quarter: 'Q2 2024', nominal: 676.0, real: 624.0, growth: 3.0 }
+        { quarter: 'Q4 2024', nominal: 682.0, real: 630.0, growth: 2.3 },
+        { quarter: 'Q1 2025', nominal: 685.0, real: 632.0, growth: -0.5 },
+        { quarter: 'Q2 2025', nominal: 689.0, real: 634.0, growth: 3.3 }
       ];
     }
 
-    // Process real GDP data from FRED
-    return quarterlyData.data
-      .slice(0, 5) // Last 5 quarters
-      .map((item: any) => {
-        const date = new Date(item.periodDate);
-        const quarter = Math.ceil((date.getMonth() + 1) / 3);
-        const year = date.getFullYear();
-        
-        return {
-          quarter: `Q${quarter} ${year}`,
-          nominal: parseFloat(item.valueNumeric) || 0,
-          real: parseFloat(item.valueNumeric) * 0.92 || 0, // Estimated real GDP adjustment
-          growth: parseFloat(item.annualChange) || 0
-        };
-      });
+    // Process real GDP data - API returns data in reverse chronological order
+    const quarters = quarterlyData.data.quarters || [];
+    
+    return quarters
+      .slice() // Create a copy to avoid mutating original
+      .reverse() // Reverse to get chronological order Q2 2024 → Q2 2025
+      .map((item: any) => ({
+        quarter: item.quarter,
+        nominal: item.nominal || 0,
+        real: item.real || 0,
+        growth: item.growth || 0
+      }));
   }, [quarterlyData]);
 
   // Process inflation data from FRED API 
@@ -245,7 +242,7 @@ export function MacroDashboard() {
               <h3 className="text-sm font-medium text-blue-400 mb-2">Real GDP Growth (% Quarterly)</h3>
               <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={quarterlyGDPData.slice().reverse()}>
+                  <BarChart data={quarterlyGDPData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                     <XAxis 
                       dataKey="quarter" 
