@@ -13,6 +13,22 @@ process.env.NODE_ENV = 'production';
 
 console.log('🚀 Starting FinanceHub Pro in production mode...');
 
+// PRODUCTION STARTUP DIAGNOSTIC LOGGING
+console.log('🔍 [STARTUP DIAGNOSTIC] Validating production environment...');
+
+// Check critical environment variables at startup script level
+console.log('🔍 [STARTUP ENV CHECK] Environment variables:');
+console.log(`  - NODE_ENV: ${process.env.NODE_ENV || 'MISSING'}`);
+console.log(`  - PORT: ${process.env.PORT || 'MISSING (server will default to 80)'}`);
+console.log(`  - DATABASE_URL: ${process.env.DATABASE_URL ? 'PRESENT' : 'MISSING'}`);
+
+// Check execution environment
+console.log('🔍 [STARTUP PROCESS] Process information:');
+console.log(`  - PID: ${process.pid}`);
+console.log(`  - Platform: ${process.platform}`);
+console.log(`  - Node version: ${process.version}`);
+console.log(`  - Working directory: ${process.cwd()}`);
+
 // Determine the best execution strategy
 let command, args;
 

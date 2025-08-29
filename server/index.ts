@@ -191,10 +191,25 @@ app.use((req, res, next) => {
       }
     }
 
+    // Assumption #3: Database Connectivity Check
+    log('🔍 [DATABASE CHECK] Testing database connectivity...');
+    log(`  - DATABASE_URL configured: ${process.env.DATABASE_URL ? 'YES' : 'NO'}`);
+    if (process.env.DATABASE_URL) {
+      try {
+        const dbUrlParts = new URL(process.env.DATABASE_URL);
+        log(`  - Database host: ${dbUrlParts.hostname}`);
+        log(`  - Database port: ${dbUrlParts.port || 'default'}`);
+        log(`  - Database name: ${dbUrlParts.pathname.replace('/', '')}`);
+      } catch (urlError) {
+        log(`  - DATABASE_URL parse error: ${String(urlError)}`);
+      }
+    }
+
     // DEPLOYMENT FIX: Make database health validation non-blocking
     // Move database validation to background to prevent health check timeouts
     setTimeout(async () => {
       try {
+        log('🔍 [DATABASE DIAGNOSTIC] Starting comprehensive database validation...');
         log('🔍 Performing background database health validation...');
         await validateDatabaseOnStartup();
         
@@ -321,21 +336,29 @@ app.use((req, res, next) => {
     // Graceful shutdown
     gracefulShutdown(server);
 
-    // ALWAYS serve the app on the port specified in the environment variable PORT
-    // Cloud Run requires port 80. Default to 80 if not specified.
-    // this serves both the API and the client.
-    // It is the only port that is not firewalled.
-    const port = parseInt(process.env.PORT || '80', 10);
+    // CLOUD RUN PRODUCTION PORT CONFIGURATION FIX
+    // Cloud Run provides dynamic PORT assignment (usually 8080)
+    // Development uses 5000, production uses Cloud Run's assigned port
+    let port: number;
     
-    // Validate port configuration for deployment
-    if (isNaN(port) || port < 1 || port > 65535) {
-      const errorMsg = `❌ Invalid port configuration: ${process.env.PORT}. Using default port 80.`;
-      log(errorMsg);
-      // Don't throw in production - use fallback
-      if (process.env.NODE_ENV === 'production') {
-        log('⚠️ Using fallback port 80 for Cloud Run deployment');
-      }
+    if (process.env.NODE_ENV === 'production') {
+      // In production, Cloud Run MUST provide PORT - use it or default to 8080
+      port = parseInt(process.env.PORT || '8080', 10);
+      log('🔍 [PRODUCTION PORT] Using Cloud Run dynamic port assignment');
+    } else {
+      // Development mode - keep using 5000 for local development
+      port = parseInt(process.env.PORT || '5000', 10);
+      log('🔍 [DEVELOPMENT PORT] Using development port 5000');
     }
+    
+    // Validate port configuration
+    if (isNaN(port) || port < 1 || port > 65535) {
+      const errorMsg = `❌ Invalid port configuration: ${process.env.PORT}.`;
+      log(errorMsg);
+      port = process.env.NODE_ENV === 'production' ? 8080 : 5000;
+    }
+    
+    log(`🚀 Starting FinanceHub Pro on port ${port} (${process.env.NODE_ENV} mode)`);
 
     // Production-safe server configuration
     const listenOptions = {
@@ -479,17 +502,35 @@ app.use((req, res, next) => {
       }, 15000); // 15-second delay to ensure server is fully responsive first
     });
 
-    // Add server error handling
+    // Enhanced server error handling with diagnostic logging
     server.on('error', (error: any) => {
-      log('❌ Server error:', String(error));
+      log('❌ [ERROR DIAGNOSTIC] Server startup error detected:');
+      log(`  - Error code: ${error.code || 'UNKNOWN'}`);
+      log(`  - Error message: ${error.message || 'No message'}`);
+      log(`  - Target port: ${port}`);
+      log(`  - Host: 0.0.0.0`);
+      log(`  - Environment: ${process.env.NODE_ENV}`);
+      
       if (error.code === 'EADDRINUSE') {
-        log(`❌ Port ${port} is already in use. Please check if another instance is running.`);
+        log('🔍 [PORT CONFLICT DETECTED] Root cause analysis:');
+        log(`  - Port ${port} is already in use`);
+        log('  - Possible causes:');
+        log('    1. Another server instance is already running');
+        log('    2. Development server (port 5000) conflict with production');
+        log('    3. Cloud Run port assignment issue');
+        log('    4. Multiple deployment instances started simultaneously');
+        log(`🚨 [SOLUTION] Check running processes and ensure only one server instance`);
         process.exit(1);
       } else if (error.code === 'EACCES') {
-        log(`❌ Permission denied to bind to port ${port}. Try using a port above 1024.`);
+        log('🔍 [PERMISSION DENIED] Root cause analysis:');
+        log(`  - Permission denied to bind to port ${port}`);
+        log('  - Cloud Run should provide appropriate permissions');
+        log(`🚨 [SOLUTION] Port permissions issue in production environment`);
         process.exit(1);
       } else {
-        log('❌ Unexpected server error occurred:', error.message);
+        log('🔍 [UNKNOWN ERROR] Unexpected server error:');
+        log(`  - Stack trace: ${error.stack || 'No stack trace'}`);
+        log(`🚨 [CRITICAL] Unknown server startup error in production`);
         if (process.env.NODE_ENV === 'production') {
           process.exit(1);
         }
