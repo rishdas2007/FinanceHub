@@ -1,20 +1,35 @@
 #!/usr/bin/env node
 /**
  * Production startup script for FinanceHub Pro
- * Uses tsx to run TypeScript directly in production with proper environment settings
+ * Intelligent TypeScript execution with multiple fallback strategies
  */
 
 import { spawn } from 'child_process';
+import { existsSync } from 'fs';
 import path from 'path';
 
 // Set production environment
 process.env.NODE_ENV = 'production';
 
 console.log('🚀 Starting FinanceHub Pro in production mode...');
-console.log('📦 Using tsx for TypeScript execution');
 
-// Start the server using tsx
-const serverProcess = spawn('npx', ['tsx', 'server/index.ts'], {
+// Determine the best execution strategy
+let command, args;
+
+if (existsSync('./dist/server/index.js')) {
+  console.log('📦 Found compiled JavaScript, using compiled version for optimal performance');
+  command = 'node';
+  args = ['dist/server/index.js'];
+} else {
+  console.log('📦 Using tsx for direct TypeScript execution');
+  command = 'npx';
+  args = ['tsx', 'server/index.ts'];
+}
+
+console.log(`🔧 Executing: ${command} ${args.join(' ')}`);
+
+// Start the server
+const serverProcess = spawn(command, args, {
   stdio: 'inherit',
   cwd: process.cwd(),
   env: {
@@ -32,6 +47,7 @@ serverProcess.on('close', (code) => {
 // Handle errors
 serverProcess.on('error', (error) => {
   console.error('Failed to start server:', error);
+  console.error('Make sure tsx is available or run ./build.sh first');
   process.exit(1);
 });
 
