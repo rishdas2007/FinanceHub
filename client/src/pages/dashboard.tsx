@@ -2,7 +2,7 @@
 
 
 import { SPYBaseline } from "@/components/SPYBaseline";
-import MacroeconomicIndicators from "@/components/MacroeconomicIndicators";
+import EconomicIndicatorsTable from "@/components/EconomicIndicatorsTable";
 
 import { StatisticalAlertSystem } from "@/components/StatisticalAlertSystem";
 import { EconomicPulseCheck } from "@/components/EconomicPulseCheck";
@@ -90,8 +90,8 @@ export default function Dashboard() {
 
 
 
-        {/* Macroeconomic Indicators Module - now includes AI Economic Analysis */}
-        <MacroeconomicIndicators />
+        {/* Economic Indicators Table - Clean, simple table with all requested columns */}
+        <EconomicIndicatorsTable />
 
 
       </div>
