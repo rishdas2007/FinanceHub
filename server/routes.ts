@@ -63,6 +63,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Debug PPI dates endpoint
   app.use('/api/debug-ppi-dates', (await import('./routes/debug-ppi-dates')).default);
   
+  // Unified Pipeline Diagnostics (for production troubleshooting)
+  app.use('/api/unified-diagnostics', (await import('./routes/unified-pipeline-diagnostics')).default);
+  
   // Phase 3: Manual Economic Data Refresh Endpoint
   app.post('/api/admin/refresh-economic-data', async (req, res) => {
     try {

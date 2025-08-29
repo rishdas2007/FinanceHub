@@ -465,50 +465,65 @@ export class MacroeconomicService {
    * Now uses unified data access layer and transformation middleware
    */
   private async getDataFromDatabase(): Promise<MacroeconomicData | null> {
-    // AUDIT LOGGING: Track schema differences between tables
-    await this.auditTableSchemaDifferences();
+    // AUDIT LOGGING: Only run in development to avoid production performance impact
+    if (process.env.NODE_ENV !== 'production') {
+      await this.auditTableSchemaDifferences();
+    }
     
-    // UNIFIED DATA ACCESS: Use new layer to handle schema differences
-    logger.info('🔄 [PIPELINE] Using unified data access layer for consistent data retrieval');
-    const unifiedIndicators = await unifiedEconomicDataAccess.getEconomicIndicators(undefined, {
-      preferredSource: 'auto',
-      validateUnits: true,
-      normalizeValues: true,
-      includeMetadata: true
-    });
-    
-    if (!unifiedIndicators || unifiedIndicators.length === 0) {
-      logger.warn('⚠️ [UNIFIED ACCESS] No indicators retrieved from unified layer');
-      // Fall back to legacy method if needed
-    } else {
-      logger.info(`✅ [UNIFIED ACCESS] Retrieved ${unifiedIndicators.length} indicators through unified layer`);
+    // UNIFIED DATA ACCESS: Use new layer with error handling for production
+    try {
+      logger.info('🔄 [PIPELINE] Using unified data access layer for consistent data retrieval');
+      const unifiedIndicators = await Promise.race([
+        unifiedEconomicDataAccess.getEconomicIndicators(undefined, {
+          preferredSource: 'auto',
+          validateUnits: false,  // Disable validation in production for performance
+          normalizeValues: true,
+          includeMetadata: false // Disable metadata for performance
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Unified access timeout')), 30000))
+      ]);
       
-      // TRANSFORMATION MIDDLEWARE: Apply standardization
-      logger.info('🔄 [PIPELINE] Applying data transformation middleware for standardization');
-      const transformationResult = await dataTransformationMiddleware.transformBatch(
-        unifiedIndicators.map(indicator => ({
-          seriesId: indicator.seriesId,
-          metric: indicator.metric,
-          value: indicator.value,
-          unit: indicator.unit,
-          periodDate: indicator.periodDate,
-          source: indicator.source
-        })),
-        {
-          enforceUnitStandards: true,
-          normalizeValueScales: true,
-          validateTransformations: true,
-          logTransformations: true
+      if (!unifiedIndicators || unifiedIndicators.length === 0) {
+        logger.warn('⚠️ [UNIFIED ACCESS] No indicators retrieved, falling back to legacy method');
+      } else {
+        logger.info(`✅ [UNIFIED ACCESS] Retrieved ${unifiedIndicators.length} indicators through unified layer`);
+        
+        // TRANSFORMATION MIDDLEWARE: Apply standardization with timeout
+        try {
+          logger.info('🔄 [PIPELINE] Applying data transformation middleware for standardization');
+          const transformationResult = await Promise.race([
+            dataTransformationMiddleware.transformBatch(
+              unifiedIndicators.map(indicator => ({
+                seriesId: indicator.seriesId,
+                metric: indicator.metric,
+                value: indicator.value,
+                unit: indicator.unit,
+                periodDate: indicator.periodDate,
+                source: indicator.source
+              })),
+              {
+                enforceUnitStandards: true,
+                normalizeValueScales: true,
+                validateTransformations: false, // Disable validation for performance
+                logTransformations: false      // Disable logging for performance
+              }
+            ),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Transformation timeout')), 20000))
+          ]);
+          
+          logger.info(`🔧 [TRANSFORMATION] Applied ${transformationResult.transformations.length} transformations`);
+          logger.info(`✅ [PIPELINE] Unified pipeline processed ${transformationResult.data.length} standardized indicators`);
+          
+          // Use transformed data if successful
+          if (transformationResult.data.length > 0) {
+            return this.processUnifiedData(transformationResult.data, unifiedIndicators);
+          }
+        } catch (transformError) {
+          logger.error('❌ [TRANSFORMATION] Failed, falling back to legacy:', transformError.message);
         }
-      );
-      
-      logger.info(`🔧 [TRANSFORMATION] Applied ${transformationResult.transformations.length} transformations`);
-      logger.info(`✅ [PIPELINE] Unified pipeline processed ${transformationResult.data.length} standardized indicators`);
-      
-      // Use transformed data if successful, otherwise fall back to legacy processing
-      if (transformationResult.data.length > 0) {
-        return this.processUnifiedData(transformationResult.data, unifiedIndicators);
       }
+    } catch (unifiedError) {
+      logger.error('❌ [UNIFIED ACCESS] Failed, falling back to legacy method:', unifiedError.message);
     }
     try {
       // Import live z-score calculator and YoY transformer
