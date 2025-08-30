@@ -4,24 +4,35 @@ import path from 'path';
 
 // Production Health Check Middleware
 export function productionHealthCheck(req: Request, res: Response, next: NextFunction) {
-  if (req.path === '/health') {
-    res.json({
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
-      uptime: process.uptime(),
-      memory: process.memoryUsage(),
-      version: process.env.npm_package_version || 'unknown'
-    });
-    return;
+  try {
+    // Add null check for req.path
+    const requestPath = req.path || req.url || '/';
+    
+    if (requestPath === '/health') {
+      return res.status(200).json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'production',
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        version: process.env.npm_package_version || 'unknown'
+      });
+    }
+    next();
+  } catch (error) {
+    console.error('❌ Production health check error:', error);
+    next();
   }
-  next();
 }
 
 // Static File Validation Middleware
 export function staticFileValidation(req: Request, res: Response, next: NextFunction) {
-  // Add debug logging for all HTML responses
-  if (!req.path.startsWith('/api')) {
+  try {
+    // Add null check for req.path to prevent undefined errors
+    const requestPath = req.path || req.url || '/';
+    
+    // Add debug logging for all HTML responses
+    if (!requestPath.startsWith('/api')) {
     const originalSend = res.send;
     res.send = function(body: any) {
       if (typeof body === 'string' && body.includes('<!DOCTYPE html>')) {
@@ -32,8 +43,8 @@ export function staticFileValidation(req: Request, res: Response, next: NextFunc
     };
   }
 
-  // Only apply to root path requests
-  if (req.path === '/' && req.method === 'GET') {
+    // Only apply to root path requests
+    if (requestPath === '/' && req.method === 'GET') {
     const staticPath = path.resolve(process.cwd(), 'dist/public');
     const indexPath = path.join(staticPath, 'index.html');
     
@@ -70,8 +81,12 @@ export function staticFileValidation(req: Request, res: Response, next: NextFunc
       });
       return;
     }
+    }
+    next();
+  } catch (error) {
+    console.error('❌ Static file validation error:', error);
+    next();
   }
-  next();
 }
 
 // Deployment Status Check
@@ -108,8 +123,12 @@ export function errorRecoveryMiddleware(error: Error, req: Request, res: Respons
     timestamp: new Date().toISOString()
   });
   
-  // For frontend routes, try to serve a basic error page
-  if (!req.path.startsWith('/api/')) {
+  try {
+    // Add null check for req.path
+    const requestPath = req.path || req.url || '/';
+    
+    // For frontend routes, try to serve a basic error page
+    if (!requestPath.startsWith('/api/')) {
     res.status(500).send(`
       <!DOCTYPE html>
       <html>
@@ -134,14 +153,22 @@ export function errorRecoveryMiddleware(error: Error, req: Request, res: Respons
         </body>
       </html>
     `);
-    return;
+      return;
+    }
+    
+    // For API routes, return JSON error
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: 'A server error occurred while processing your request',
+        timestamp: new Date().toISOString(),
+        path: requestPath
+      });
+    }
+  } catch (middlewareError) {
+    console.error('❌ Error recovery middleware failed:', middlewareError);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Critical server error' });
+    }
   }
-  
-  // For API routes, return JSON error
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: 'A server error occurred while processing your request',
-    timestamp: new Date().toISOString(),
-    path: req.path
-  });
 }
