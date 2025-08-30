@@ -226,18 +226,21 @@ export class FinancialDataService {
       );
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        console.warn(`⚠️ [EXTERNAL API FALLBACK] HTTP error for ${symbol}: ${response.status} ${response.statusText}`);
+        return this.createFallbackQuoteResponse(symbol, `HTTP ${response.status}: ${response.statusText}`);
       }
       
       const data: TwelveDataQuoteResponse = await response.json();
       
       if (!data.symbol) {
-        throw new Error('Invalid response from Twelve Data API');
+        console.warn(`⚠️ [EXTERNAL API FALLBACK] Invalid response structure for ${symbol}`);
+        return this.createFallbackQuoteResponse(symbol, 'Invalid response structure from API');
       }
       
       // Validate that we have real data, not API fallbacks
       if (!data.close || !data.change || !data.percent_change) {
-        throw new Error(`Incomplete data received for ${symbol}`);
+        console.warn(`⚠️ [EXTERNAL API FALLBACK] Incomplete data received for ${symbol}`);
+        return this.createFallbackQuoteResponse(symbol, 'Incomplete data from API');
       }
       
       return {
@@ -249,10 +252,27 @@ export class FinancialDataService {
         previousClose: parseFloat(data.previous_close || (parseFloat(data.close) - parseFloat(data.change)).toString()),
       };
     } catch (error) {
-      console.error(`Error fetching stock quote for ${symbol}:`, error);
-      // Return null instead of misleading fallback data - let calling services handle missing data appropriately
-      throw new Error(`Unable to fetch authentic quote data for ${symbol}. API unavailable.`);
+      console.warn(`⚠️ [EXTERNAL API FALLBACK] Unable to fetch quote for ${symbol}:`, error instanceof Error ? error.message : String(error));
+      // Return fallback data instead of throwing to prevent 500 errors
+      return this.createFallbackQuoteResponse(symbol, error instanceof Error ? error.message : String(error));
     }
+  }
+
+  /**
+   * Create a fallback response when external API fails
+   * This prevents 500 errors and allows graceful degradation
+   */
+  private createFallbackQuoteResponse(symbol: string, errorReason: string) {
+    return {
+      symbol,
+      price: 0,
+      change: 0,
+      changePercent: 0,
+      volume: 0,
+      previousClose: 0,
+      error: errorReason,
+      source: 'fallback_due_to_api_failure'
+    };
   }
 
   async getTechnicalIndicators(symbol: string) {

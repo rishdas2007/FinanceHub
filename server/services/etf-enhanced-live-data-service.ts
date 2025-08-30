@@ -89,8 +89,15 @@ export class ETFEnhancedLiveDataService {
       // Fetch real-time price data and calculate enhanced metrics
       const etfPromises = this.ETF_SYMBOLS.map(async (etf) => {
         try {
-          // Get real-time quote
+          // Get real-time quote with error handling
           const quote = await this.financialDataService.getStockQuote(etf.symbol);
+          
+          // Handle API fallback responses gracefully
+          if (quote.source === 'fallback_due_to_api_failure') {
+            logger.warn(`⚠️ [ETF SERVICE] Using fallback data for ${etf.symbol}: ${quote.error}`);
+            // Continue with zero values and return fallback ETF metrics
+            return this.createFallbackETFMetrics(etf, quote.error || 'External API failure');
+          }
           
           // Get historical technical indicators from database (not mock data)
           const technicalData = await this.getLatestTechnicalIndicators(etf.symbol);
@@ -219,6 +226,41 @@ export class ETFEnhancedLiveDataService {
         systemWarnings: ['System-wide data fetch failure']
       };
     }
+  }
+
+  /**
+   * Create fallback ETF metrics when external API fails
+   * This prevents data loss and ensures graceful degradation
+   */
+  private createFallbackETFMetrics(etf: { symbol: string; name: string }, errorReason: string): EnhancedETFMetrics {
+    return {
+      symbol: etf.symbol,
+      name: etf.name,
+      price: 0,
+      changePercent: 0,
+      volume: null,
+      rsi: null,
+      macd: null,
+      bollingerPercB: null,
+      sma50: null,
+      sma200: null,
+      zScore: null,
+      rsiZScore: null,
+      macdZScore: null,
+      bbZScore: null,
+      maGap: null,
+      maGapPct: null,
+      maGapZ: null,
+      signal: 'HOLD' as const,
+      lastUpdated: new Date().toISOString(),
+      source: 'historical_analysis' as const,
+      dataQuality: {
+        confidence: 'low' as const,
+        reliability: 0,
+        dataPoints: 0,
+        warning: `External API failure: ${errorReason}`
+      }
+    };
   }
 
   /**

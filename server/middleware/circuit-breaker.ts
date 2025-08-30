@@ -93,3 +93,47 @@ export const databaseCircuitBreaker = new CircuitBreaker('DATABASE', {
   recoveryTimeout: 60000, // 1 minute
   monitoringInterval: 10000
 });
+
+/**
+ * Global Promise Rejection Handler
+ * Catches any remaining unhandled promise rejections
+ */
+export function initializeGlobalErrorHandlers() {
+  // Handle unhandled promise rejections
+  process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+    logger.error('🚨 UNHANDLED PROMISE REJECTION CAUGHT', {
+      reason: reason?.message || String(reason),
+      stack: reason?.stack,
+      promise: String(promise),
+      timestamp: new Date().toISOString(),
+      source: 'global_handler'
+    });
+    
+    // Don't crash in production - log and continue
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('Production: Unhandled promise rejection caught and logged');
+    }
+  });
+
+  // Handle uncaught exceptions
+  process.on('uncaughtException', (error: Error) => {
+    logger.error('🚨 UNCAUGHT EXCEPTION', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString(),
+      source: 'global_handler'
+    });
+    
+    // In production, attempt graceful shutdown
+    if (process.env.NODE_ENV === 'production') {
+      console.error('Production: Uncaught exception - attempting graceful shutdown');
+      setTimeout(() => process.exit(1), 5000);
+    } else {
+      // In development, log but continue
+      console.error('Development: Uncaught exception logged');
+    }
+  });
+
+  logger.info('🛡️ Global error handlers initialized');
+}
