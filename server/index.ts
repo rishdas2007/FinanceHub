@@ -152,29 +152,10 @@ promiseRejectionHandler();
 app.use(productionHealthCheck);
 app.use(staticFileValidation);
 
-// DEPLOYMENT FIX: Simple health check endpoint without middleware dependencies
-// This endpoint is designed to always respond successfully for deployment health checks
+// DEPLOYMENT FIX: Ultra-simple health check endpoint for Cloud Run
+// This endpoint responds immediately without any dependencies or operations
 app.get('/health', (req, res) => {
-  try {
-    res.status(200).json({
-      ok: true,
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      service: 'FinanceHub Pro',
-      environment: process.env.NODE_ENV || 'production',
-      uptime: process.uptime(),
-      version: process.env.npm_package_version || '1.0.0'
-    });
-  } catch (error) {
-    // Even if there's an error, return 200 for deployment health checks
-    res.status(200).json({
-      ok: true,
-      status: 'degraded',
-      timestamp: new Date().toISOString(),
-      service: 'FinanceHub Pro',
-      error: 'Health check degraded but service operational'
-    });
-  }
+  res.status(200).json({ ok: true, status: 'healthy' });
 });
 
 // Enhanced health check endpoint with deployment validation (alternative endpoint)
@@ -215,7 +196,7 @@ app.use('/api', compression());
 app.use('/api', cors(corsOptions));
 app.use('/api', apiRateLimit);
 
-// CRITICAL FIX: Ensure all API responses are JSON by default
+// Simplified API response handling to prevent Express corruption
 app.use('/api', (req: Request, res: Response, next: NextFunction) => {
   // Set default Content-Type for API routes
   if (!res.getHeader('Content-Type')) {
@@ -226,22 +207,6 @@ app.use('/api', (req: Request, res: Response, next: NextFunction) => {
   if (req.url.includes('recent-economic') || req.url.includes('fred-recent')) {
     console.log(`🔍 [ECONOMIC ROUTE DEBUG] ${req.method} ${req.url} - Content-Type: ${res.getHeader('Content-Type')}`);
   }
-
-  // Override res.send to always ensure JSON response for API routes
-  const originalSend = res.send;
-  res.send = function(data: any) {
-    if (typeof data === 'string' && !res.getHeader('Content-Type')?.toString().includes('application/json')) {
-      try {
-        JSON.parse(data);
-        res.setHeader('Content-Type', 'application/json');
-      } catch (e) {
-        // If it's not valid JSON, treat it as an error response
-        console.log(`🔍 [JSON CONVERSION DEBUG] Converting non-JSON response to JSON for ${req.url}`);
-        return originalSend.call(this, JSON.stringify({ error: data }));
-      }
-    }
-    return originalSend.call(this, data);
-  };
 
   next();
 });
@@ -339,70 +304,71 @@ app.use((req, res, next) => {
       }
     }, 5000); // 5 second delay to allow server to start responding first
 
-    // Register health routes with proper isolation
-    app.use('/api/health', healthRoutes);
-    
-    // Register deployment health check routes
-    const deploymentHealthRoutes = await import('./routes/deployment-health');
-    app.use('/api/deployment', deploymentHealthRoutes.default);
-    
-    // Register enhanced routes with versioning
-    app.use('/api/v1', v1Routes);
-    app.use('/api/v2', v2Routes);
+    // Register original routes (maintain backward compatibility)
+    const server = await registerRoutes(app);
 
-    // Optional Enhancements - Monitoring and Docs
-    app.use('/api/monitoring', monitoringRoutes);
-    app.use('/api/docs', docsRoutes);
-    
-    // Enhanced Monitoring Integration - Comprehensive System Monitoring
-    const { monitoringIntegrationRoutes } = await import('./routes/monitoring-integration');
-    app.use('/api/monitoring/system', monitoringIntegrationRoutes);
-    
-    // Quality Monitoring Routes (NEW)
-    app.use('/api/quality', qualityRoutes);
-    
-    // Enhanced Statistical Demo Routes (10-Year Data Showcase)
-    app.use('/api/statistical', enhancedZScoreRoutes);
-    
-    // Admin Migration Routes for Economic Data Unit Fix
-    app.use('/api/admin', adminMigrationRoutes);
-    
-    // Cached ETF Metrics (Real Data + Performance) - Takes Priority
-    app.use('/api', cachedEtfMetricsRoutes);
-    
-    // Data Integrity Dashboard
-    app.use('/api', dataIntegrityDashboardRoutes);
-    
-    // Simple ETF Metrics Fix (Working Solution) - Disabled for cache testing
-    // app.use('/api', etfSimpleFixRoutes);
-    
-    // Direct ETF Metrics Fix (Immediate Data Restoration) - Disabled temporarily
-    // app.use('/api', etfMetricsDirectFixRoutes);
-    
-    // Optimized ETF Metrics Routes (Performance Fix) - Disabled temporarily
-    // app.use('/api', optimizedEtfMetricsRoutes);
-    
-    // Performance monitoring routes
-    const { performanceMonitoringRoutes } = await import('./routes/performance-monitoring');
-    app.use('/api/performance', performanceMonitoringRoutes);
-    
-    // Phase 3: Performance optimization routes
-    const { performanceOptimizationRoutes } = await import('./routes/performance-optimization');
-    app.use('/api/performance/v3', performanceOptimizationRoutes);
+    // DEPLOYMENT FIX: Move heavy route registration to background to prevent health check timeouts
+    setTimeout(async () => {
+      try {
+        console.log('🔧 Starting background service initialization...');
+        
+        // Register health routes with proper isolation
+        app.use('/api/health', healthRoutes);
+        
+        // Register deployment health check routes
+        const deploymentHealthRoutes = await import('./routes/deployment-health');
+        app.use('/api/deployment', deploymentHealthRoutes.default);
+        
+        // Register enhanced routes with versioning
+        app.use('/api/v1', v1Routes);
+        app.use('/api/v2', v2Routes);
 
-    // Clean ETF Caching Implementation (Production Fix) 
-    // COMMENTED OUT: This route conflicts with the robust ETF routes in routes.ts
-    // The cached-clean route returns null technical indicators, causing frontend errors
-    // const etfCachedCleanRoutes = await import('./routes/etf-cached-clean');
-    // app.use('/api/etf', etfCachedCleanRoutes.default);
-    
-    // Register economic data backfill routes
-    const economicBackfillRoutes = await import('./routes/economic-backfill-routes.js');
-    app.use('/api/economic', economicBackfillRoutes.default);
-    
-    // Initialize ETF Cache Cron Service
-    const { etfCacheCronService } = await import('./services/etf-cache-cron-clean');
-    etfCacheCronService.initialize();
+        // Optional Enhancements - Monitoring and Docs
+        app.use('/api/monitoring', monitoringRoutes);
+        app.use('/api/docs', docsRoutes);
+        
+        // Enhanced Monitoring Integration - Comprehensive System Monitoring
+        const { monitoringIntegrationRoutes } = await import('./routes/monitoring-integration');
+        app.use('/api/monitoring/system', monitoringIntegrationRoutes);
+        
+        // Quality Monitoring Routes (NEW)
+        app.use('/api/quality', qualityRoutes);
+        
+        // Enhanced Statistical Demo Routes (10-Year Data Showcase)
+        app.use('/api/statistical', enhancedZScoreRoutes);
+        
+        // Admin Migration Routes for Economic Data Unit Fix
+        app.use('/api/admin', adminMigrationRoutes);
+        
+        // Cached ETF Metrics (Real Data + Performance) - Takes Priority
+        app.use('/api', cachedEtfMetricsRoutes);
+        
+        // Data Integrity Dashboard
+        app.use('/api', dataIntegrityDashboardRoutes);
+        
+        // Performance monitoring routes
+        const { performanceMonitoringRoutes } = await import('./routes/performance-monitoring');
+        app.use('/api/performance', performanceMonitoringRoutes);
+        
+        // Phase 3: Performance optimization routes
+        const { performanceOptimizationRoutes } = await import('./routes/performance-optimization');
+        app.use('/api/performance/v3', performanceOptimizationRoutes);
+        
+        // Register economic data backfill routes
+        const economicBackfillRoutes = await import('./routes/economic-backfill-routes.js');
+        app.use('/api/economic', economicBackfillRoutes.default);
+        
+        // Initialize ETF Cache Cron Service
+        const { etfCacheCronService } = await import('./services/etf-cache-cron-clean');
+        etfCacheCronService.initialize();
+
+        console.log('📊 ✅ BACKGROUND SERVICE ORCHESTRATION INITIATED');
+        console.log('🎯 Services will be initialized in background without blocking health checks');
+        console.log('🔄 Server is immediately available for health checks');
+      } catch (error) {
+        console.error('⚠️ Background service initialization error:', error);
+      }
+    }, 1000); // 1 second delay to let core server start first
 
     // Clear any pre-existing middleware stack in production to prevent Vite conflicts
     if (app.get("env") === "production") {
@@ -418,9 +384,6 @@ app.use((req, res, next) => {
       app.use(productionHealthCheck);
       app.use(staticFileValidation);
     }
-
-    // Register original routes (maintain backward compatibility)
-    const server = await registerRoutes(app);
 
     // Global uncaught exception handler for production safety
     process.on('uncaughtException', (error) => {

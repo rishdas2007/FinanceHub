@@ -157,7 +157,7 @@ export function errorRecoveryMiddleware(error: Error, req: Request, res: Respons
     }
     
     // For API routes, return JSON error
-    if (!res.headersSent) {
+    if (!res.headersSent && typeof res.status === 'function') {
       res.status(500).json({
         error: 'Internal Server Error',
         message: 'A server error occurred while processing your request',
@@ -167,7 +167,7 @@ export function errorRecoveryMiddleware(error: Error, req: Request, res: Respons
     }
   } catch (middlewareError) {
     console.error('❌ Error recovery middleware failed:', middlewareError);
-    if (!res.headersSent) {
+    if (!res.headersSent && typeof res.status === 'function') {
       res.status(500).json({ error: 'Critical server error' });
     }
   }
