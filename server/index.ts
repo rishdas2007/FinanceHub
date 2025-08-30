@@ -136,6 +136,15 @@ app.use(validateProductionEnvironment);
 app.use(captureRouteErrors);
 initializeProductionErrorCapture();
 
+// Production database schema validation
+import { validateDatabaseSchema } from './middleware/database-schema-validator';
+app.use(validateDatabaseSchema);
+
+// Production API route fixes
+import { ensureApiJsonResponse, validateApiRoutes, handleApiErrors } from './middleware/api-route-fixer';
+app.use(ensureApiJsonResponse);
+app.use(validateApiRoutes);
+
 // Initialize promise rejection handlers
 promiseRejectionHandler();
 

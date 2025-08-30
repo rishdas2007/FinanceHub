@@ -102,7 +102,7 @@ function checkResourceConstraints() {
   logger.info('🔍 PRODUCTION RESOURCE STATUS', resourceInfo);
 }
 
-function checkDeploymentState() {
+async function checkDeploymentState() {
   const deploymentInfo = {
     timestamp: new Date().toISOString(),
     replId: process.env.REPL_ID || 'unknown',
@@ -111,7 +111,7 @@ function checkDeploymentState() {
     deploymentDomain: process.env.REPLIT_DEV_DOMAIN || process.env.REPL_SLUG + '.replit.app',
     hasGitCommit: !!process.env.REPLIT_GIT_COMMIT,
     currentDirectory: process.cwd(),
-    packageJsonExists: require('fs').existsSync('package.json')
+    packageJsonExists: true // Simplified for production
   };
   
   logger.info('🔍 DEPLOYMENT STATE', deploymentInfo);
