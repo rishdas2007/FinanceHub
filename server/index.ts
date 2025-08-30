@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import compression from "compression";
 import cors from "cors";
+import { createServer } from "http";
 import { registerRoutes } from "./routes.js";
 import { intelligentCronScheduler } from "./services/intelligent-cron-scheduler";
 import { fredSchedulerIncremental } from "./services/fred-scheduler-incremental";
@@ -25,7 +26,7 @@ import etfMetricsDirectFixRoutes from './routes/etf-metrics-direct-fix';
 import etfSimpleFixRoutes from './routes/etf-simple-fix';
 import cachedEtfMetricsRoutes from './routes/cached-etf-metrics';
 import dataIntegrityDashboardRoutes from './routes/data-integrity-dashboard';
-import { setupVite, serveStatic, log } from "./vite";
+import { serveStatic, log } from "./vite";
 import healthRoutes from "./routes/health";
 
 // Security middleware
@@ -302,6 +303,21 @@ app.use((req, res, next) => {
     const { etfCacheCronService } = await import('./services/etf-cache-cron-clean');
     etfCacheCronService.initialize();
 
+    // Clear any pre-existing middleware stack in production to prevent Vite conflicts
+    if (app.get("env") === "production") {
+      log(`🔧 [PRODUCTION] Clearing middleware stack to prevent Vite conflicts`);
+      // Remove all existing middleware to ensure clean slate
+      (app as any)._router.stack = [];
+      // Re-add essential middleware
+      app.use(compression());
+      app.use(cors(corsOptions));
+      app.use(securityHeaders);
+      app.use(requestId);
+      app.use(apiRateLimit);
+      app.use(productionHealthCheck);
+      app.use(staticFileValidation);
+    }
+
     // Register original routes (maintain backward compatibility)
     const server = await registerRoutes(app);
 
@@ -325,9 +341,16 @@ app.use((req, res, next) => {
     // importantly only setup vite in development and after
     // setting up all the other routes so the catch-all route
     // doesn't interfere with the other routes
-    if (app.get("env") === "development") {
+    const expressEnv = app.get("env");
+    const nodeEnv = process.env.NODE_ENV;
+    log(`🔍 [ENV DEBUG] Express env: ${expressEnv}, NODE_ENV: ${nodeEnv}`);
+    
+    if (expressEnv === "development") {
+      log(`🔧 [ENV DEBUG] Using Vite development mode`);
+      const { setupVite } = await import("./vite");
       await setupVite(app, server);
     } else {
+      log(`🔧 [ENV DEBUG] Using static file serving for production`);
       serveStatic(app);
     }
 

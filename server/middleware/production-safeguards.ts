@@ -20,9 +20,21 @@ export function productionHealthCheck(req: Request, res: Response, next: NextFun
 
 // Static File Validation Middleware
 export function staticFileValidation(req: Request, res: Response, next: NextFunction) {
+  // Add debug logging for all HTML responses
+  if (!req.path.startsWith('/api')) {
+    const originalSend = res.send;
+    res.send = function(body: any) {
+      if (typeof body === 'string' && body.includes('<!DOCTYPE html>')) {
+        console.log(`🔍 [HTML DEBUG] Serving HTML for ${req.path} from ${req.route?.path || 'unknown route'}`);
+        console.log(`🔍 [HTML DEBUG] First 200 chars: ${body.substring(0, 200)}`);
+      }
+      return originalSend.call(this, body);
+    };
+  }
+
   // Only apply to root path requests
   if (req.path === '/' && req.method === 'GET') {
-    const staticPath = path.resolve(process.cwd(), 'server/public');
+    const staticPath = path.resolve(process.cwd(), 'dist/public');
     const indexPath = path.join(staticPath, 'index.html');
     
     if (!fs.existsSync(indexPath)) {
@@ -64,7 +76,7 @@ export function staticFileValidation(req: Request, res: Response, next: NextFunc
 
 // Deployment Status Check
 export function deploymentStatusCheck() {
-  const staticPath = path.resolve(process.cwd(), 'server/public');
+  const staticPath = path.resolve(process.cwd(), 'dist/public');
   const indexPath = path.join(staticPath, 'index.html');
   const assetsPath = path.join(staticPath, 'assets');
   

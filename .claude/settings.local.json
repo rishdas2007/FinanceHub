@@ -16,7 +16,11 @@
       "Bash(sed:*)",
       "Bash(npx drizzle-kit:*)",
       "Bash(find:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npm start)",
+      "Bash(NODE_ENV=production node dist/index.js)",
+      "Bash(fuser:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

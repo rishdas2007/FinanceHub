@@ -70,16 +70,28 @@ export async function setupVite(app: Express, server: Server) {
 export function serveStatic(app: Express) {
   const distPath = path.resolve(import.meta.dirname, "public");
 
+  console.log(`🔧 [STATIC DEBUG] Setting up static serving from: ${distPath}`);
+  console.log(`🔧 [STATIC DEBUG] Directory exists: ${fs.existsSync(distPath)}`);
+
   if (!fs.existsSync(distPath)) {
     throw new Error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`,
     );
   }
 
+  // Add debugging middleware to see what requests come through
+  app.use("*", (req, res, next) => {
+    if (!req.originalUrl.startsWith('/api')) {
+      console.log(`🔧 [STATIC DEBUG] Processing request: ${req.method} ${req.originalUrl}`);
+    }
+    next();
+  });
+
   app.use(express.static(distPath));
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
+    console.log(`🔧 [STATIC DEBUG] Serving fallback index.html for: ${_req.originalUrl}`);
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
