@@ -29,6 +29,40 @@ import dataIntegrityDashboardRoutes from './routes/data-integrity-dashboard';
 import { serveStatic, log } from "./vite";
 import healthRoutes from "./routes/health";
 
+// Global error handlers for production-grade error recovery
+process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
+  console.error('🚨 [UNHANDLED REJECTION] Promise rejected:', {
+    reason: reason instanceof Error ? reason.message : reason,
+    stack: reason instanceof Error ? reason.stack : undefined,
+    promise: promise.toString(),
+    timestamp: new Date().toISOString()
+  });
+  
+  // Don't exit in production - log and continue
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('💀 [DEV MODE] Exiting due to unhandled rejection');
+    process.exit(1);
+  } else {
+    console.error('⚠️ [PRODUCTION] Continuing despite unhandled rejection - investigate immediately');
+  }
+});
+
+process.on('uncaughtException', (error: Error) => {
+  console.error('🚨 [UNCAUGHT EXCEPTION] Application error:', {
+    message: error.message,
+    stack: error.stack,
+    timestamp: new Date().toISOString()
+  });
+  
+  // Log critical error and attempt graceful shutdown
+  console.error('💀 [CRITICAL] Attempting graceful shutdown due to uncaught exception');
+  
+  // Give the server a chance to close existing connections
+  setTimeout(() => {
+    process.exit(1);
+  }, 5000);
+});
+
 // Security middleware
 import { 
   securityHeaders, 

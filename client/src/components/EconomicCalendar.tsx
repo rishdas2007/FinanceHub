@@ -31,6 +31,7 @@ interface EconomicCalendarEntry {
   
   // Investment-focused derived metrics
   yoyGrowthRate?: string | null;
+  priorReading?: string | null;
   qoqAnnualizedRate?: string | null;
   momAnnualizedRate?: string | null;
   volatility12m?: string | null;
@@ -95,7 +96,7 @@ const FREQUENCY_LABELS = {
   'annual': 'Annual'
 };
 
-type SortColumn = 'date' | 'metric' | 'yoyGrowth' | 'signal' | 'trend';
+type SortColumn = 'date' | 'metric' | 'priorReading' | 'signal' | 'trend';
 type SortDirection = 'asc' | 'desc';
 
 type ViewMode = 'all' | 'latest' | 'timeline';
@@ -335,9 +336,9 @@ export function EconomicCalendar() {
           aValue = a.metricName.toLowerCase();
           bValue = b.metricName.toLowerCase();
           break;
-        case 'yoyGrowth':
-          aValue = parseFloat(a.yoyGrowthRate || '0') || 0;
-          bValue = parseFloat(b.yoyGrowthRate || '0') || 0;
+        case 'priorReading':
+          aValue = parseFloat(a.priorReading || '0') || 0;
+          bValue = parseFloat(b.priorReading || '0') || 0;
           break;
         case 'signal':
           // Sort by investment signal priority
@@ -591,12 +592,12 @@ export function EconomicCalendar() {
                   </th>
                   <th 
                     className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[100px] cursor-pointer hover:text-white transition-colors"
-                    onClick={() => handleSort('yoyGrowth')}
-                    data-testid="sort-yoy-header"
+                    onClick={() => handleSort('priorReading')}
+                    data-testid="sort-prior-header"
                   >
                     <div className="flex items-center justify-end space-x-1">
-                      <span>YoY Growth</span>
-                      {getSortIcon('yoyGrowth')}
+                      <span>Prior Reading</span>
+                      {getSortIcon('priorReading')}
                     </div>
                   </th>
                   <th 
@@ -679,14 +680,8 @@ export function EconomicCalendar() {
                             </div>
                           </td>
                           <td className="py-3 px-4 text-right">
-                            <div className={`text-sm font-medium ${
-                              entry.yoyGrowthRate && parseFloat(entry.yoyGrowthRate) > 0
-                                ? 'text-gain-green' 
-                                : entry.yoyGrowthRate && parseFloat(entry.yoyGrowthRate) < 0
-                                  ? 'text-loss-red'
-                                  : 'text-gray-400'
-                            }`}>
-                              {formatGrowthRate(entry.yoyGrowthRate)}
+                            <div className="text-sm font-medium text-gray-300">
+                              {entry.priorReading ? formatValue(entry.priorReading, entry.unit) : 'N/A'}
                             </div>
                           </td>
                           <td className="py-3 px-4 text-center">
@@ -727,14 +722,8 @@ export function EconomicCalendar() {
                                         {timelineEntry.releaseDate ? formatDate(timelineEntry.releaseDate) : 'N/A'}
                                       </div>
                                       <div className="flex items-center space-x-4">
-                                        <span className={`font-medium ${
-                                          timelineEntry.yoyGrowthRate && parseFloat(timelineEntry.yoyGrowthRate) > 0
-                                            ? 'text-gain-green' 
-                                            : timelineEntry.yoyGrowthRate && parseFloat(timelineEntry.yoyGrowthRate) < 0
-                                              ? 'text-loss-red'
-                                              : 'text-white'
-                                        }`}>
-                                          {formatGrowthRate(timelineEntry.yoyGrowthRate)}
+                                        <span className="font-medium text-gray-300">
+                                          {timelineEntry.priorReading ? formatValue(timelineEntry.priorReading, entry.unit) : 'N/A'}
                                         </span>
                                         <span className="text-center w-12">
                                           {getInvestmentSignalIcon(timelineEntry.investmentSignal)}
@@ -801,14 +790,8 @@ export function EconomicCalendar() {
                           </div>
                         </td>
                         <td className="py-3 px-4 text-right">
-                          <div className={`text-sm font-medium ${
-                            entry.yoyGrowthRate && parseFloat(entry.yoyGrowthRate) > 0
-                              ? 'text-gain-green' 
-                              : entry.yoyGrowthRate && parseFloat(entry.yoyGrowthRate) < 0
-                                ? 'text-loss-red'
-                                : 'text-gray-400'
-                          }`}>
-                            {formatGrowthRate(entry.yoyGrowthRate)}
+                          <div className="text-sm font-medium text-gray-300">
+                            {entry.priorReading ? formatValue(entry.priorReading, entry.unit) : 'N/A'}
                           </div>
                         </td>
                         <td className="py-3 px-4 text-center">

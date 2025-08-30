@@ -86,16 +86,18 @@ export class ETFEnhancedLiveDataService {
     try {
       logger.info('🔥 Fetching enhanced ETF data with historical statistical analysis...');
 
-      // Fetch real-time price data and calculate enhanced metrics
+      // Fetch real-time price data and calculate enhanced metrics with individual error isolation
       const etfPromises = this.ETF_SYMBOLS.map(async (etf) => {
         try {
+          logger.info(`🔄 Processing individual ETF: ${etf.symbol}`);
+          
           // Get real-time quote with error handling
           const quote = await this.financialDataService.getStockQuote(etf.symbol);
           
           // Handle API fallback responses gracefully
           if (quote.source === 'fallback_due_to_api_failure') {
-            logger.warn(`⚠️ [ETF SERVICE] Using fallback data for ${etf.symbol}: ${quote.error}`);
-            // Continue with zero values and return fallback ETF metrics
+            logger.warn(`⚠️ [ETF INDIVIDUAL FAILURE] Using fallback data for ${etf.symbol}: ${quote.error}`);
+            systemWarnings.push(`${etf.symbol}: API failure - using fallback data`);
             return this.createFallbackETFMetrics(etf, quote.error || 'External API failure');
           }
           
@@ -157,42 +159,32 @@ export class ETFEnhancedLiveDataService {
           };
 
         } catch (error) {
-          logger.error(`❌ Failed to fetch enhanced data for ${etf.symbol}:`, error);
-
-          // Return minimal data structure for error cases
-          return {
-            symbol: etf.symbol,
-            name: etf.name,
-            price: 0,
-            changePercent: 0,
-            volume: null,
-            rsi: null,
-            macd: null,
-            bollingerPercB: null,
-            sma50: null,
-            sma200: null,
-            zScore: null,
-            rsiZScore: null,
-            macdZScore: null,
-            bbZScore: null,
-            // MA Gap fields - null for error cases
-            maGap: null,
-            maGapPct: null,
-            maGapZ: null,
-            signal: 'HOLD' as const,
-            lastUpdated: timestamp,
-            source: 'historical_analysis' as const,
-            dataQuality: {
-              confidence: 'low' as const,
-              reliability: 0,
-              dataPoints: 0,
-              warning: 'Data fetch failed'
-            }
-          };
+          logger.error(`❌ [ETF INDIVIDUAL FAILURE] Failed to process ${etf.symbol} - isolating error to prevent cascade:`, error);
+          
+          // Add to system warnings for monitoring
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          systemWarnings.push(`${etf.symbol}: Processing failed - ${errorMessage}`);
+          
+          // Use consistent fallback metrics to prevent cascade failures
+          return this.createFallbackETFMetrics(etf, `Processing error: ${errorMessage}`);
         }
       });
 
-      const etfMetrics = await Promise.all(etfPromises);
+      // Use Promise.allSettled to prevent cascade failures - ensures all ETFs are processed
+      const etfResults = await Promise.allSettled(etfPromises);
+      
+      // Extract successful results and handle any remaining failures
+      const etfMetrics = etfResults.map((result, index) => {
+        if (result.status === 'fulfilled') {
+          return result.value;
+        } else {
+          // This should rarely happen due to individual try-catch, but provides additional safety
+          const etf = this.ETF_SYMBOLS[index];
+          logger.error(`❌ [CASCADE FAILURE PREVENTION] Promise rejection for ${etf.symbol}:`, result.reason);
+          systemWarnings.push(`${etf.symbol}: Promise rejection - using emergency fallback`);
+          return this.createFallbackETFMetrics(etf, `Promise rejection: ${result.reason}`);
+        }
+      });
 
       const responseTime = Date.now() - startTime;
       logger.info(`✅ Enhanced ETF metrics calculated: ${etfMetrics.length} ETFs, ${responseTime}ms`);
