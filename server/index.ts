@@ -130,6 +130,12 @@ console.log('🔍 [STARTUP DEBUG] Express configuration complete');
 // Production diagnostics first to catch environment issues
 app.use(productionDiagnostics);
 
+// Production validation and error capture
+import { validateProductionEnvironment, captureRouteErrors, initializeProductionErrorCapture } from './middleware/production-validation';
+app.use(validateProductionEnvironment);
+app.use(captureRouteErrors);
+initializeProductionErrorCapture();
+
 // Initialize promise rejection handlers
 promiseRejectionHandler();
 
