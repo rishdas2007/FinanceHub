@@ -8,7 +8,10 @@ import {
   Filter, 
   RefreshCw, 
   BarChart3,
-  Clock
+  Clock,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown
 } from 'lucide-react';
 
 interface EconomicCalendarEntry {
@@ -64,10 +67,15 @@ const FREQUENCY_LABELS = {
   'annual': 'Annual'
 };
 
+type SortColumn = 'date' | 'metric' | 'actual' | 'previous' | 'change';
+type SortDirection = 'asc' | 'desc';
+
 export function EconomicCalendar() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedFrequency, setSelectedFrequency] = useState<string>('');
   const [dateRange, setDateRange] = useState<string>('30'); // Last 30 days by default
+  const [sortColumn, setSortColumn] = useState<SortColumn>('date');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc'); // Most recent first
 
   // Calculate date range
   const getStartDate = (days: string) => {
@@ -187,8 +195,67 @@ export function EconomicCalendar() {
     });
   };
 
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection(column === 'date' ? 'desc' : 'asc'); // Default desc for date, asc for others
+    }
+  };
+
+  const sortData = (data: EconomicCalendarEntry[]): EconomicCalendarEntry[] => {
+    if (!data) return [];
+
+    return [...data].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (sortColumn) {
+        case 'date':
+          aValue = new Date(a.releaseDate).getTime();
+          bValue = new Date(b.releaseDate).getTime();
+          break;
+        case 'metric':
+          aValue = a.metricName.toLowerCase();
+          bValue = b.metricName.toLowerCase();
+          break;
+        case 'actual':
+          aValue = parseFloat(a.actualValue) || 0;
+          bValue = parseFloat(b.actualValue) || 0;
+          break;
+        case 'previous':
+          aValue = parseFloat(a.previousValue || '0') || 0;
+          bValue = parseFloat(b.previousValue || '0') || 0;
+          break;
+        case 'change':
+          aValue = parseFloat(a.variancePercent || '0') || 0;
+          bValue = parseFloat(b.variancePercent || '0') || 0;
+          break;
+        default:
+          return 0;
+      }
+
+      if (sortDirection === 'asc') {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
+    });
+  };
+
+  const getSortIcon = (column: SortColumn) => {
+    if (sortColumn !== column) {
+      return <ChevronsUpDown className="h-3 w-3 text-gray-500" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ChevronUp className="h-3 w-3 text-blue-400" />
+      : <ChevronDown className="h-3 w-3 text-blue-400" />;
+  };
+
   const categories = data?.metadata?.categories || [];
   const frequencies = data?.metadata?.frequencies || [];
+  const sortedData = data?.data ? sortData(data.data) : [];
 
   if (error) {
     return (
@@ -222,9 +289,9 @@ export function EconomicCalendar() {
           <div className="flex items-center space-x-2">
             <div className="text-sm text-blue-400 font-medium">
               📊 {data?.pagination.total ? data.pagination.total.toLocaleString() : 0} releases
-              {data?.data?.length && (
+              {sortedData?.length && (
                 <span className="text-gray-500 ml-1">
-                  ({data.data.length} shown)
+                  ({sortedData.length} shown, sorted by {sortColumn} {sortDirection === 'desc' ? '↓' : '↑'})
                 </span>
               )}
             </div>
@@ -333,25 +400,60 @@ export function EconomicCalendar() {
             <table className="w-full min-w-[600px]">
               <thead className="bg-financial-gray/50 border-b border-financial-border">
                 <tr>
-                  <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[100px]">
-                    Date
+                  <th 
+                    className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[100px] cursor-pointer hover:text-white transition-colors"
+                    onClick={() => handleSort('date')}
+                    data-testid="sort-date-header"
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Date</span>
+                      {getSortIcon('date')}
+                    </div>
                   </th>
-                  <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[200px]">
-                    Metric
+                  <th 
+                    className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[200px] cursor-pointer hover:text-white transition-colors"
+                    onClick={() => handleSort('metric')}
+                    data-testid="sort-metric-header"
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Metric</span>
+                      {getSortIcon('metric')}
+                    </div>
                   </th>
-                  <th className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[80px]">
-                    Actual
+                  <th 
+                    className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[80px] cursor-pointer hover:text-white transition-colors"
+                    onClick={() => handleSort('actual')}
+                    data-testid="sort-actual-header"
+                  >
+                    <div className="flex items-center justify-end space-x-1">
+                      <span>Actual</span>
+                      {getSortIcon('actual')}
+                    </div>
                   </th>
-                  <th className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[80px]">
-                    Previous
+                  <th 
+                    className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[80px] cursor-pointer hover:text-white transition-colors"
+                    onClick={() => handleSort('previous')}
+                    data-testid="sort-previous-header"
+                  >
+                    <div className="flex items-center justify-end space-x-1">
+                      <span>Previous</span>
+                      {getSortIcon('previous')}
+                    </div>
                   </th>
-                  <th className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[80px]">
-                    Change
+                  <th 
+                    className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[80px] cursor-pointer hover:text-white transition-colors"
+                    onClick={() => handleSort('change')}
+                    data-testid="sort-change-header"
+                  >
+                    <div className="flex items-center justify-end space-x-1">
+                      <span>Change</span>
+                      {getSortIcon('change')}
+                    </div>
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-financial-border">
-                {data.data.map((entry, index) => {
+                {sortedData.map((entry, index) => {
                   const variance = formatVariance(entry.variance, entry.variancePercent);
                   const categoryColors = CATEGORY_COLORS[entry.category as keyof typeof CATEGORY_COLORS] || CATEGORY_COLORS.Growth;
                   
