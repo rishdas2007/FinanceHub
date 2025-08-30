@@ -185,6 +185,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Economic Calendar - FRED API integrated calendar with historical data
   app.use('/api/economic-calendar', (await import('./routes/economic-calendar')).default);
   
+  // Simple Economic Calendar with Investment Metrics
+  app.use('/api/economic-calendar-simple', (await import('./routes/economic-calendar-simple')).default);
+  
   // Enhanced Economic Indicators with 3-Layer Data Model (76,441+ records)
   app.use('/api', (await import('./routes/enhanced-economic-indicators')).default);
   

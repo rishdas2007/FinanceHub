@@ -1,4 +1,5 @@
 import { pgTable, text, serial, integer, boolean, timestamp, date, decimal, jsonb, unique, index } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -438,6 +439,19 @@ export const economicCalendar = pgTable("economic_calendar", {
   unit: text("unit").notNull(), // %, thousands, billions, index, etc.
   frequency: text("frequency").notNull(), // daily, weekly, monthly, quarterly, annual
   seasonalAdjustment: text("seasonal_adjustment"), // SA, NSA, SAAR
+  
+  // Investment-focused derived metrics
+  yoyGrowthRate: decimal("yoy_growth_rate", { precision: 8, scale: 4 }), // Year-over-year growth percentage
+  qoqAnnualizedRate: decimal("qoq_annualized_rate", { precision: 8, scale: 4 }), // Quarter-over-quarter annualized
+  momAnnualizedRate: decimal("mom_annualized_rate", { precision: 8, scale: 4 }), // Month-over-month annualized
+  volatility12m: decimal("volatility_12m", { precision: 8, scale: 4 }), // 12-month rolling volatility
+  trendStrength: decimal("trend_strength", { precision: 5, scale: 4 }), // Trend strength indicator (-1 to 1)
+  cyclePosition: text("cycle_position"), // Peak, Expansion, Trough, Contraction
+  percentileRank1y: decimal("percentile_rank_1y", { precision: 5, scale: 2 }), // 1-year percentile ranking (0-100)
+  percentileRank5y: decimal("percentile_rank_5y", { precision: 5, scale: 2 }), // 5-year percentile ranking (0-100)
+  regimeClassification: text("regime_classification"), // Current economic regime
+  investmentSignal: text("investment_signal"), // BULLISH, BEARISH, NEUTRAL
+  
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
@@ -452,6 +466,95 @@ export const economicCalendar = pgTable("economic_calendar", {
 
 export type EconomicCalendar = typeof economicCalendar.$inferSelect;
 export type InsertEconomicCalendar = typeof economicCalendar.$inferInsert;
+
+// Derived Investment Metrics - Advanced calculations for investment analysis
+export const econDerivedMetrics = pgTable("econ_derived_metrics", {
+  id: serial("id").primaryKey(),
+  seriesId: text("series_id").notNull(), // FRED series identifier
+  periodEnd: timestamp("period_end").notNull(), // End of the period for this calculation
+  baseTransformCode: text("base_transform_code").notNull(), // Base transformation applied
+  
+  // Growth Metrics - Most critical for investment decisions
+  yoyGrowth: decimal("yoy_growth", { precision: 10, scale: 4 }), // Year-over-year growth percentage
+  qoqAnnualized: decimal("qoq_annualized", { precision: 10, scale: 4 }), // Quarter-over-quarter annualized rate
+  momAnnualized: decimal("mom_annualized", { precision: 10, scale: 4 }), // Month-over-month annualized rate
+  yoy3yrAvg: decimal("yoy_3yr_avg", { precision: 10, scale: 4 }), // 3-year average YoY growth
+  
+  // Moving Averages - Trend identification
+  ma3m: decimal("ma_3m", { precision: 15, scale: 4 }), // 3-month moving average
+  ma6m: decimal("ma_6m", { precision: 15, scale: 4 }), // 6-month moving average
+  ma12m: decimal("ma_12m", { precision: 15, scale: 4 }), // 12-month moving average
+  
+  // Volatility & Risk Measures
+  volatility3m: decimal("volatility_3m", { precision: 8, scale: 4 }), // 3-month volatility
+  volatility12m: decimal("volatility_12m", { precision: 8, scale: 4 }), // 12-month volatility
+  trendSlope: decimal("trend_slope", { precision: 10, scale: 6 }), // Linear trend slope
+  
+  // Investment Context - Historical positioning
+  percentileRank1y: decimal("percentile_rank_1y", { precision: 5, scale: 2 }), // 1-year percentile (0-100)
+  percentileRank5y: decimal("percentile_rank_5y", { precision: 5, scale: 2 }), // 5-year percentile (0-100)
+  percentileRank10y: decimal("percentile_rank_10y", { precision: 5, scale: 2 }), // 10-year percentile (0-100)
+  
+  // Economic Cycle Analysis
+  cycleDaysFromPeak: integer("cycle_days_from_peak"), // Days since last peak
+  cycleDaysFromTrough: integer("cycle_days_from_trough"), // Days since last trough
+  cyclePosition: text("cycle_position"), // Peak, Expansion, Trough, Contraction
+  regimeClassification: text("regime_classification"), // Economic regime classification
+  
+  // Investment Signals
+  investmentSignal: text("investment_signal"), // BULLISH, BEARISH, NEUTRAL
+  signalStrength: decimal("signal_strength", { precision: 5, scale: 4 }), // Signal confidence (-1 to 1)
+  sectorImplication: text("sector_implication"), // Which sectors benefit/suffer
+  assetClassImpact: text("asset_class_impact"), // Stocks/Bonds/Commodities impact
+  
+  // Real vs Nominal Analysis (for inflation-sensitive metrics)
+  realValue: decimal("real_value", { precision: 15, scale: 4 }), // Inflation-adjusted value
+  realYoyGrowth: decimal("real_yoy_growth", { precision: 10, scale: 4 }), // Real YoY growth
+  inflationImpact: decimal("inflation_impact", { precision: 8, scale: 4 }), // Inflation component
+  
+  // Quality and Confidence Metrics
+  calculationConfidence: decimal("calculation_confidence", { precision: 3, scale: 2 }), // 0-1 confidence score
+  dataQualityScore: decimal("data_quality_score", { precision: 3, scale: 2 }), // 0-1 quality score
+  misssingDataPoints: integer("missing_data_points"), // Count of interpolated/missing values
+  
+  // Metadata
+  calculationDate: timestamp("calculation_date").notNull().defaultNow(),
+  pipelineVersion: text("pipeline_version").notNull(), // For versioning calculations
+  calculationEngine: text("calculation_engine").notNull().default("v1.0"), // Engine version
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  // Primary performance indexes
+  seriesDateIdx: index("econ_derived_series_date_idx").on(table.seriesId, table.periodEnd.desc()),
+  
+  // Dashboard query optimization - most recent data first
+  dashboardIdx: index("econ_derived_dashboard_idx").on(table.seriesId, table.periodEnd.desc())
+    .where(sql`period_end >= CURRENT_DATE - INTERVAL '24 months'`),
+  
+  // Growth rate analysis
+  growthRatesIdx: index("econ_derived_growth_rates_idx").on(table.yoyGrowth, table.qoqAnnualized)
+    .where(sql`yoy_growth IS NOT NULL`),
+  
+  // Volatility analysis
+  volatilityIdx: index("econ_derived_volatility_idx").on(table.seriesId, table.volatility12m, table.periodEnd.desc()),
+  
+  // Percentile ranking queries  
+  percentilesIdx: index("econ_derived_percentiles_idx").on(table.percentileRank1y, table.percentileRank5y)
+    .where(sql`percentile_rank_1y IS NOT NULL`),
+  
+  // Investment signal analysis
+  signalsIdx: index("econ_derived_signals_idx").on(table.investmentSignal, table.signalStrength, table.periodEnd.desc()),
+  
+  // Cross-metric analysis
+  regimeAnalysisIdx: index("econ_derived_regime_idx").on(table.regimeClassification, table.cyclePosition, table.periodEnd.desc()),
+  
+  // Unique constraint to prevent duplicate calculations
+  uniqueSeriesPeriodTransform: unique("unique_series_period_transform_derived").on(table.seriesId, table.periodEnd, table.baseTransformCode),
+}));
+
+export type EconDerivedMetrics = typeof econDerivedMetrics.$inferSelect;
+export type InsertEconDerivedMetrics = typeof econDerivedMetrics.$inferInsert;
 
 // Legacy tables - kept for compatibility (but not used by new Economic Calendar)
 export const economicIndicatorsHistory = pgTable("economic_indicators_history", {
