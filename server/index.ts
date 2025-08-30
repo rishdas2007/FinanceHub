@@ -46,6 +46,13 @@ import {
 
 // Production deployment safeguards
 import { productionHealthCheck, staticFileValidation, deploymentStatusCheck, errorRecoveryMiddleware } from "./middleware/production-safeguards";
+import { productionDiagnostics } from "./middleware/production-diagnostics";
+import { 
+  apiErrorValidation, 
+  databaseConnectionValidation, 
+  externalApiValidation,
+  promiseRejectionHandler 
+} from "./middleware/api-error-validation";
 
 // Environment validation
 import { EnvironmentValidator } from './utils/environment-validation';
@@ -85,6 +92,12 @@ console.log('🔍 [STARTUP DEBUG] Express app created successfully');
 console.log('🔍 [STARTUP DEBUG] Setting up Express configuration...');
 app.set('trust proxy', 1);
 console.log('🔍 [STARTUP DEBUG] Express configuration complete');
+
+// Production diagnostics first to catch environment issues
+app.use(productionDiagnostics);
+
+// Initialize promise rejection handlers
+promiseRejectionHandler();
 
 // Production safeguards and health checks
 app.use(productionHealthCheck);
@@ -141,6 +154,11 @@ app.get('/health/detailed', (req, res) => {
 // Basic middleware only (restore original functionality)
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Apply error validation to all API routes first
+app.use('/api', apiErrorValidation);
+app.use('/api', databaseConnectionValidation);
+app.use('/api', externalApiValidation);
 
 // Apply security only to API routes to avoid frontend interference
 app.use('/api', securityHeaders);
@@ -397,6 +415,44 @@ app.use((req, res, next) => {
         method: req.method,
         timestamp: new Date().toISOString()
       });
+    });
+
+    // Enhanced error logging for production debugging
+    app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+      const errorId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+      
+      logger.error('🚨 PRODUCTION ERROR CAUGHT', {
+        errorId,
+        error: {
+          name: err.name,
+          message: err.message,
+          stack: err.stack,
+          code: err.code,
+          status: err.status || err.statusCode
+        },
+        request: {
+          method: req.method,
+          url: req.url,
+          path: req.path,
+          query: req.query,
+          headers: {
+            'user-agent': req.get('user-agent'),
+            'content-type': req.get('content-type'),
+            'origin': req.get('origin')
+          },
+          ip: req.ip
+        },
+        timestamp: new Date().toISOString(),
+        environment: {
+          nodeEnv: process.env.NODE_ENV,
+          hasDatabase: !!process.env.DATABASE_URL,
+          hasFredKey: !!process.env.FRED_API_KEY,
+          hasTwelveKey: !!process.env.TWELVE_DATA_API_KEY,
+          memoryUsage: process.memoryUsage()
+        }
+      });
+      
+      next(err);
     });
 
     // Production error recovery middleware
