@@ -31,17 +31,11 @@ export function staticFileValidation(req: Request, res: Response, next: NextFunc
     // Add null check for req.path to prevent undefined errors
     const requestPath = req.path || req.url || '/';
     
-    // Add debug logging for all HTML responses
+    // Removed response object override to prevent Express corruption
+    // Simple debug logging without modifying response object
     if (!requestPath.startsWith('/api')) {
-    const originalSend = res.send;
-    res.send = function(body: any) {
-      if (typeof body === 'string' && body.includes('<!DOCTYPE html>')) {
-        console.log(`🔍 [HTML DEBUG] Serving HTML for ${req.path} from ${req.route?.path || 'unknown route'}`);
-        console.log(`🔍 [HTML DEBUG] First 200 chars: ${body.substring(0, 200)}`);
-      }
-      return originalSend.call(this, body);
-    };
-  }
+      console.log(`🔍 [HTML DEBUG] Processing request for ${requestPath}`);
+    }
 
     // Only apply to root path requests
     if (requestPath === '/' && req.method === 'GET') {
@@ -156,19 +150,36 @@ export function errorRecoveryMiddleware(error: Error, req: Request, res: Respons
       return;
     }
     
-    // For API routes, return JSON error
-    if (!res.headersSent && res.status && typeof res.status === 'function') {
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: 'A server error occurred while processing your request',
-        timestamp: new Date().toISOString(),
-        path: requestPath
-      });
+    // For API routes, return JSON error with enhanced safety checks
+    if (!res.headersSent && res && typeof res.status === 'function' && typeof res.json === 'function') {
+      try {
+        res.status(500).json({
+          error: 'Internal Server Error',
+          message: 'A server error occurred while processing your request',
+          timestamp: new Date().toISOString(),
+          path: requestPath
+        });
+      } catch (jsonError) {
+        // Fallback to basic error response if JSON fails
+        if (typeof res.end === 'function') {
+          res.statusCode = 500;
+          res.end('Internal Server Error');
+        }
+      }
     }
   } catch (middlewareError) {
     console.error('❌ Error recovery middleware failed:', middlewareError);
-    if (!res.headersSent && res.status && typeof res.status === 'function') {
-      res.status(500).json({ error: 'Critical server error' });
+    // Enhanced safety checks for response object
+    if (!res.headersSent && res && typeof res.status === 'function' && typeof res.json === 'function') {
+      try {
+        res.status(500).json({ error: 'Critical server error' });
+      } catch (finalError) {
+        // Last resort fallback
+        if (typeof res.end === 'function') {
+          res.statusCode = 500;
+          res.end('Critical server error');
+        }
+      }
     }
   }
 }

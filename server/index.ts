@@ -356,19 +356,11 @@ app.use((req, res, next) => {
       }
     }, 2000); // 2 second delay to let core server start first
 
-    // Clear any pre-existing middleware stack in production to prevent Vite conflicts
+    // DEPLOYMENT FIX: Remove middleware stack clearing to prevent Express response object corruption
+    // The original middleware configuration is sufficient for production deployment
+    log(`🔧 [PRODUCTION] Using stable middleware configuration for deployment`);
     if (app.get("env") === "production") {
-      log(`🔧 [PRODUCTION] Clearing middleware stack to prevent Vite conflicts`);
-      // Remove all existing middleware to ensure clean slate
-      (app as any)._router.stack = [];
-      // Re-add essential middleware
-      app.use(compression());
-      app.use(cors(corsOptions));
-      app.use(securityHeaders);
-      app.use(requestId);
-      app.use(apiRateLimit);
-      app.use(productionHealthCheck);
-      app.use(staticFileValidation);
+      log(`✅ [PRODUCTION] Middleware stack preserved for deployment stability`);
     }
 
     // Global uncaught exception handler for production safety
