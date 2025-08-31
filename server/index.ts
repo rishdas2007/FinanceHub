@@ -222,29 +222,15 @@ app.use('/api', apiVersioning);
 app.use('/api', versionDeprecation(['v1'])); // Mark v1 as deprecated
 app.use('/api', contentNegotiation);
 
+// Simple request logging without response object modification
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
 
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
+      const logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       log(logLine);
     }
   });
@@ -302,7 +288,7 @@ app.use((req, res, next) => {
         log('📝 Application will continue with degraded functionality');
         log('🔧 Check /health/db/detailed endpoint for comprehensive diagnostics');
       }
-    }, 5000); // 5 second delay to allow server to start responding first
+    }, 10000); // 10 second delay to allow server to start responding first
 
     // Register original routes (maintain backward compatibility)
     const server = await registerRoutes(app);
@@ -368,7 +354,7 @@ app.use((req, res, next) => {
       } catch (error) {
         console.error('⚠️ Background service initialization error:', error);
       }
-    }, 1000); // 1 second delay to let core server start first
+    }, 2000); // 2 second delay to let core server start first
 
     // Clear any pre-existing middleware stack in production to prevent Vite conflicts
     if (app.get("env") === "production") {

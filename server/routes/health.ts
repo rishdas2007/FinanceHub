@@ -6,40 +6,12 @@ const router = Router();
 // DEPLOYMENT FIX: Root health check endpoint (backup)
 // This provides a secondary health check endpoint at /api/health/
 router.get('/', (req, res) => {
-  try {
-    res.status(200).json({ 
-      ok: true, 
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      service: 'FinanceHub Pro API'
-    });
-  } catch (error: any) {
-    res.status(200).json({ // Return 200 even on errors for deployment health checks
-      ok: true, 
-      status: 'degraded',
-      error: error?.message,
-      timestamp: new Date().toISOString()
-    });
-  }
+  res.status(200).json({ ok: true, status: 'healthy' });
 });
 
-// Basic health check endpoint
-router.get('/health', async (req, res) => {
-  try {
-    res.json({ 
-      ok: true, 
-      db: true,
-      timestamp: new Date().toISOString(),
-      version: process.env.npm_package_version || '1.0.0'
-    });
-  } catch (error: any) {
-    res.status(503).json({ 
-      ok: false, 
-      db: false, 
-      error: error?.message,
-      timestamp: new Date().toISOString()
-    });
-  }
+// Basic health check endpoint - ultra-simple for deployment
+router.get('/health', (req, res) => {
+  res.status(200).json({ ok: true, status: 'healthy' });
 });
 
 // Comprehensive database health check endpoint - RCA Implementation
