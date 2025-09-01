@@ -7,6 +7,20 @@ set -e  # Exit on any error
 
 echo "🚀 Starting FinanceHub Pro production build..."
 
+# Check Node.js version
+echo "🔍 Checking Node.js version..."
+NODE_VERSION=$(node -v)
+NODE_MAJOR_VERSION=$(echo "$NODE_VERSION" | sed 's/v\([0-9]\+\).*/\1/')
+
+if [ "$NODE_MAJOR_VERSION" -lt 18 ]; then
+    echo "❌ Error: Node.js version $NODE_VERSION detected."
+    echo "   This project requires Node.js 18 or higher."
+    echo "   Please update your Node.js version and try again."
+    exit 1
+else
+    echo "✅ Node.js $NODE_VERSION is supported (requires 18+)"
+fi
+
 # Clean previous builds
 echo "🧹 Cleaning previous builds..."
 rm -rf dist/

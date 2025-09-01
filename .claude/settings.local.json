@@ -1,26 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx ts-node:*)",
-      "Bash(tsx:*)",
-      "Bash(timeout 5 curl -s \"http://localhost:5000/api/macroeconomic-indicators\")",
-      "Bash(/dev/null)",
-      "Bash(grep:*)",
-      "Bash(npm run build:*)",
-      "Bash(psql:*)",
-      "Bash(npx tsx:*)",
-      "Bash(curl:*)",
-      "Bash(pkill:*)",
-      "Bash(npx tsc:*)",
-      "Bash(timeout:*)",
-      "Bash(sed:*)",
-      "Bash(npx drizzle-kit:*)",
-      "Bash(find:*)",
-      "Bash(node:*)",
-      "Bash(npm start)",
-      "Bash(NODE_ENV=production node dist/index.js)",
-      "Bash(fuser:*)",
-      "Bash(cat:*)"
+      "Bash(NODE_ENV=production PORT=8080 timeout 10 node start-production.js)"
     ],
     "deny": [],
     "ask": []

@@ -13,6 +13,20 @@ process.env.NODE_ENV = 'production';
 
 console.log('🚀 Starting FinanceHub Pro in production mode...');
 
+// Check Node.js version compatibility
+console.log('🔍 [VERSION CHECK] Validating Node.js version...');
+const nodeVersion = process.version;
+const majorVersion = parseInt(nodeVersion.slice(1).split('.')[0]);
+
+if (majorVersion < 18) {
+  console.error(`❌ Error: Node.js version ${nodeVersion} detected.`);
+  console.error('   This project requires Node.js 18 or higher.');
+  console.error('   Please update your Node.js version and try again.');
+  process.exit(1);
+} else {
+  console.log(`✅ Node.js ${nodeVersion} is supported (requires 18+)`);
+}
+
 // PRODUCTION STARTUP DIAGNOSTIC LOGGING
 console.log('🔍 [STARTUP DIAGNOSTIC] Validating production environment...');
 
@@ -39,7 +53,7 @@ if (existsSync('./dist/server/index.js')) {
 } else {
   console.log('📦 Using tsx for direct TypeScript execution');
   command = 'npx';
-  args = ['tsx', 'server/index.ts'];
+  args = ['tsx', '--tsconfig', 'tsx.config.json', 'server/index.ts'];
 }
 
 console.log(`🔧 Executing: ${command} ${args.join(' ')}`);

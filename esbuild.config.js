@@ -28,6 +28,14 @@ export default {
   minify: false, // Keep readable for debugging in production
   keepNames: true,
   define: {
-    'process.env.NODE_ENV': '"production"'
+    'process.env.NODE_ENV': '"production"',
+    'import.meta.dirname': '__dirname'
+  },
+  inject: ['./scripts/dirname-shim.js'],
+  alias: {
+    '@shared': './shared',
+    '@server': './server',
+    '@services': './server/services',
+    '@utils': './shared/utils'
   }
 };

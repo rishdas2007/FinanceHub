@@ -155,7 +155,16 @@ app.use(staticFileValidation);
 // DEPLOYMENT FIX: Ultra-simple health check endpoint for Cloud Run
 // This endpoint responds immediately without any dependencies or operations
 app.get('/health', (req, res) => {
-  res.status(200).json({ ok: true, status: 'healthy' });
+  res.status(200).json({ ok: true, status: 'healthy', timestamp: Date.now() });
+});
+
+// Additional immediate health endpoints for different paths
+app.get('/', (req, res) => {
+  res.status(200).json({ ok: true, status: 'healthy', service: 'financehub-pro', timestamp: Date.now() });
+});
+
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ ok: true, status: 'healthy', path: 'api', timestamp: Date.now() });
 });
 
 // Enhanced health check endpoint with deployment validation (alternative endpoint)
