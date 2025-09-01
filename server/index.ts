@@ -398,7 +398,15 @@ app.use((req, res, next) => {
       await setupVite(app, server);
     } else {
       log(`🔧 [ENV DEBUG] Using static file serving for production`);
-      serveStatic(app);
+      try {
+        log(`🔍 [STATIC SETUP] About to call serveStatic function`);
+        serveStatic(app);
+        log(`✅ [STATIC SETUP] serveStatic completed successfully`);
+      } catch (staticError) {
+        log(`❌ [STATIC SETUP ERROR] Failed to setup static serving: ${staticError.message}`);
+        console.error('Static serving setup error:', staticError);
+        throw staticError;
+      }
     }
 
     // API 404 handler - must come before catch-all HTML routes
@@ -453,6 +461,18 @@ app.use((req, res, next) => {
     // Production error recovery middleware
     app.use(errorRecoveryMiddleware);
     
+    // Add comprehensive error logging middleware before global handler
+    app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
+      console.error('🚨 [SERVER ERROR] Unhandled error in request pipeline:');
+      console.error('🚨 [SERVER ERROR] URL:', req.method, req.originalUrl);
+      console.error('🚨 [SERVER ERROR] Headers:', JSON.stringify(req.headers, null, 2));
+      console.error('🚨 [SERVER ERROR] Error:', error.message);
+      console.error('🚨 [SERVER ERROR] Stack:', error.stack);
+      
+      // Don't send response here, let errorHandler do it
+      next(error);
+    });
+
     // CRITICAL: Global error handler (must be after all routes)
     app.use(errorHandler);
     
@@ -501,6 +521,10 @@ app.use((req, res, next) => {
       log(`🚀 FinanceHub Pro serving on port ${port}`);
       log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
       log(`🔗 Server URL: http://0.0.0.0:${port}`);
+      
+      // Log initial request handling test
+      console.log('🔍 [SERVER] Server is now accepting connections');
+      console.log('🔍 [SERVER] Static files should be served from:', path.resolve(process.cwd(), 'dist', 'public'));
       
       // Initialize performance monitoring (Phase 3 enhancement)
       try {

@@ -71,30 +71,65 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
+  console.log(`🔍 [STATIC] serveStatic function called`);
+  console.log(`🔍 [STATIC] __dirname value: ${__dirname}`);
+  
   const distPath = path.resolve(__dirname, "..", "dist", "public");
 
   console.log(`🔧 [STATIC DEBUG] Setting up static serving from: ${distPath}`);
   console.log(`🔧 [STATIC DEBUG] Directory exists: ${fs.existsSync(distPath)}`);
+  
+  if (fs.existsSync(distPath)) {
+    const files = fs.readdirSync(distPath);
+    console.log(`🔧 [STATIC DEBUG] Files in directory: ${JSON.stringify(files)}`);
+    
+    const indexPath = path.join(distPath, 'index.html');
+    console.log(`🔧 [STATIC DEBUG] index.html exists: ${fs.existsSync(indexPath)}`);
+    if (fs.existsSync(indexPath)) {
+      const indexSize = fs.statSync(indexPath).size;
+      console.log(`🔧 [STATIC DEBUG] index.html size: ${indexSize} bytes`);
+    }
+  }
 
   if (!fs.existsSync(distPath)) {
-    throw new Error(
+    const error = new Error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`,
     );
+    console.error(`❌ [STATIC ERROR] ${error.message}`);
+    throw error;
+  }
+
+  try {
+    console.log(`🔍 [STATIC] Setting up express.static middleware`);
+    app.use(express.static(distPath));
+    console.log(`✅ [STATIC] express.static middleware set up successfully`);
+  } catch (expressStaticError) {
+    console.error(`❌ [STATIC] express.static setup failed:`, expressStaticError);
+    throw expressStaticError;
   }
 
   // Add debugging middleware to see what requests come through
   app.use("*", (req, res, next) => {
-    if (!req.originalUrl.startsWith('/api')) {
+    if (!req.originalUrl.startsWith('/api') && !req.originalUrl.startsWith('/health')) {
       console.log(`🔧 [STATIC DEBUG] Processing request: ${req.method} ${req.originalUrl}`);
     }
     next();
   });
 
-  app.use(express.static(distPath));
-
   // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
-    console.log(`🔧 [STATIC DEBUG] Serving fallback index.html for: ${_req.originalUrl}`);
-    res.sendFile(path.resolve(distPath, "index.html"));
+  app.use("*", (req, res, next) => {
+    if (!req.originalUrl.startsWith('/api') && !req.originalUrl.startsWith('/health')) {
+      console.log(`🔧 [STATIC DEBUG] Serving fallback index.html for: ${req.originalUrl}`);
+      try {
+        const indexPath = path.resolve(distPath, "index.html");
+        console.log(`🔍 [STATIC] Attempting to serve: ${indexPath}`);
+        res.sendFile(indexPath);
+      } catch (sendFileError) {
+        console.error(`❌ [STATIC] Failed to serve index.html:`, sendFileError);
+        next(sendFileError);
+      }
+    } else {
+      next();
+    }
   });
 }
