@@ -158,11 +158,7 @@ app.get('/health', (req, res) => {
   res.status(200).json({ ok: true, status: 'healthy', timestamp: Date.now() });
 });
 
-// Additional immediate health endpoints for different paths
-app.get('/', (req, res) => {
-  res.status(200).json({ ok: true, status: 'healthy', service: 'financehub-pro', timestamp: Date.now() });
-});
-
+// API health endpoint (keep only this one for monitoring)
 app.get('/api/health', (req, res) => {
   res.status(200).json({ ok: true, status: 'healthy', path: 'api', timestamp: Date.now() });
 });
