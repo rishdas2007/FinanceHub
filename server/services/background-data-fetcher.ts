@@ -94,22 +94,36 @@ export class BackgroundDataFetcher {
     while (retryCount < this.retryDelays.length) {
       try {
         logger.info(`📊 [FRED DIAGNOSTIC] Fetching economic readings (attempt ${retryCount + 1})`);
-        logger.info(`🔍 [FRED DIAGNOSTIC] FIXED - Target endpoint: /api/macroeconomic-indicators`);
+        logger.info(`🔍 [FRED DIAGNOSTIC] FIXED - Target endpoint: /api/econ/dashboard`);
+        logger.info(`🔍 [FRED DIAGNOSTIC] Switched from non-existent /api/macroeconomic-indicators to working /api/econ/dashboard`);
         
         const fetch = (await import('node-fetch')).default;
-        const response = await fetch('http://localhost:5000/api/macroeconomic-indicators', {
+        const response = await fetch('http://localhost:5000/api/econ/dashboard', {
           timeout: 15000
         } as any);
 
         logger.info(`🔍 [FRED DIAGNOSTIC] Response status: ${response.status} ${response.statusText}`);
-
+        
+        // Get response text first for detailed diagnostics
+        const responseText = await response.text();
+        logger.info(`🔍 [FRED DIAGNOSTIC] Response preview (first 200 chars):`, responseText.substring(0, 200));
+        
         if (!response.ok) {
           logger.error(`❌ [FRED DIAGNOSTIC] HTTP Error: ${response.status} ${response.statusText}`);
           logger.error(`🔍 [FRED DIAGNOSTIC] This endpoint may not exist or is failing`);
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
-        const data = await response.json();
+        // Try to parse as JSON with detailed error handling
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          logger.error(`❌ [FRED DIAGNOSTIC] ENDPOINT NOT FOUND - Response is HTML, not JSON`);
+          logger.error(`🔍 [FRED DIAGNOSTIC] This confirms the endpoint '/api/macroeconomic-indicators' does not exist`);
+          logger.error(`🔍 [FRED DIAGNOSTIC] Available endpoints: /api/econ/observations, /api/enhanced-economic-indicators/enhanced-economic-indicators`);
+          throw new Error(`Endpoint returns HTML instead of JSON: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+        }
         const duration = Date.now() - startTime;
 
         logger.info(`✅ [FRED DIAGNOSTIC] Economic readings fetched successfully in ${duration}ms`);
