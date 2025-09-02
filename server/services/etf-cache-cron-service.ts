@@ -34,15 +34,16 @@ export class ETFCacheCronService {
     }
 
     try {
-      // Job 1: Refresh materialized view every 5 minutes (300,000ms)
-      this.refreshInterval = setInterval(async () => {
-        await this.refreshMaterializedView();
-      }, 5 * 60 * 1000);
+      // DISABLED: These intervals were causing memory compound leading to 4GB crashes
+      // Job 1: Refresh materialized view every 5 minutes - TOO FREQUENT
+      // this.refreshInterval = setInterval(async () => {
+      //   await this.refreshMaterializedView();
+      // }, 5 * 60 * 1000);
 
-      // Job 2: Warm up memory cache every 4 minutes (240,000ms)
-      this.warmupInterval = setInterval(async () => {
-        await this.warmupMemoryCache();
-      }, 4 * 60 * 1000);
+      // Job 2: Warm up memory cache every 4 minutes - TOO FREQUENT  
+      // this.warmupInterval = setInterval(async () => {
+      //   await this.warmupMemoryCache();
+      // }, 4 * 60 * 1000);
       
       logger.info('🚀 ETF cache interval jobs started');
       logger.info('📅 Materialized view refresh: every 5 minutes');

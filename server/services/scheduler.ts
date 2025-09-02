@@ -161,20 +161,21 @@ export class DataScheduler {
     console.log('🚀 Starting DataScheduler with comprehensive update schedule...');
     console.log('📧 CRITICAL: Setting up 8 AM EST daily email cron job...');
 
-    // Real-time updates: Every 2 minutes during market hours (8:30 AM - 6 PM EST, weekdays)
-    cron.schedule('*/2 * * * *', async () => {
-      if (this.isWeekday()) {
-        const est = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
-        const estHour = new Date(est).getHours();
-        
-        // Extended hours: 8:30 AM - 6 PM EST
-        if (estHour >= 8 && estHour <= 18) {
-          await this.updateRealTimeData();
-        }
-      }
-    }, {
-      timezone: "America/New_York"
-    });
+    // DISABLED: Real-time updates were causing memory leaks - use less frequent updates instead
+    // Every 2 minutes was too aggressive and caused 4GB+ heap crashes
+    // cron.schedule('*/2 * * * *', async () => {
+    //   if (this.isWeekday()) {
+    //     const est = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
+    //     const estHour = new Date(est).getHours();
+    //     
+    //     // Extended hours: 8:30 AM - 6 PM EST
+    //     if (estHour >= 8 && estHour <= 18) {
+    //       await this.updateRealTimeData();
+    //     }
+    //   }
+    // }, {
+    //   timezone: "America/New_York"
+    // });
 
     // Forecast updates: Every 6 hours
     cron.schedule('0 */6 * * *', async () => {
