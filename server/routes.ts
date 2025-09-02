@@ -12,7 +12,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import { apiLogger, getApiStats } from "./middleware/apiLogger";
 import path from 'path';
 // FRED routes removed to fix crashes
-import debugTransformationRoutes from './routes/debug-transformation';
+// Debug transformation routes removed during cleanup
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -61,7 +61,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/ppi-diagnostic', (await import('./routes/ppi-diagnostic')).default);
   
   // Debug PPI dates endpoint
-  app.use('/api/debug-ppi-dates', (await import('./routes/debug-ppi-dates')).default);
+  // Debug PPI dates route removed during cleanup
   
   // Unified Pipeline Diagnostics (for production troubleshooting)
   app.use('/api/unified-diagnostics', (await import('./routes/unified-pipeline-diagnostics')).default);
@@ -318,8 +318,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Authentic FRED Economic Data API - prioritized endpoint
 
-  // Debug transformation endpoint
-  app.use('/api', debugTransformationRoutes);
+  // Debug transformation endpoint - removed during cleanup
 
   // Smart number formatting based on unit type
   function formatValueByUnit(value: any, unit: string, seriesId: string): string {

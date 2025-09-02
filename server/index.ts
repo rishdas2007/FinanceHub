@@ -19,8 +19,7 @@ import { metricsMiddleware } from './utils/MetricsCollector';
 import qualityRoutes from './routes/quality';
 import { performanceTrackingMiddleware } from './middleware/performance-tracking';
 
-// Import enhanced statistical demo routes
-import enhancedZScoreRoutes from './routes/enhanced-zscore-demo';
+// Import enhanced statistical demo routes (removed)
 import adminMigrationRoutes from './routes/admin-migration-routes';
 import optimizedEtfMetricsRoutes from './routes/optimized-etf-metrics';
 import etfMetricsDirectFixRoutes from './routes/etf-metrics-direct-fix';
@@ -302,7 +301,7 @@ app.use((req, res, next) => {
         app.use('/api/quality', qualityRoutes);
         
         // Enhanced Statistical Demo Routes (10-Year Data Showcase)
-        app.use('/api/statistical', enhancedZScoreRoutes);
+        // Statistical routes removed during cleanup
         
         // Admin Migration Routes for Economic Data Unit Fix
         app.use('/api/admin', adminMigrationRoutes);

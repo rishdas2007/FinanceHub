@@ -211,6 +211,7 @@ financehub-pro/
 - **Node.js Optimization**: Improved startup diagnostics and port handling
 - **Code Quality Automation**: Deployment safety agents and scanners
 - **Enhanced Middleware**: 15+ production stability components
+- **Codebase Cleanup (Sept 2025)**: Streamlined architecture by removing ~25% of unnecessary components including demo pages (ArchitectureDemo, DataQualityDashboard, DataSufficiencyPage), debug components (ApiDebugger), and unused debug routes. Maintained all core financial functionality while reducing complexity.
 
 ### Version 35 (ETF Critical Fixes)
 - **Signal Calculation Refinement**: MACD removed, using only RSI and Bollinger %B

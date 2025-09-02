@@ -5,14 +5,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ETFProvider } from "@/context/etf-context";
 import Dashboard from "@/pages/dashboard";
-import ArchitectureDemo from "@/pages/ArchitectureDemo";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
-      <Route path="/architecture-demo" component={ArchitectureDemo} />
       <Route component={NotFound} />
     </Switch>
   );
