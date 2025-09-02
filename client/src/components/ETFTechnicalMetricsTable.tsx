@@ -276,12 +276,12 @@ export function ETFTechnicalMetricsTable() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-700 text-gray-300">
-                <th className="text-left py-3 px-2 font-medium">Symbol</th>
-                <th className="text-right py-3 px-2 font-medium">5-Day</th>
-                <th className="text-center py-3 px-2 font-medium">Signal</th>
-                <th className="text-right py-3 px-2 font-medium">RSI</th>
-                <th className="text-right py-3 px-2 font-medium">%B</th>
-                <th className="text-right py-3 px-2 font-medium">MA Gap</th>
+                <th className="text-left py-3 px-2 font-medium w-1/5">Symbol</th>
+                <th className="text-right py-3 px-2 font-medium w-1/6">5-Day</th>
+                <th className="text-center py-3 px-2 font-medium w-1/6">Signal</th>
+                <th className="text-right py-3 px-2 font-medium w-1/6">RSI</th>
+                <th className="text-right py-3 px-2 font-medium w-1/6">%B</th>
+                <th className="text-right py-3 px-2 font-medium w-1/6">MA Gap</th>
               </tr>
             </thead>
             <tbody>
@@ -291,10 +291,10 @@ export function ETFTechnicalMetricsTable() {
                   className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
                 >
                   {/* Symbol Column */}
-                  <td className="py-3 px-2">
+                  <td className="py-3 px-2 w-1/5">
                     <div>
                       <div className="font-semibold text-white">{etf.symbol}</div>
-                      <div className="text-xs text-gray-400">{etf.companyName}</div>
+                      <div className="text-xs text-gray-400 truncate">{etf.companyName}</div>
                       <div className={`text-xs ${getChangeColor(etf.changePercent)}`}>
                         {etf.changePercent > 0 ? '+' : ''}{etf.changePercent.toFixed(2)}%
                       </div>
@@ -302,7 +302,7 @@ export function ETFTechnicalMetricsTable() {
                   </td>
                   
                   {/* 5-Day Change Column */}
-                  <td className="py-3 px-2 text-right" data-testid={`five-day-change-${etf.symbol}`}>
+                  <td className="py-3 px-2 text-right w-1/6" data-testid={`five-day-change-${etf.symbol}`}>
                     <div className={`font-medium ${
                       etf.fiveDayChange && etf.fiveDayChange !== 'N/A' ? 
                         etf.fiveDayChange.includes('+') ? 'text-gain-green' : 
@@ -318,7 +318,7 @@ export function ETFTechnicalMetricsTable() {
                   </td>
                   
                   {/* Signal Column */}
-                  <td className="py-3 px-2 text-center">
+                  <td className="py-3 px-2 text-center w-1/6">
                     <Badge 
                       variant={getSignalVariant(etf.signal)}
                       className="text-xs px-2 py-1"
@@ -328,7 +328,7 @@ export function ETFTechnicalMetricsTable() {
                   </td>
                   
                   {/* RSI Column */}
-                  <td className="py-3 px-2 text-right">
+                  <td className="py-3 px-2 text-right w-1/6">
                     <div className="text-white">{formatValue(etf.rsi, 1)}</div>
                     {etf.rsiZScore && (
                       <div className="text-xs text-gray-500">
@@ -338,7 +338,7 @@ export function ETFTechnicalMetricsTable() {
                   </td>
                   
                   {/* %B Column */}
-                  <td className="py-3 px-2 text-right">
+                  <td className="py-3 px-2 text-right w-1/6">
                     <div className={`${
                       etf.bollingerPercB && etf.bollingerPercB > 0.8 ? 'text-red-400' : 
                       etf.bollingerPercB && etf.bollingerPercB < 0.2 ? 'text-green-400' : 
@@ -354,7 +354,7 @@ export function ETFTechnicalMetricsTable() {
                   </td>
                   
                   {/* MA Gap Column */}
-                  <td className="py-3 px-2 text-right">
+                  <td className="py-3 px-2 text-right w-1/6">
                     <div className={`${
                       etf.sma50 && etf.sma200 && etf.sma50 > etf.sma200 ? 'text-green-400' : 
                       etf.sma50 && etf.sma200 && etf.sma50 < etf.sma200 ? 'text-red-400' : 
