@@ -7,6 +7,31 @@ import { registerRoutes } from "./routes.js";
 import { intelligentCronScheduler } from "./services/intelligent-cron-scheduler";
 import { fredSchedulerIncremental } from "./services/fred-scheduler-incremental";
 import { dataStalenessPrevention } from "./services/data-staleness-prevention";
+
+// Global uncaught exception handler to prevent Neon driver crashes
+process.on('uncaughtException', (error) => {
+  console.error('🚨 UNCAUGHT EXCEPTION HANDLER:', {
+    name: error.name,
+    message: error.message,
+    stack: error.stack?.substring(0, 500),
+    timestamp: new Date().toISOString(),
+    source: 'global_handler'
+  });
+  
+  // Don't exit process in production, just log and continue
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('🔄 Non-production environment - continuing execution');
+  }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🚨 UNHANDLED PROMISE REJECTION:', {
+    reason: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack?.substring(0, 500) : 'No stack trace',
+    timestamp: new Date().toISOString(),
+    source: 'promise_rejection_handler'
+  });
+});
 // Import optional enhancements
 import { monitoringRoutes } from './routes/monitoring';
 import { docsRoutes } from './routes/docs';

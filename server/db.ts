@@ -39,26 +39,81 @@ export const pool = new Pool({
   keepAliveInitialDelayMillis: 10000,
 });
 
-// Add connection error handling
+// Enhanced connection diagnostics and error handling
 pool.on('error', (err) => {
-  console.error('🚨 Database pool error:', err);
-  // Don't exit, just log the error
+  console.error('🚨 Database pool error:', {
+    name: err.name,
+    message: err.message,
+    stack: err.stack?.substring(0, 500),
+    timestamp: new Date().toISOString()
+  });
+  // Don't exit, just log the error for investigation
 });
 
 pool.on('connect', () => {
-  console.log('✅ Database connection established');
+  console.log('✅ Database connection established', {
+    timestamp: new Date().toISOString(),
+    event: 'connect'
+  });
 });
 
 pool.on('remove', () => {
-  console.log('📊 Database connection removed from pool');
+  console.log('📊 Database connection removed from pool', {
+    reason: 'Connection lifecycle completed',
+    timestamp: new Date().toISOString(),
+    event: 'remove'
+  });
 });
 
-// Create drizzle instance with error handling
+// Add connection acquisition diagnostics with safe property access
+pool.on('acquire', () => {
+  console.log('🔄 Database connection acquired', {
+    poolSize: pool.totalCount,
+    idleCount: pool.idleCount,
+    waitingCount: pool.waitingCount,
+    timestamp: new Date().toISOString(),
+    event: 'acquire'
+  });
+});
+
+// Log initial pool state with safe property access
+console.log('🔍 Database Pool Configuration:', {
+  databaseUrl: process.env.DATABASE_URL ? '[CONFIGURED]' : '[MISSING]',
+  nodeEnv: process.env.NODE_ENV,
+  poolConfigured: true,
+  timestamp: new Date().toISOString()
+});
+
+// Add database health check function
+export async function validateDatabaseConnection(): Promise<boolean> {
+  try {
+    console.log('🔍 Testing database connectivity...');
+    const client = await pool.connect();
+    await client.query('SELECT 1');
+    client.release();
+    console.log('✅ Database connectivity validated');
+    return true;
+  } catch (error) {
+    console.error('❌ Database connectivity test failed:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString()
+    });
+    return false;
+  }
+}
+
+// Create drizzle instance with enhanced error handling
 let db: any;
 try {
   db = drizzle({ client: pool, schema });
+  console.log('✅ Drizzle ORM instance created successfully');
 } catch (error) {
-  console.error('🚨 Failed to create Drizzle instance:', error);
+  console.error('🚨 Failed to create Drizzle instance:', {
+    name: error instanceof Error ? error.name : 'Unknown',
+    message: error instanceof Error ? error.message : String(error),
+    timestamp: new Date().toISOString()
+  });
   // Create a minimal fallback
   db = null;
 }

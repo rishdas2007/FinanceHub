@@ -21,6 +21,7 @@ interface ETFTechnicalMetric {
   lastUpdated: string;
   source: string;
   fiveDayChange?: string;
+  companyName?: string;
 }
 
 interface FiveDayChangeData {
