@@ -116,10 +116,17 @@ export function ETFTechnicalMetricsTable() {
     fiveDayChangeMap.set(change.symbol, change.totalPctChange);
   });
   
+  // Create a map for quick lookup of company names by symbol
+  const companyNameMap = new Map<string, string>();
+  fiveDayChanges.forEach(change => {
+    companyNameMap.set(change.symbol, change.companyName);
+  });
+  
   // Merge 5-day change data with ETF metrics
   const enrichedMetrics = metrics.map(metric => ({
     ...metric,
-    fiveDayChange: fiveDayChangeMap.get(metric.symbol) || 'N/A'
+    fiveDayChange: fiveDayChangeMap.get(metric.symbol) || 'N/A',
+    companyName: companyNameMap.get(metric.symbol) || metric.name
   }));
   
   // Enhanced diagnostic logging for production debugging
@@ -287,6 +294,7 @@ export function ETFTechnicalMetricsTable() {
                   <td className="py-3 px-2">
                     <div>
                       <div className="font-semibold text-white">{etf.symbol}</div>
+                      <div className="text-xs text-gray-400">{etf.companyName}</div>
                       <div className={`text-xs ${getChangeColor(etf.changePercent)}`}>
                         {etf.changePercent > 0 ? '+' : ''}{etf.changePercent.toFixed(2)}%
                       </div>
