@@ -573,11 +573,23 @@ export type InsertEconDerivedMetrics = typeof econDerivedMetrics.$inferInsert;
 // Legacy tables - kept for compatibility (but not used by new Economic Calendar)
 export const economicIndicatorsHistory = pgTable("economic_indicators_history", {
   id: serial("id").primaryKey(),
-  seriesId: text("series_id"),
   metricName: text("metric_name"),
+  seriesId: text("series_id"),
+  type: text("type"),
+  category: text("category"),
+  unit: text("unit"),
+  frequency: text("frequency"),
   value: decimal("value", { precision: 15, scale: 4 }),
-  periodDate: timestamp("period_date"),
+  periodDate: date("period_date"),
+  releaseDate: date("release_date"),
+  forecast: decimal("forecast", { precision: 15, scale: 4 }),
+  priorValue: decimal("prior_value", { precision: 15, scale: 4 }),
+  monthlyChange: decimal("monthly_change", { precision: 15, scale: 4 }),
+  annualChange: decimal("annual_change", { precision: 15, scale: 4 }),
+  zScore12m: decimal("z_score_12m", { precision: 15, scale: 4 }),
+  threeMonthAnnualized: decimal("three_month_annualized", { precision: 15, scale: 4 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const economicIndicatorsCurrent = pgTable("economic_indicators_current", {
