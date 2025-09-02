@@ -3153,8 +3153,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ETF 5-day changes API endpoint
+  app.get("/api/etf-five-day-changes", async (req, res) => {
+    try {
+      const { db } = await import('./db');
+      const { etfFiveDayChanges } = await import('@shared/schema');
+      const { desc } = await import('drizzle-orm');
+      
+      const changes = await db
+        .select()
+        .from(etfFiveDayChanges)
+        .orderBy(desc(etfFiveDayChanges.date), etfFiveDayChanges.symbol);
+      
+      res.json({
+        success: true,
+        data: changes,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('❌ Failed to fetch 5-day changes:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to fetch 5-day changes' 
+      });
+    }
+  });
+
+  // Manual trigger for 5-day changes (for testing)
+  app.post("/api/etf-five-day-changes/fetch", async (req, res) => {
+    try {
+      const { EtfFiveDayScheduler } = await import('./services/etf-five-day-scheduler');
+      const scheduler = new EtfFiveDayScheduler();
+      
+      await scheduler.runNow();
+      
+      res.json({
+        success: true,
+        message: '5-day changes fetched and stored successfully',
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('❌ Failed to manually fetch 5-day changes:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to fetch 5-day changes' 
+      });
+    }
+  });
+
   // Enhanced Z-Score API with advanced optimizations
   app.use('/api/enhanced-zscore', (await import('./routes/enhanced-zscore-api')).default);
+
+  // Initialize ETF 5-day scheduler
+  try {
+    const { EtfFiveDayScheduler } = await import('./services/etf-five-day-scheduler');
+    const etfScheduler = new EtfFiveDayScheduler();
+    etfScheduler.start();
+    console.log('✅ ETF 5-day change scheduler initialized');
+  } catch (error) {
+    console.error('❌ Failed to initialize ETF scheduler:', error);
+  }
 
   return httpServer;
 }

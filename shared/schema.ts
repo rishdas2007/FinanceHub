@@ -86,6 +86,20 @@ export const emailSubscriptions = pgTable("email_subscriptions", {
   unsubscribeToken: text("unsubscribe_token").notNull().unique(),
 });
 
+// ETF 5-Day Percentage Changes table for daily tracking
+export const etfFiveDayChanges = pgTable("etf_five_day_changes", {
+  id: serial("id").primaryKey(),
+  symbol: text("symbol").notNull(),
+  companyName: text("company_name").notNull(),
+  totalPctChange: text("total_pct_change").notNull(),
+  date: date("date").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  symbolDateIdx: unique().on(table.symbol, table.date),
+  symbolIdx: index("etf_five_day_symbol_idx").on(table.symbol),
+  dateIdx: index("etf_five_day_date_idx").on(table.date),
+}));
+
 // Note: economicEvents, historicalEconomicData, and marketBreadth tables removed
 // These were orphaned tables replaced by enhanced economic indicator systems
 
@@ -582,3 +596,6 @@ export type InsertEconomicIndicatorCurrent = typeof economicIndicatorsCurrent.$i
 
 export type FredUpdateLog = typeof fredUpdateLog.$inferSelect;
 export type InsertFredUpdateLog = typeof fredUpdateLog.$inferInsert;
+
+export type InsertEtfFiveDayChanges = typeof etfFiveDayChanges.$inferInsert;
+export type EtfFiveDayChanges = typeof etfFiveDayChanges.$inferSelect;

@@ -20,6 +20,16 @@ interface ETFTechnicalMetric {
   signal: 'BUY' | 'SELL' | 'HOLD';
   lastUpdated: string;
   source: string;
+  fiveDayChange?: string;
+}
+
+interface FiveDayChangeData {
+  id: number;
+  symbol: string;
+  companyName: string;
+  totalPctChange: string;
+  date: string;
+  createdAt: string;
 }
 
 interface ETFMetricsResponse {
@@ -87,9 +97,30 @@ export function ETFTechnicalMetricsTable() {
     refetchInterval: 30000, // 30 seconds
   });
 
+  // Fetch 5-day change data
+  const { data: fiveDayData } = useQuery({
+    queryKey: ['/api/etf-five-day-changes'],
+    refetchInterval: 300000, // 5 minutes (slower refresh since it's daily data)
+  });
+
   // Extract data from the response structure - handle both array and object responses
   const metrics: ETFTechnicalMetric[] = Array.isArray(rawData) ? rawData : ((rawData as ETFMetricsResponse)?.data || []);
   const lastUpdated = (rawData as ETFMetricsResponse)?.timestamp || new Date().toISOString();
+  
+  // Extract 5-day change data
+  const fiveDayChanges: FiveDayChangeData[] = Array.isArray(fiveDayData) ? fiveDayData : ((fiveDayData as any)?.data || []);
+  
+  // Create a map for quick lookup of 5-day changes by symbol
+  const fiveDayChangeMap = new Map<string, string>();
+  fiveDayChanges.forEach(change => {
+    fiveDayChangeMap.set(change.symbol, change.totalPctChange);
+  });
+  
+  // Merge 5-day change data with ETF metrics
+  const enrichedMetrics = metrics.map(metric => ({
+    ...metric,
+    fiveDayChange: fiveDayChangeMap.get(metric.symbol) || 'N/A'
+  }));
   
   // Enhanced diagnostic logging for production debugging
   console.log('🔍 [ETF DIAGNOSTIC] Raw Data:', rawData);
@@ -170,7 +201,7 @@ export function ETFTechnicalMetricsTable() {
     );
   }
 
-  if (!metrics || metrics.length === 0) {
+  if (!enrichedMetrics || enrichedMetrics.length === 0) {
     return (
       <Card className="bg-gray-900/95 backdrop-blur border-gray-700">
         <CardHeader>
@@ -203,7 +234,7 @@ export function ETFTechnicalMetricsTable() {
   }
 
   // Count signals for summary
-  const signalCounts = metrics.reduce((acc: Record<string, number>, etf: ETFTechnicalMetric) => {
+  const signalCounts = enrichedMetrics.reduce((acc: Record<string, number>, etf: ETFTechnicalMetric) => {
     acc[etf.signal] = (acc[etf.signal] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -227,7 +258,7 @@ export function ETFTechnicalMetricsTable() {
               Signals: {signalCounts.BUY || 0} BUY, {signalCounts.SELL || 0} SELL, {signalCounts.HOLD || 0} HOLD
             </span>
             <Badge variant="outline" className="text-xs">
-              Total: {metrics.length} ETFs
+              Total: {enrichedMetrics.length} ETFs
             </Badge>
           </div>
         </div>
@@ -239,6 +270,7 @@ export function ETFTechnicalMetricsTable() {
             <thead>
               <tr className="border-b border-gray-700 text-gray-300">
                 <th className="text-left py-3 px-2 font-medium">Symbol</th>
+                <th className="text-right py-3 px-2 font-medium">5-Day</th>
                 <th className="text-center py-3 px-2 font-medium">Signal</th>
                 <th className="text-right py-3 px-2 font-medium">RSI</th>
                 <th className="text-right py-3 px-2 font-medium">%B</th>
@@ -246,7 +278,7 @@ export function ETFTechnicalMetricsTable() {
               </tr>
             </thead>
             <tbody>
-              {metrics.map((etf: ETFTechnicalMetric) => (
+              {enrichedMetrics.map((etf: ETFTechnicalMetric) => (
                 <tr 
                   key={etf.symbol} 
                   className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
@@ -258,6 +290,22 @@ export function ETFTechnicalMetricsTable() {
                       <div className={`text-xs ${getChangeColor(etf.changePercent)}`}>
                         {etf.changePercent > 0 ? '+' : ''}{etf.changePercent.toFixed(2)}%
                       </div>
+                    </div>
+                  </td>
+                  
+                  {/* 5-Day Change Column */}
+                  <td className="py-3 px-2 text-right" data-testid={`five-day-change-${etf.symbol}`}>
+                    <div className={`font-medium ${
+                      etf.fiveDayChange && etf.fiveDayChange !== 'N/A' ? 
+                        etf.fiveDayChange.includes('+') ? 'text-gain-green' : 
+                        etf.fiveDayChange.includes('-') ? 'text-loss-red' : 
+                        'text-gray-400' 
+                      : 'text-gray-400'
+                    }`}>
+                      {etf.fiveDayChange || 'N/A'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      5D %
                     </div>
                   </td>
                   
