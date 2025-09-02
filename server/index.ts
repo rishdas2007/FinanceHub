@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import compression from "compression";
 import cors from "cors";
+import path from "path";
 import { createServer } from "http";
 import { registerRoutes } from "./routes.js";
 import { intelligentCronScheduler } from "./services/intelligent-cron-scheduler";
@@ -29,39 +30,10 @@ import dataIntegrityDashboardRoutes from './routes/data-integrity-dashboard';
 import { serveStatic, log } from "./vite";
 import healthRoutes from "./routes/health";
 
-// Global error handlers for production-grade error recovery
-process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
-  console.error('🚨 [UNHANDLED REJECTION] Promise rejected:', {
-    reason: reason instanceof Error ? reason.message : reason,
-    stack: reason instanceof Error ? reason.stack : undefined,
-    promise: promise.toString(),
-    timestamp: new Date().toISOString()
-  });
-  
-  // Don't exit in production - log and continue
-  if (process.env.NODE_ENV !== 'production') {
-    console.error('💀 [DEV MODE] Exiting due to unhandled rejection');
-    process.exit(1);
-  } else {
-    console.error('⚠️ [PRODUCTION] Continuing despite unhandled rejection - investigate immediately');
-  }
-});
+// Import new graceful shutdown handler
+import { setupShutdownHandlers, setServer } from './middleware/graceful-shutdown-fix';
 
-process.on('uncaughtException', (error: Error) => {
-  console.error('🚨 [UNCAUGHT EXCEPTION] Application error:', {
-    message: error.message,
-    stack: error.stack,
-    timestamp: new Date().toISOString()
-  });
-  
-  // Log critical error and attempt graceful shutdown
-  console.error('💀 [CRITICAL] Attempting graceful shutdown due to uncaught exception');
-  
-  // Give the server a chance to close existing connections
-  setTimeout(() => {
-    process.exit(1);
-  }, 5000);
-});
+// Setup unified shutdown handlers (replaces the duplicate handlers)
 
 // Security middleware
 import { 
@@ -297,6 +269,10 @@ app.use((req, res, next) => {
 
     // Register original routes (maintain backward compatibility)
     const server = await registerRoutes(app);
+    
+    // Setup shutdown handlers with server reference
+    setServer(server);
+    setupShutdownHandlers();
 
     // DEPLOYMENT FIX: Move heavy route registration to background to prevent health check timeouts
     setTimeout(async () => {

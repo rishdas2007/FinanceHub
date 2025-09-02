@@ -1,21 +1,9 @@
 import { Router } from 'express';
-import pino from 'pino';
+import { logger } from '../utils/logger.js';
 import { CentralizedZScoreService } from '../services/centralized-zscore-service';
 import { RollingZScoreOptimizer } from '../services/rolling-zscore-optimizer';
 import { VolatilityRegimeDetector } from '../services/volatility-regime-detector';
 import { getOptimalWindow, OPTIMAL_WINDOWS } from '../services/standardized-window-sizes';
-
-const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
-  transport: {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      translateTime: 'HH:MM:ss',
-      ignore: 'pid,hostname'
-    }
-  }
-});
 
 const router = Router();
 

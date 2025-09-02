@@ -8,8 +8,8 @@ neonConfig.webSocketConstructor = ws;
 neonConfig.fetchConnectionCache = true;
 neonConfig.pipelineConnect = "password";
 
-// Fix WebSocket URL configuration for Neon
-// Remove the wsProxy as it's causing malformed URLs
+// Remove malformed wsProxy configuration that causes "wss://wss//" URLs
+// The Neon serverless driver handles WebSocket URLs correctly on its own
 
 // Enhanced error handling for WebSocket connections
 neonConfig.useSecureWebSocket = true;

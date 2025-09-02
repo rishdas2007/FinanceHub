@@ -77,11 +77,11 @@ export default function Dashboard() {
         {/* ETF Technical Metrics Table - Top Priority */}
         <ETFTechnicalMetricsTable />
 
-        {/* Macro Dashboard - GDP and Inflation Analysis */}
-        <MacroDashboard />
-
         {/* Economic Calendar - FRED API integrated calendar */}
         <EconomicCalendar />
+        
+        {/* Temporarily disabled - causing issues */}
+        {/* <MacroDashboard /> */}
 
         {/* Enhanced Economic Health Dashboard - Original + Statistical Methods */}
 

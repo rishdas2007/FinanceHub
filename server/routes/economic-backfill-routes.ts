@@ -1,9 +1,8 @@
 import { Router } from 'express';
 import EconomicDataBackfillService from '../services/economic-data-backfill-service.js';
-import pino from 'pino';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
-const logger = pino({ name: 'EconomicBackfillRoutes' });
 
 /**
  * POST /api/economic/backfill

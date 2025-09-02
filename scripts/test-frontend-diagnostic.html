@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frontend Diagnostics</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .data { background: #f0f0f0; padding: 10px; margin: 10px 0; }
+        pre { white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>Frontend Data Loading Diagnostics</h1>
+    
+    <h2>1. Direct API Tests</h2>
+    <div id="api-tests"></div>
+    
+    <h2>2. React Query Simulation</h2>
+    <div id="query-tests"></div>
+    
+    <h2>3. Data Structure Analysis</h2>
+    <div id="data-structure"></div>
+    
+    <script>
+        const apiTests = document.getElementById('api-tests');
+        const queryTests = document.getElementById('query-tests');
+        const dataStructure = document.getElementById('data-structure');
+        
+        // Test 1: Direct API calls
+        async function testDirectAPIs() {
+            const endpoints = [
+                '/api/etf/robust',
+                '/api/economic-calendar',
+                '/api/economic-calendar-simple',
+                '/api/etf-metrics'
+            ];
+            
+            for (const endpoint of endpoints) {
+                const div = document.createElement('div');
+                div.className = 'data';
+                
+                try {
+                    console.log(`🔍 Testing ${endpoint}...`);
+                    const response = await fetch(`http://localhost:8080${endpoint}`, {
+                        credentials: 'include',
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    
+                    const text = await response.text();
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        throw new Error(`Invalid JSON: ${text.substring(0, 100)}`);
+                    }
+                    
+                    // Analyze the response structure
+                    const analysis = {
+                        endpoint,
+                        status: response.status,
+                        hasSuccess: 'success' in data,
+                        hasData: 'data' in data,
+                        dataType: Array.isArray(data) ? 'array' : typeof data,
+                        dataKeys: Object.keys(data),
+                        itemCount: 0
+                    };
+                    
+                    if (data.data) {
+                        if (Array.isArray(data.data)) {
+                            analysis.itemCount = data.data.length;
+                        } else if (data.data.events) {
+                            analysis.itemCount = data.data.events.length;
+                        }
+                    } else if (Array.isArray(data)) {
+                        analysis.itemCount = data.length;
+                    }
+                    
+                    div.innerHTML = `
+                        <strong class="success">${endpoint}</strong>
+                        <pre>${JSON.stringify(analysis, null, 2)}</pre>
+                    `;
+                    
+                    console.log(`✅ ${endpoint} response:`, data);
+                } catch (error) {
+                    div.innerHTML = `
+                        <strong class="error">${endpoint}</strong>
+                        <pre>Error: ${error.message}</pre>
+                    `;
+                    console.error(`❌ ${endpoint} error:`, error);
+                }
+                
+                apiTests.appendChild(div);
+            }
+        }
+        
+        // Test 2: Simulate React Query behavior
+        async function testQueryBehavior() {
+            const div = document.createElement('div');
+            div.className = 'data';
+            
+            // Simulate what React Query does with ['/api/etf/robust'] as queryKey
+            const queryKey = ['/api/etf/robust'];
+            const url = Array.isArray(queryKey) ? queryKey[0] : queryKey;
+            
+            try {
+                const response = await fetch(url, {
+                    credentials: 'include',
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                const text = await response.text();
+                const json = JSON.parse(text);
+                
+                // Simulate the unwrapping logic from queryClient
+                const unwrapped = Array.isArray(json) ? json :
+                    json?.data ?? json?.metrics ?? json?.results ?? json?.items ?? json?.rows ?? json;
+                
+                div.innerHTML = `
+                    <strong>Query Key: ${JSON.stringify(queryKey)}</strong>
+                    <p>Original response type: ${Array.isArray(json) ? 'array' : typeof json}</p>
+                    <p>Unwrapped data type: ${Array.isArray(unwrapped) ? 'array' : typeof unwrapped}</p>
+                    <p>Unwrapped item count: ${Array.isArray(unwrapped) ? unwrapped.length : 'N/A'}</p>
+                `;
+                
+                console.log('🔍 Query simulation:', { original: json, unwrapped });
+            } catch (error) {
+                div.innerHTML = `<strong class="error">Query simulation failed: ${error.message}</strong>`;
+            }
+            
+            queryTests.appendChild(div);
+        }
+        
+        // Test 3: Check what components expect
+        async function testDataStructure() {
+            const response = await fetch('/api/etf/robust');
+            const data = await response.json();
+            
+            const div = document.createElement('div');
+            div.className = 'data';
+            
+            // Check if data matches ETFTechnicalMetric interface
+            const firstItem = Array.isArray(data) ? data[0] : data?.data?.[0];
+            
+            const expectedFields = [
+                'symbol', 'name', 'price', 'changePercent', 'volume',
+                'rsi', 'bollingerPercB', 'sma50', 'sma200', 'zScore',
+                'rsiZScore', 'bbZScore', 'signal', 'lastUpdated', 'source'
+            ];
+            
+            const analysis = {
+                hasData: !!firstItem,
+                providedFields: firstItem ? Object.keys(firstItem) : [],
+                missingFields: firstItem ? expectedFields.filter(f => !(f in firstItem)) : expectedFields,
+                extraFields: firstItem ? Object.keys(firstItem).filter(f => !expectedFields.includes(f)) : []
+            };
+            
+            div.innerHTML = `
+                <strong>ETF Data Structure Analysis</strong>
+                <pre>${JSON.stringify(analysis, null, 2)}</pre>
+                <strong>Sample Item:</strong>
+                <pre>${JSON.stringify(firstItem, null, 2)}</pre>
+            `;
+            
+            dataStructure.appendChild(div);
+        }
+        
+        // Run all tests
+        (async () => {
+            console.log('🚀 Starting frontend diagnostics...');
+            await testDirectAPIs();
+            await testQueryBehavior();
+            await testDataStructure();
+            console.log('✅ Diagnostics complete - check console for details');
+        })();
+    </script>
+</body>
+</html>

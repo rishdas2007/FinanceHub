@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard Diagnostics</title>
+</head>
+<body>
+    <h1>Testing Dashboard API Endpoints</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testEndpoints() {
+            const results = document.getElementById('results');
+            const endpoints = [
+                '/api/health',
+                '/api/etf/robust',
+                '/api/economic-calendar',
+                '/api/economic-calendar-simple',
+                '/api/etf-metrics',
+                '/api/market-status'
+            ];
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(`http://localhost:8080${endpoint}`);
+                    const data = await response.json();
+                    const div = document.createElement('div');
+                    div.innerHTML = `
+                        <h3>${endpoint}</h3>
+                        <p>Status: ${response.status}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                        <hr>
+                    `;
+                    results.appendChild(div);
+                } catch (error) {
+                    const div = document.createElement('div');
+                    div.innerHTML = `
+                        <h3>${endpoint}</h3>
+                        <p style="color: red">Error: ${error.message}</p>
+                        <hr>
+                    `;
+                    results.appendChild(div);
+                }
+            }
+        }
+        
+        testEndpoints();
+    </script>
+</body>
+</html>

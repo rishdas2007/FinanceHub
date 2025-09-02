@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Final Dashboard Test</title>
+    <style>
+        body { margin: 0; padding: 20px; font-family: monospace; }
+        .status { padding: 10px; margin: 10px 0; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>Dashboard Component Test</h1>
+    
+    <div id="api-status"></div>
+    <div id="component-status"></div>
+    
+    <h2>Dashboard Preview:</h2>
+    <iframe 
+        id="dashboard"
+        src="http://localhost:8080/" 
+        width="100%" 
+        height="800" 
+        style="border: 2px solid #333;">
+    </iframe>
+    
+    <script>
+        const apiStatus = document.getElementById('api-status');
+        const componentStatus = document.getElementById('component-status');
+        
+        // Test API endpoints
+        async function testAPIs() {
+            const endpoints = ['/api/etf/robust', '/api/economic-calendar-simple'];
+            let allGood = true;
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(`http://localhost:8080${endpoint}`);
+                    const data = await response.json();
+                    
+                    const isArray = Array.isArray(data);
+                    const hasData = isArray ? data.length > 0 : data?.data?.events?.length > 0;
+                    
+                    if (hasData) {
+                        apiStatus.innerHTML += `<div class="status success">\u2705 ${endpoint}: ${isArray ? data.length : data.data.events.length} items</div>`;
+                    } else {
+                        apiStatus.innerHTML += `<div class="status error">\u274c ${endpoint}: No data</div>`;
+                        allGood = false;
+                    }
+                } catch (error) {
+                    apiStatus.innerHTML += `<div class="status error">\u274c ${endpoint}: ${error.message}</div>`;
+                    allGood = false;
+                }
+            }
+            
+            return allGood;
+        }
+        
+        // Check if components rendered
+        function checkComponents() {
+            const iframe = document.getElementById('dashboard');
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            
+            // Wait for React to mount
+            setTimeout(() => {
+                const root = iframeDoc.getElementById('root');
+                const hasReact = root && root.children.length > 0;
+                
+                if (hasReact) {
+                    componentStatus.innerHTML = '<div class="status success">\u2705 React app mounted</div>';
+                    
+                    // Check for specific elements
+                    const checks = [
+                        { selector: 'header', name: 'Header' },
+                        { selector: 'h1', name: 'Title' },
+                        { selector: 'table', name: 'Data Table' },
+                        { selector: 'tbody tr', name: 'Table Rows' },
+                        { selector: '.bg-financial-card', name: 'Card Components' }
+                    ];
+                    
+                    checks.forEach(check => {
+                        const elements = iframeDoc.querySelectorAll(check.selector);
+                        if (elements.length > 0) {
+                            componentStatus.innerHTML += `<div class="status success">\u2705 ${check.name}: ${elements.length} found</div>`;
+                        } else {
+                            componentStatus.innerHTML += `<div class="status error">\u274c ${check.name}: Not found</div>`;
+                        }
+                    });
+                    
+                    // Check console for diagnostic logs
+                    if (iframe.contentWindow.console) {
+                        componentStatus.innerHTML += '<div class="status info">\ud83d\udd0d Check browser console for component diagnostic logs</div>';
+                    }
+                } else {
+                    componentStatus.innerHTML = '<div class="status error">\u274c React app not mounted</div>';
+                }
+            }, 5000); // Wait 5 seconds for app to load
+        }
+        
+        // Run tests
+        (async () => {
+            apiStatus.innerHTML = '<div class="status info">Testing API endpoints...</div>';
+            const apisOk = await testAPIs();
+            
+            if (apisOk) {
+                componentStatus.innerHTML = '<div class="status info">Waiting for React components to load...</div>';
+                checkComponents();
+            } else {
+                componentStatus.innerHTML = '<div class="status error">Fix API issues first</div>';
+            }
+        })();
+    </script>
+</body>
+</html>

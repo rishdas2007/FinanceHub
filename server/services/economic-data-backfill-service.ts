@@ -1,10 +1,8 @@
 import { db } from '../db/index.js';
 import { economicIndicatorsCurrent, economicIndicatorsHistory } from '../../shared/schema.js';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
-import pino from 'pino';
+import { logger } from '../utils/logger.js';
 import fetch from 'node-fetch';
-
-const logger = pino({ name: 'EconomicDataBackfillService' });
 
 interface FREDApiResponse {
   observations: Array<{

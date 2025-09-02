@@ -1,7 +1,6 @@
 import { Router } from 'express';
-import { economicCalendarService } from '../services/economic-calendar-service';
-import { economicDataQualityService } from '../services/economic-data-quality';
-import { logger } from '../../shared/utils/logger';
+import { economicCalendarPG } from '../services/economic-calendar-pg';
+import { logger } from '../utils/logger';
 
 const router = Router();
 
@@ -37,7 +36,7 @@ router.get('/', async (req, res) => {
 
     const startTime = Date.now();
     
-    const result = await economicCalendarService.getCalendarData({
+    const result = await economicCalendarPG.getCalendarData({
       startDate: startDate as string,
       endDate: endDate as string,
       category: category as string,
@@ -94,7 +93,7 @@ router.get('/recent', async (req, res) => {
     logger.info('📈 [ECONOMIC CALENDAR] GET recent releases');
     
     const startTime = Date.now();
-    const data = await economicCalendarService.getRecentReleases();
+    const data = await economicCalendarPG.getRecentReleases();
     const responseTime = Date.now() - startTime;
 
     logger.info(`✅ [ECONOMIC CALENDAR] Recent releases retrieved: ${data.length} records (${responseTime}ms)`);
@@ -139,7 +138,7 @@ router.get('/category/:category', async (req, res) => {
     logger.info(`📊 [ECONOMIC CALENDAR] GET category: ${category}`);
     
     const startTime = Date.now();
-    const data = await economicCalendarService.getByCategory(category);
+    const data = await economicCalendarPG.getByCategory(category);
     const responseTime = Date.now() - startTime;
 
     logger.info(`✅ [ECONOMIC CALENDAR] Category data retrieved: ${data.length} records for ${category} (${responseTime}ms)`);
@@ -228,7 +227,7 @@ router.get('/stats', async (req, res) => {
     const startTime = Date.now();
     
     // Get comprehensive stats in a single query
-    const result = await economicCalendarService.getCalendarData({
+    const result = await economicCalendarPG.getCalendarData({
       limit: 1 // We only need the metadata, not the actual data
     });
 
@@ -272,7 +271,7 @@ router.get('/critical', async (req, res) => {
     logger.info('⚡ [ECONOMIC CALENDAR] GET critical indicators');
     
     const startTime = Date.now();
-    const data = await economicCalendarService.getCriticalIndicators();
+    const data = await economicCalendarPG.getCriticalIndicators();
     const responseTime = Date.now() - startTime;
 
     logger.info(`✅ [ECONOMIC CALENDAR] Critical indicators retrieved: ${data.length} records (${responseTime}ms)`);
@@ -321,7 +320,7 @@ router.get('/signals', async (req, res) => {
     });
     
     const startTime = Date.now();
-    const data = await economicCalendarService.getInvestmentSignals({
+    const data = await economicCalendarPG.getInvestmentSignals({
       signalType: signalType as any,
       minStrength: parseFloat(minStrength as string),
       categories: categoriesArray as string[],

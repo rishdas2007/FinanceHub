@@ -1,19 +1,7 @@
-import pino from 'pino';
+import { logger } from '../utils/logger.js';
 import { DataQualityValidator } from './data-quality-validator';
 import { VolatilityRegimeDetector } from './volatility-regime-detector';
 import { getAssetClassConfig } from './standardized-window-sizes';
-
-const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
-  transport: {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      translateTime: 'HH:MM:ss',
-      ignore: 'pid,hostname'
-    }
-  }
-});
 
 /**
  * Centralized Z-Score Service

@@ -1,34 +1,12 @@
 /**
- * Structured logging middleware using Pino
+ * Structured logging middleware
  */
 
-import pino from 'pino';
+import { logger } from '../utils/logger.js';
 import type { Request, Response, NextFunction } from 'express';
 
-// Create logger instance
-export const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
-  transport: process.env.NODE_ENV === 'development' 
-    ? { 
-        target: 'pino-pretty',
-        options: {
-          colorize: true,
-          translateTime: 'HH:MM:ss',
-          ignore: 'pid,hostname'
-        }
-      } 
-    : undefined,
-  formatters: {
-    level: (label) => {
-      return { level: label };
-    }
-  },
-  timestamp: pino.stdTimeFunctions.isoTime,
-  base: {
-    pid: process.pid,
-    hostname: process.env.HOSTNAME || 'unknown'
-  }
-});
+// Export logger for compatibility
+export { logger };
 
 // Request logging middleware
 export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
@@ -39,51 +17,47 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
   logger.info({
     requestId,
     method: req.method,
-    path: req.path,
+    url: req.url,
     query: req.query,
-    userAgent: req.get('User-Agent'),
     ip: req.ip,
-    contentLength: req.get('Content-Length')
+    userAgent: req.headers['user-agent']
   }, 'Incoming request');
 
-  // Capture response data
-  const originalSend = res.json;
-  let responseBody: any;
-
-  res.json = function(body) {
-    responseBody = body;
-    return originalSend.call(this, body);
-  };
-
-  res.on('finish', () => {
+  // Override res.end to log response
+  const originalEnd = res.end;
+  res.end = function(...args: any[]) {
     const duration = Date.now() - start;
-    const logLevel = res.statusCode >= 400 ? 'error' : 'info';
-
-    logger[logLevel]({
+    
+    logger.info({
       requestId,
       method: req.method,
-      path: req.path,
+      url: req.url,
       statusCode: res.statusCode,
       duration,
-      responseSize: res.get('Content-Length'),
-      // Only log response body in development for non-sensitive data
-      ...(process.env.NODE_ENV === 'development' && res.statusCode >= 400 && {
-        responseBody: typeof responseBody === 'object' ? JSON.stringify(responseBody).slice(0, 500) : undefined
-      })
+      contentLength: res.get('content-length')
     }, 'Request completed');
-  });
+
+    // Call original end
+    return originalEnd.apply(res, args);
+  };
 
   next();
 };
 
-// Health check logging (less verbose)
-export const healthCheckLogger = (req: Request, res: Response, next: NextFunction) => {
-  if (req.path === '/health' || req.path === '/ping') {
-    // Skip detailed logging for health checks
-    return next();
-  }
-  return requestLogger(req, res, next);
-};
+// Error logging middleware
+export const errorLogger = (err: Error, req: Request, res: Response, next: NextFunction) => {
+  const requestId = req.headers['x-request-id'] as string;
+  
+  logger.error({
+    requestId,
+    method: req.method,
+    url: req.url,
+    error: {
+      name: err.name,
+      message: err.message,
+      stack: err.stack
+    }
+  }, 'Request error');
 
-// Export logger for use in other modules
-export { logger as default };
+  next(err);
+};

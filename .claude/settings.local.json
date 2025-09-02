@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(NODE_ENV=production PORT=8080 timeout 10 node start-production.js)"
+      "Bash(NODE_ENV=production PORT=8080 timeout 10 node start-production.js)",
+      "Bash(find:*)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []
