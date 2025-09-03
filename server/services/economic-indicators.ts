@@ -198,34 +198,13 @@ class EconomicIndicatorsService {
         return cachedData as EconomicIndicator[];
       }
 
-      logger.info('📊 Loading economic indicators from OpenAI (daily refresh)...');
+      logger.info('📊 Loading economic indicators from fallback data...');
       
-      // Get base indicators from OpenAI (cached for 24 hours internally)
-      const { openaiEconomicIndicatorsService } = await import('./openai-economic-indicators');
-      const baseIndicators = await openaiEconomicIndicatorsService.generateEconomicIndicators();
+      // Fallback to static indicators since OpenAI services were removed
+      const baseIndicators = this.getFallbackIndicators();
       
-      // Convert to our EconomicIndicator format
-      const convertedIndicators: EconomicIndicator[] = baseIndicators.map(indicator => {
-        // Parse current value to extract numeric part
-        const numericValue = this.parseNumericValue(indicator.current);
-        
-        return {
-          metric: indicator.metric,
-          type: indicator.type,
-          category: indicator.category,
-          current: numericValue,
-          forecast: null, // OpenAI doesn't provide forecast
-          vsForecast: null,
-          prior: null,
-          vsPrior: null,
-          zScore: null, // Will be calculated if historical data available
-          yoyChange: null, // Will be calculated if historical data available
-          threeMonthAnnualized: null,
-          unit: this.extractUnit(indicator.current),
-          frequency: 'monthly', // Default frequency
-          lastUpdated: indicator.lastUpdated
-        };
-      });
+      // Use fallback indicators directly
+      const convertedIndicators: EconomicIndicator[] = baseIndicators;
       
       // Try to enhance with calculated metrics if historical data available
       const enhancedIndicators = await this.tryAddCalculatedMetrics(convertedIndicators);

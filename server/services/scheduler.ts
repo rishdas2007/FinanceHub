@@ -184,20 +184,17 @@ export class DataScheduler {
       timezone: "America/New_York"
     });
 
-    // FRED removed - OpenAI economic data auto-updates at 3 PM EST
+    // OpenAI services removed - cache cleanup only
     cron.schedule('0 15 * * 1-5', async () => {
-      console.log('📊 OpenAI: Daily economic data refresh at 3 PM EST...');
+      console.log('🧹 Daily cache cleanup at 3 PM EST...');
       try {
-        // Invalidate OpenAI economic indicators cache to trigger fresh generation
-        const { openaiEconomicIndicatorsService } = await import('./openai-economic-indicators');
-        await openaiEconomicIndicatorsService.invalidateCache();
-        
         const { cacheService } = await import('./cache-unified');
         cacheService.delete("economic-indicators-openai-daily-v1");
+        cacheService.delete("economic-indicators-cache");
         
-        console.log('✅ OpenAI: Economic data cache refreshed successfully');
+        console.log('✅ Daily cache cleanup completed successfully');
       } catch (error) {
-        console.error('❌ OpenAI: Economic data refresh failed:', error);
+        console.error('❌ Daily cache cleanup failed:', error);
       }
     }, {
       timezone: "America/New_York"
