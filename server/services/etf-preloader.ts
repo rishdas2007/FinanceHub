@@ -40,10 +40,11 @@ class ETFPreloaderService {
       // Preload immediately
       await this.preloadETFMetrics();
 
-      // Set up recurring preload
-      this.preloadInterval = setInterval(async () => {
-        await this.preloadETFMetrics();
-      }, preloadInterval);
+      // DISABLED: ETF preloader intervals causing memory crashes
+      // Set up recurring preload - TOO AGGRESSIVE (90s-10min intervals)
+      // this.preloadInterval = setInterval(async () => {
+      //   await this.preloadETFMetrics();
+      // }, preloadInterval);
 
       logger.info(`⚡ ETF preloader service started with ${preloadInterval}ms intervals`);
     } catch (error) {

@@ -22,13 +22,14 @@ export class DataStalenessPrevention {
 
     logger.info('🛡️  Starting proactive data staleness prevention monitoring');
     
-    // Monitor every 4 hours during market days
-    this.monitoringInterval = setInterval(async () => {
-      await this.performStaleDataCheck();
-    }, 4 * 60 * 60 * 1000); // 4 hours
+    // DISABLED: 4-hour monitoring causing memory compound and 4GB+ crashes
+    // Monitor every 4 hours during market days - TOO FREQUENT!
+    // this.monitoringInterval = setInterval(async () => {
+    //   await this.performStaleDataCheck();
+    // }, 4 * 60 * 60 * 1000); // 4 hours
 
-    // Initial check
-    setTimeout(() => this.performStaleDataCheck(), 5000); // Check after 5 seconds
+    // Initial check - DISABLED to prevent immediate memory pressure
+    // setTimeout(() => this.performStaleDataCheck(), 5000); // Check after 5 seconds
 
     this.isMonitoringActive = true;
     logger.info('✅ Preventive monitoring started - checking every 4 hours');
