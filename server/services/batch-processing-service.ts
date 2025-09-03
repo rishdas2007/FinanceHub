@@ -141,11 +141,12 @@ export class BatchProcessingService {
     
     this.isRunning = true;
     
-    setInterval(async () => {
-      await this.processBatches();
-    }, this.processingInterval);
+    // DISABLED: Batch processing intervals causing memory compound and 4GB+ crashes
+    // setInterval(async () => {
+    //   await this.processBatches();
+    // }, this.processingInterval);
     
-    logger.info('🔄 Batch processor started');
+    logger.info('🔄 Batch processor DISABLED to prevent memory crashes');
   }
 
   /**

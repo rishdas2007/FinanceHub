@@ -131,13 +131,14 @@ export class DataIntegrityValidator {
   setupPreventiveMonitoring(): void {
     logger.info('🛡️  Setting up preventive data monitoring');
     
-    // Schedule daily integrity checks
-    setInterval(async () => {
-      await this.dailyDataIntegrityCheck();
-    }, 24 * 60 * 60 * 1000); // Daily
+    // DISABLED: Daily integrity checks causing memory compound and 4GB+ crashes
+    // Schedule daily integrity checks - MEMORY LEAK SOURCE!
+    // setInterval(async () => {
+    //   await this.dailyDataIntegrityCheck();
+    // }, 24 * 60 * 60 * 1000); // Daily
     
     // Monitor for data insertion patterns that might indicate staleness
-    logger.info('📅 Scheduled daily data integrity monitoring');
+    logger.info('📅 Data integrity monitoring DISABLED to prevent memory crashes');
   }
 }
 

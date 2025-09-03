@@ -29,13 +29,14 @@ export class UnifiedDataRefreshScheduler {
     // Schedule daily refresh at 6:00 AM EST
     this.scheduleNextDailyRefresh();
     
-    // Backup monitoring every 4 hours to catch stale data
-    this.refreshInterval = setInterval(async () => {
-      await this.performStalenessCheck();
-    }, 4 * 60 * 60 * 1000); // 4 hours
+    // DISABLED: 4-hour monitoring causing memory compound and 4GB+ crashes
+    // Backup monitoring every 4 hours to catch stale data - MEMORY LEAK!
+    // this.refreshInterval = setInterval(async () => {
+    //   await this.performStalenessCheck();
+    // }, 4 * 60 * 60 * 1000); // 4 hours
 
-    // Initial check after startup
-    setTimeout(() => this.performStalenessCheck(), 10000);
+    // Initial check after startup - DISABLED to prevent memory pressure
+    // setTimeout(() => this.performStalenessCheck(), 10000);
     
     this.isRunning = true;
     logger.info('✅ Unified refresh scheduler started - daily refresh at 6AM EST with 4-hour monitoring');
