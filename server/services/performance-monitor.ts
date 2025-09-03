@@ -707,7 +707,12 @@ export class PerformanceMonitor {
     // Check various health indicators
     if (summary.errorRate > 10) {
       issues.push(`High error rate: ${summary.errorRate.toFixed(1)}%`);
-      status = 'unhealthy';
+      if (summary.totalRequests >= 10) {
+        status = 'unhealthy';
+      } else if (status === 'healthy') {
+        // With a very small sample size, treat the high error rate as degraded
+        status = 'degraded';
+      }
     } else if (summary.errorRate > 5) {
       issues.push(`Elevated error rate: ${summary.errorRate.toFixed(1)}%`);
       if (status === 'healthy') status = 'degraded';
