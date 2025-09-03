@@ -160,6 +160,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Live Demo**: [https://your-replit-url.replit.app](https://719f66fe-5d99-46e3-807b-82ae03bf00d5-00-3dmdpf2rwqm1n.riker.replit.dev)
+**Live Demo**: [https://financial-tracker-rishabhdas07.replit.app/](https://financial-tracker-rishabhdas07.replit.app/)
 
 *Built with ❤️ for the financial community*
